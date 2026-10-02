@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gda-sync"
+dynamic = ["version"]
+description = "A local-first studio asset sync application for Linux and Windows"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn>=0.30",
+  "numpy>=1.26",
+]
+
+[project.optional-dependencies]
+dev = [
+  "httpx2>=2.13",
+  "pytest>=8",
+  "playwright>=1.50",
+  "pyinstaller>=6.10",
+]
+
+[project.scripts]
+gda-sync = "gda_sync.__main__:main"
+
+[tool.setuptools.dynamic]
+version = { attr = "gda_sync.__version__" }
+
+[tool.setuptools.packages.find]
+include = ["gda_sync*"]
+
+[tool.setuptools.package-data]
+gda_sync = ["static/**/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+markers = ["e2e: browser tests that need the built frontend and Playwright Chromium"]
