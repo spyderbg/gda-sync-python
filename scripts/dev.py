@@ -39,8 +39,7 @@ def main() -> int:
     node, npm = shutil.which("node"), shutil.which("npm")
     if not node or not npm:
         raise SystemExit("Node.js 20.19+ and npm are required for development mode.")
-    if not (FRONTEND / "node_modules").is_dir():
-        subprocess.run([npm, "ci"], cwd=FRONTEND, check=True)
+    subprocess.run([npm, "ci"], cwd=FRONTEND, check=True)
     # Run Vite directly rather than through npm, so stopping it stops a single process on every platform.
     vite = subprocess.Popen([node, str(FRONTEND / "node_modules" / "vite" / "bin" / "vite.js")], cwd=FRONTEND)
     backend = None
