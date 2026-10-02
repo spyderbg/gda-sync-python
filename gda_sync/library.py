@@ -133,8 +133,9 @@ def safe_path(root: str, relative: str, create_parents: bool = False) -> str:
 
 
 class Library:
-    def __init__(self, home: str):
+    def __init__(self, home: str, *, config_path: str | None = None):
         self.home = os.path.abspath(home)
+        self.config_path = os.path.abspath(config_path or os.path.join(self.home, "workspace.json"))
         self.config: dict = {}
         self.activity: list[dict] = []
         self._operation = threading.Lock()
@@ -149,49 +150,84 @@ class Library:
     def init(self) -> None:
         os.makedirs(self.home, exist_ok=True)
         try:
-            with open(os.path.join(self.home, "workspace.json"), encoding="utf-8") as handle:
-                config = json.load(handle)
-            if not all(isinstance(config.get(key), str) for key in ("name", "source", "destination")):
-                raise ValueError("Missing workspace fields")
-            self.config = {**config, "demo": bool(config.get("demo"))}
+            self.config = self._read_config(self.config_path)
         except FileNotFoundError:
-            self.config = seed_demo(self.home)
+            # Keep an existing user's connection when first adopting a project-local configuration.
+            persisted = os.path.join(self.home, "workspace.json")
+            try:
+                self.config = self._read_config(persisted)
+            except FileNotFoundError:
+                self.config = seed_demo(self.home)
             self._save_config()
-        except (OSError, ValueError, AttributeError) as error:
-            raise RuntimeError("Could not read workspace.json. Fix the configuration before starting.") from error
-        # Resolve roots once; nested symbolic links are deliberately skipped.
-        self.config["source"] = os.path.realpath(self.config["source"], strict=True)
-        self.config["destination"] = os.path.realpath(self.config["destination"], strict=True)
         try:
             with open(os.path.join(self.home, "activity.json"), encoding="utf-8") as handle:
                 self.activity = json.load(handle)
         except FileNotFoundError:
             pass
 
+    def _read_config(self, file: str) -> dict:
+        try:
+            with open(file, encoding="utf-8-sig") as handle:
+                config = json.load(handle)
+            if not isinstance(config, dict) or not all(isinstance(config.get(key), str) for key in ("name", "source", "destination")):
+                raise TypeError("Expected name, source and destination text fields")
+            if not isinstance(config.get("demo", False), bool):
+                raise TypeError("demo must be true or false")
+            settings = self._validated_settings(config["name"], config["source"], config["destination"])
+            return {**settings, "demo": config.get("demo", False)}
+        except FileNotFoundError:
+            raise
+        except (OSError, ValueError, TypeError, AppError) as error:
+            raise RuntimeError(
+                f"Could not read workspace.json ({file}). Fix the configuration before starting: {error_message(error)}"
+            ) from error
+
+    def _validated_settings(self, name: str, source: str, destination: str) -> dict[str, str]:
+        if not name.strip() or len(name) > 80:
+            raise AppError("Enter a project name of 1–80 characters")
+        if not os.path.isabs(source) or not os.path.isabs(destination):
+            raise AppError("Use absolute folder paths")
+        try:
+            real_source = os.path.realpath(source, strict=True)
+            real_destination = os.path.realpath(destination, strict=True)
+        except OSError as error:
+            raise AppError("Both folders must exist before you connect them") from error
+        if not os.path.isdir(real_source) or not os.path.isdir(real_destination):
+            raise AppError("Both paths must be folders")
+        if contained(real_source, real_destination) or contained(real_destination, real_source):
+            raise AppError("Source and GDA folders must be separate, without nesting")
+        if contained(real_source, self.home) or contained(real_destination, self.home):
+            raise AppError("Choose folders outside the application data directory’s parents")
+        if not os.access(real_source, os.R_OK) or not os.access(real_destination, os.W_OK):
+            raise AppError("The source must be readable and the GDA folder must be writable")
+        return {"name": name.strip(), "source": real_source, "destination": real_destination}
+
     @property
     def backup_path(self) -> str:
         return os.path.join(self.home, "backups")
 
-    def _write_json(self, name: str, data: object) -> None:
-        temporary = os.path.join(self.home, f".{name}-{uuid.uuid4()}")
+    def _write_json(self, file: str, data: object) -> None:
+        folder = os.path.dirname(file)
+        os.makedirs(folder, exist_ok=True)
+        temporary = os.path.join(folder, f".{os.path.basename(file)}-{uuid.uuid4()}")
         try:
             with open(temporary, "w", encoding="utf-8") as handle:
                 json.dump(data, handle, indent=2, ensure_ascii=False)
-            os.replace(temporary, os.path.join(self.home, name))
+            os.replace(temporary, file)
         except BaseException:
             if os.path.exists(temporary):
                 os.unlink(temporary)
             raise
 
     def _save_config(self) -> None:
-        self._write_json("workspace.json", self.config)
+        self._write_json(self.config_path, self.config)
 
     def _record(self, action: str, message: str, files: list[str] | None = None, size: int | None = None) -> None:
         entry: dict = {"id": str(uuid.uuid4()), "date": iso_time(), "action": action, "message": message, "files": files or []}
         if size is not None:
             entry["bytes"] = size
         self.activity = [entry, *self.activity][:HISTORY_LIMIT]
-        self._write_json("activity.json", self.activity)
+        self._write_json(os.path.join(self.home, "activity.json"), self.activity)
 
     def _exclusive(self, operation: Callable[[], T]) -> T:
         if not self._operation.acquire(blocking=False):
@@ -296,26 +332,10 @@ class Library:
 
     def update_config(self, name: str, source: str, destination: str) -> dict:
         def operation() -> dict:
-            if not name.strip() or len(name) > 80:
-                raise AppError("Enter a project name of 1–80 characters")
-            if not os.path.isabs(source) or not os.path.isabs(destination):
-                raise AppError("Use absolute folder paths")
-            try:
-                real_source = os.path.realpath(source, strict=True)
-                real_destination = os.path.realpath(destination, strict=True)
-            except OSError as error:
-                raise AppError("Both folders must exist before you connect them") from error
-            if not os.path.isdir(real_source) or not os.path.isdir(real_destination):
-                raise AppError("Both paths must be folders")
-            if contained(real_source, real_destination) or contained(real_destination, real_source):
-                raise AppError("Source and GDA folders must be separate, without nesting")
-            if contained(real_source, self.home) or contained(real_destination, self.home):
-                raise AppError("Choose folders outside the application data directory’s parents")
-            if not os.access(real_source, os.R_OK) or not os.access(real_destination, os.W_OK):
-                raise AppError("The source must be readable and the GDA folder must be writable")
+            settings = self._validated_settings(name, source, destination)
             previous = self.config
-            demo = real_source == previous["source"] and real_destination == previous["destination"] and previous["demo"]
-            self.config = {"name": name.strip(), "source": real_source, "destination": real_destination, "demo": demo}
+            demo = settings["source"] == previous["source"] and settings["destination"] == previous["destination"] and previous["demo"]
+            self.config = {**settings, "demo": demo}
             try:
                 self._save_config()
             except BaseException:

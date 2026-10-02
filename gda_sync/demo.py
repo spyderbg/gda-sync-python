@@ -110,6 +110,9 @@ ENTRIES = (
     ("audio/forest_ambience.wav", "audio", "new"),
 )
 
+# Hours since each entry last changed: an irregular, two-week history that keeps the listing order above.
+AGES_HOURS = (1, 2.5, 4, 7, 11, 16, 22, 30, 41, 55, 72, 96, 125, 160, 200, 250, 310, 380)
+
 OBJ_BODY = "v -1 0 -1\nv 1 0 -1\nv 1 0 1\nv -1 0 1\nv -1 2 -1\nv 1 2 -1\nv 1 2 1\nv -1 2 1\nf 1 2 3 4\nf 5 8 7 6\nf 1 5 6 2\nf 2 6 7 3\nf 3 7 8 4\nf 4 8 5 1\n"
 
 
@@ -152,7 +155,7 @@ def seed_demo(home: str) -> dict:
             data = json.dumps(material, indent=2).encode()
         with open(file, "wb") as output:
             output.write(data)
-        when = now - (index + 1) * 3600
+        when = now - AGES_HOURS[index] * 3600
         os.utime(file, (when, when))
         if status != "new":
             target = os.path.join(destination, *relative.split("/"))

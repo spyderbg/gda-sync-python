@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue';
-import { X } from '@lucide/vue';
 
 defineProps<{ title: string; wide?: boolean }>();
 const emit = defineEmits<{ close: [] }>();
@@ -19,20 +18,28 @@ function onKeydown(event: KeyboardEvent) {
 }
 onMounted(() => {
   previous = document.activeElement as HTMLElement | null;
+  document.body.classList.add('modal-open');
   dialog.value?.querySelector<HTMLElement>('button, input, select, [tabindex="0"]')?.focus();
   document.addEventListener('keydown', onKeydown);
 });
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', onKeydown);
+  document.body.classList.remove('modal-open');
   previous?.focus();
 });
 </script>
 
 <template>
-  <div class="modal-backdrop" @mousedown.self="emit('close')">
-    <div ref="dialog" :class="['modal', { 'modal-wide': wide }]" role="dialog" aria-modal="true" :aria-label="title">
-      <div class="modal-header"><h2>{{ title }}</h2><button class="icon-button" aria-label="Close dialog" @click="emit('close')"><X :size="19" /></button></div>
-      <slot />
+  <div class="modal fade show d-block" role="dialog" aria-modal="true" :aria-label="title" @mousedown.self="emit('close')">
+    <div ref="dialog" :class="['modal-dialog', 'modal-dialog-centered', { 'modal-lg': wide }]" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">{{ title }}</h5>
+          <button type="button" class="close" aria-label="Close dialog" @click="emit('close')"><span aria-hidden="true">&times;</span></button>
+        </div>
+        <slot />
+      </div>
     </div>
   </div>
+  <div class="modal-backdrop fade show" />
 </template>

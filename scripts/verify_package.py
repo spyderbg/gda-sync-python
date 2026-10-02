@@ -122,6 +122,7 @@ def main() -> None:
         browser = playwright.chromium.launch(headless=True)
         page = browser.new_page()
         page.goto(url)
+        page.get_by_role("button", name="Asset library", exact=True).click()
         expect(page.locator(".asset-card")).to_have_count(19)
         poll(lambda: get_json(f"{url}/api/health")["openPages"], 1)
         page.get_by_role("textbox", name="Search assets").fill("k_active_en.dds")
@@ -141,7 +142,7 @@ def main() -> None:
         assert json.loads((data_home / "activity.json").read_text(encoding="utf-8"))[0]["action"] == "sync"
 
         page.reload()
-        expect(page.locator(".asset-card")).to_have_count(19)
+        expect(page.get_by_role("heading", name="Dashboard")).to_be_visible()
         time.sleep(2.2)
         assert get_json(f"{url}/api/health")["openPages"] == 1
         start = time.monotonic()

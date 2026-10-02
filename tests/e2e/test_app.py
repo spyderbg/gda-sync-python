@@ -30,12 +30,18 @@ def natural_size(image):
     return image.evaluate("img => [img.naturalWidth, img.naturalHeight]")
 
 
+def open_library(page):
+    page.goto("/")
+    expect(page.get_by_role("heading", name="Dashboard")).to_be_visible()
+    page.get_by_role("button", name="Asset library", exact=True).click()
+    expect(page.get_by_role("heading", name="Asset library")).to_be_visible()
+
+
 def test_renders_an_offline_asset_library_and_searches_and_filters_actual_files(page, backend):
     errors, requests = [], []
     page.on("pageerror", lambda error: errors.append(str(error)))
     page.on("request", lambda request: None if request.url.startswith(backend.url) else requests.append(request.url))
-    page.goto("/")
-    expect(page.get_by_role("heading", name="Asset library.")).to_be_visible()
+    open_library(page)
     expect(page.locator(".asset-card")).to_have_count(18)
     page.evaluate("() => document.fonts.ready")
     expect(page.locator(".asset-card img").first).to_be_visible()
@@ -59,8 +65,32 @@ def test_renders_an_offline_asset_library_and_searches_and_filters_actual_files(
     assert requests == []
 
 
-def test_supports_list_view_previews_keyboard_shortcuts_and_a_mobile_layout(page):
+def test_dashboard_summarizes_the_workspace_with_the_template_charts(page):
+    errors = []
+    page.on("pageerror", lambda error: errors.append(str(error)))
     page.goto("/")
+    expect(page.get_by_role("heading", name="Dashboard")).to_be_visible()
+    for title in ("Library Statistics Overview", "Asset Mix", "Storage Overview", "Workspace Metrics", "Waiting for Sync"):
+        expect(page.get_by_role("heading", name=title)).to_be_visible()
+    expect(page.locator(".card-body h3").first).to_have_text("18")
+    for chart in ("Total assets over time", "Source changes and synced files over time", "Files per format in sync and waiting for sync",
+                  "Library size as files were added", "Storage per folder by sync status", "Files in sync per asset type", "56% of files in sync"):
+        expect(page.get_by_role("img", name=chart)).to_be_visible()
+    poll(lambda: page.locator("canvas").evaluate_all("canvases => canvases.every(canvas => canvas.width > 0)"), True)
+    month = page.get_by_role("tab", name="1M")
+    month.click()
+    expect(month).to_have_attribute("aria-selected", "true")
+    expect(page.get_by_text("Source changes and files synced to GDA, last 30 days")).to_be_visible()
+    page.get_by_role("button", name="By size").click()
+    page.get_by_role("button", name="By files", exact=True).click()
+    expect(page.get_by_text("Files per top-level folder, by sync status.")).to_be_visible()
+    page.get_by_role("table").get_by_role("cell", name="wooden_crate.obj").click()
+    expect(page.get_by_role("heading", name="wooden_crate.obj")).to_be_visible()
+    assert errors == []
+
+
+def test_supports_list_view_previews_keyboard_shortcuts_and_a_mobile_layout(page):
+    open_library(page)
     expect(page.locator(".asset-card")).to_have_count(18)
     page.get_by_role("button", name="List view", exact=True).click()
     expect(page.locator(".asset-list")).to_be_visible()
@@ -87,13 +117,13 @@ def test_validates_workspace_folders_and_saves_a_project_configuration(page):
     page.get_by_label("GDA destination", exact=True).fill(destination)
     page.get_by_label("Project name", exact=True).fill("Verdant Studio")
     page.get_by_role("button", name="Save connection").click()
-    expect(page.get_by_role("heading", name="Asset library.")).to_be_visible()
+    expect(page.get_by_role("heading", name="Asset library")).to_be_visible()
     page.reload()
-    expect(page.locator(".breadcrumb")).to_contain_text("Verdant Studio")
+    expect(page.locator(".sidebar .profile-name")).to_have_text("Verdant Studio")
 
 
 def test_selection_sync_changes_file_status_and_appears_in_activity_history(page):
-    page.goto("/")
+    open_library(page)
     page.get_by_role("checkbox", name="Select moss_ground_albedo.png", exact=True).check()
     page.get_by_role("button", name="Sync selected").click()
     expect(page.get_by_role("dialog")).to_be_visible()
@@ -184,7 +214,7 @@ def test_renews_an_expired_server_session_and_retries_the_rejected_rescan_once(p
 
     page.route("**/api/session", count_session)
     page.route("**/api/scan", reject_first_scan)
-    page.goto("/")
+    open_library(page)
     expect(page.locator(".asset-card")).to_have_count(19)
     page.get_by_role("button", name="Rescan", exact=True).click()
     expect(page.get_by_role("status")).to_contain_text("19 assets found")

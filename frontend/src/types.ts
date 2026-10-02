@@ -1,6 +1,6 @@
 export type AssetType = 'texture' | 'model' | 'material' | 'audio' | 'other';
 export type AssetStatus = 'new' | 'modified' | 'synced';
-export type View = 'library' | 'pending' | 'synced' | 'activity' | 'settings';
+export type View = 'dashboard' | 'library' | 'pending' | 'synced' | 'activity' | 'settings';
 
 export interface Asset {
   id: string; name: string; path: string; folder: string; extension: string;
