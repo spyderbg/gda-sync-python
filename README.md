@@ -19,7 +19,7 @@ To add **GDA Sync** to your Ubuntu application menu and `~/.local/bin`:
 ./scripts/install-desktop.sh
 ```
 
-The Linux installer works entirely in your user account, with no `sudo`. The Windows executable runs from any folder without installation.
+The Linux installer works entirely in your user account, with no `sudo`, and copies `workspace.json` alongside the installed executable on first installation. Reinstalling preserves the installed configuration. The Windows executable runs from any folder without installation; keep its `workspace.json` next to it.
 
 **The backend stops when you close the page.** The page keeps an event-stream connection to the backend; closing or navigating away from the last GDA Sync page stops the backend after a two-second grace period. Refreshing reconnects during that grace period, and another open GDA Sync tab keeps the app running. Switching tabs or minimizing the browser keeps it running. Active file copies finish before shutdown. You can also use Workspace settings → Stop application to quit immediately.
 
@@ -27,7 +27,7 @@ The Linux installer works entirely in your user account, with no `sudo`. The Win
 
 The app opens on the **Dashboard**, which follows the StarAdmin dashboard layout: totals with trend lines, source changes and synced files over time (1D, 1W, 1M, or all), the file-format mix, storage per folder and status, sync coverage per asset type, the share of the library in sync, the assets waiting for sync, the largest assets, recent changes, sync activity, and folders.
 
-The first launch creates the **Verdant** workspace with 18 real sample files: textures, DDS maps, OBJ models, materials, and audio. Five assets are new, three are modified, and ten are already in sync.
+Launching without an existing workspace configuration creates the **Verdant** workspace with 18 real sample files: textures, DDS maps, OBJ models, materials, and audio. Five assets are new, three are modified, and ten are already in sync.
 
 - Search names and folder paths; filter by type, format, or status.
 - Switch between grid and list views; sort by name, size, or modification time.
@@ -61,13 +61,19 @@ Edit `config/workspace.json` with your project name and the absolute paths of tw
 
 If no project configuration exists, the first launch creates it from your previously saved workspace, or starts the Verdant demo for a new user. Generated demo settings also include an internal `demo` flag; omit it when configuring your own folders.
 
-Standalone executables keep using `<app-data>/workspace.json` in the data directory below. Setting `GDA_SYNC_HOME` also uses `<GDA_SYNC_HOME>/workspace.json`, including when running from the project. For those launches, copy the same template to that location and edit it before starting.
+### Packaged applications
+
+**Packaging copies `config/workspace.json` to `dist/workspace.json`**, beside `gda-sync` or `gda-sync.exe`. Configure the source file before running `python scripts/package.py`. Each packaging run refreshes the copy. Distribute or move the executable and this configuration together, and adjust folder paths for the destination machine. Both targets share `dist/workspace.json` when building with `--target all`.
+
+The packaged application always loads `workspace.json` beside the actual executable, even when launched from another folder or through a symlink. Saving Workspace settings updates that same file; manual edits take effect on the next launch. The launcher prints the active configuration path. Invalid JSON or invalid folders stop startup with an explanation.
+
+`GDA_SYNC_HOME` controls the data directory. For project launches it also selects `<GDA_SYNC_HOME>/workspace.json`; packaged executables continue to use the configuration beside them. If a packaged configuration is missing, the app recreates it from saved settings or a new demo. The executable directory must be writable to save settings.
 
 ## File behavior
 
 Sync is one-way: source → GDA. Relative subfolders and original file bytes are preserved. File size and SHA-256 contents determine whether a destination matches. Copies use temporary files in the destination folder and an atomic rename. Source changes during copying are rejected. Existing destination files are backed up before replacement. Source files and extra GDA files are never deleted.
 
-History, demo files, backups, and the configuration for standalone executables use these default data directories:
+History, demo files, and backups use these default data directories:
 
 - Linux: `${XDG_DATA_HOME:-~/.local/share}/gda-sync/`
 - Windows: `%LOCALAPPDATA%\GDA Sync\` (normally `C:\Users\<user>\AppData\Local\GDA Sync\`)
@@ -76,7 +82,7 @@ Both use this layout:
 
 ```text
 <app-data>/
-├── workspace.json          # Standalone executables / GDA_SYNC_HOME overrides
+├── workspace.json          # Legacy settings / project GDA_SYNC_HOME overrides
 ├── activity.json
 ├── demo/source/
 ├── demo/gda/
@@ -125,7 +131,7 @@ Executables are built with PyInstaller from `bundle/gda-sync.spec`, as one file 
 - NumPy and Python 3.12 need Windows APIs that Wine implements from version 11. If the system Wine is older, the build downloads the official WineHQ 11.0 packages for Ubuntu 24.04 (pinned by SHA-256 from WineHQ's signed package index) and unpacks them without installing anything system-wide.
 - These downloads, the Wine prefix, and the Windows Python are cached outside the project in `${XDG_CACHE_HOME:-~/.cache}/gda-sync-build` (override with `GDA_SYNC_BUILD_CACHE`). Later builds reuse them offline.
 
-`verify_package.py` uses isolated app-data directories (and an isolated Wine prefix) and checks the first launch, demo, model and BC7 previews, sync and backups, persistence, refresh, and automatic process exit on page close. Windows verification on Linux uses Wine; a check on a real Windows desktop is still recommended before distribution.
+`verify_package.py` copies the executable to an isolated directory with a test `workspace.json`, launches from a different folder, and checks that the packaged settings load and save beside the executable. It also checks demo assets, model and BC7 previews, sync and backups, persistence, refresh, and automatic process exit on page close, using isolated app-data directories (and an isolated Wine prefix). Windows verification on Linux uses Wine; a check on a real Windows desktop is still recommended before distribution.
 
 ### Launch options
 
@@ -155,10 +161,10 @@ frontend/        Vue 3 + TypeScript interface (Vite), Chart.js charts, and app s
   src/theme/     StarAdmin template SCSS (Bootstrap 4), compiled with the interface
 bundle/          PyInstaller specification and executable entry point
 scripts/         Build, development, packaging, package verification, Ubuntu desktop installation
-config/          Local startup workspace.json (Git ignored) and copyable config.json.template
+config/          Git-ignored workspace.json and the shared config.json.template
 tests/           Backend, API and lifecycle tests; tests/e2e has the browser workflow tests
 build/           Generated screenshots and PyInstaller work files
-dist/            Generated standalone Linux and Windows executables
+dist/            Generated standalone Linux and Windows executables with workspace.json
 ```
 
 | Module | Responsibility |

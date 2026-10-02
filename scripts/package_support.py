@@ -82,6 +82,20 @@ def package_targets(target: str | None, platform: str = sys.platform) -> list[st
     return targets
 
 
+def workspace_configuration() -> Path:
+    config = ROOT / "config" / "workspace.json"
+    if not config.is_file():
+        raise SystemExit("Copy config/config.json.template to config/workspace.json and configure your workspace before packaging.")
+    return config
+
+
+def copy_workspace_configuration(executable: Path) -> Path:
+    """Ship editable settings next to either platform's executable."""
+    config = executable.parent / "workspace.json"
+    shutil.copy2(workspace_configuration(), config)
+    return config
+
+
 def build_frontend() -> None:
     npm = shutil.which("npm")
     if not npm:

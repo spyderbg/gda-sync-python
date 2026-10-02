@@ -152,7 +152,7 @@ class Library:
         try:
             self.config = self._read_config(self.config_path)
         except FileNotFoundError:
-            # Keep an existing user's connection when first adopting a project-local configuration.
+            # Keep an existing user's connection when first adopting a project-local or packaged configuration.
             persisted = os.path.join(self.home, "workspace.json")
             try:
                 self.config = self._read_config(persisted)

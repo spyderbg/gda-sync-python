@@ -20,12 +20,10 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 
 def workspace_config_path(data_home: str) -> str:
-    """Use project settings in a checkout, and per-user settings for installed apps or isolated runs."""
-    if (
-        not getattr(sys, "frozen", False)
-        and not os.environ.get("GDA_SYNC_HOME")
-        and (PROJECT_ROOT / "config" / "config.json.template").is_file()
-    ):
+    """Use project settings in a checkout, and settings beside the executable for packaged apps."""
+    if getattr(sys, "frozen", False):
+        return str(Path(sys.executable).resolve().parent / "workspace.json")
+    if not os.environ.get("GDA_SYNC_HOME") and (PROJECT_ROOT / "config" / "config.json.template").is_file():
         return str(PROJECT_ROOT / "config" / "workspace.json")
     return os.path.join(data_home, "workspace.json")
 
