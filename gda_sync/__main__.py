@@ -6,6 +6,7 @@ import signal
 import sys
 import threading
 import urllib.request
+from pathlib import Path
 
 from . import APP_ID
 from .desktop import application_data_home, open_on_desktop
@@ -15,6 +16,16 @@ from .runtime import AppServer, bind_local_socket, is_address_in_use
 from .server import DEV_UI, create_app
 
 DEFAULT_PORT = 3456
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+
+def workspace_config_path(data_home: str) -> str:
+    """Packaged apps use the editable settings beside the real executable, including through symlinks."""
+    if getattr(sys, "frozen", False):
+        return str(Path(sys.executable).resolve().parent / "workspace.json")
+    if not os.environ.get("GDA_SYNC_HOME") and (PROJECT_ROOT / "config" / "config.json.template").is_file():
+        return str(PROJECT_ROOT / "config" / "workspace.json")
+    return os.path.join(data_home, "workspace.json")
 
 
 def _port() -> int:
@@ -51,7 +62,7 @@ def run(argv: list[str]) -> int:
     dev = os.environ.get("GDA_SYNC_DEV") == "1"
     should_open = "--no-open" not in argv and os.environ.get("GDA_SYNC_NO_OPEN") != "1"
     url = DEV_UI if dev else f"http://127.0.0.1:{port}"
-    library = Library(data_home)
+    library = Library(data_home, config_path=workspace_config_path(data_home))
     library.init()
 
     try:
@@ -74,7 +85,7 @@ def run(argv: list[str]) -> int:
 
     app = create_app(library, dev=dev, on_shutdown=shutdown)
     server = AppServer(app)
-    print(f"GDA Sync is ready at {url}\nWorkspace: {data_home}", flush=True)
+    print(f"GDA Sync is ready at {url}\nWorkspace: {data_home}\nConfiguration: {library.config_path}", flush=True)
     if should_open:
         threading.Thread(target=_open_browser, args=(url,), daemon=True).start()
     # uvicorn re-raises the signal that stopped it after its graceful shutdown; by then nothing is left to do.

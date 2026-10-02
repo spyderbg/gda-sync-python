@@ -1,0 +1,5 @@
+{
+  "name": "My studio project",
+  "source": "/absolute/path/to/assets/source",
+  "destination": "/absolute/path/to/assets/gda"
+}

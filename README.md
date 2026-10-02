@@ -19,13 +19,13 @@ To add **GDA Sync** to your Ubuntu application menu and `~/.local/bin`:
 ./scripts/install-desktop.sh
 ```
 
-The Linux installer works entirely in your user account, with no `sudo`. The Windows executable runs from any folder without installation.
+The Linux installer works entirely in your user account, with no `sudo`, and copies `workspace.json` alongside the installed executable on first installation. Reinstalling preserves the installed configuration. The Windows executable runs from any folder without installation; keep its `workspace.json` next to it.
 
 **The backend stops when you close the page.** The page keeps an event-stream connection to the backend; closing or navigating away from the last GDA Sync page stops the backend after a two-second grace period. Refreshing reconnects during that grace period, and another open GDA Sync tab keeps the app running. Switching tabs or minimizing the browser keeps it running. Active file copies finish before shutdown. You can also use Workspace settings → Stop application to quit immediately.
 
 ## Try the demo
 
-The first launch creates the **Verdant** workspace with 18 real sample files: textures, DDS maps, OBJ models, materials, and audio. Five assets are new, three are modified, and ten are already in sync.
+Launching without an existing workspace configuration creates the **Verdant** workspace with 18 real sample files: textures, DDS maps, OBJ models, materials, and audio. Five assets are new, three are modified, and ten are already in sync.
 
 - Search names and folder paths; filter by type, format, or status.
 - Switch between grid and list views; sort by name, size, or modification time.
@@ -39,11 +39,27 @@ The first launch creates the **Verdant** workspace with 18 real sample files: te
 
 `Ctrl+K` (or `⌘K`) focuses search; `Esc` closes dialogs. Fonts and sample previews are bundled, so the application works offline.
 
+## Workspace configuration
+
+Project launches read `config/workspace.json`, which contains the **Workspace settings** fields: `name`, `source`, and `destination`. Copy the shared template for first use:
+
+```bash
+cp config/config.json.template config/workspace.json
+```
+
+On Windows, use `Copy-Item config/config.json.template config/workspace.json`. Enter your project name and absolute paths to two existing, separate folders. Windows paths can use forward slashes, such as `C:/Users/you/assets/source`. The local configuration is Git ignored. If it is absent on a project launch, the app adopts your saved workspace or creates the demo for a new user.
+
+**Packaging copies `config/workspace.json` to `dist/workspace.json`**, beside `gda-sync` or `gda-sync.exe`. Configure the source file before running `python scripts/package.py`. Each packaging run refreshes the copy. Distribute or move the executable and this configuration together, and adjust folder paths for the destination machine. Both targets share `dist/workspace.json` when building with `--target all`.
+
+The packaged application always loads `workspace.json` beside the actual executable, even when launched from another folder or through a symlink. Saving Workspace settings updates that same file; manual edits take effect on the next launch. The launcher prints the active configuration path. Invalid JSON or invalid folders stop startup with an explanation.
+
+`GDA_SYNC_HOME` controls the data directory. For project launches it also selects `<GDA_SYNC_HOME>/workspace.json`; packaged executables continue to use the configuration beside them. If a packaged configuration is missing, the app recreates it from saved settings or a new demo. The executable directory must be writable to save settings.
+
 ## File behavior
 
 Sync is one-way: source → GDA. Relative subfolders and original file bytes are preserved. File size and SHA-256 contents determine whether a destination matches. Copies use temporary files in the destination folder and an atomic rename. Source changes during copying are rejected. Existing destination files are backed up before replacement. Source files and extra GDA files are never deleted.
 
-Configuration, history, demo files, and backups use these default data directories:
+History, demo files, and backups use these default data directories:
 
 - Linux: `${XDG_DATA_HOME:-~/.local/share}/gda-sync/`
 - Windows: `%LOCALAPPDATA%\GDA Sync\` (normally `C:\Users\<user>\AppData\Local\GDA Sync\`)
@@ -52,14 +68,14 @@ Both use this layout:
 
 ```text
 <app-data>/
-├── workspace.json
+├── workspace.json          # Legacy settings / project GDA_SYNC_HOME overrides
 ├── activity.json
 ├── demo/source/
 ├── demo/gda/
 └── backups/<sync-id>/<relative-file-path>
 ```
 
-The exact backup directory is displayed in settings. To restore a previous GDA version, copy the corresponding backup file back into the same relative location in your GDA folder. Set `GDA_SYNC_HOME` to use a different app data directory; `config/workspace.example.json` shows the configuration format. Source and destination must be existing, separate folders; nested roots are rejected, and symbolic links (and Windows junctions) are skipped. Hidden files and folders are skipped: names starting with `.`, and on Windows also items with the Hidden attribute. The demo supports up to 10,000 files per workspace.
+The exact backup directory is displayed in settings. To restore a previous GDA version, copy the corresponding backup file back into the same relative location in your GDA folder. Set `GDA_SYNC_HOME` to use a different app data directory; `config/config.json.template` shows the configuration format. Source and destination must be existing, separate folders; nested roots are rejected, and symbolic links (and Windows junctions) are skipped. Hidden files and folders are skipped: names starting with `.`, and on Windows also items with the Hidden attribute. The demo supports up to 10,000 files per workspace.
 
 DDS previews decode the first surface and mip of **DXT1, DXT3, DXT5, RGB24, RGB32, and DX10 BC7 (UNORM / sRGB)**. Other DDS formats remain available for syncing, with a clear preview-unavailable message. DDS previews are limited to 16 megapixels, and all previews to 64 MB. Demo model thumbnails are illustrations; arbitrary 3D files are copied but not rendered. Material/audio files use type thumbnails.
 
@@ -101,7 +117,7 @@ Executables are built with PyInstaller from `bundle/gda-sync.spec`, as one file 
 - NumPy and Python 3.12 need Windows APIs that Wine implements from version 11. If the system Wine is older, the build downloads the official WineHQ 11.0 packages for Ubuntu 24.04 (pinned by SHA-256 from WineHQ's signed package index) and unpacks them without installing anything system-wide.
 - These downloads, the Wine prefix, and the Windows Python are cached outside the project in `${XDG_CACHE_HOME:-~/.cache}/gda-sync-build` (override with `GDA_SYNC_BUILD_CACHE`). Later builds reuse them offline.
 
-`verify_package.py` uses isolated app-data directories (and an isolated Wine prefix) and checks the first launch, demo, model and BC7 previews, sync and backups, persistence, refresh, and automatic process exit on page close. Windows verification on Linux uses Wine; a check on a real Windows desktop is still recommended before distribution.
+`verify_package.py` copies the executable to an isolated directory with a test `workspace.json`, launches from a different folder, and checks that the packaged settings load and save beside the executable. It also checks demo assets, model and BC7 previews, sync and backups, persistence, refresh, and automatic process exit on page close, using isolated app-data directories (and an isolated Wine prefix). Windows verification on Linux uses Wine; a check on a real Windows desktop is still recommended before distribution.
 
 ### Launch options
 
@@ -130,10 +146,10 @@ gda_sync/        Python backend: FastAPI app, workspace sync, page lifetime, DDS
 frontend/        Vue 3 + TypeScript interface (Vite), styles, and bundled icon
 bundle/          PyInstaller specification and executable entry point
 scripts/         Build, development, packaging, package verification, Ubuntu desktop installation
-config/          Example persisted workspace configuration
+config/          Git-ignored workspace.json and the shared config.json.template
 tests/           Backend, API and lifecycle tests; tests/e2e has the browser workflow tests
 build/           Generated screenshots and PyInstaller work files
-dist/            Generated standalone Linux and Windows executables
+dist/            Generated standalone Linux and Windows executables with workspace.json
 ```
 
 | Module | Responsibility |

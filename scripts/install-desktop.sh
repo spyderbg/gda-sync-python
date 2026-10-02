@@ -7,8 +7,15 @@ if [[ ! -x "$project_dir/dist/gda-sync" ]]; then
   echo 'Build the standalone application first: python scripts/package.py' >&2
   exit 1
 fi
+if [[ ! -f "$project_dir/dist/workspace.json" ]]; then
+  echo 'Package the workspace configuration first: python scripts/package.py' >&2
+  exit 1
+fi
 mkdir -p "$app_dir" "$applications_dir" "$HOME/.local/bin"
 cp "$project_dir/dist/gda-sync" "$app_dir/gda-sync"
+if [[ ! -f "$app_dir/workspace.json" ]]; then
+  cp "$project_dir/dist/workspace.json" "$app_dir/workspace.json"
+fi
 cp "$project_dir/frontend/public/favicon.svg" "$app_dir/icon.svg"
 ln -sfn "$app_dir/gda-sync" "$HOME/.local/bin/gda-sync"
 cat > "$applications_dir/gda-sync.desktop" <<DESKTOP
