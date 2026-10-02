@@ -95,5 +95,5 @@ def test_missing_configuration_fails_packaging_before_a_build_starts(tmp_path, m
 
     monkeypatch.setattr(package_support, "build_frontend", unexpected_build)
     entrypoint = runpy.run_path(str(script))
-    with pytest.raises(SystemExit, match="config/config.json.template"):
+    with pytest.raises(SystemExit, match="config/workspace.json.template"):
         entrypoint["main"]([])
