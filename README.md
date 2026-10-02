@@ -81,6 +81,8 @@ pytest                              # Filesystem, sync, API, lifecycle, DDS/BC7,
 python scripts/package.py           # Build the executable for the current OS into dist/
 ```
 
+The build and development scripts run `npm ci` to install the frontend dependencies from the lockfile, including when `node_modules` already exists.
+
 Browser tests need Playwright's Chromium once: `python -m playwright install chromium`. They run against the built interface in isolated temporary workspaces and verify offline rendering, search/filtering, DDS and BC7 previews, mobile layout, configuration, selected sync, full sync, persistence, session renewal, and application shutdown on page close. Screenshots are written to `build/preview-desktop.png` and `build/preview-mobile.png`. Run `pytest -m "not e2e"` to skip them.
 
 ### Standalone executables

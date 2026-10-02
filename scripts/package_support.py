@@ -86,8 +86,8 @@ def build_frontend() -> None:
     npm = shutil.which("npm")
     if not npm:
         raise SystemExit("Node.js 20.19+ and npm are required to build the frontend.")
-    if not (FRONTEND / "node_modules").is_dir():
-        run([npm, "ci"], cwd=FRONTEND)
+    # An existing node_modules may be stale after dependency changes.
+    run([npm, "ci"], cwd=FRONTEND)
     run([npm, "run", "build"], cwd=FRONTEND)
 
 
