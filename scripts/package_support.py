@@ -85,7 +85,7 @@ def package_targets(target: str | None, platform: str = sys.platform) -> list[st
 def workspace_configuration() -> Path:
     config = ROOT / "config" / "workspace.json"
     if not config.is_file():
-        raise SystemExit("Copy config/config.json.template to config/workspace.json and configure your workspace before packaging.")
+        raise SystemExit("Copy config/workspace.json.template to config/workspace.json and configure your workspace before packaging.")
     return config
 
 

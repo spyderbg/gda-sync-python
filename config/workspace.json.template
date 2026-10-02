@@ -1,5 +1,6 @@
 {
-  "name": "My studio project",
+  "name": "EGT GDA Sync",
   "source": "/absolute/path/to/assets/source",
-  "destination": "/absolute/path/to/assets/gda"
+  "destination": "/absolute/path/to/assets/gda",
+  "port": 3457
 }

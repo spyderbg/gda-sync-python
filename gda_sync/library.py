@@ -174,7 +174,10 @@ class Library:
             if not isinstance(config.get("demo", False), bool):
                 raise TypeError("demo must be true or false")
             settings = self._validated_settings(config["name"], config["source"], config["destination"])
-            return {**settings, "demo": config.get("demo", False)}
+            result = {**settings, "demo": config.get("demo", False)}
+            if "port" in config:
+                result["port"] = config["port"]
+            return result
         except FileNotFoundError:
             raise
         except (OSError, ValueError, TypeError, AppError) as error:
@@ -335,7 +338,7 @@ class Library:
             settings = self._validated_settings(name, source, destination)
             previous = self.config
             demo = settings["source"] == previous["source"] and settings["destination"] == previous["destination"] and previous["demo"]
-            self.config = {**settings, "demo": demo}
+            self.config = {**previous, **settings, "demo": demo}
             try:
                 self._save_config()
             except BaseException:

@@ -11,7 +11,7 @@ from gda_sync.library import Library
 from gda_sync.server import create_app
 from tests.conftest import session_headers
 
-TEMPLATE = Path(__file__).resolve().parents[1] / "config" / "config.json.template"
+TEMPLATE = Path(__file__).resolve().parents[1] / "config" / "workspace.json.template"
 
 
 def workspace_settings(tmp_path):
@@ -42,7 +42,7 @@ def test_template_settings_load_at_startup_and_ui_changes_persist_in_the_project
     with TestClient(create_app(library, dev=True), base_url="http://127.0.0.1") as client:
         assert client.get("/api/library").json()["assets"][0]["path"] == "asset.txt"
         settings["name"] = "Renamed project"
-        response = client.put("/api/settings", headers=session_headers(client), json=settings)
+        response = client.put("/api/settings", headers=session_headers(client), json={key: settings[key] for key in ("name", "source", "destination")})
         assert response.status_code == 200
     assert json.loads(config_path.read_text(encoding="utf-8")) == {**settings, "demo": False}
     assert legacy.read_text(encoding="utf-8") == "{unused legacy config}"

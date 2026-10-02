@@ -23,19 +23,22 @@ def workspace_config_path(data_home: str) -> str:
     """Use project settings in a checkout, and settings beside the executable for packaged apps."""
     if getattr(sys, "frozen", False):
         return str(Path(sys.executable).resolve().parent / "workspace.json")
-    if not os.environ.get("GDA_SYNC_HOME") and (PROJECT_ROOT / "config" / "config.json.template").is_file():
+    if not os.environ.get("GDA_SYNC_HOME") and (PROJECT_ROOT / "config" / "workspace.json.template").is_file():
         return str(PROJECT_ROOT / "config" / "workspace.json")
     return os.path.join(data_home, "workspace.json")
 
 
-def _port() -> int:
-    raw = os.environ.get("PORT") or str(DEFAULT_PORT)
+def _port(config: dict | None = None) -> int:
+    config = config or {}
+    override = os.environ.get("PORT")
+    raw = override or config.get("port", DEFAULT_PORT)
     try:
-        port = int(raw)
+        port = int(raw) if isinstance(raw, (int, str)) and not isinstance(raw, bool) else 0
     except ValueError:
         port = 0
     if not 1 <= port <= 65535:
-        raise RuntimeError("PORT must be between 1 and 65535")
+        source = "PORT" if override else "port in workspace.json"
+        raise RuntimeError(f"{source} must be an integer between 1 and 65535")
     return port
 
 
@@ -58,12 +61,12 @@ def _open_browser(url: str) -> None:
 
 def run(argv: list[str]) -> int:
     data_home = os.path.abspath(application_data_home())
-    port = _port()
     dev = os.environ.get("GDA_SYNC_DEV") == "1"
     should_open = "--no-open" not in argv and os.environ.get("GDA_SYNC_NO_OPEN") != "1"
-    url = DEV_UI if dev else f"http://127.0.0.1:{port}"
     library = Library(data_home, config_path=workspace_config_path(data_home))
     library.init()
+    port = _port(library.config)
+    url = DEV_UI if dev else f"http://127.0.0.1:{port}"
 
     try:
         sock = bind_local_socket(port)

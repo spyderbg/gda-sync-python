@@ -71,15 +71,17 @@ def main() -> None:
         for key in ("source", "destination"):
             config[key] = windows_path(Path(config[key]))
     config_path = app_dir / "workspace.json"
-    config_path.write_text(json.dumps(config), encoding="utf-8")
     with socket.socket() as probe:
         probe.bind(("127.0.0.1", 0))
         port = probe.getsockname()[1]
+    config["port"] = port
+    config_path.write_text(json.dumps(config), encoding="utf-8")
     url = f"http://127.0.0.1:{port}"
     # An isolated Wine prefix, so the app's default LocalAppData location starts empty.
     wine_env = wine_environment(wine_bin(), root / "wine") if use_wine else dict(os.environ)
     local_app_data, xdg_data = root / "AppData" / "Local", root / "data"
-    env = {**wine_env, "PORT": str(port), "GDA_SYNC_HOME": "", "LOCALAPPDATA": str(local_app_data), "XDG_DATA_HOME": str(xdg_data)}
+    env = {**wine_env, "GDA_SYNC_HOME": "", "LOCALAPPDATA": str(local_app_data), "XDG_DATA_HOME": str(xdg_data)}
+    env.pop("PORT", None)
     data_home = local_app_data / "GDA Sync" if target == "windows" else xdg_data / "gda-sync"
     log_path = root / "backend.log"
     command = ["wine", str(binary), "--no-open"] if use_wine else [str(binary), "--no-open"]
@@ -154,6 +156,7 @@ def main() -> None:
         status, body = request(f"{url}/api/settings", settings, {"x-gda-token": token}, method="PUT")
         assert status == 200, body
         assert json.loads(config_path.read_text(encoding="utf-8"))["name"] == settings["name"]
+        assert json.loads(config_path.read_text(encoding="utf-8"))["port"] == port
         pending = [asset["id"] for asset in library["assets"] if asset["status"] != "synced"]
         status, body = request(f"{url}/api/sync", {"ids": pending}, {"x-gda-token": token})
         result = json.loads(body)

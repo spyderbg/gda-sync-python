@@ -11,7 +11,7 @@ This is a Python reimplementation of the TypeScript/React/Fastify GDA Sync 1.1.0
 | Linux x64 (Ubuntu 24.04+, glibc 2.39+) | `dist/gda-sync` | `./dist/gda-sync` |
 | Windows 10/11 x64 | `dist/gda-sync.exe` | Double-click, or `.\dist\gda-sync.exe` in PowerShell |
 
-Both start the backend on **http://127.0.0.1:3456** and open your default browser. Each executable is a single file containing the Python runtime, the backend and its libraries, the Vue interface, and its fonts. Python, Node.js, and npm are not required on the user's machine. Linux opens the browser and folders with `xdg-open`; Windows uses the shell's default handler. The Windows executable is unsigned, so SmartScreen may ask for confirmation on first launch; it uses a console window that closes when the backend exits.
+Both start the backend on the configured port (default **http://127.0.0.1:3456**) and open your default browser. Each executable is a single file containing the Python runtime, the backend and its libraries, the Vue interface, and its fonts. Python, Node.js, and npm are not required on the user's machine. Linux opens the browser and folders with `xdg-open`; Windows uses the shell's default handler. The Windows executable is unsigned, so SmartScreen may ask for confirmation on first launch; it uses a console window that closes when the backend exits.
 
 To add **GDA Sync** to your Ubuntu application menu and `~/.local/bin`:
 
@@ -48,16 +48,18 @@ When you start the project with `python -m gda_sync` or `python scripts/dev.py`,
 For first use, copy the tracked template before launching:
 
 ```bash
-cp config/config.json.template config/workspace.json
+cp config/workspace.json.template config/workspace.json
 ```
 
 On Windows, use PowerShell:
 
 ```powershell
-Copy-Item config/config.json.template config/workspace.json
+Copy-Item config/workspace.json.template config/workspace.json
 ```
 
-Edit `config/workspace.json` with your project name and the absolute paths of two existing, separate folders. Windows paths can use forward slashes, for example `C:/Users/you/assets/source`. Invalid JSON or invalid settings stop startup with an explanation. **`config/workspace.json` is Git ignored** so each user's paths stay local; `config/config.json.template` is shared as the starting point.
+Edit `config/workspace.json` with your project name and the absolute paths of two existing, separate folders. Windows paths can use forward slashes, for example `C:/Users/you/assets/source`. Invalid JSON or invalid settings stop startup with an explanation. **`config/workspace.json` is Git ignored** so each user's paths stay local; `config/workspace.json.template` is shared as the starting point.
+
+The optional `port` field sets the backend's listening port, for example `"port": 4567`. The template defaults to `3456`; files without this field also use `3456`. The `PORT` environment variable supplied when launching the app overrides the value in `workspace.json`, for example `PORT=5678 ./dist/gda-sync`. Ports must be integers between `1` and `65535`. Launch overrides apply for that run and leave the configured port intact; saving Workspace settings also preserves it. Restart the app after changing its configured port.
 
 If no project configuration exists, the first launch creates it from your previously saved workspace, or starts the Verdant demo for a new user. Generated demo settings also include an internal `demo` flag; omit it when configuring your own folders.
 
@@ -89,7 +91,7 @@ Both use this layout:
 └── backups/<sync-id>/<relative-file-path>
 ```
 
-The exact backup directory is displayed in settings. To restore a previous GDA version, copy the corresponding backup file back into the same relative location in your GDA folder. Set `GDA_SYNC_HOME` to use a different app data directory; `config/config.json.template` shows the configuration format. Source and destination must be existing, separate folders; nested roots are rejected, and symbolic links (and Windows junctions) are skipped. Hidden files and folders are skipped: names starting with `.`, and on Windows also items with the Hidden attribute. The demo supports up to 10,000 files per workspace.
+The exact backup directory is displayed in settings. To restore a previous GDA version, copy the corresponding backup file back into the same relative location in your GDA folder. Set `GDA_SYNC_HOME` to use a different app data directory; `config/workspace.json.template` shows the configuration format. Source and destination must be existing, separate folders; nested roots are rejected, and symbolic links (and Windows junctions) are skipped. Hidden files and folders are skipped: names starting with `.`, and on Windows also items with the Hidden attribute. The demo supports up to 10,000 files per workspace.
 
 DDS previews decode the first surface and mip of **DXT1, DXT3, DXT5, RGB24, RGB32, and DX10 BC7 (UNORM / sRGB)**. Other DDS formats remain available for syncing, with a clear preview-unavailable message. DDS previews are limited to 16 megapixels, and all previews to 64 MB. Demo model thumbnails are illustrations; arbitrary 3D files are copied but not rendered. Material/audio files use type thumbnails.
 
@@ -142,7 +144,7 @@ PORT=4567 ./dist/gda-sync
 GDA_SYNC_NO_OPEN=1 python scripts/dev.py
 ```
 
-Launching a second instance reopens the running app on the same port. If another application occupies the port, GDA Sync exits with an explanation. With `--no-open`, the backend waits for its first page before the page-close shutdown applies. `PORT` applies to production; the development proxy expects the backend on 3456 and the Vite dev server on 5173.
+Launching a second instance reopens the running app on the same port. If another application occupies the port, GDA Sync exits with an explanation. With `--no-open`, the backend waits for its first page before the page-close shutdown applies. The configured port and `PORT` override apply to both production and development; `scripts/dev.py` passes the resolved port to Vite's API proxy. The development UI stays on port `5173`.
 
 On Windows, set environment overrides in PowerShell:
 
@@ -161,7 +163,7 @@ frontend/        Vue 3 + TypeScript interface (Vite), Chart.js charts, and app s
   src/theme/     StarAdmin template SCSS (Bootstrap 4), compiled with the interface
 bundle/          PyInstaller specification and executable entry point
 scripts/         Build, development, packaging, package verification, Ubuntu desktop installation
-config/          Git-ignored workspace.json and the shared config.json.template
+config/          Git-ignored workspace.json and the shared workspace.json.template
 tests/           Backend, API and lifecycle tests; tests/e2e has the browser workflow tests
 build/           Generated screenshots and PyInstaller work files
 dist/            Generated standalone Linux and Windows executables with workspace.json

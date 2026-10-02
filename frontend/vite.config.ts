@@ -12,7 +12,7 @@ export default defineConfig({
       },
     },
   },
-  server: { host: '127.0.0.1', port: 5173, strictPort: true, proxy: { '/api': 'http://127.0.0.1:3456' } },
+  server: { host: '127.0.0.1', port: 5173, strictPort: true, proxy: { '/api': `http://127.0.0.1:${process.env.PORT || 3456}` } },
   build: {
     // The backend serves (and the executable embeds) the built interface from its package.
     outDir: '../gda_sync/static',

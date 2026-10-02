@@ -1,6 +1,6 @@
 """Development mode: the Vite dev server with hot reload, plus the backend in development mode.
 
-The browser opens http://127.0.0.1:5173, which proxies /api to the backend on port 3456.
+The browser opens http://127.0.0.1:5173, which proxies /api to the configured backend port.
 Closing the page stops the backend, which then stops the dev server.
 """
 
@@ -13,6 +13,12 @@ import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+
+from gda_sync.__main__ import _port, workspace_config_path  # noqa: E402
+from gda_sync.desktop import application_data_home  # noqa: E402
+from gda_sync.library import Library  # noqa: E402
+
 FRONTEND = ROOT / "frontend"
 DEV_UI = "http://127.0.0.1:5173"
 
@@ -39,13 +45,17 @@ def main() -> int:
     node, npm = shutil.which("node"), shutil.which("npm")
     if not node or not npm:
         raise SystemExit("Node.js 20.19+ and npm are required for development mode.")
+    data_home = os.path.abspath(application_data_home())
+    library = Library(data_home, config_path=workspace_config_path(data_home))
+    library.init()
+    env = {**os.environ, "PORT": str(_port(library.config)), "GDA_SYNC_DEV": "1"}
     subprocess.run([npm, "ci"], cwd=FRONTEND, check=True)
     # Run Vite directly rather than through npm, so stopping it stops a single process on every platform.
-    vite = subprocess.Popen([node, str(FRONTEND / "node_modules" / "vite" / "bin" / "vite.js")], cwd=FRONTEND)
+    vite = subprocess.Popen([node, str(FRONTEND / "node_modules" / "vite" / "bin" / "vite.js")], cwd=FRONTEND, env=env)
     backend = None
     try:
         wait_for_dev_server(vite)
-        backend = subprocess.Popen([sys.executable, "-m", "gda_sync", *sys.argv[1:]], cwd=ROOT, env={**os.environ, "GDA_SYNC_DEV": "1"})
+        backend = subprocess.Popen([sys.executable, "-m", "gda_sync", *sys.argv[1:]], cwd=ROOT, env=env)
         return backend.wait()
     except KeyboardInterrupt:
         return 0
