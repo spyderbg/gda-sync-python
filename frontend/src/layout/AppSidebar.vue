@@ -2,9 +2,9 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { ASSET_TYPES, number, typeIcons, typeNames } from '../format';
 import type { AssetType, View } from '../types';
-import { assets, busy, config, countStatus, countType, navigate, pending, selectWorkspace, syncedCount, ui, workspaces } from '../workspace';
+import { assets, busy, config, countStatus, countType, navigate, pending, rssSync, selectWorkspace, ui, workspaces } from '../workspace';
 
-interface Entry { key: string; label: string; icon: string; count?: number; badge?: string; title?: string; active: boolean; onSelect: () => void }
+interface Entry { key: string; label: string; icon: string; count?: number; badge?: string; title?: string; running?: boolean; active: boolean; onSelect: () => void }
 
 // Choosing a workspace on the dashboard opens the first step of its work.
 const LANDING_VIEW: View = 'pending';
@@ -51,8 +51,11 @@ async function chooseWorkspace(id: string) {
 
 const syncEntries = computed<Entry[]>(() => [
   { key: 'pending', label: 'Needs sync', icon: 'mdi-sync', count: pending.value.length, badge: 'badge-warning', title: `${number(countStatus('new'))} new, ${number(countStatus('modified'))} modified` },
-  { key: 'synced', label: 'In sync', icon: 'mdi-check-all', count: syncedCount.value, badge: 'badge-success' },
-  { key: 'activity', label: 'Sync activity', icon: 'mdi-history' },
+  {
+    key: 'rssSync', label: 'In sync', icon: 'mdi-check-all', count: rssSync.value?.summary?.identical, badge: 'badge-success',
+    running: rssSync.value?.running, title: rssSync.value?.running ? 'GDA sync in progress' : undefined,
+  },
+  { key: 'history', label: 'Sync history', icon: 'mdi-history' },
 ].map(entry => ({ ...entry, active: ui.view === entry.key, onSelect: () => navigate(entry.key as View) })));
 
 const assetEntries = computed<Entry[]>(() => [...ASSET_CATEGORIES, ...(countType('other') ? ['other' as const] : [])].map(category => ({
@@ -92,7 +95,8 @@ const sections = computed(() => [
           <li v-for="entry in section.entries" :key="entry.key" :class="['nav-item', { active: entry.active }]">
             <button type="button" class="nav-link" :aria-label="entry.label" :aria-current="entry.active ? 'page' : undefined" :title="entry.title" @click="entry.onSelect">
               <i aria-hidden="true" :class="['menu-icon', 'mdi', entry.icon]" /><span class="menu-title">{{ entry.label }}</span>
-              <span v-if="entry.count !== undefined" :class="['badge', 'badge-pill', entry.badge]">{{ number(entry.count) }}</span>
+              <i v-if="entry.running" aria-hidden="true" class="mdi mdi-loading mdi-spin sidebar-running" />
+              <span v-else-if="entry.count !== undefined" :class="['badge', 'badge-pill', entry.badge]">{{ number(entry.count) }}</span>
             </button>
           </li>
         </ul>

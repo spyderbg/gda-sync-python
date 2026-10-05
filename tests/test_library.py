@@ -141,3 +141,11 @@ def test_unsupported_dds_formats_remain_syncable_with_a_preview_message(library)
         library.preview(asset)
     assert error.value.status_code == 415
     assert library.sync([asset["id"]])["copied"] == ["bc6.dds"]
+
+
+def test_activity_keeps_every_copy_and_caps_only_other_entries(library):
+    library._record("sync", "Synced 1 asset to GDA", ["a.png"], 10)
+    for index in range(120):
+        library._record("scan", f"Scanned {index} assets")
+    assert len(library.activity) == 101
+    assert library.activity[-1]["action"] == "sync"

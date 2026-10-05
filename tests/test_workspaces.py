@@ -33,12 +33,15 @@ def test_switch_persists_and_settings_update_only_selected_workspace(tmp_path, l
     library, path = configured_library(tmp_path, legacy=legacy)
     with TestClient(create_app(library, dev=True), base_url='http://127.0.0.1') as client:
         headers = session_headers(client)
-        assert client.get('/api/library').json()['assets'][0]['name'] == 'first.txt'
+        first = client.get('/api/library').json()
+        assert first['assets'][0]['name'] == 'first.txt'
+        assert first['rssSync']['reportPath'] == str(tmp_path / 'app' / 'sync-reports' / 'first.json')
         assert client.put('/api/workspace', json={'id': 'second'}).status_code == 403
         result = client.put('/api/workspace', headers=headers, json={'id': 'second'})
         assert result.status_code == 200
         assert result.json()['assets'][0]['name'] == 'second.txt'
         assert result.json()['config']['defaultWorkspace'] == 'second'
+        assert result.json()['rssSync']['reportPath'] == str(tmp_path / 'app' / 'sync-reports' / 'second.json')
         config = result.json()['config']
         settings = {key: config[key] for key in ('name', 'source', 'destination')}
         settings['name'] = 'Renamed'

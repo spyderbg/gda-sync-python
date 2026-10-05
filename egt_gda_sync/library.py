@@ -21,6 +21,8 @@ from .dds import SUPPORTED_DDS_FORMATS, decode_dds, read_dds_info
 from .demo import seed_demo
 from .errors import AppError, error_message
 from .png import PNG_SIGNATURE
+from .rss_jobs import SyncJobs
+from .rss_sync import DEFAULT_EXTENSIONS
 
 MAX_ASSETS = 10_000
 MAX_PREVIEW_BYTES = 64 * 1024 * 1024
@@ -142,6 +144,7 @@ class Library:
         self._previews: OrderedDict[str, bytes] = OrderedDict()
         self._previews_lock = threading.Lock()
         self._scanned_assets: list[dict] | None = None
+        self.reports = SyncJobs(os.path.join(self.home, "sync-reports"))
 
     @property
     def busy(self) -> bool:
@@ -273,7 +276,16 @@ class Library:
         entry: dict = {"id": str(uuid.uuid4()), "date": iso_time(), "action": action, "message": message, "files": files or []}
         if size is not None:
             entry["bytes"] = size
-        self.activity = [entry, *self.activity][:HISTORY_LIMIT]
+        # Sync history shows every copy, so only rescans and settings changes are capped.
+        others = 0
+        kept = []
+        for item in (entry, *self.activity):
+            if item["action"] != "sync":
+                others += 1
+                if others > HISTORY_LIMIT:
+                    continue
+            kept.append(item)
+        self.activity = kept
         self._write_json(os.path.join(self.home, "activity.json"), self.activity)
 
     def _exclusive(self, operation: Callable[[], T]) -> T:
@@ -325,8 +337,48 @@ class Library:
         self._scanned_assets = assets
         return {
             "assets": assets, "config": config, "activity": self.activity, "scannedAt": iso_time(),
-            "warnings": warnings, "backupPath": self.backup_path,
+            "warnings": warnings, "backupPath": self.backup_path, "rssSync": self.rss_status(),
         }
+
+    def _active_workspace(self) -> tuple[str, dict]:
+        """The selected workspace's id and entry; a single-workspace configuration is the entry itself."""
+        workspace_id = self.config.get("defaultWorkspace") or "current"
+        entry = next((entry for entry in self.config.get("workspaces", []) if entry["id"] == workspace_id), self.config)
+        return workspace_id, entry
+
+    def _comparison_settings(self, entry: dict) -> dict:
+        """Map a workspace onto the GDA sync settings: game_path is <resources_dir>/<game>, gda_path is gda_dir."""
+        common = entry.get("common_gda_path")
+        if isinstance(common, str) and common and not os.path.isabs(common):
+            common = os.path.join(os.path.dirname(self.config_path), common)
+        return {
+            "resources_dir": os.path.dirname(entry["source"]), "game": os.path.basename(entry["source"]),
+            "gda_dir": entry["destination"], "common_gda_dir": common,
+            "extensions": entry.get("extensions", list(DEFAULT_EXTENSIONS)),
+            "resource_paths": entry.get("resource_paths", []),
+            "ignore_dds_mips": entry.get("ignore_dds_mips", True),
+        }
+
+    def rss_status(self) -> dict:
+        workspace_id = self._active_workspace()[0]
+        return {**self.reports.status(workspace_id), "reportPath": self.reports.report_file(workspace_id)}
+
+    def rss_history(self) -> dict:
+        workspace_id = self._active_workspace()[0]
+        return {"workspaceId": workspace_id, "history": self.reports.history(workspace_id)}
+
+    def rss_report(self) -> bytes:
+        report = self.reports.report(self._active_workspace()[0])
+        if report is None:
+            raise AppError("This workspace has no GDA sync report yet. Click Rescan to create one.", 404)
+        return report
+
+    def start_comparison(self) -> None:
+        workspace_id, entry = self._active_workspace()
+        self.reports.start(workspace_id, entry["name"], self._comparison_settings(entry))
+
+    def close(self) -> None:
+        self.reports.stop_all()
 
     def _describe(self, config: dict, folder: str, relative: str, name: str) -> dict:
         file = safe_path(config["source"], relative)
@@ -373,7 +425,9 @@ class Library:
         def operation() -> dict:
             result = self.scan()
             self._record("scan", f"Scanned {len(result['assets'])} assets")
-            return {**result, "activity": self.activity}
+            # The GDA sync compares thousands of files, so it runs in its own process after the scan.
+            self.start_comparison()
+            return {**result, "activity": self.activity, "rssSync": self.rss_status()}
 
         return self._exclusive(operation)
 

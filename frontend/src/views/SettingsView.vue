@@ -19,7 +19,7 @@ function cancel() {
       <li><a href="#" @click.prevent="openFolder('destination')">Open GDA folder</a></li>
     </template>
     <template #links-right>
-      <li><a href="#" @click.prevent="navigate('activity')">Sync activity</a></li>
+      <li><a href="#" @click.prevent="navigate('history')">Sync history</a></li>
     </template>
   </PageHeader>
 

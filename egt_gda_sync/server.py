@@ -154,6 +154,7 @@ def create_app(
         lifetime.dispose()
         # An HTTP request can disconnect while its file operation is still running.
         await anyio.to_thread.run_sync(library.wait_for_idle)
+        await anyio.to_thread.run_sync(library.close)
 
     app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
     app.state.lifetime = lifetime
@@ -219,6 +220,18 @@ def create_app(
     @app.post("/api/scan")
     def rescan() -> dict:
         return library.rescan()
+
+    @app.get("/api/rss-sync")
+    def rss_sync_status() -> dict:
+        return library.rss_status()
+
+    @app.get("/api/rss-sync/history")
+    def rss_sync_history() -> dict:
+        return library.rss_history()
+
+    @app.get("/api/rss-sync/report")
+    def rss_sync_report() -> Response:
+        return Response(library.rss_report(), media_type="application/json")
 
     @app.post("/api/sync")
     def sync(body: SyncBody) -> dict:

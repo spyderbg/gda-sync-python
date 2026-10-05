@@ -2,10 +2,16 @@
 
 The browser opens the configured Vite port, which proxies /api to the configured backend port.
 Closing the page stops the backend, which then stops the dev server.
+
+The action is start, to run a session, or stop, to end a session started by an earlier run.
 """
 
+import argparse
+import ctypes
+import json
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import time
@@ -19,8 +25,14 @@ from egt_gda_sync.__main__ import _port, workspace_config_path  # noqa: E402
 from egt_gda_sync.desktop import application_data_home  # noqa: E402
 from egt_gda_sync.library import Library  # noqa: E402
 from egt_gda_sync.ports import vite_port  # noqa: E402
+from egt_gda_sync.runtime import bind_local_socket, is_address_in_use  # noqa: E402
 
 FRONTEND = ROOT / "frontend"
+STATE_FILE = "dev.json"
+STOP_TIMEOUT = 10.0
+_WINDOWS_QUERY_INFORMATION = 0x1000
+_WINDOWS_SYNCHRONIZE = 0x100000
+_WINDOWS_STILL_RUNNING = 0x102
 
 
 def wait_for_dev_server(vite: subprocess.Popen, port: int, timeout: float = 60) -> None:
@@ -41,11 +53,131 @@ def wait_for_dev_server(vite: subprocess.Popen, port: int, timeout: float = 60) 
         time.sleep(0.2)
 
 
-def main() -> int:
+def _state_path(data_home: str) -> str:
+    return os.path.join(data_home, STATE_FILE)
+
+
+def _write_state(data_home: str, state: dict) -> None:
+    with open(_state_path(data_home), "w", encoding="utf-8") as handle:
+        json.dump(state, handle, indent=2)
+
+
+def _read_state(data_home: str) -> dict:
+    try:
+        with open(_state_path(data_home), encoding="utf-8") as handle:
+            state = json.load(handle)
+    except (OSError, ValueError):
+        return {}
+    return state if isinstance(state, dict) else {}
+
+
+def _clear_state(data_home: str) -> None:
+    Path(_state_path(data_home)).unlink(missing_ok=True)
+
+
+def _windows_handle(pid: int, access: int) -> ctypes.c_void_p | None:
+    """Open a process handle. os.kill(pid, 0) ends a process on Windows, so the kernel is asked instead."""
+    kernel32 = ctypes.windll.kernel32
+    kernel32.OpenProcess.restype = ctypes.c_void_p  # the default c_int would truncate a 64-bit handle
+    handle = kernel32.OpenProcess(access, False, pid)
+    return ctypes.c_void_p(handle) if handle else None
+
+
+def _process_alive(pid: int) -> bool:
+    """Report whether a process is still running."""
+    if os.name == "nt":
+        handle = _windows_handle(pid, _WINDOWS_SYNCHRONIZE)
+        if not handle:
+            return False
+        try:
+            return ctypes.windll.kernel32.WaitForSingleObject(handle, 0) == _WINDOWS_STILL_RUNNING
+        finally:
+            ctypes.windll.kernel32.CloseHandle(handle)
+    try:
+        os.kill(pid, 0)
+    except OSError:
+        return False
+    return True
+
+
+def _creation_stamp(pid: int) -> int | None:
+    """Return when a process was created, or None when the platform cannot tell, to recognise a recycled process id."""
+    if os.name == "nt":
+        handle = _windows_handle(pid, _WINDOWS_QUERY_INFORMATION)
+        if not handle:
+            return None
+        try:
+            started = ctypes.c_ulonglong()
+            times = ctypes.windll.kernel32.GetProcessTimes(handle, ctypes.byref(started), None, None, None)
+            return started.value if times else None
+        finally:
+            ctypes.windll.kernel32.CloseHandle(handle)
+    try:
+        # The command name may contain spaces and parentheses, while the fields after it are fixed.
+        with open(f"/proc/{pid}/stat", encoding="utf-8") as handle:
+            return int(handle.read().rsplit(") ", 1)[-1].split()[19])
+    except (OSError, IndexError, ValueError):
+        return None
+
+
+def _is_recorded(entry: dict) -> bool:
+    """Recognise a process this script started, so a recycled process id is never stopped."""
+    pid = entry.get("pid")
+    if not isinstance(pid, int) or pid < 1 or not _process_alive(pid):
+        return False
+    recorded = entry.get("created")
+    return recorded is None or _creation_stamp(pid) in (None, recorded)
+
+
+def _recorded(state: dict) -> list[dict]:
+    processes = state.get("processes")
+    entries = processes if isinstance(processes, list) else []
+    return [entry for entry in entries if isinstance(entry, dict) and _is_recorded(entry)]
+
+
+def _send(pid: int, number: int) -> None:
+    """Ask a process to end. Windows has no signals, so there every signal ends the process."""
+    try:
+        os.kill(pid, number)
+    except OSError:
+        pass
+
+
+def _record(name: str, pid: int) -> dict:
+    return {"name": name, "pid": pid, "created": _creation_stamp(pid)}
+
+
+def _wait_for_exit(entries: list[dict], timeout: float) -> None:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline and any(_is_recorded(entry) for entry in entries):
+        time.sleep(0.2)
+
+
+def _port_in_use(port: object) -> bool:
+    """Report whether a port is still taken, the same way the launcher finds an occupied port."""
+    if not isinstance(port, int) or not 1 <= port <= 65535:
+        return False
+    try:
+        bind_local_socket(port).close()
+    except OSError as error:
+        return is_address_in_use(error)
+    return False
+
+
+def _warn_about_ports(state: dict) -> None:
+    """Warn about a port that stays occupied, so the next start is not held up by it."""
+    for label, key in (("backend", "port"), ("development UI", "vite_port")):
+        if _port_in_use(state.get(key)):
+            print(f"Warning: port {state[key]} is still in use. Another program may have taken the {label} port.", flush=True)
+
+
+def start(data_home: str, arguments: list[str]) -> int:
+    """Run a session until it ends, recording the processes so a later run can stop them."""
     node, npm = shutil.which("node"), shutil.which("npm")
     if not node or not npm:
         raise SystemExit("Node.js 20.19+ and npm are required for development mode.")
-    data_home = os.path.abspath(application_data_home())
+    if _recorded(_read_state(data_home)):
+        raise SystemExit("Development mode is already running. End it first with python scripts/dev.py stop.")
     library = Library(data_home, config_path=workspace_config_path(data_home))
     library.init()
     port = _port(library.config)
@@ -57,9 +189,17 @@ def main() -> int:
     # Run Vite directly rather than through npm, so stopping it stops a single process on every platform.
     vite = subprocess.Popen([node, str(FRONTEND / "node_modules" / "vite" / "bin" / "vite.js")], cwd=FRONTEND, env=env)
     backend = None
+    recorded = False
     try:
         wait_for_dev_server(vite, ui_port)
-        backend = subprocess.Popen([sys.executable, "-m", "egt_gda_sync", *sys.argv[1:]], cwd=ROOT, env=env)
+        backend = subprocess.Popen([sys.executable, "-m", "egt_gda_sync", *arguments], cwd=ROOT, env=env)
+        # The dev script comes last, because ending it already ends the two processes below it.
+        _write_state(data_home, {
+            "port": port,
+            "vite_port": ui_port,
+            "processes": [_record("backend", backend.pid), _record("vite", vite.pid), _record("dev", os.getpid())],
+        })
+        recorded = True
         return backend.wait()
     except KeyboardInterrupt:
         return 0
@@ -73,6 +213,37 @@ def main() -> int:
                     process.wait(10)
                 except subprocess.TimeoutExpired:
                     process.kill()
+        if recorded:
+            _clear_state(data_home)
+
+
+def stop(data_home: str) -> int:
+    """End a session started by this script, leaving every other program alone."""
+    state = _read_state(data_home)
+    _clear_state(data_home)
+    entries = _recorded(state)
+    if entries:
+        for entry in entries:
+            _send(entry["pid"], signal.SIGTERM)
+        _wait_for_exit(entries, STOP_TIMEOUT)
+        for entry in entries:
+            if _is_recorded(entry):
+                _send(entry["pid"], signal.SIGKILL)
+        _wait_for_exit(entries, STOP_TIMEOUT)
+        url = f" at http://127.0.0.1:{state['vite_port']}" if state.get("vite_port") else ""
+        print(f"Stopped EGT GDA Sync development mode{url}.", flush=True)
+    else:
+        print("EGT GDA Sync development mode is not running.", flush=True)
+    _warn_about_ports(state)
+    return 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0], epilog="Other options are passed to the backend, for example --no-open.")
+    parser.add_argument("action", nargs="?", default="start", choices=["start", "stop"], help="start or stop development mode; start is the default")
+    args, arguments = parser.parse_known_args(sys.argv[1:] if argv is None else argv)
+    data_home = os.path.abspath(application_data_home())
+    return stop(data_home) if args.action == "stop" else start(data_home, arguments)
 
 
 if __name__ == "__main__":

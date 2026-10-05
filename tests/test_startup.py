@@ -1,8 +1,11 @@
+import errno
 import json
 import os
+import signal
 import socket
 import subprocess
 import sys
+import threading
 import time
 import urllib.request
 from pathlib import Path
@@ -186,6 +189,7 @@ def test_development_passes_the_resolved_ports_to_vite_and_the_backend(tmp_path,
 
     class Process:
         def __init__(self, command, **options):
+            self.pid = len(processes) + 4321
             processes.append((command, options))
 
         def wait(self, _timeout=None):
@@ -203,6 +207,7 @@ def test_development_passes_the_resolved_ports_to_vite_and_the_backend(tmp_path,
         assert options["env"]["EGT_GDA_SYNC_DEV"] == "1"
     assert waited_ports == [expected_ui_port]
     assert json.loads((home / "workspace.json").read_text(encoding="utf-8")) == settings
+    assert not (home / dev.STATE_FILE).exists()
 
 
 def test_development_rejects_matching_ports_before_starting_any_process(tmp_path, monkeypatch):
@@ -218,7 +223,180 @@ def test_development_rejects_matching_ports_before_starting_any_process(tmp_path
     monkeypatch.setattr(dev.subprocess, "run", unexpected_process)
     monkeypatch.setattr(dev.subprocess, "Popen", unexpected_process)
     with pytest.raises(SystemExit, match="vite_port and the backend port must be different"):
-        dev.main()
+        dev.main([])
+
+
+def sleeper() -> subprocess.Popen:
+    return subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
+
+
+def test_development_records_the_processes_a_later_run_can_stop(tmp_path, monkeypatch):
+    home, _settings = configured_workspace(tmp_path, 4567)
+    monkeypatch.setenv("EGT_GDA_SYNC_HOME", str(home))
+    monkeypatch.setattr(sys, "argv", ["scripts/dev.py", "--no-open"])
+    monkeypatch.setattr(dev.shutil, "which", lambda name: f"/tools/{name}")
+    monkeypatch.setattr(dev.subprocess, "run", lambda *args, **kwargs: None)
+    monkeypatch.setattr(dev, "wait_for_dev_server", lambda _process, port: None)
+    pids = iter((4321, 4322))
+    written = []
+
+    class Process:
+        def __init__(self, *_command, **_options):
+            self.pid = next(pids)
+
+        def wait(self, _timeout=None):
+            return 0
+
+        def poll(self):
+            return 0
+
+    monkeypatch.setattr(dev.subprocess, "Popen", Process)
+    monkeypatch.setattr(dev, "_write_state", lambda path, state: written.append((path, state)))
+    assert dev.main() == 0
+    assert written == [(os.path.abspath(home), {
+        "port": 4567,
+        "vite_port": 5173,
+        # Vite is started first, the dev script last, because stopping it already stops the others.
+        "processes": [
+            {"name": "backend", "pid": 4322, "created": dev._creation_stamp(4322)},
+            {"name": "vite", "pid": 4321, "created": dev._creation_stamp(4321)},
+            {"name": "dev", "pid": os.getpid(), "created": dev._creation_stamp(os.getpid())},
+        ],
+    })]
+
+
+def test_development_reports_a_running_session_instead_of_clashing_ports(tmp_path, monkeypatch):
+    home, _settings = configured_workspace(tmp_path, 4567)
+    monkeypatch.setenv("EGT_GDA_SYNC_HOME", str(home))
+    monkeypatch.setattr(dev.shutil, "which", lambda name: f"/tools/{name}")
+    monkeypatch.setattr(dev, "_process_alive", lambda pid: True)
+    dev._write_state(home, {"processes": [{"name": "dev", "pid": 4321, "created": None}]})
+
+    def unexpected_process(*_args, **_kwargs):
+        pytest.fail("A running session must be reported before starting a process")
+
+    monkeypatch.setattr(dev.subprocess, "run", unexpected_process)
+    monkeypatch.setattr(dev.subprocess, "Popen", unexpected_process)
+    with pytest.raises(SystemExit, match="already running"):
+        dev.main([])
+
+
+def test_stop_asks_every_recorded_process_to_end(tmp_path, monkeypatch, capsys):
+    home = str(tmp_path)
+    stamps = {4321: 111, 4322: 222, 4323: 333}
+    dev._write_state(home, {
+        "port": 4567,
+        "vite_port": 5173,
+        "processes": [{"name": name, "pid": pid, "created": stamps[pid]} for name, pid in
+                      (("backend", 4321), ("vite", 4322), ("dev", 4323))],
+    })
+    alive, signals = set(stamps), []
+    monkeypatch.setattr(dev, "_process_alive", lambda pid: pid in alive)
+    monkeypatch.setattr(dev, "_creation_stamp", lambda pid: stamps[pid])
+    monkeypatch.setattr(dev, "_send", lambda pid, number: (signals.append((pid, number)), alive.discard(pid)))
+    monkeypatch.setattr(dev, "bind_local_socket", lambda port: socket.socket())
+    assert dev.stop(home) == 0
+    assert signals == [(4321, signal.SIGTERM), (4322, signal.SIGTERM), (4323, signal.SIGTERM)]
+    assert capsys.readouterr().out == "Stopped EGT GDA Sync development mode at http://127.0.0.1:5173.\n"
+    assert not (tmp_path / dev.STATE_FILE).exists()
+
+
+def test_stop_warns_about_a_port_that_stays_in_use(tmp_path, monkeypatch, capsys):
+    home = str(tmp_path)
+    dev._write_state(home, {"port": 3456, "vite_port": 5173, "processes": []})
+
+    def occupied(port):
+        if port == 5173:
+            raise OSError(errno.EADDRINUSE, "Address already in use")
+        return socket.socket()
+
+    monkeypatch.setattr(dev, "bind_local_socket", occupied)
+    assert dev.stop(home) == 0
+    output = capsys.readouterr().out
+    assert "is not running" in output
+    assert "Warning: port 5173 is still in use. Another program may have taken the development UI port." in output
+    assert "3456" not in output
+
+
+def test_stop_forces_a_process_that_does_not_end_on_request(tmp_path, monkeypatch):
+    home = str(tmp_path)
+    dev._write_state(home, {"processes": [{"name": "vite", "pid": 4321, "created": 111}]})
+    signals = []
+    monkeypatch.setattr(dev, "STOP_TIMEOUT", 0.0)
+    monkeypatch.setattr(dev, "_process_alive", lambda pid: True)
+    monkeypatch.setattr(dev, "_creation_stamp", lambda pid: 111)
+    monkeypatch.setattr(dev, "_send", lambda pid, number: signals.append((pid, number)))
+    assert dev.stop(home) == 0
+    assert signals == [(4321, signal.SIGTERM), (4321, signal.SIGKILL)]
+
+
+def test_stop_leaves_a_process_id_that_now_belongs_to_another_program(tmp_path, monkeypatch):
+    home = str(tmp_path)
+    dev._write_state(home, {"processes": [{"name": "vite", "pid": 4321, "created": 111}]})
+    signals = []
+    monkeypatch.setattr(dev, "_process_alive", lambda pid: True)
+    monkeypatch.setattr(dev, "_creation_stamp", lambda pid: 222)
+    monkeypatch.setattr(dev, "_send", lambda pid, number: signals.append((pid, number)))
+    assert dev.stop(home) == 0
+    assert signals == []
+    assert not (tmp_path / dev.STATE_FILE).exists()
+
+
+def test_stop_without_a_recorded_session_changes_nothing(tmp_path, monkeypatch, capsys):
+    def unexpected(pid, number):
+        pytest.fail("A process without a record must not be stopped")
+
+    monkeypatch.setattr(dev, "_send", unexpected)
+    assert dev.stop(str(tmp_path)) == 0
+    assert "is not running" in capsys.readouterr().out
+
+
+def test_stop_ignores_an_unreadable_record(tmp_path, monkeypatch, capsys):
+    (tmp_path / dev.STATE_FILE).write_text("{ not json", encoding="utf-8")
+    monkeypatch.setattr(dev, "_send", lambda pid, number: pytest.fail("An unreadable record holds no process"))
+    assert dev.stop(str(tmp_path)) == 0
+    assert "is not running" in capsys.readouterr().out
+    assert not (tmp_path / dev.STATE_FILE).exists()
+
+
+def test_stop_ends_real_processes(tmp_path):
+    home, children = str(tmp_path), [sleeper(), sleeper()]
+    dev._write_state(home, {
+        "port": 4567,
+        "vite_port": 5173,
+        "processes": [{"name": name, "pid": child.pid, "created": dev._creation_stamp(child.pid)}
+                      for name, child in (("backend", children[0]), ("vite", children[1]))],
+    })
+    # The children end while this process is still their parent, so they are reaped as they go.
+    reaper = threading.Thread(target=lambda: [child.wait() for child in children], daemon=True)
+    reaper.start()
+    try:
+        assert dev.stop(home) == 0
+        assert all(child.poll() is not None for child in children)
+        assert not (tmp_path / dev.STATE_FILE).exists()
+    finally:
+        reaper.join(10)
+        for child in children:
+            if child.poll() is None:
+                child.kill()
+                child.wait(10)
+
+
+def test_the_default_action_starts_and_the_remaining_options_reach_the_backend(monkeypatch):
+    calls = []
+    monkeypatch.setattr(dev, "start", lambda _home, arguments: calls.append(("start", arguments)) or 0)
+    monkeypatch.setattr(dev, "stop", lambda _home: calls.append(("stop", [])) or 0)
+    for arguments in ([], ["--no-open"], ["stop"]):
+        monkeypatch.setattr(sys, "argv", ["scripts/dev.py", *arguments])
+        assert dev.main() == 0
+    assert calls == [("start", []), ("start", ["--no-open"]), ("stop", [])]
+
+
+@pytest.mark.parametrize("action", ["stpo", "restart"])
+def test_an_unknown_action_is_rejected(action, capsys):
+    with pytest.raises(SystemExit):
+        dev.main([action])
+    assert "invalid choice" in capsys.readouterr().err
 
 
 @pytest.mark.parametrize("override, expected", [(None, 5174), ("5175", 5175)])

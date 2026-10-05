@@ -144,10 +144,10 @@ It shows how the game's resources and the GDA folder differ, using the existing 
 | Item | Destination | Badge |
 | --- | --- | --- |
 | Needs sync | `navigate('pending')` | number of assets that are `new` or `modified` (`pending.length`), warning colour |
-| In sync | `navigate('synced')` | `syncedCount`, success colour |
-| Sync activity | `navigate('activity')` | none |
+| In sync | `navigate('rssSync')`: the GDA sync report (`RssSyncView.vue`) | identical files in the latest GDA sync (`rssSync.summary.identical`), success colour; a spinner while a sync runs |
+| Sync history | `navigate('history')`: every GDA sync run of the workspace, and the file copies to the GDA folder (`SyncHistoryView.vue`) | none |
 
-Where space allows, show the split of "Needs sync" in a `title` tooltip (for example "3 new, 2 modified"), using `countStatus('new')` and `countStatus('modified')`. Keep the existing accessible names `Needs sync`, `In sync` and `Sync activity` (section 8).
+Where space allows, show the split of "Needs sync" in a `title` tooltip (for example "3 new, 2 modified"), using `countStatus('new')` and `countStatus('modified')`. Keep the existing accessible names `Needs sync`, `In sync` and `Sync history` (section 8).
 
 ### 5.3 Assets (workspace level)
 
@@ -197,7 +197,7 @@ The Dashboard is the overview of all the workspaces. It is no longer a menu item
 
 ## 8. Tests and names to keep
 
-Keep the accessible names that `tests/e2e/test_app.py` uses (`exact=True` for some): `Asset library`, `Needs sync`, `In sync`, `Sync activity`, and `Workspace settings` for the header's gear button. Add new names for new items. The menu's `Dashboard` button goes away and the header link (role `link`, name `Dashboard`) takes its place. No current test clicks either; the tests only check the `Dashboard` heading, which stays.
+Keep the accessible names that `tests/e2e/test_app.py` uses (`exact=True` for some): `Asset library`, `Needs sync`, `In sync`, `Sync history`, and `Workspace settings` for the header's gear button. Add new names for new items. The menu's `Dashboard` button goes away and the header link (role `link`, name `Dashboard`) takes its place. No current test clicks either; the tests only check the `Dashboard` heading, which stays.
 
 The new navigation logic **intentionally** breaks the e2e steps that click a Sync or Assets item, or the Workspace settings gear in the site header, while the Dashboard is open, because they are now hidden there. The tests that do this are `open_library()`, `test_syncing_all_pending_makes_the_workspace_current_including_after_reload` (it clicks "Needs sync" right after the dashboard loads and after a reload), `test_validates_workspace_folders_and_saves_a_project_configuration` and `test_stops_the_local_application_and_leaves_a_clear_closed_workspace_screen` (both click "Workspace settings" right after the dashboard loads). Update such a step to choose the workspace first, with the smallest change, for example a helper:
 

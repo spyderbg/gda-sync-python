@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { number, time } from '../format';
-import { assets, busy, config, data, navigate, openFolder, pending, requestSync, rescan, syncedCount } from '../workspace';
+import { assets, busy, config, data, navigate, openFolder, pending, requestSync, rescan, rssSync, syncedCount } from '../workspace';
 
 const newCount = computed(() => pending.value.filter(asset => asset.status === 'new').length);
 const modifiedCount = computed(() => pending.value.length - newCount.value);
@@ -9,12 +9,11 @@ const modifiedCount = computed(() => pending.value.length - newCount.value);
 
 <template>
   <section class="workspace-header" aria-labelledby="workspace-heading">
-    <a href="#" class="page-dashboard-link" @click.prevent="navigate('dashboard')"><i aria-hidden="true" class="mdi mdi-view-dashboard-outline" />Dashboard</a>
     <div class="workspace-header-top">
       <div class="workspace-header-intro">
         <p class="workspace-eyebrow">Your creative workflow, connected</p>
         <h1 id="workspace-heading">{{ config.name }}<span class="workspace-title-dot">.</span></h1>
-        <p class="workspace-subtitle">A place for every asset. Everything in its right place.</p>
+        <p class="workspace-subtitle">Sync data: <span class="workspace-sync-data-path">{{ rssSync?.reportPath || 'Unavailable' }}</span></p>
       </div>
       <div class="workspace-header-actions">
         <button type="button" class="btn btn-outline-primary" :disabled="!!busy" @click="rescan">
@@ -43,15 +42,15 @@ const modifiedCount = computed(() => pending.value.length - newCount.value);
       </button>
     </div>
 
-    <div class="workspace-folder-strip">
-      <button type="button" class="workspace-folder" :title="config.source" aria-label="Open source folder" @click="openFolder('source')">
+    <div class="workspace-folder-strip" role="group" aria-label="Sync flow: GDA folder to Game path">
+      <button type="button" class="workspace-folder" :title="config.destination" aria-label="Open GDA folder" @click="openFolder('destination')">
         <i class="mdi mdi-folder-open-outline workspace-folder-icon" aria-hidden="true" />
-        <span><span class="workspace-folder-label">Source folder</span><span class="workspace-folder-path">{{ config.source }}<i class="mdi mdi-open-in-new" aria-hidden="true" /></span></span>
+        <span><span class="workspace-folder-label">GDA folder</span><span class="workspace-folder-path">{{ config.destination }}<i class="mdi mdi-open-in-new" aria-hidden="true" /></span></span>
       </button>
       <i class="mdi mdi-arrow-right workspace-folder-direction" aria-hidden="true" />
-      <button type="button" class="workspace-folder" :title="config.destination" aria-label="Open GDA folder" @click="openFolder('destination')">
+      <button type="button" class="workspace-folder" :title="config.source" aria-label="Open Game folder" @click="openFolder('source')">
         <i class="mdi mdi-folder-outline workspace-folder-icon" aria-hidden="true" />
-        <span><span class="workspace-folder-label">GDA destination</span><span class="workspace-folder-path">{{ config.destination }}<i class="mdi mdi-open-in-new" aria-hidden="true" /></span></span>
+        <span><span class="workspace-folder-label">Game path</span><span class="workspace-folder-path">{{ config.source }}<i class="mdi mdi-open-in-new" aria-hidden="true" /></span></span>
       </button>
       <button type="button" class="workspace-folder-settings" aria-label="Workspace settings" title="Workspace settings" @click="navigate('settings')"><i class="mdi mdi-tune" aria-hidden="true" /></button>
     </div>
@@ -66,7 +65,8 @@ const modifiedCount = computed(() => pending.value.length - newCount.value);
 .workspace-eyebrow { margin: 0 0 9px; font-size: 9px; font-weight: 500; letter-spacing: 2px; text-transform: uppercase; color: #87958c; }
 h1 { margin: 0 0 10px; font-size: clamp(26px, 2.6vw, 34px); line-height: 1.2; font-weight: 500; letter-spacing: -0.8px; overflow-wrap: anywhere; }
 .workspace-title-dot { color: #85a777; }
-.workspace-subtitle { margin: 0; color: #87909b; font-size: 12px; line-height: 1.5; }
+.workspace-subtitle { margin: 0; color: #87909b; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+.workspace-sync-data-path { font-family: monospace; }
 .workspace-header-actions { display: flex; flex-shrink: 0; gap: 10px; flex-wrap: wrap; }
 .workspace-header-actions .btn { min-height: 40px; border-radius: 7px; white-space: nowrap; }
 .workspace-header-actions .btn-outline-primary { background: #fff; border-color: #dce2dc; color: #5d7063; }

@@ -34,7 +34,7 @@ Launching without an existing workspace configuration creates the **Verdant** wo
 - Review the files and destination in the sync dialog, then confirm the copy.
 - Use **Rescan** after editing a source file to recompute its sync status and retry any failed previews.
 - Open the source or GDA folder in your file manager, or copy its full path.
-- Review persisted sync activity, including the individual files copied.
+- Review the sync history: every GDA sync run with its result and what changed since the previous run, and every copy to the GDA folder, including the individual files copied.
 - Connect your own existing source and GDA folders under **Workspace settings**.
 
 `Ctrl+K` (or `⌘K`) focuses search; `Esc` closes dialogs. Fonts, icons, and sample previews are bundled, so the application works offline.
@@ -81,6 +81,21 @@ The optional `config.vite_port` field sets the development UI port used by `pyth
 
 If no project configuration exists, the first launch creates it from your previously saved workspace, or starts the Verdant demo for a new user. Generated demo settings also include an internal `demo` flag; omit it when configuring your own folders.
 
+### GDA sync
+
+**Rescan** also starts the GDA sync for the selected workspace in a background process. It answers one question: for every resource of the game, does the GDA folder hold an identical copy? It never changes a file. The rules are those of `docs/rss_sync/gda_sync.py`, described in `docs/rss_sync/sync.md`. It reads the `*Data.json` descriptors in `game_path` and compares every file there, plus the shared files the descriptors name. A GDA file matches by file name, in any folder, and by SHA-256. A DDS file that differs only in its mip levels also counts as in sync. Open **Sync → In sync** to see the result: resources in sync, missing from the GDA, different, or declared but invalid.
+
+The sync treats `game_path` as `<resources folder>/<game>` and `gda_path` as the game's GDA folder. Each workspace can also set these optional fields:
+
+| Field | Default | Meaning |
+| --- | --- | --- |
+| `common_gda_path` | none | GDA folder for the shared files under `<resources folder>/common`. A relative path is resolved against the folder of `workspace.json`. |
+| `extensions` | `[".csv", ".dds", ".ini", ".mov", ".png", ".rtf", ".ttf", ".wav"]` | File extensions to compare. |
+| `resource_paths` | `[]` | Extra paths to check, relative to `game_path`. |
+| `ignore_dds_mips` | `true` | Count DDS files that differ only in mip levels as in sync. |
+
+The latest result of each workspace is saved as `<app-data>/sync-reports/<workspace id>.json`. It is the JSON form of the script's `sync_report.md`, plus the files in sync, how the last run ended, and a `history` of every run, newest first, with the counts of each successful one. A failed run keeps the previous result and records its error. **Sync → Sync history** shows these runs.
+
 ### Packaged applications
 
 **Packaging copies `config/workspace.json` to `dist/workspace.json`**, beside `egt-gda-sync` or `egt-gda-sync.exe`. Configure the source file before running `python scripts/package.py`. Each packaging run refreshes the copy. Distribute or move the executable and this configuration together, and adjust folder paths for the destination machine. Both targets share `dist/workspace.json` when building with `--target all`.
@@ -104,6 +119,8 @@ Both use this layout:
 <app-data>/
 ├── workspace.json          # Legacy settings / project EGT_GDA_SYNC_HOME overrides
 ├── activity.json
+├── dev.json                # Processes of a running scripts/dev.py session
+├── sync-reports/<workspace-id>.json
 ├── demo/source/
 ├── demo/gda/
 └── backups/<sync-id>/<relative-file-path>
@@ -160,6 +177,14 @@ Start the Vite dev server with hot reload and the backend. The browser opens aut
 ```bash
 python scripts/dev.py
 ```
+
+`start` is the default action. End a running session from another terminal with:
+
+```bash
+python scripts/dev.py stop
+```
+
+`stop` waits for the backend and Vite to exit and warns when a port is still in use.
 
 Type-check the Vue code:
 

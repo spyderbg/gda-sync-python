@@ -137,7 +137,7 @@ def test_selection_sync_changes_file_status_and_appears_in_activity_history(page
     expect(page.get_by_role("status")).to_contain_text("1 asset synced")
     card = page.locator(".asset-card").filter(has=page.get_by_role("button", name="Inspect moss_ground_albedo.png", exact=True))
     expect(card).to_contain_text("In sync")
-    page.get_by_role("button", name="Sync activity", exact=True).click()
+    page.get_by_role("button", name="Sync history", exact=True).click()
     expect(page.get_by_text("Synced 1 asset to GDA")).to_be_visible()
     page.get_by_text("View 1 files", exact=True).click()
     expect(page.get_by_text("textures/forest/moss_ground_albedo.png", exact=True)).to_be_visible()

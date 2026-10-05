@@ -1,15 +1,18 @@
 // Application state shared by the layout and the views, and the actions that talk to the backend.
 import { computed, reactive, ref, watch } from 'vue';
 import { plural } from './format';
-import type { Asset, AssetStatus, AssetType, LibraryResponse, Session, SyncResult, View, WorkspaceConfig } from './types';
+import type { Asset, AssetStatus, AssetType, LibraryResponse, RssSyncStatus, Session, SyncResult, View, WorkspaceConfig } from './types';
 
 const INVALID_SESSION = 'Invalid session. Reload the application.';
+const RSS_POLL_MS = 1000;
 export const LIBRARY_VIEWS: View[] = ['library', 'pending', 'synced'];
 export const PAGE_NAMES: Record<View, string> = {
-  dashboard: 'Dashboard', library: 'Asset library', pending: 'Needs sync', synced: 'In sync', activity: 'Sync activity', settings: 'Workspace settings',
+  dashboard: 'Dashboard', library: 'Asset library', pending: 'Needs sync', synced: 'In sync', rssSync: 'In sync', history: 'Sync history', settings: 'Workspace settings',
 };
 
 export const data = ref<LibraryResponse | null>(null);
+/** The active workspace's GDA sync: whether it is running, and the summary of its latest report. */
+export const rssSync = ref<RssSyncStatus | null>(null);
 export const session = reactive({ token: '', version: '', platform: '' });
 export const loadError = ref('');
 export const stopped = ref(false);
@@ -78,7 +81,28 @@ function applySession(value: Session) {
 
 function applyLibrary(library: LibraryResponse) {
   data.value = library;
+  rssSync.value = library.rssSync;
   if (!library.assets.some(asset => asset.id === ui.inspecting)) ui.inspecting = library.assets[0]?.id || null;
+}
+
+// The GDA sync runs in a background process after a rescan: follow it, then report how it ended.
+let rssTimer: number | undefined;
+watch(rssSync, (status, previous) => {
+  clearTimeout(rssTimer);
+  if (status?.running) rssTimer = window.setTimeout(refreshRssSync, RSS_POLL_MS);
+  else if (status && previous?.running && previous.workspaceId === status.workspaceId && status.lastRun) {
+    const { lastRun, summary } = status;
+    if (lastRun.state === 'failed') notify(`GDA sync failed: ${lastRun.error}`, true);
+    else if (summary) notify(`GDA sync finished: ${summary.identical} in sync, ${summary.missing} missing, ${summary.different} different, ${summary.invalid} invalid.`);
+  }
+});
+
+async function refreshRssSync() {
+  try {
+    rssSync.value = await getJSON<RssSyncStatus>('/api/rss-sync');
+  } catch {
+    rssTimer = window.setTimeout(refreshRssSync, RSS_POLL_MS * 3);
+  }
 }
 
 async function getJSON<T>(path: string, signal?: AbortSignal): Promise<T> {

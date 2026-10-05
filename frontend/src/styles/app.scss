@@ -185,6 +185,12 @@ button.nav-link {
     min-width: 26px;
   }
 
+  .nav .nav-item .nav-link .sidebar-running {
+    margin-left: auto;
+    font-size: 16px;
+    line-height: 1;
+  }
+
   .sidebar-section-label {
     margin: 22px 30px 8px 32px; color: rgba($white, 0.65); font-family: inherit;
     font-size: 10px; font-weight: 500; line-height: 16px; letter-spacing: 1.6px; text-transform: uppercase;

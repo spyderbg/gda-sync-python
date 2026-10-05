@@ -1,7 +1,8 @@
 // Chart configurations with the colors, gradients and axes of the StarAdmin dashboard charts.
 import type { ChartConfiguration, ScriptableContext } from 'chart.js';
 import type { Coverage, Mix, Series, Storage, StorageMetric, Timeline } from '../insights';
-import { themeColor } from './chartjs';
+import type { RssSyncSummary } from '../types';
+import { type ThemeColor, themeColor } from './chartjs';
 
 type Stops = [number, string][];
 
@@ -179,17 +180,24 @@ export function gauge(percentInSync: number): ChartConfiguration<'doughnut'> {
   };
 }
 
-/** Data copied by each recent sync, for the activity page. */
-export function syncBars(series: Series & { files: number[] }): ChartConfiguration<'bar'> {
+/** The results of recent GDA sync runs, oldest first, stacked by category, for the sync history page. */
+export function syncRunBars(runs: { label: string; summary: RssSyncSummary }[]): ChartConfiguration<'bar'> {
+  const results: [string, keyof RssSyncSummary, ThemeColor][] = [
+    ['In sync', 'identical', 'success'], ['Missing', 'missing', 'warning'], ['Different', 'different', 'danger'], ['Invalid', 'invalid', 'dark'],
+  ];
   return {
     type: 'bar',
-    data: { labels: series.labels, datasets: [{ label: 'Copied', data: series.values, backgroundColor: themeColor('primary'), borderWidth: 0, maxBarThickness: 28 }] },
+    data: {
+      labels: runs.map(run => run.label),
+      datasets: results.map(([label, key, color]) => ({
+        label, data: runs.map(run => run.summary[key]), backgroundColor: themeColor(color), borderWidth: 0, maxBarThickness: 28,
+      })),
+    },
     options: {
       scales: {
-        x: { ticks: { display: false }, grid: { display: false } },
-        y: { beginAtZero: true, ticks: { maxTicksLimit: 4, callback: value => megabytes(Number(value)) }, grid: { color: '#e9ebf1' }, border: { display: false } },
+        x: { stacked: true, ticks: { display: false }, grid: { display: false } },
+        y: { stacked: true, beginAtZero: true, ticks: { maxTicksLimit: 4 }, grid: { color: '#e9ebf1' }, border: { display: false } },
       },
-      plugins: { tooltip: { callbacks: { label: context => `${megabytes(context.parsed.y ?? 0)} · ${series.files[context.dataIndex]} file${series.files[context.dataIndex] === 1 ? '' : 's'}` } } },
     },
   };
 }

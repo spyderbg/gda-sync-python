@@ -7,10 +7,11 @@ import { useBackendLifetime } from './composables/useBackendLifetime';
 import AppFooter from './layout/AppFooter.vue';
 import AppHeader from './layout/AppHeader.vue';
 import AppSidebar from './layout/AppSidebar.vue';
-import ActivityView from './views/ActivityView.vue';
 import DashboardView from './views/DashboardView.vue';
 import LibraryView from './views/LibraryView.vue';
 import SettingsView from './views/SettingsView.vue';
+import SyncHistoryView from './views/SyncHistoryView.vue';
+import SyncView from './views/SyncView.vue';
 import { data, isLibraryView, load, loadError, stopped, ui } from './workspace';
 
 useBackendLifetime(() => !stopped.value);
@@ -54,7 +55,8 @@ onBeforeUnmount(() => {
         <div class="content-wrapper">
           <DashboardView v-if="ui.view === 'dashboard'" />
           <LibraryView v-else-if="isLibraryView" />
-          <ActivityView v-else-if="ui.view === 'activity'" />
+          <SyncView v-else-if="ui.view === 'rssSync'" />
+          <SyncHistoryView v-else-if="ui.view === 'history'" />
           <SettingsView v-else-if="ui.view === 'settings'" />
         </div>
         <AppFooter />

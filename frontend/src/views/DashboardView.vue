@@ -85,7 +85,7 @@ const avatarColors = ['bg-warning', 'bg-success', 'bg-info', 'bg-primary'];
     <template #links>
       <li><a href="#" @click.prevent="navigate('library')">Asset library</a></li>
       <li><a href="#" @click.prevent="navigate('pending')">Needs sync</a></li>
-      <li><a href="#" @click.prevent="navigate('activity')">Sync activity</a></li>
+      <li><a href="#" @click.prevent="navigate('history')">Sync history</a></li>
     </template>
     <template #links-right>
       <li><a href="#" @click.prevent="navigate('settings')">Settings</a></li>
@@ -407,12 +407,12 @@ const avatarColors = ['bg-warning', 'bg-success', 'bg-info', 'bg-primary'];
           </div>
           <ul v-if="activity.length" class="timeline">
             <li v-for="entry in activity.slice(0, 5)" :key="entry.id" class="timeline-item">
-              <p class="timeline-content"><a href="#" @click.prevent="navigate('activity')">{{ entry.message }}</a></p>
+              <p class="timeline-content"><a href="#" @click.prevent="navigate('history')">{{ entry.message }}</a></p>
               <p class="event-time">{{ ago(entry.date) }}</p>
             </li>
           </ul>
           <p v-else class="text-muted">No activity yet. Syncs and rescans appear here.</p>
-          <a class="d-block mt-3" href="#" @click.prevent="navigate('activity')">Show all</a>
+          <a class="d-block mt-3" href="#" @click.prevent="navigate('history')">Show all</a>
         </div>
       </div>
     </div>
