@@ -346,22 +346,26 @@ class Library:
         entry = next((entry for entry in self.config.get("workspaces", []) if entry["id"] == workspace_id), self.config)
         return workspace_id, entry
 
-    def _comparison_settings(self, entry: dict) -> dict:
-        """Map a workspace onto the GDA sync settings: game_path is <resources_dir>/<game>, gda_path is gda_dir."""
+    def _comparison(self, workspace_id: str, entry: dict) -> tuple[dict, dict]:
+        """The workspace settings a run uses, named as in workspace.json with defaults filled in, and the GDA sync
+        settings made from them: game_path is <resources_dir>/<game>, and gda_path is gda_dir."""
         common = entry.get("common_gda_path")
         if isinstance(common, str) and common and not os.path.isabs(common):
             common = os.path.join(os.path.dirname(self.config_path), common)
-        return {
-            "resources_dir": os.path.dirname(entry["source"]), "game": os.path.basename(entry["source"]),
-            "gda_dir": entry["destination"], "common_gda_dir": common,
-            "extensions": entry.get("extensions", list(DEFAULT_EXTENSIONS)),
-            "resource_paths": entry.get("resource_paths", []),
-            "ignore_dds_mips": entry.get("ignore_dds_mips", True),
+        workspace = {
+            "id": workspace_id, "game_name": entry["name"], "game_path": entry["source"], "gda_path": entry["destination"],
+            "common_gda_path": common, "extensions": entry.get("extensions", list(DEFAULT_EXTENSIONS)),
+            "resource_paths": entry.get("resource_paths", []), "ignore_dds_mips": entry.get("ignore_dds_mips", True),
         }
+        settings = {
+            "resources_dir": os.path.dirname(workspace["game_path"]), "game": os.path.basename(workspace["game_path"]),
+            "gda_dir": workspace["gda_path"], "common_gda_dir": common, "extensions": workspace["extensions"],
+            "resource_paths": workspace["resource_paths"], "ignore_dds_mips": workspace["ignore_dds_mips"],
+        }
+        return workspace, settings
 
     def rss_status(self) -> dict:
-        workspace_id = self._active_workspace()[0]
-        return {**self.reports.status(workspace_id), "reportPath": self.reports.report_file(workspace_id)}
+        return self.reports.status(self._active_workspace()[0])
 
     def rss_history(self) -> dict:
         workspace_id = self._active_workspace()[0]
@@ -375,7 +379,19 @@ class Library:
 
     def start_comparison(self) -> None:
         workspace_id, entry = self._active_workspace()
-        self.reports.start(workspace_id, entry["name"], self._comparison_settings(entry))
+        self.reports.start(workspace_id, *self._comparison(workspace_id, entry))
+
+    def workspace_entries(self) -> list[tuple[str, dict]]:
+        """Every workspace's id and entry, in the order of workspace.json."""
+        workspaces = self.config.get("workspaces")
+        return [(entry["id"], entry) for entry in workspaces] if workspaces else [("current", self.config)]
+
+    def compare_workspace(self, workspace_id: str, progress: Callable[[str, int, int], None] | None = None) -> dict:
+        """Run a workspace's GDA sync in this process and save its report, without the app; return the run."""
+        entry = dict(self.workspace_entries()).get(workspace_id)
+        if entry is None:
+            raise AppError(f"Workspace not found: {workspace_id}", 404)
+        return self.reports.run(workspace_id, *self._comparison(workspace_id, entry), progress)
 
     def close(self) -> None:
         self.reports.stop_all()

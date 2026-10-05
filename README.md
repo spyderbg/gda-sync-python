@@ -94,7 +94,18 @@ The sync treats `game_path` as `<resources folder>/<game>` and `gda_path` as the
 | `resource_paths` | `[]` | Extra paths to check, relative to `game_path`. |
 | `ignore_dds_mips` | `true` | Count DDS files that differ only in mip levels as in sync. |
 
-The latest result of each workspace is saved as `<app-data>/sync-reports/<workspace id>.json`. It is the JSON form of the script's `sync_report.md`, plus the files in sync, how the last run ended, and a `history` of every run, newest first, with the counts of each successful one. A failed run keeps the previous result and records its error. **Sync → Sync history** shows these runs.
+Every run saves its own report as `<app-data>/sync-reports/<workspace id>-<Unix timestamp>.json`, named with the epoch seconds when the run finished, for example `joker_reels_coins_10-1791195194.json`. Earlier reports are kept, and their names sort by time; runs that finish within the same second add `_2`, `_3`, and so on. A report describes only the run that wrote it. Its `workspace` holds the exact workspace settings the run used, so it stays accurate after `workspace.json` changes, and its `run` holds the state, start and finish times, and any error. A successful run's report adds the JSON form of the script's `sync_report.md`: the folders and extensions used, then `descriptors`, the `*Data.json` files it parsed with how many resource paths each declares (and how many files those name once `{N-M}` ranges are expanded), then the summary and the resources that differ, plus the files in sync. A failed run's report holds only that, and the app keeps showing the last successful result. **Sync → Sync history** lists every report file of the workspace, newest first, one run each. Reports are never deleted automatically, so remove old ones when the folder grows too large. Reports named with a UTC date (`…-20261005T101314Z.json`) by an earlier version are read in time order with the others, and a report saved before names had a timestamp is read as the oldest.
+
+To create reports without starting the app, use the `report` command. It reads the same `workspace.json` as the app, runs the GDA sync in the terminal, and saves each report where the app reads it, so the next launch shows the result and the run in Sync history:
+
+```bash
+python -m egt_gda_sync report                       # the default workspace
+python -m egt_gda_sync report joker_reels_coins_10  # the listed workspaces
+python -m egt_gda_sync report --all                 # every workspace
+./dist/egt-gda-sync report --all                    # the same with the packaged executable
+```
+
+It prints one summary line per workspace and the path of its report. The exit status follows `gda_sync.py`: `0` when every compared resource is in sync, `1` when differences exist, and `2` when a sync could not run, for example because of an unknown workspace id or a missing `*Data.json` descriptor. Avoid running it for a workspace while the app is syncing the same workspace: whichever finishes last overwrites the other's report.
 
 ### Packaged applications
 
@@ -120,7 +131,7 @@ Both use this layout:
 ├── workspace.json          # Legacy settings / project EGT_GDA_SYNC_HOME overrides
 ├── activity.json
 ├── dev.json                # Processes of a running scripts/dev.py session
-├── sync-reports/<workspace-id>.json
+├── sync-reports/<workspace-id>-<unix-timestamp>.json
 ├── demo/source/
 ├── demo/gda/
 └── backups/<sync-id>/<relative-file-path>

@@ -97,7 +97,7 @@ const legend = computed(() => [
             <h4 class="card-title mb-0">GDA sync runs</h4>
             <p class="mb-0 text-muted">Newest first</p>
           </div>
-          <p class="text-muted history-intro">Every Rescan compares the game resources with the GDA folder. Changes are counted from the previous successful run.</p>
+          <p class="text-muted history-intro">Every Rescan compares the game resources with the GDA folder and saves the run in its own report file. Changes are counted from the previous successful run.</p>
           <div class="table-responsive">
             <table class="table history-table" aria-label="GDA sync runs">
               <thead>
@@ -109,10 +109,11 @@ const legend = computed(() => [
                   <td><span class="badge badge-primary"><i aria-hidden="true" class="mdi mdi-loading mdi-spin" /> Running</span></td>
                   <td :colspan="COLUMNS.length" class="text-muted">Results appear here when the run ends.</td>
                 </tr>
-                <tr v-for="{ run, previous } in rows" :key="run.startedAt">
+                <tr v-for="{ run, previous } in rows" :key="run.file">
                   <td>
                     <span class="d-block">{{ time(run.finishedAt) }}</span>
-                    <small class="text-muted">Took {{ duration(run) }}</small>
+                    <small class="text-muted d-block">Took {{ duration(run) }}</small>
+                    <small class="text-muted history-file" :title="run.file">{{ run.file }}</small>
                   </td>
                   <td>
                     <span v-if="run.summary" class="badge badge-success">Succeeded</span>
@@ -192,6 +193,7 @@ const legend = computed(() => [
 .history-table td { vertical-align: top; line-height: 1.4; height: auto; }
 .history-table td small { font-size: 11px; }
 .history-error { white-space: normal; color: #d2453c; overflow-wrap: anywhere; }
+.history-file { display: block; font-family: monospace; white-space: normal; overflow-wrap: anywhere; }
 /* Four series do not fit on one line in the narrow column. */
 .history-legend :deep(ul) { flex-wrap: wrap; row-gap: 6px; }
 </style>

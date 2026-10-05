@@ -13,6 +13,7 @@ from .desktop import application_data_home, open_on_desktop
 from .errors import error_message
 from .library import Library
 from .ports import backend_port as _port, dev_ui_url
+from .report import main as report_main, parse_args as parse_report_args
 from .runtime import AppServer, bind_local_socket, is_address_in_use
 from .server import create_app
 
@@ -84,6 +85,20 @@ def run(argv: list[str]) -> int:
     return 0
 
 
+def report(argv: list[str]) -> int:
+    """Run the GDA sync of workspaces from the command line, without the server or the browser."""
+    args = parse_report_args(argv)
+    data_home = os.path.abspath(application_data_home())
+    library = Library(data_home, config_path=workspace_config_path(data_home))
+    try:
+        library.init()
+    except Exception as error:
+        print(f"EGT GDA Sync: {error_message(error)}", file=sys.stderr, flush=True)
+        return 2
+    print(f"Configuration: {library.config_path}", flush=True)
+    return report_main(args, library)
+
+
 def _pause_before_console_closes() -> None:
     # A double-clicked Windows executable closes its console on exit; keep the error readable.
     if getattr(sys, "frozen", False) and sys.platform == "win32" and sys.stdin and sys.stdin.isatty():
@@ -97,8 +112,11 @@ def main(argv: list[str] | None = None) -> int:
     for stream in (sys.stdout, sys.stderr):
         if stream and hasattr(stream, "reconfigure"):
             stream.reconfigure(errors="replace")
+    args = sys.argv[1:] if argv is None else argv
     try:
-        return run(sys.argv[1:] if argv is None else argv)
+        if args[:1] == ["report"]:
+            return report(args[1:])
+        return run(args)
     except KeyboardInterrupt:
         return 0
     except Exception as error:

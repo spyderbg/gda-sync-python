@@ -45,14 +45,17 @@ const modifiedCount = computed(() => pending.value.length - newCount.value);
     <div class="workspace-folder-strip" role="group" aria-label="Sync flow: GDA folder to Game path">
       <button type="button" class="workspace-folder" :title="config.destination" aria-label="Open GDA folder" @click="openFolder('destination')">
         <i class="mdi mdi-folder-open-outline workspace-folder-icon" aria-hidden="true" />
-        <span><span class="workspace-folder-label">GDA folder</span><span class="workspace-folder-path">{{ config.destination }}<i class="mdi mdi-open-in-new" aria-hidden="true" /></span></span>
+        <span class="workspace-folder-label">GDA folder</span>
+        <span class="workspace-folder-path">{{ config.destination }}</span>
+        <i class="mdi mdi-open-in-new workspace-folder-open" aria-hidden="true" />
       </button>
-      <i class="mdi mdi-arrow-right workspace-folder-direction" aria-hidden="true" />
+      <i class="mdi mdi-arrow-down workspace-folder-direction" aria-hidden="true" />
       <button type="button" class="workspace-folder" :title="config.source" aria-label="Open Game folder" @click="openFolder('source')">
         <i class="mdi mdi-folder-outline workspace-folder-icon" aria-hidden="true" />
-        <span><span class="workspace-folder-label">Game path</span><span class="workspace-folder-path">{{ config.source }}<i class="mdi mdi-open-in-new" aria-hidden="true" /></span></span>
+        <span class="workspace-folder-label">Game path</span>
+        <span class="workspace-folder-path">{{ config.source }}</span>
+        <i class="mdi mdi-open-in-new workspace-folder-open" aria-hidden="true" />
       </button>
-      <button type="button" class="workspace-folder-settings" aria-label="Workspace settings" title="Workspace settings" @click="navigate('settings')"><i class="mdi mdi-tune" aria-hidden="true" /></button>
     </div>
     <p class="workspace-last-scan">Last scanned {{ time(data!.scannedAt) }}</p>
   </section>
@@ -83,24 +86,25 @@ h1 { margin: 0 0 10px; font-size: clamp(26px, 2.6vw, 34px); line-height: 1.2; fo
 .workspace-metric-value { display: flex; align-items: baseline; flex-wrap: wrap; column-gap: 9px; row-gap: 2px; font-size: 28px; font-weight: 500; line-height: 1.15; letter-spacing: -0.7px; }
 .workspace-metric-value small { font-size: 10px; font-weight: 400; color: #97a098; letter-spacing: 0; line-height: 1.4; }
 .workspace-metric-arrow { position: absolute; right: 14px; top: 14px; color: #a5b199; font-size: 17px; }
-.workspace-folder-strip { display: flex; align-items: center; gap: 16px; padding: 12px 16px; background: #f0f3ed; border: 1px solid #e0e5de; border-radius: 8px; }
-.workspace-folder { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; padding: 0; background: transparent; border: 0; color: #7e896f; text-align: left; cursor: pointer; }
-.workspace-folder > span { min-width: 0; }
+.workspace-folder-strip { position: relative; display: grid; gap: 16px; padding: 12px 16px; background: #f0f3ed; border: 1px solid #e0e5de; border-radius: 8px; }
+.workspace-folder { display: grid; grid-template-columns: 34px 90px minmax(0, 1fr) 18px; align-items: center; gap: 12px; min-width: 0; padding: 0; background: transparent; border: 0; color: #7e896f; text-align: left; cursor: pointer; }
 .workspace-folder-icon { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 34px; height: 34px; border: 1px solid #dee5d5; border-radius: 7px; font-size: 21px; background: #e9eee1; }
-.workspace-folder-label { display: block; margin-bottom: 4px; font-size: 8px; font-weight: 500; text-transform: uppercase; letter-spacing: 1.4px; }
+.workspace-folder-label { font-size: 8px; font-weight: 500; text-transform: uppercase; letter-spacing: 1.4px; }
 .workspace-folder-path { display: block; font-family: monospace; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.workspace-folder-path i { margin-left: 8px; }
-.workspace-folder-direction { color: #9eae92; font-size: 22px; }
-.workspace-folder-settings { padding: 6px 0 6px 15px; border: 0; border-left: 1px solid #dce3d5; background: transparent; color: #86937d; font-size: 22px; cursor: pointer; }
+.workspace-folder-open { font-size: 16px; }
+.workspace-folder-direction { position: absolute; left: 25px; top: 50%; transform: translateY(-50%); color: #9eae92; font-size: 16px; line-height: 1; }
 .workspace-last-scan { margin: 8px 0 0; color: #929aa1; font-size: 11px; text-align: right; }
 @media (max-width: 1199px) { .workspace-metric { padding: 18px 12px; gap: 10px; } .workspace-metric-value { font-size: 25px; } }
 @media (max-width: 767px) {
   .workspace-header-top { flex-direction: column; align-items: flex-start; gap: 16px; }
   .workspace-metrics { grid-template-columns: 1fr; gap: 10px; }
   .workspace-metric { padding: 16px; }
-  .workspace-folder-strip { flex-wrap: wrap; gap: 12px; }
-  .workspace-folder { flex-basis: calc(100% - 45px); }
-  .workspace-folder-direction { display: none; }
-  .workspace-folder-settings { margin-left: auto; }
+}
+@media (max-width: 575px) {
+  .workspace-folder { grid-template-columns: 34px minmax(0, 1fr) 18px; column-gap: 10px; row-gap: 4px; }
+  .workspace-folder-icon { grid-column: 1; grid-row: 1 / 3; }
+  .workspace-folder-label { grid-column: 2; grid-row: 1; }
+  .workspace-folder-path { grid-column: 2; grid-row: 2; }
+  .workspace-folder-open { grid-column: 3; grid-row: 1 / 3; }
 }
 </style>

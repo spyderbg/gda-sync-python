@@ -231,19 +231,26 @@ def status_category(status: str) -> str:
 
 
 def compare(config: Config, progress: Progress | None = None) -> dict:
-    """Classify every resource of the game; return the summary, the differences and the identical files."""
+    """Classify every resource of the game; return the parsed descriptors, the summary, the differences and the identical files."""
     report = progress or (lambda _phase, _done, _total: None)
     game_dir = config.resources_dir / config.game
     report("descriptors", 0, 0)
     documents = load_documents(game_dir)
     declared = set(config.resource_paths)
     source_documents: dict[Path, set[tuple[str, int]]] = defaultdict(set)
+    descriptors: list[dict] = []
     for document_path, document in documents.items():
         document_name = os.path.relpath(document_path, game_dir)
+        declarations = resources = 0
         for template, line in declared_path_lines(document_path, document):
             declared.add(template)
+            declarations += 1
             for relative in expand_path(template):
+                resources += 1
                 source_documents[(game_dir / relative).resolve()].add((document_name, line))
+        descriptors.append({"name": document_name, "path": str(document_path), "type": type(document).__name__,
+                            "declarations": declarations, "resources": resources})
+    descriptors.sort(key=lambda item: item["name"])
     # Compare every physical game asset, including files absent from a descriptor.
     # Descriptor paths additionally bring in shared assets outside the game folder.
     declared.update(path.relative_to(game_dir).as_posix() for path in game_dir.rglob("*") if path.is_file())
@@ -328,6 +335,8 @@ def compare(config: Config, progress: Progress | None = None) -> dict:
         "commonGdaDir": str(config.common_gda_dir) if config.common_gda_dir else None,
         "extensions": sorted(config.extensions),
         "ignoreDdsMips": config.ignore_dds_mips,
+        # Every *Data.json parsed, with its declared resource paths before and after {N-M} ranges are expanded.
+        "descriptors": descriptors,
         "summary": {
             "compared": selected, "identical": len(identical), "identicalMipOnly": mip_matched,
             "missing": counts["missing"], "different": counts["different"], "invalid": counts["invalid"],
@@ -337,22 +346,34 @@ def compare(config: Config, progress: Progress | None = None) -> dict:
     }
 
 
-def run_in_process(settings: dict, connection: Any) -> None:
-    """Background process entry point: send ("progress", …) messages, then ("result", report) or ("error", text)."""
+def throttled(progress: Progress, interval: float = PROGRESS_INTERVAL) -> Progress:
+    """Pass on the start and end of each phase, and at most one update per interval in between."""
     last = 0.0
 
-    def progress(phase: str, done: int, total: int) -> None:
+    def report(phase: str, done: int, total: int) -> None:
         nonlocal last
         now = time.monotonic()
-        if done in (0, total) or now - last >= PROGRESS_INTERVAL:
+        if done in (0, total) or now - last >= interval:
             last = now
-            connection.send(("progress", {"phase": phase, "done": done, "total": total}))
+            progress(phase, done, total)
+    return report
 
+
+def compare_settings(settings: dict, progress: Progress | None = None) -> tuple[dict | None, str | None]:
+    """Validate the settings and compare; return (result, None), or (None, error) when the run cannot complete."""
     try:
-        connection.send(("result", compare(make_config(settings), progress)))
+        return compare(make_config(settings), progress), None
     except (OSError, ValueError) as error:  # The errors that make gda_sync.py exit with code 2.
-        connection.send(("error", str(error)))
+        return None, str(error)
     except Exception as error:
-        connection.send(("error", f"{type(error).__name__}: {error}"))
+        return None, f"{type(error).__name__}: {error}"
+
+
+def run_in_process(settings: dict, connection: Any) -> None:
+    """Background process entry point: send ("progress", …) messages, then ("result", report) or ("error", text)."""
+    try:
+        result, error = compare_settings(settings, throttled(
+            lambda phase, done, total: connection.send(("progress", {"phase": phase, "done": done, "total": total}))))
+        connection.send(("error", error) if error else ("result", result))
     finally:
         connection.close()

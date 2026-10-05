@@ -45,7 +45,10 @@ def wait_for_dev_server(vite: subprocess.Popen, port: int, timeout: float = 60) 
         try:
             with opener.open(f"http://127.0.0.1:{port}", timeout=1) as response:
                 if b"<title>EGT GDA Sync" in response.read():
-                    return
+                    # Another program can serve the same page on this port, so confirm that our Vite is the one.
+                    time.sleep(0.3)
+                    if vite.poll() is None:
+                        return
         except OSError:
             pass
         if time.monotonic() > deadline:
@@ -164,11 +167,35 @@ def _port_in_use(port: object) -> bool:
     return False
 
 
-def _warn_about_ports(state: dict) -> None:
-    """Warn about a port that stays occupied, so the next start is not held up by it."""
+def _configured_port(data_home: str, key: str) -> int | None:
+    """Resolve a port the way a start would, so a stop without a record still knows which port to check."""
+    resolve = _port if key == "port" else vite_port
+    config: dict = {}
+    for path in (workspace_config_path(data_home), os.path.join(data_home, "workspace.json")):
+        try:
+            with open(path, encoding="utf-8-sig") as handle:
+                loaded = json.load(handle)
+        except (OSError, ValueError):
+            continue
+        if isinstance(loaded, dict):
+            config = loaded
+            break
+    try:
+        return resolve(config)
+    except RuntimeError:
+        return None
+
+
+def _warn_about_ports(data_home: str, state: dict) -> None:
+    """Warn about a port that stays in use after stopping, so the next start is not held up by it."""
     for label, key in (("backend", "port"), ("development UI", "vite_port")):
-        if _port_in_use(state.get(key)):
-            print(f"Warning: port {state[key]} is still in use. Another program may have taken the {label} port.", flush=True)
+        port = state.get(key)
+        if not isinstance(port, int):
+            port = _configured_port(data_home, key)
+        if not isinstance(port, int) or not _port_in_use(port):
+            continue
+        variable = "PORT" if label == "backend" else "vite_port in workspace.json or VITE_PORT"
+        print(f"Warning: port {port} is still in use. Another program may have taken the {label} port. Set {variable} to choose another port.", flush=True)
 
 
 def start(data_home: str, arguments: list[str]) -> int:
@@ -184,6 +211,10 @@ def start(data_home: str, arguments: list[str]) -> int:
     ui_port = vite_port(library.config)
     if ui_port == port:
         raise SystemExit("vite_port and the backend port must be different. Set vite_port in workspace.json or VITE_PORT to choose another port.")
+    if _port_in_use(port):
+        raise SystemExit(f"Port {port} is in use by another application. Set port in workspace.json or PORT to choose another port.")
+    if _port_in_use(ui_port):
+        raise SystemExit(f"Port {ui_port} is in use by another application. Set vite_port in workspace.json or VITE_PORT to choose another port.")
     env = {**os.environ, "PORT": str(port), "VITE_PORT": str(ui_port), "EGT_GDA_SYNC_DEV": "1"}
     subprocess.run([npm, "ci"], cwd=FRONTEND, check=True)
     # Run Vite directly rather than through npm, so stopping it stops a single process on every platform.
@@ -234,7 +265,7 @@ def stop(data_home: str) -> int:
         print(f"Stopped EGT GDA Sync development mode{url}.", flush=True)
     else:
         print("EGT GDA Sync development mode is not running.", flush=True)
-    _warn_about_ports(state)
+    _warn_about_ports(data_home, state)
     return 0
 
 

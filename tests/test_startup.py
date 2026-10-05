@@ -183,6 +183,7 @@ def test_development_passes_the_resolved_ports_to_vite_and_the_backend(tmp_path,
     monkeypatch.setattr(sys, "argv", ["scripts/dev.py", "--no-open"])
     monkeypatch.setattr(dev.shutil, "which", lambda name: f"/tools/{name}")
     monkeypatch.setattr(dev.subprocess, "run", lambda *args, **kwargs: None)
+    monkeypatch.setattr(dev, "_port_in_use", lambda _port: False)
     waited_ports = []
     monkeypatch.setattr(dev, "wait_for_dev_server", lambda _process, port: waited_ports.append(port))
     processes = []
@@ -226,6 +227,46 @@ def test_development_rejects_matching_ports_before_starting_any_process(tmp_path
         dev.main([])
 
 
+def test_development_rejects_an_occupied_port_before_starting_any_process(tmp_path, monkeypatch):
+    port = free_port()
+    home, _settings = configured_workspace(tmp_path, port)
+    monkeypatch.setenv("EGT_GDA_SYNC_HOME", str(home))
+    monkeypatch.delenv("PORT", raising=False)
+    monkeypatch.delenv("VITE_PORT", raising=False)
+    monkeypatch.setattr(dev.shutil, "which", lambda name: f"/tools/{name}")
+
+    def unexpected_process(*_args, **_kwargs):
+        pytest.fail("An occupied port must be reported before starting a process")
+
+    monkeypatch.setattr(dev.subprocess, "run", unexpected_process)
+    monkeypatch.setattr(dev.subprocess, "Popen", unexpected_process)
+    with socket.socket() as taken:
+        taken.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        taken.bind(("127.0.0.1", port))
+        taken.listen(1)
+        with pytest.raises(SystemExit, match=f"Port {port} is in use by another application"):
+            dev.main([])
+
+
+def test_development_rejects_an_occupied_ui_port(tmp_path, monkeypatch):
+    ui_port = free_port()
+    home, settings = configured_workspace(tmp_path, 4567)
+    settings["vite_port"] = ui_port
+    (home / "workspace.json").write_text(json.dumps(settings), encoding="utf-8")
+    monkeypatch.setenv("EGT_GDA_SYNC_HOME", str(home))
+    monkeypatch.delenv("PORT", raising=False)
+    monkeypatch.delenv("VITE_PORT", raising=False)
+    monkeypatch.setattr(dev.shutil, "which", lambda name: f"/tools/{name}")
+    monkeypatch.setattr(dev.subprocess, "run", lambda *args, **kwargs: pytest.fail("No process may start"))
+    monkeypatch.setattr(dev.subprocess, "Popen", lambda *args, **kwargs: pytest.fail("No process may start"))
+    with socket.socket() as taken:
+        taken.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        taken.bind(("127.0.0.1", ui_port))
+        taken.listen(1)
+        with pytest.raises(SystemExit, match=f"Port {ui_port} is in use by another application"):
+            dev.main([])
+
+
 def sleeper() -> subprocess.Popen:
     return subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
 
@@ -236,6 +277,7 @@ def test_development_records_the_processes_a_later_run_can_stop(tmp_path, monkey
     monkeypatch.setattr(sys, "argv", ["scripts/dev.py", "--no-open"])
     monkeypatch.setattr(dev.shutil, "which", lambda name: f"/tools/{name}")
     monkeypatch.setattr(dev.subprocess, "run", lambda *args, **kwargs: None)
+    monkeypatch.setattr(dev, "_port_in_use", lambda _port: False)
     monkeypatch.setattr(dev, "wait_for_dev_server", lambda _process, port: None)
     pids = iter((4321, 4322))
     written = []
@@ -318,6 +360,25 @@ def test_stop_warns_about_a_port_that_stays_in_use(tmp_path, monkeypatch, capsys
     assert "3456" not in output
 
 
+def test_stop_warns_about_a_configured_port_without_a_record(tmp_path, monkeypatch, capsys):
+    port, ui_port = free_port(), free_port()
+    home, settings = configured_workspace(tmp_path, port)
+    settings["vite_port"] = ui_port
+    (home / "workspace.json").write_text(json.dumps(settings), encoding="utf-8")
+    monkeypatch.setenv("EGT_GDA_SYNC_HOME", str(home))
+    monkeypatch.delenv("PORT", raising=False)
+    monkeypatch.delenv("VITE_PORT", raising=False)
+    with socket.socket() as taken:
+        taken.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        taken.bind(("127.0.0.1", port))
+        taken.listen(1)
+        assert dev.stop(str(home)) == 0
+    output = capsys.readouterr().out
+    assert "is not running" in output
+    assert f"Warning: port {port} is still in use. Another program may have taken the backend port. Set PORT to choose another port." in output
+    assert str(ui_port) not in output
+
+
 def test_stop_forces_a_process_that_does_not_end_on_request(tmp_path, monkeypatch):
     home = str(tmp_path)
     dev._write_state(home, {"processes": [{"name": "vite", "pid": 4321, "created": 111}]})
@@ -325,6 +386,7 @@ def test_stop_forces_a_process_that_does_not_end_on_request(tmp_path, monkeypatc
     monkeypatch.setattr(dev, "STOP_TIMEOUT", 0.0)
     monkeypatch.setattr(dev, "_process_alive", lambda pid: True)
     monkeypatch.setattr(dev, "_creation_stamp", lambda pid: 111)
+    monkeypatch.setattr(dev, "_port_in_use", lambda _port: False)
     monkeypatch.setattr(dev, "_send", lambda pid, number: signals.append((pid, number)))
     assert dev.stop(home) == 0
     assert signals == [(4321, signal.SIGTERM), (4321, signal.SIGKILL)]
@@ -336,6 +398,7 @@ def test_stop_leaves_a_process_id_that_now_belongs_to_another_program(tmp_path, 
     signals = []
     monkeypatch.setattr(dev, "_process_alive", lambda pid: True)
     monkeypatch.setattr(dev, "_creation_stamp", lambda pid: 222)
+    monkeypatch.setattr(dev, "_port_in_use", lambda _port: False)
     monkeypatch.setattr(dev, "_send", lambda pid, number: signals.append((pid, number)))
     assert dev.stop(home) == 0
     assert signals == []
@@ -347,6 +410,7 @@ def test_stop_without_a_recorded_session_changes_nothing(tmp_path, monkeypatch, 
         pytest.fail("A process without a record must not be stopped")
 
     monkeypatch.setattr(dev, "_send", unexpected)
+    monkeypatch.setattr(dev, "_port_in_use", lambda _port: False)
     assert dev.stop(str(tmp_path)) == 0
     assert "is not running" in capsys.readouterr().out
 
@@ -354,12 +418,13 @@ def test_stop_without_a_recorded_session_changes_nothing(tmp_path, monkeypatch, 
 def test_stop_ignores_an_unreadable_record(tmp_path, monkeypatch, capsys):
     (tmp_path / dev.STATE_FILE).write_text("{ not json", encoding="utf-8")
     monkeypatch.setattr(dev, "_send", lambda pid, number: pytest.fail("An unreadable record holds no process"))
+    monkeypatch.setattr(dev, "_port_in_use", lambda _port: False)
     assert dev.stop(str(tmp_path)) == 0
     assert "is not running" in capsys.readouterr().out
     assert not (tmp_path / dev.STATE_FILE).exists()
 
 
-def test_stop_ends_real_processes(tmp_path):
+def test_stop_ends_real_processes(tmp_path, monkeypatch):
     home, children = str(tmp_path), [sleeper(), sleeper()]
     dev._write_state(home, {
         "port": 4567,
@@ -367,6 +432,7 @@ def test_stop_ends_real_processes(tmp_path):
         "processes": [{"name": name, "pid": child.pid, "created": dev._creation_stamp(child.pid)}
                       for name, child in (("backend", children[0]), ("vite", children[1]))],
     })
+    monkeypatch.setattr(dev, "_port_in_use", lambda _port: False)
     # The children end while this process is still their parent, so they are reaped as they go.
     reaper = threading.Thread(target=lambda: [child.wait() for child in children], daemon=True)
     reaper.start()

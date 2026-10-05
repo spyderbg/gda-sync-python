@@ -23,11 +23,11 @@ export interface LibraryResponse {
 export type RssCategory = 'identical' | 'missing' | 'different' | 'invalid';
 export interface RssSyncSummary { compared: number; identical: number; identicalMipOnly: number; missing: number; different: number; invalid: number }
 export interface RssSyncRun { state: 'succeeded' | 'failed'; startedAt: string; finishedAt: string; error?: string }
-/** One finished run in a workspace's history; only a successful run has counts. */
-export interface RssSyncHistoryEntry extends RssSyncRun { summary?: RssSyncSummary }
+/** One finished run in a workspace's history, read from its report file; only a successful run has counts. */
+export interface RssSyncHistoryEntry extends RssSyncRun { summary?: RssSyncSummary; file: string }
 export interface RssSyncHistory { workspaceId: string; history: RssSyncHistoryEntry[] }
 export interface RssSyncStatus {
-  workspaceId: string; reportPath: string; running: boolean; startedAt: string | null;
+  workspaceId: string; reportPath: string | null; running: boolean; startedAt: string | null;
   progress: { phase: 'descriptors' | 'index' | 'compare'; done: number; total: number } | null;
   lastRun: RssSyncRun | null; comparedAt: string | null; summary: RssSyncSummary | null;
 }
@@ -36,11 +36,19 @@ export interface RssResource {
   gdaFiles: { tree: 'game' | 'common'; path: string; absolutePath: string }[];
   requiredBy: { descriptor: string; line: number }[]; mipOnly?: boolean;
 }
-/** The stored report. Before the first successful run it holds only the workspace and the failed lastRun. */
+/** The workspace settings a run used, named as in workspace.json, with defaults filled in. */
+export interface RssSyncWorkspace {
+  id: string; game_name: string; game_path: string; gda_path: string; common_gda_path: string | null;
+  extensions: string[]; resource_paths: string[]; ignore_dds_mips: boolean;
+}
+/** A run's report file. Its summary starts with the run's state and times; a failed run's file holds only those and the
+ * workspace settings. Reports from earlier versions keep the times at the top level instead. */
 export interface RssSyncReport {
-  version: number; workspace: { id: string; name: string }; lastRun: RssSyncRun;
+  version: number; workspace: RssSyncWorkspace; run: RssSyncRun;
   startedAt?: string; finishedAt?: string; game?: string; resourcesDir?: string; gameDir?: string; gdaDir?: string;
-  commonGdaDir?: string | null; extensions?: string[]; ignoreDdsMips?: boolean; summary?: RssSyncSummary;
+  commonGdaDir?: string | null; extensions?: string[]; ignoreDdsMips?: boolean;
+  descriptors?: { name: string; path: string; type: string; declarations: number; resources: number }[];
+  summary?: RssSyncSummary & Partial<RssSyncRun>;
   differences?: RssResource[]; identical?: RssResource[];
 }
 export interface Session { token: string; version: string; autoShutdownOnClose: boolean; platform: string }

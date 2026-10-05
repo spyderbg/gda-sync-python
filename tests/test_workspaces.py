@@ -35,13 +35,14 @@ def test_switch_persists_and_settings_update_only_selected_workspace(tmp_path, l
         headers = session_headers(client)
         first = client.get('/api/library').json()
         assert first['assets'][0]['name'] == 'first.txt'
-        assert first['rssSync']['reportPath'] == str(tmp_path / 'app' / 'sync-reports' / 'first.json')
+        # No report file exists before a workspace's first GDA sync run.
+        assert first['rssSync']['workspaceId'] == 'first' and first['rssSync']['reportPath'] is None
         assert client.put('/api/workspace', json={'id': 'second'}).status_code == 403
         result = client.put('/api/workspace', headers=headers, json={'id': 'second'})
         assert result.status_code == 200
         assert result.json()['assets'][0]['name'] == 'second.txt'
         assert result.json()['config']['defaultWorkspace'] == 'second'
-        assert result.json()['rssSync']['reportPath'] == str(tmp_path / 'app' / 'sync-reports' / 'second.json')
+        assert result.json()['rssSync']['workspaceId'] == 'second' and result.json()['rssSync']['reportPath'] is None
         config = result.json()['config']
         settings = {key: config[key] for key in ('name', 'source', 'destination')}
         settings['name'] = 'Renamed'

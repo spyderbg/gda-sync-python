@@ -24,7 +24,10 @@ const shown = ref(PAGE_SIZE);
 const running = computed(() => !!rssSync.value?.running);
 const progress = computed(() => rssSync.value?.progress);
 const summary = computed(() => report.value?.summary);
-const lastRun = computed(() => report.value?.lastRun);
+const startedAt = computed(() => summary.value?.startedAt ?? report.value?.startedAt);
+const finishedAt = computed(() => summary.value?.finishedAt ?? report.value?.finishedAt);
+// The report is the last successful run; the run after it may have failed.
+const lastRun = computed(() => rssSync.value?.lastRun);
 const current = computed(() => CATEGORIES.find(item => item.key === category.value)!);
 
 // Load the stored report, and again whenever a run ends or the workspace changes.
@@ -60,9 +63,8 @@ const visible = computed(() => rows.value.slice(0, shown.value));
 watch([category, query, report], () => { shown.value = PAGE_SIZE; });
 
 const duration = computed(() => {
-  const { startedAt, finishedAt } = report.value ?? {};
-  if (!startedAt || !finishedAt) return '';
-  const seconds = (Date.parse(finishedAt) - Date.parse(startedAt)) / 1000;
+  if (!startedAt.value || !finishedAt.value) return '';
+  const seconds = (Date.parse(finishedAt.value) - Date.parse(startedAt.value)) / 1000;
   return seconds < 60 ? `${seconds.toFixed(1)} s` : `${Math.floor(seconds / 60)} min ${Math.round(seconds % 60)} s`;
 });
 const reason = (row: RssResource) => row.status.replace(/^invalid: /, '');
@@ -73,7 +75,7 @@ const segments = (path: string) => path.split(/(?<=\/)/);
 <template>
   <PageHeader title="In sync">
     <template #links>
-      <li v-if="report?.finishedAt"><span>Compared {{ time(report.finishedAt) }}</span></li>
+      <li v-if="finishedAt"><span>Compared {{ time(finishedAt) }}</span></li>
       <li v-if="duration"><span>Took {{ duration }}</span></li>
       <li v-if="report?.game"><span>Game {{ report.game }}</span></li>
     </template>
@@ -100,7 +102,7 @@ const segments = (path: string) => path.split(/(?<=\/)/);
 
   <div v-if="lastRun?.state === 'failed' && !running" class="alert alert-danger rss-alert">
     <i aria-hidden="true" class="mdi mdi-alert-circle-outline" />
-    <span>The last GDA sync failed: {{ lastRun.error }}<template v-if="summary"> Showing the result from {{ time(report!.finishedAt!) }}.</template></span>
+    <span>The last GDA sync failed: {{ lastRun.error }}<template v-if="summary && finishedAt"> Showing the result from {{ time(finishedAt) }}.</template></span>
   </div>
   <div v-if="loadError" class="alert alert-danger rss-alert"><i aria-hidden="true" class="mdi mdi-alert-circle-outline" /><span>{{ loadError }}</span></div>
 

@@ -4,8 +4,8 @@ import AssetThumbnail from '../components/AssetThumbnail.vue';
 import CheckBox from '../components/CheckBox.vue';
 import WorkspaceHeader from '../components/WorkspaceHeader.vue';
 import StatusBadge from '../components/StatusBadge.vue';
-import { ASSET_TYPES, size, time, typeIcons, typeNames } from '../format';
-import type { Asset, AssetType } from '../types';
+import { size, time, typeIcons } from '../format';
+import type { Asset } from '../types';
 import {
   allVisibleSelected, busy, data, filtered, formats, inspected, requestSync,
   selectedPending, setVisibleSelected, toggleSelected, ui,
@@ -14,11 +14,6 @@ import AssetInspector from './AssetInspector.vue';
 
 const caughtUp = computed(() => ui.view === 'pending' && !ui.query);
 const dimensions = (asset: Asset) => (asset.dimensions ? `${asset.dimensions.width} × ${asset.dimensions.height}` : asset.extension.toUpperCase());
-
-function chooseCategory(type: AssetType | 'all') {
-  ui.category = type;
-  ui.selected = new Set();
-}
 
 function showAll() {
   ui.query = '';
@@ -32,13 +27,7 @@ function showAll() {
 <template>
   <WorkspaceHeader />
   <div class="library-controls">
-    <div class="library-category-row">
-      <nav class="library-categories" aria-label="Asset categories">
-        <button type="button" :class="{ active: ui.category === 'all' }" :aria-pressed="ui.category === 'all'" @click="chooseCategory('all')">All assets</button>
-        <button v-for="type in ASSET_TYPES" :key="type" type="button" :class="{ active: ui.category === type }" :aria-pressed="ui.category === type" @click="chooseCategory(type)">{{ typeNames[type] }}</button>
-      </nav>
-    </div>
-    <div class="library-filter-toolbar">
+    <div class="library-filter-toolbar" role="group" aria-label="Asset filters and layout">
       <div class="btn-group toolbar-item" role="group" aria-label="Layout">
         <button type="button" :class="['btn', 'btn-secondary', { active: ui.layout === 'grid' }]" aria-label="Grid view" :aria-pressed="ui.layout === 'grid'" @click="ui.layout = 'grid'"><i aria-hidden="true" class="mdi mdi-view-grid-outline" /></button>
         <button type="button" :class="['btn', 'btn-secondary', { active: ui.layout === 'list' }]" aria-label="List view" :aria-pressed="ui.layout === 'list'" @click="ui.layout = 'list'"><i aria-hidden="true" class="mdi mdi-view-list-outline" /></button>
@@ -143,14 +132,9 @@ function showAll() {
 
 <style scoped>
 .library-controls { margin-bottom: 22px; }
-.library-category-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding-bottom: 12px; margin-bottom: 14px; border-bottom: 1px solid #e0e5e9; }
-.library-categories { display: flex; gap: 6px; flex-wrap: wrap; }
 .asset-search { flex: 1; min-width: 220px; max-width: 340px; margin-left: auto; }
 @media (max-width: 767px) { .asset-search { flex-basis: 100%; max-width: none; } }
-.library-categories button { padding: 7px 12px; border: 0; border-radius: 6px; background: transparent; color: #76818c; font: inherit; font-size: 13px; cursor: pointer; }
-.library-categories button.active { background: #e1edff; color: #2277cf; font-weight: 500; }
-.library-categories button:hover { background: #eaf0f7; }
-.library-filter-toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.library-filter-toolbar { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; padding: 14px 16px; border: 1px solid #e0e5e9; border-radius: 8px; background: #fff; }
 .library-filter-toolbar > .btn-group { flex-shrink: 0; }
 .filter-wrapper { display: flex; gap: 10px; flex-wrap: wrap; }
 .filter-wrapper .form-control { width: auto; min-width: 120px; height: 34px; font-size: 12px; }

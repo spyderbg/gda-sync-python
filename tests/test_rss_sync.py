@@ -8,6 +8,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from egt_gda_sync.library import Library
+import re
+
 from egt_gda_sync.rss_jobs import SyncJobs, report_name
 from egt_gda_sync.rss_sync import (
     DDS_HEADER_END, Config, compare, declared_path_lines, load_documents, make_config, mip_chain_only_differs,
@@ -84,6 +86,12 @@ def test_classifies_every_status_with_descriptor_lines_and_lists_identical_files
         ("frame_000.dds", "a/frame_000.dds", False), ("same.dds", "b/same.dds", False),
     ]
     assert len({row["id"] for row in rows.values()}) == len(rows)
+    # The parsed descriptors come just before the summary: one per file, with its declarations before and after ranges.
+    assert list(result).index("descriptors") == list(result).index("summary") - 1
+    assert [(item["name"], item["type"], item["declarations"], item["resources"]) for item in result["descriptors"]] == [
+        ("AllRssData.json", "AllRssData", 1, 1), ("RssImagesSeqData.json", "RssImagesSeqData", 1, 2), ("RssRawData.json", "RssRawData", 3, 3),
+    ]
+    assert result["descriptors"][0]["path"] == str((tmp_path / "resources" / "example" / "AllRssData.json").resolve())
 
 
 def test_finds_the_line_of_every_audio_sample(tmp_path):
@@ -184,51 +192,94 @@ def test_validates_settings_with_the_script_messages(tmp_path):
             make_config({**base, **change})
 
 
-def test_a_background_run_saves_the_report_and_a_failed_run_keeps_the_last_result(tmp_path):
+WORKSPACE = {"id": "example", "game_name": "Example"}  # The settings a run stores as given; the library fills them in.
+REPORT_FILE = re.compile(r"example-\d{10}\.json")
+
+
+def report_files(folder: Path) -> list[str]:
+    return sorted(path.name for path in folder.glob("*.json"))
+
+
+def test_each_run_saves_a_timestamped_report_and_a_failed_run_keeps_the_last_result(tmp_path):
     write_example(tmp_path)
     jobs = SyncJobs(str(tmp_path / "reports"))
     settings = {"resources_dir": str(tmp_path / "resources"), "gda_dir": str(tmp_path / "gda"), "game": "example", "extensions": [".dds"]}
-    jobs.start("example", "Example", settings)
+    jobs.start("example", WORKSPACE, settings)
     assert jobs.status("example")["running"] is True
     jobs.wait("example", 60)
     status = jobs.status("example")
     assert status["running"] is False and status["lastRun"]["state"] == "succeeded"
     assert status["summary"]["missing"] == 3 and status["comparedAt"] == status["lastRun"]["finishedAt"]
     report = json.loads(jobs.report("example"))
-    assert report["workspace"] == {"id": "example", "name": "Example"}
+    assert report["workspace"] == WORKSPACE
+    # The run's state and times lead the summary, the counts follow, and nothing repeats them at the top level.
+    assert list(report["summary"])[:4] == ["state", "startedAt", "finishedAt", "compared"]
+    assert list(report) == ["version", "workspace", "game", "resourcesDir", "gameDir", "gdaDir", "commonGdaDir", "extensions",
+                            "ignoreDdsMips", "descriptors", "summary", "differences", "identical"]
+    assert report["summary"]["state"] == "succeeded" and report["summary"]["finishedAt"] == status["comparedAt"]
+    assert not {"run", "lastRun", "startedAt", "finishedAt", "history"} & set(report)
+    counts = {key: value for key, value in report["summary"].items() if key not in ("state", "startedAt", "finishedAt", "error")}
     assert report["game"] == "example" and len(report["differences"]) == 4 and len(report["identical"]) == 2
+    [first] = report_files(tmp_path / "reports")
+    assert REPORT_FILE.fullmatch(first) and status["reportPath"] == str(tmp_path / "reports" / first)
 
-    jobs.start("example", "Example", {**settings, "game": "absent"})
+    jobs.start("example", WORKSPACE, {**settings, "game": "absent"})
     jobs.wait("example", 60)
     status = jobs.status("example")
     assert status["lastRun"]["state"] == "failed" and "game directory does not exist" in status["lastRun"]["error"]
-    assert status["summary"]["missing"] == 3 and status["comparedAt"] == report["finishedAt"]
+    assert status["summary"] == counts and status["comparedAt"] == report["summary"]["finishedAt"]
     assert json.loads(jobs.report("example"))["identical"] == report["identical"]
+    # The failed run has a file of its own with only the failure, and the newest name sorts last.
+    files = report_files(tmp_path / "reports")
+    assert len(files) == 2 and files[0] == first and status["reportPath"] == str(tmp_path / "reports" / files[1])
+    failed = json.loads((tmp_path / "reports" / files[1]).read_text())
+    assert set(failed) == {"version", "workspace", "summary"} and set(failed["summary"]) == {"state", "startedAt", "finishedAt", "error"}
+    assert failed["summary"]["state"] == "failed"
     assert jobs.report("other") is None and jobs.status("other")["summary"] is None
-    # Every run is kept, newest first; only a successful one has counts.
+    # The history is the list of report files, newest first; only a successful run has counts.
     history = jobs.history("example")
-    assert [run["state"] for run in history] == ["failed", "succeeded"]
-    assert "summary" not in history[0] and history[1]["summary"] == report["summary"]
-    assert history[1]["finishedAt"] == report["finishedAt"] and jobs.history("other") == []
+    assert [(run["state"], run["file"]) for run in history] == [("failed", files[1]), ("succeeded", files[0])]
+    assert "summary" not in history[0] and history[1]["summary"] == counts
+    assert history[1]["finishedAt"] == report["summary"]["finishedAt"] and jobs.history("other") == []
 
 
-def test_a_report_saved_before_runs_were_kept_starts_the_history_with_its_last_run(tmp_path):
+def test_reports_from_an_earlier_version_are_one_run_each_and_their_stored_history_is_ignored(tmp_path):
     write_example(tmp_path)
     jobs = SyncJobs(str(tmp_path / "reports"))
     (tmp_path / "reports").mkdir()
     last = {"state": "succeeded", "startedAt": "2026-10-01T10:00:00.000Z", "finishedAt": "2026-10-01T10:00:02.000Z"}
     summary = {"compared": 1, "identical": 1, "identicalMipOnly": 0, "missing": 0, "different": 0, "invalid": 0}
-    (tmp_path / "reports" / "example.json").write_text(json.dumps({"version": 1, "lastRun": last, "summary": summary}))
-    assert jobs.history("example") == [{**last, "summary": summary}]
-    jobs.start("example", "Example", {"resources_dir": str(tmp_path / "resources"), "gda_dir": str(tmp_path / "gda"),
+    older = {"state": "failed", "startedAt": "2026-09-30T10:00:00.000Z", "finishedAt": "2026-09-30T10:00:01.000Z", "error": "x"}
+    (tmp_path / "reports" / "example.json").write_text(json.dumps(
+        {"version": 1, "lastRun": last, "summary": summary, "history": [{**last, "summary": summary}, older]}))
+    # A later version kept the run in "run", with the times also at the top level.
+    (tmp_path / "reports" / "example-1790848801.json").write_text(json.dumps(
+        {"version": 1, "run": older, "startedAt": older["startedAt"], "finishedAt": older["finishedAt"]}))
+    assert jobs.history("example") == [{**older, "file": "example-1790848801.json"}, {**last, "summary": summary, "file": "example.json"}]
+    assert jobs.status("example")["summary"] == summary and jobs.status("example")["comparedAt"] == last["finishedAt"]
+    jobs.start("example", WORKSPACE, {"resources_dir": str(tmp_path / "resources"), "gda_dir": str(tmp_path / "gda"),
                                       "game": "example", "extensions": [".dds"]})
     jobs.wait("example", 60)
-    assert [run["startedAt"] for run in jobs.history("example")][1:] == [last["startedAt"]]
+    assert [run["file"] for run in jobs.history("example")][1:] == ["example-1790848801.json", "example.json"]
 
 
-def test_report_files_are_named_after_plain_workspace_ids_only():
-    assert report_name("joker_reels_coins_10") == "joker_reels_coins_10.json"
-    assert report_name("../escape").startswith("workspace-") and report_name("a/b") != report_name("a\\b")
+def test_report_files_are_named_after_the_workspace_and_the_unix_time_the_run_finished():
+    finished = "2026-10-05T10:13:14.567Z"
+    assert report_name("joker_reels_coins_10", finished) == "joker_reels_coins_10-1791195194.json"
+    assert report_name("../escape", finished).startswith("workspace-") and report_name("a/b", finished) != report_name("a\\b", finished)
+
+
+def test_the_newest_report_is_found_by_its_timestamp(tmp_path):
+    names = ["example.json", "example-1791158399.json", "example-1791195194.json", "example-1791195194_2.json",
+             "example-20261006T000000Z.json", "examples-1791244801.json", "other.json"]
+    for name in names:
+        (tmp_path / name).write_text("{}")
+    jobs = SyncJobs(str(tmp_path))
+    # Newest first, by time: a date-named report from an earlier version (2026-10-06) sorts among the epoch names,
+    # one saved before names had a timestamp is the oldest, and another workspace's reports are left out.
+    assert [Path(file).name for file in jobs._files("example")] == [names[4], names[3], names[2], names[1], names[0]]
+    # Sorting the epoch names alone gives the same order, for example in a file manager.
+    assert sorted(names[1:4]) == names[1:4]
 
 
 def test_rescan_starts_the_comparison_and_the_api_serves_the_workspace_report(tmp_path):
@@ -250,7 +301,14 @@ def test_rescan_starts_the_comparison_and_the_api_serves_the_workspace_report(tm
         assert status["lastRun"]["state"] == "succeeded" and status["summary"]["compared"] == 6
         history = client.get("/api/rss-sync/history").json()
         assert history["workspaceId"] == "example" and history["history"][0]["summary"] == status["summary"]
+        assert history["history"][0]["file"] == Path(status["reportPath"]).name
         report = client.get("/api/rss-sync/report").json()
+        # The report keeps the workspace settings the run used, with defaults filled in, whatever workspace.json says later.
+        assert report["workspace"] == {
+            "id": "example", "game_name": "Example", "game_path": str((tmp_path / "resources" / "example").resolve()),
+            "gda_path": str(gda.resolve()), "common_gda_path": str(tmp_path / "common"), "extensions": [".dds", ".wav"],
+            "resource_paths": [], "ignore_dds_mips": True,
+        }
         assert report["commonGdaDir"] == str((tmp_path / "common").resolve())
         assert report["extensions"] == [".dds", ".wav"]
-    assert (tmp_path / "app" / "sync-reports" / "example.json").is_file()
+    assert REPORT_FILE.fullmatch(report_files(tmp_path / "app" / "sync-reports")[0])
