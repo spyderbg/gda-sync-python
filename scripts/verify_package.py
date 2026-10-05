@@ -18,8 +18,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from gda_sync import __version__  # noqa: E402
-from gda_sync.demo import seed_demo  # noqa: E402
+from egt_gda_sync import __version__  # noqa: E402
+from egt_gda_sync.demo import seed_demo  # noqa: E402
 from scripts.package_support import (  # noqa: E402
     windows_path,
     wine_bin,
@@ -58,7 +58,7 @@ def main() -> None:
     use_wine = target == "windows" and sys.platform != "win32"
     from playwright.sync_api import expect, sync_playwright
 
-    packaged_binary = ROOT / "dist" / ("gda-sync.exe" if target == "windows" else "gda-sync")
+    packaged_binary = ROOT / "dist" / ("egt-gda-sync.exe" if target == "windows" else "egt-gda-sync")
     root = Path(tempfile.mkdtemp(prefix="gda-package-"))
     app_dir = root / "app"
     app_dir.mkdir()
@@ -80,9 +80,9 @@ def main() -> None:
     # An isolated Wine prefix, so the app's default LocalAppData location starts empty.
     wine_env = wine_environment(wine_bin(), root / "wine") if use_wine else dict(os.environ)
     local_app_data, xdg_data = root / "AppData" / "Local", root / "data"
-    env = {**wine_env, "GDA_SYNC_HOME": "", "LOCALAPPDATA": str(local_app_data), "XDG_DATA_HOME": str(xdg_data)}
+    env = {**wine_env, "EGT_GDA_SYNC_HOME": "", "LOCALAPPDATA": str(local_app_data), "XDG_DATA_HOME": str(xdg_data)}
     env.pop("PORT", None)
-    data_home = local_app_data / "GDA Sync" if target == "windows" else xdg_data / "gda-sync"
+    data_home = local_app_data / "EGT GDA Sync" if target == "windows" else xdg_data / "egt-gda-sync"
     log_path = root / "backend.log"
     command = ["wine", str(binary), "--no-open"] if use_wine else [str(binary), "--no-open"]
     # Output is relayed through a pipe: Windows programs under Wine cannot use a redirected file as stdout.

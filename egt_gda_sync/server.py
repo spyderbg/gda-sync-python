@@ -24,9 +24,9 @@ from .desktop import open_on_desktop, platform_label
 from .errors import AppError
 from .library import Library, safe_path
 from .lifetime import PAGE_CLOSE_GRACE_SECONDS, PageLifetime
+from .ports import dev_ui_url
 
 STATIC_DIR = Path(__file__).with_name("static")
-DEV_UI = "http://127.0.0.1:5173"
 BODY_LIMIT = 128 * 1024
 LOCAL_HOSTS = {"127.0.0.1", "localhost", "[::1]"}
 APP_CSP = (
@@ -63,6 +63,10 @@ class SettingsBody(_Body):
     name: Annotated[str, StringConstraints(max_length=80)]
     source: Text4K
     destination: Text4K
+
+
+class WorkspaceBody(_Body):
+    id: Text4K
 
 
 class OpenFolderBody(_Body):
@@ -138,6 +142,7 @@ def create_app(
     page_close_grace: float = PAGE_CLOSE_GRACE_SECONDS,
     frontend: dict[str, tuple[bytes, str]] | None = None,
 ) -> FastAPI:
+    ui_url = dev_ui_url(library.config) if dev else None
     token = secrets.token_hex(32)
     files = load_frontend() if frontend is None else frontend
     platform = platform_label()
@@ -223,6 +228,10 @@ def create_app(
     def settings(body: SettingsBody) -> dict:
         return library.update_config(body.name, body.source, body.destination)
 
+    @app.put("/api/workspace")
+    def select_workspace(body: WorkspaceBody) -> dict:
+        return library.select_workspace(body.id)
+
     @app.get("/api/assets/{asset_id}/preview")
     def preview(asset_id: str) -> Response:
         data, mime = library.preview(library.get_asset(asset_id))
@@ -243,8 +252,8 @@ def create_app(
             return JSONResponse({"error": "Endpoint not found"}, 404)
         if dev:
             if not path:
-                return RedirectResponse(DEV_UI)
-            return HTMLResponse(f'<p>Development UI: <a href="{DEV_UI}">Open GDA Sync</a></p>')
+                return RedirectResponse(ui_url)
+            return HTMLResponse(f'<p>Development UI: <a href="{ui_url}">Open GDA Sync</a></p>')
         file = files.get("/" + path) if path else None
         if file is None and not os.path.splitext(path)[1]:
             file = files.get("/index.html")

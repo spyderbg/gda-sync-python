@@ -1,6 +1,21 @@
 {
-  "name": "EGT GDA Sync",
-  "source": "/absolute/path/to/assets/source",
-  "destination": "/absolute/path/to/assets/gda",
-  "port": 3457
+  "config": {
+    "port": 3457,
+    "vite_port": 5174
+  },
+  "defaultWorkspace": "burning_crown_tetra_spins_10",
+  "workspaces": [
+    {
+      "id": "burning_crown_tetra_spins_10",
+      "game_name": "Burning Crown Tetra Spins 10",
+      "game_path": "/absolute/path/to/assets/source",
+      "gda_path": "/absolute/path/to/assets/gda"
+    },
+    {
+      "id": "joker_reels_coins_10",
+      "game_name": "Joker Reels Coins 10",
+      "game_path": "/absolute/path/to/another/game",
+      "gda_path": "/absolute/path/to/another/gda"
+    }
+  ]
 }

@@ -2,8 +2,8 @@ import os
 
 from fastapi.testclient import TestClient
 
-from gda_sync import __version__
-from gda_sync.server import APP_CSP, create_app
+from egt_gda_sync import __version__
+from egt_gda_sync.server import APP_CSP, create_app
 from tests.conftest import session_headers
 from tests.fixtures.bc7_dds import create_bc7_dds
 from tests.fixtures.png_reader import read_png

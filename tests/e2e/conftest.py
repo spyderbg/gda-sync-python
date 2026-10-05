@@ -35,11 +35,11 @@ class Backend:
         port = free_port()
         self.url = f"http://127.0.0.1:{port}"
         self.log = home.with_name(f"{home.name}.log")
-        env = {**os.environ, "PORT": str(port), "GDA_SYNC_HOME": str(home)}
-        env.pop("GDA_SYNC_DEV", None)
+        env = {**os.environ, "PORT": str(port), "EGT_GDA_SYNC_HOME": str(home)}
+        env.pop("EGT_GDA_SYNC_DEV", None)
         with open(self.log, "wb") as output:
             self.process = subprocess.Popen(
-                [sys.executable, "-m", "gda_sync", "--no-open"], cwd=ROOT, env=env, stdout=output, stderr=subprocess.STDOUT,
+                [sys.executable, "-m", "egt_gda_sync", "--no-open"], cwd=ROOT, env=env, stdout=output, stderr=subprocess.STDOUT,
             )
         deadline = time.monotonic() + 20
         while self.get("/api/health") is None:
@@ -70,7 +70,7 @@ class Backend:
 
 @pytest.fixture(scope="session")
 def browser():
-    if not (ROOT / "gda_sync" / "static" / "index.html").exists():
+    if not (ROOT / "egt_gda_sync" / "static" / "index.html").exists():
         pytest.skip("Build the frontend first: python scripts/build.py")
     playwright_api = pytest.importorskip("playwright.sync_api")
     playwright = playwright_api.sync_playwright().start()

@@ -15,10 +15,10 @@ const activityIcons = { sync: 'mdi-sync', scan: 'mdi-magnify', settings: 'mdi-co
   <nav class="navbar default-layout col-lg-12 col-12 p-0 fixed-top d-flex flex-row">
     <div class="text-center navbar-brand-wrapper d-flex align-items-top justify-content-center">
       <a class="navbar-brand brand-logo" href="#" @click.prevent="navigate('dashboard')">
-        <img class="brand-mark" src="/favicon.svg" alt=""><span class="brand-text">GDA Sync</span>
+        <img class="brand-mark" src="/app-icon.png" alt=""><span class="brand-text">EGT GDA Sync</span>
       </a>
-      <a class="navbar-brand brand-logo-mini" href="#" aria-label="GDA Sync dashboard" @click.prevent="navigate('dashboard')">
-        <img class="brand-mark" src="/favicon.svg" alt="">
+      <a class="navbar-brand brand-logo-mini" href="#" aria-label="EGT GDA Sync dashboard" @click.prevent="navigate('dashboard')">
+        <img class="brand-mark" src="/app-icon.png" alt="">
       </a>
     </div>
     <div class="navbar-menu-wrapper d-flex align-items-center">
@@ -39,14 +39,7 @@ const activityIcons = { sync: 'mdi-sync', scan: 'mdi-magnify', settings: 'mdi-co
           <a class="dropdown-item" href="#" @click.prevent="navigate('settings')"><i aria-hidden="true" class="mdi mdi-cog-outline text-muted" />Workspace settings</a>
         </BaseDropdown>
       </ul>
-      <form class="ml-auto search-form d-none d-md-block" role="search" @submit.prevent>
-        <div class="form-group search-field">
-          <i aria-hidden="true" class="mdi mdi-magnify" />
-          <input v-model="ui.query" type="text" class="form-control" data-asset-search aria-label="Search assets" placeholder="Search assets, names, or folders…">
-          <button v-if="ui.query" type="button" class="search-clear" aria-label="Clear search" @click="ui.query = ''"><i aria-hidden="true" class="mdi mdi-close" /></button>
-          <kbd v-else class="search-shortcut">Ctrl K</kbd>
-        </div>
-      </form>
+
       <ul class="navbar-nav ml-auto">
         <BaseDropdown tag="li" class="nav-item" menu-class="dropdown-menu-right navbar-dropdown preview-list pb-0">
           <template #toggle="{ open, toggle }">

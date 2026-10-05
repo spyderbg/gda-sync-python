@@ -8,9 +8,9 @@ import urllib.request
 
 import pytest
 
-from gda_sync.library import Library
-from gda_sync.runtime import AppServer, bind_local_socket
-from gda_sync.server import create_app
+from egt_gda_sync.library import Library
+from egt_gda_sync.runtime import AppServer, bind_local_socket
+from egt_gda_sync.server import create_app
 
 LOOPBACK = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 

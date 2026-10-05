@@ -1,4 +1,4 @@
-"""Build the Vue interface into gda_sync/static, where the backend serves it and executables embed it."""
+"""Build the Vue interface into egt_gda_sync/static, where the backend serves it and executables embed it."""
 
 from package_support import build_frontend
 

@@ -1,5 +1,5 @@
 {
-  "name": "gda-sync-frontend",
+  "name": "egt-gda-sync-frontend",
   "version": "2.0.0",
   "private": true,
   "description": "Vue 3 interface for GDA Sync, embedded into the Python backend",

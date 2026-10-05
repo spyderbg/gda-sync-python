@@ -2,6 +2,6 @@
 
 import sys
 
-from gda_sync.__main__ import main
+from egt_gda_sync.__main__ import main
 
 sys.exit(main())

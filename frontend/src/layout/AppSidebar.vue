@@ -2,10 +2,9 @@
 import { computed, ref } from 'vue';
 import { ASSET_TYPES, typeNames } from '../format';
 import type { AssetType, View } from '../types';
-import { assets, config, countType, navigate, pending, syncedCount, ui } from '../workspace';
+import { assets, busy, config, countType, navigate, pending, selectWorkspace, syncedCount, ui, workspaces } from '../workspace';
 
 const typesOpen = ref(false);
-const initials = computed(() => config.value.name.split(/\s+/).map(word => word[0]).join('').slice(0, 2).toUpperCase());
 const items: { view: View; title: string; icon: string }[] = [
   { view: 'dashboard', title: 'Dashboard', icon: 'mdi-view-dashboard-outline' },
   { view: 'library', title: 'Asset library', icon: 'mdi-view-grid-outline' },
@@ -25,17 +24,20 @@ const showType = (type: AssetType) => navigate('library', type);
 <template>
   <nav id="sidebar" :class="['sidebar', 'sidebar-offcanvas', { active: ui.sidebarOpen }]" aria-label="Main navigation">
     <ul class="nav">
-      <li class="nav-item nav-profile">
-        <a href="#" class="nav-link" @click.prevent="navigate('settings')">
-          <div class="profile-image">
-            <span class="img-xs rounded-circle text-avatar bg-white text-primary">{{ initials }}</span>
-            <div class="dot-indicator bg-success" />
+      <li class="nav-item workspace-section">
+        <label for="workspace-select" class="workspace-section-label">Workspace</label>
+        <div :class="['workspace-selector', { 'is-busy': !!busy }]">
+          <span class="workspace-icon" aria-hidden="true"><i class="mdi mdi-creation" /></span>
+          <div class="workspace-summary" aria-hidden="true">
+            <span class="workspace-name">{{ config.name }}</span>
+            <span class="workspace-description">{{ config.demo ? 'Environment demo' : 'Asset workspace' }}</span>
           </div>
-          <div class="text-wrapper">
-            <p class="profile-name">{{ config.name }}</p>
-            <p class="designation">{{ config.demo ? 'Environment demo' : 'Asset workspace' }}</p>
-          </div>
-        </a>
+          <i class="mdi mdi-chevron-down workspace-chevron" aria-hidden="true" />
+          <select id="workspace-select" class="workspace-select" :value="config.defaultWorkspace || 'current'" :disabled="!!busy" @change="selectWorkspace(($event.target as HTMLSelectElement).value)">
+            <option v-if="!workspaces.length" value="current">{{ config.name }}</option>
+            <option v-for="workspace in workspaces" :key="workspace.id" :value="workspace.id">{{ workspace.name }}</option>
+          </select>
+        </div>
       </li>
       <li class="nav-item nav-category">Main Menu</li>
       <li v-for="item in items" :key="item.view" :class="['nav-item', { active: active(item.view) }]">

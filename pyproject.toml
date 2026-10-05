@@ -3,7 +3,7 @@ requires = ["setuptools>=69"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "gda-sync"
+name = "egt-gda-sync"
 dynamic = ["version"]
 description = "A local-first studio asset sync application for Linux and Windows"
 readme = "README.md"
@@ -23,16 +23,16 @@ dev = [
 ]
 
 [project.scripts]
-gda-sync = "gda_sync.__main__:main"
+egt-gda-sync = "egt_gda_sync.__main__:main"
 
 [tool.setuptools.dynamic]
-version = { attr = "gda_sync.__version__" }
+version = { attr = "egt_gda_sync.__version__" }
 
 [tool.setuptools.packages.find]
-include = ["gda_sync*"]
+include = ["egt_gda_sync*"]
 
 [tool.setuptools.package-data]
-gda_sync = ["static/**/*"]
+egt_gda_sync = ["static/**/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

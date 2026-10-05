@@ -34,6 +34,7 @@ export const ui = reactive({
 });
 
 export const config = computed(() => data.value?.config as WorkspaceConfig);
+export const workspaces = computed(() => config.value?.workspaces || []);
 export const assets = computed(() => data.value?.assets || []);
 export const pending = computed(() => assets.value.filter(asset => asset.status !== 'synced'));
 export const syncedCount = computed(() => assets.value.length - pending.value.length);
@@ -206,6 +207,19 @@ export async function saveSettings(settings: Pick<WorkspaceConfig, 'name' | 'sou
     notify((e as Error).message, true);
     return false;
   } finally { busy.value = ''; }
+}
+
+export async function selectWorkspace(id: string) {
+  if (busy.value || id === config.value.defaultWorkspace) return;
+  busy.value = 'settings';
+  try {
+    const library = await api<LibraryResponse>('workspace', 'PUT', { id });
+    ui.inspecting = null;
+    ui.syncIds = null;
+    applyLibrary(library);
+    navigate('dashboard');
+    notify(`Switched to ${library.config.name}.`);
+  } catch (e) { notify((e as Error).message, true); } finally { busy.value = ''; }
 }
 
 export async function stopApplication() {

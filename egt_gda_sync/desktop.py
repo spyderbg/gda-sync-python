@@ -14,12 +14,12 @@ OPEN_FAILED = "Could not open the folder in your desktop session. You can copy t
 
 
 def application_data_home(platform: str = sys.platform, env: Mapping[str, str] = os.environ, home: str | None = None) -> str:
-    if env.get("GDA_SYNC_HOME"):
-        return env["GDA_SYNC_HOME"]
+    if env.get("EGT_GDA_SYNC_HOME"):
+        return env["EGT_GDA_SYNC_HOME"]
     home = home or os.path.expanduser("~")
     if platform == "win32":
-        return ntpath.join(env.get("LOCALAPPDATA") or ntpath.join(home, "AppData", "Local"), "GDA Sync")
-    return posixpath.join(env.get("XDG_DATA_HOME") or posixpath.join(home, ".local", "share"), "gda-sync")
+        return ntpath.join(env.get("LOCALAPPDATA") or ntpath.join(home, "AppData", "Local"), "EGT GDA Sync")
+    return posixpath.join(env.get("XDG_DATA_HOME") or posixpath.join(home, ".local", "share"), "egt-gda-sync")
 
 
 def platform_label(platform: str = sys.platform) -> str:

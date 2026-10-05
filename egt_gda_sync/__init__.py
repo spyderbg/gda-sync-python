@@ -1,4 +1,4 @@
 """GDA Sync: a local-first studio asset sync application."""
 
 __version__ = "2.0.0"
-APP_ID = "gda-sync"
+APP_ID = "egt-gda-sync"

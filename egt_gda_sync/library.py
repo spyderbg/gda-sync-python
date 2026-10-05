@@ -169,14 +169,47 @@ class Library:
         try:
             with open(file, encoding="utf-8-sig") as handle:
                 config = json.load(handle)
+            if isinstance(config, dict) and "workspaces" in config:
+                global_config = config.get("config", {})
+                if not isinstance(global_config, dict):
+                    raise TypeError("config must be an object")
+                # Accept older files with global ports at the top level.
+                global_config = {**{key: config[key] for key in ("port", "vite_port") if key in config}, **global_config}
+                entries = config["workspaces"]
+                if not isinstance(entries, list) or not entries:
+                    raise TypeError("workspaces must be a non-empty list")
+                workspaces = []
+                for entry in entries:
+                    if not isinstance(entry, dict) or not isinstance(entry.get("id"), str) or not entry["id"].strip():
+                        raise TypeError("Each workspace needs a non-empty text id")
+                    source = entry.get("game_path", entry.get("source"))
+                    destination = entry.get("gda_path", entry.get("destination"))
+                    name = entry.get("game_name", entry.get("name"))
+                    if not all(isinstance(value, str) for value in (name, source, destination)):
+                        raise TypeError("Each workspace needs game_name, game_path and gda_path text fields")
+                    if not isinstance(entry.get("demo", False), bool):
+                        raise TypeError("demo must be true or false")
+                    # Keep the API's name/source/destination fields while using the new names on disk.
+                    workspace = {key: value for key, value in entry.items() if key not in ("game_name", "game_path", "gda_path")}
+                    workspaces.append({**workspace, **self._validated_settings(name, source, destination), "demo": entry.get("demo", False)})
+                if len({entry["id"] for entry in workspaces}) != len(workspaces):
+                    raise TypeError("Workspace ids must be unique")
+                active = config.get("defaultWorkspace", config.get("activeWorkspace", workspaces[0]["id"]))
+                selected = next((entry for entry in workspaces if entry["id"] == active), None)
+                if selected is None:
+                    raise TypeError("defaultWorkspace must identify a configured workspace")
+                extras = {key: value for key, value in config.items() if key not in ("port", "vite_port", "activeWorkspace")}
+                return {**extras, "config": global_config, **{key: selected[key] for key in ("name", "source", "destination", "demo")},
+                        "workspaces": workspaces, "defaultWorkspace": active}
             if not isinstance(config, dict) or not all(isinstance(config.get(key), str) for key in ("name", "source", "destination")):
                 raise TypeError("Expected name, source and destination text fields")
             if not isinstance(config.get("demo", False), bool):
                 raise TypeError("demo must be true or false")
             settings = self._validated_settings(config["name"], config["source"], config["destination"])
             result = {**settings, "demo": config.get("demo", False)}
-            if "port" in config:
-                result["port"] = config["port"]
+            for key in ("port", "vite_port"):
+                if key in config:
+                    result[key] = config[key]
             return result
         except FileNotFoundError:
             raise
@@ -223,7 +256,18 @@ class Library:
             raise
 
     def _save_config(self) -> None:
-        self._write_json(self.config_path, self.config)
+        config = self.config
+        if "workspaces" in config:
+            config = {
+                "config": config["config"],
+                **{key: value for key, value in config.items() if key not in ("config", "name", "source", "destination", "demo", "workspaces")},
+                "workspaces": [
+                    {**{key: value for key, value in entry.items() if key not in ("name", "source", "destination")},
+                     "game_name": entry["name"], "game_path": entry["source"], "gda_path": entry["destination"]}
+                    for entry in config["workspaces"]
+                ],
+            }
+        self._write_json(self.config_path, config)
 
     def _record(self, action: str, message: str, files: list[str] | None = None, size: int | None = None) -> None:
         entry: dict = {"id": str(uuid.uuid4()), "date": iso_time(), "action": action, "message": message, "files": files or []}
@@ -339,6 +383,11 @@ class Library:
             previous = self.config
             demo = settings["source"] == previous["source"] and settings["destination"] == previous["destination"] and previous["demo"]
             self.config = {**previous, **settings, "demo": demo}
+            if "workspaces" in previous:
+                self.config["workspaces"] = [
+                    {**entry, **settings, "demo": demo} if entry["id"] == previous["defaultWorkspace"] else entry
+                    for entry in previous["workspaces"]
+                ]
             try:
                 self._save_config()
             except BaseException:
@@ -348,6 +397,27 @@ class Library:
                 self._previews.clear()
             self._scanned_assets = None
             self._record("settings", f"Connected {self.config['name']} workspace")
+            return self.scan()
+
+        return self._exclusive(operation)
+
+    def select_workspace(self, workspace_id: str) -> dict:
+        def operation() -> dict:
+            # Preserve the latest configuration when saving a selection.
+            previous = self.config
+            current = self._read_config(self.config_path)
+            entry = next((entry for entry in current.get("workspaces", []) if entry["id"] == workspace_id), None)
+            if entry is None:
+                raise AppError("Workspace not found", 404)
+            self.config = {**current, **{key: entry[key] for key in ("name", "source", "destination", "demo")}, "defaultWorkspace": workspace_id}
+            try:
+                self._save_config()
+            except BaseException:
+                self.config = previous
+                raise
+            with self._previews_lock:
+                self._previews.clear()
+            self._scanned_assets = None
             return self.scan()
 
         return self._exclusive(operation)
@@ -371,7 +441,7 @@ class Library:
                     source = safe_path(config["source"], asset["path"])
                     target = safe_path(config["destination"], asset["path"], create_parents=True)
                     original_hash = file_hash(source)
-                    temporary = os.path.join(os.path.dirname(target), f".gda-sync-{uuid.uuid4()}.tmp")
+                    temporary = os.path.join(os.path.dirname(target), f".egt-gda-sync-{uuid.uuid4()}.tmp")
                     _copy_exclusive(source, temporary)
                     if file_hash(temporary) != original_hash or file_hash(source) != original_hash:
                         raise AppError("Source changed while copying. Please retry.")

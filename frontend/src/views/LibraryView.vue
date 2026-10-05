@@ -2,12 +2,12 @@
 import { computed } from 'vue';
 import AssetThumbnail from '../components/AssetThumbnail.vue';
 import CheckBox from '../components/CheckBox.vue';
-import PageHeader from '../components/PageHeader.vue';
+import WorkspaceHeader from '../components/WorkspaceHeader.vue';
 import StatusBadge from '../components/StatusBadge.vue';
 import { ASSET_TYPES, size, time, typeIcons, typeNames } from '../format';
 import type { Asset, AssetType } from '../types';
 import {
-  PAGE_NAMES, allVisibleSelected, busy, data, filtered, formats, inspected, pending, requestSync, rescan,
+  allVisibleSelected, busy, data, filtered, formats, inspected, requestSync,
   selectedPending, setVisibleSelected, toggleSelected, ui,
 } from '../workspace';
 import AssetInspector from './AssetInspector.vue';
@@ -30,15 +30,23 @@ function showAll() {
 </script>
 
 <template>
-  <PageHeader :title="PAGE_NAMES[ui.view]">
-    <template #links>
-      <li><a href="#" :class="{ active: ui.category === 'all' }" @click.prevent="chooseCategory('all')">All assets</a></li>
-      <li v-for="type in ASSET_TYPES" :key="type"><a href="#" :class="{ active: ui.category === type }" @click.prevent="chooseCategory(type)">{{ typeNames[type] }}</a></li>
-    </template>
-    <template #links-right>
-      <li><span class="scan-time">Last scanned {{ time(data!.scannedAt) }}</span></li>
-    </template>
-    <template #toolbar>
+  <WorkspaceHeader />
+  <div class="library-controls">
+    <div class="library-category-row">
+      <nav class="library-categories" aria-label="Asset categories">
+        <button type="button" :class="{ active: ui.category === 'all' }" :aria-pressed="ui.category === 'all'" @click="chooseCategory('all')">All assets</button>
+        <button v-for="type in ASSET_TYPES" :key="type" type="button" :class="{ active: ui.category === type }" :aria-pressed="ui.category === type" @click="chooseCategory(type)">{{ typeNames[type] }}</button>
+      </nav>
+      <form class="asset-search" role="search" @submit.prevent>
+        <div class="form-group search-field">
+          <i aria-hidden="true" class="mdi mdi-magnify" />
+          <input v-model="ui.query" type="text" class="form-control" data-asset-search aria-label="Search assets" placeholder="Search assets, names, or folders…">
+          <button v-if="ui.query" type="button" class="search-clear" aria-label="Clear search" @click="ui.query = ''"><i aria-hidden="true" class="mdi mdi-close" /></button>
+          <kbd v-else class="search-shortcut">Ctrl K</kbd>
+        </div>
+      </form>
+    </div>
+    <div class="library-filter-toolbar">
       <div class="btn-group toolbar-item" role="group" aria-label="Layout">
         <button type="button" :class="['btn', 'btn-secondary', { active: ui.layout === 'grid' }]" aria-label="Grid view" :aria-pressed="ui.layout === 'grid'" @click="ui.layout = 'grid'"><i aria-hidden="true" class="mdi mdi-view-grid-outline" /></button>
         <button type="button" :class="['btn', 'btn-secondary', { active: ui.layout === 'list' }]" aria-label="List view" :aria-pressed="ui.layout === 'list'" @click="ui.layout = 'list'"><i aria-hidden="true" class="mdi mdi-view-list-outline" /></button>
@@ -54,20 +62,10 @@ function showAll() {
           <option value="recent">Recently modified</option><option value="name">Name A–Z</option><option value="size">Largest first</option>
         </select>
       </div>
-      <div class="sort-wrapper">
-        <button type="button" class="btn btn-secondary toolbar-item ml-lg-auto" :disabled="!!busy" @click="rescan">
-          <i aria-hidden="true" :class="['mdi', busy === 'scan' ? 'mdi-loading mdi-spin' : 'mdi-refresh']" />Rescan
-        </button>
-        <button type="button" class="btn btn-primary toolbar-item ml-3" :disabled="!!busy || !pending.length" @click="requestSync(pending.map(asset => asset.id))">
-          <i aria-hidden="true" :class="['mdi', busy === 'sync' ? 'mdi-loading mdi-spin' : 'mdi-sync']" />{{ busy === 'sync' ? 'Syncing…' : 'Sync all pending' }}<span v-if="pending.length" class="badge badge-light ml-2">{{ pending.length }}</span>
-        </button>
-      </div>
-    </template>
-  </PageHeader>
+    </div>
+  </div>
 
-  <form class="d-md-none mb-3" role="search" @submit.prevent>
-    <input v-model="ui.query" type="text" class="form-control" data-asset-search aria-label="Search assets" placeholder="Search assets, names, or folders…">
-  </form>
+
   <div v-if="data!.warnings.length" class="alert alert-warning" role="status">
     {{ data!.warnings.length }} files skipped during scan.
     <details><summary>View details</summary><p v-for="warning in data!.warnings" :key="warning" class="mb-1">{{ warning }}</p></details>
@@ -143,3 +141,18 @@ function showAll() {
     </div>
   </div>
 </template>
+
+<style scoped>
+.library-controls { margin-bottom: 22px; }
+.library-category-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding-bottom: 12px; margin-bottom: 14px; border-bottom: 1px solid #e0e5e9; }
+.library-categories { display: flex; gap: 6px; flex-wrap: wrap; }
+.asset-search { flex: 1; min-width: 240px; max-width: 340px; margin-left: auto; }
+@media (max-width: 767px) { .asset-search { flex-basis: 100%; max-width: none; } }
+.library-categories button { padding: 7px 12px; border: 0; border-radius: 6px; background: transparent; color: #76818c; font: inherit; font-size: 13px; cursor: pointer; }
+.library-categories button.active { background: #e1edff; color: #2277cf; font-weight: 500; }
+.library-categories button:hover { background: #eaf0f7; }
+.library-filter-toolbar { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+.filter-wrapper { display: flex; gap: 10px; flex-wrap: wrap; }
+.filter-wrapper .form-control { width: auto; min-width: 140px; height: 34px; font-size: 12px; }
+@media (max-width: 575px) { .filter-wrapper { width: 100%; } .filter-wrapper .form-control { flex: 1; min-width: 120px; } }
+</style>

@@ -7,9 +7,9 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from gda_sync.bc7 import decode_bc7_block
-from gda_sync.dds import decode_dds, read_dds_info
-from gda_sync.demo import to_dds
+from egt_gda_sync.bc7 import decode_bc7_block
+from egt_gda_sync.dds import decode_dds, read_dds_info
+from egt_gda_sync.demo import to_dds
 from tests.fixtures.bc7_dds import create_bc7_dds
 from tests.fixtures.png_reader import read_png
 

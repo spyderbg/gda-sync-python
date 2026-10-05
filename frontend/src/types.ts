@@ -8,7 +8,8 @@ export interface Asset {
   dimensions?: { width: number; height: number; format: string; mipmaps?: number };
   preview: boolean; previewError?: string;
 }
-export interface WorkspaceConfig { name: string; source: string; destination: string; demo: boolean; port?: number }
+export interface WorkspaceEntry { id: string; name: string; source: string; destination: string; demo?: boolean }
+export interface WorkspaceConfig { name: string; source: string; destination: string; demo: boolean; port?: number; defaultWorkspace?: string; workspaces?: WorkspaceEntry[] }
 export interface Activity {
   id: string; date: string; action: 'sync' | 'scan' | 'settings';
   message: string; files: string[]; bytes?: number;
