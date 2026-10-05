@@ -12,7 +12,7 @@ const reload = () => window.location.reload();
             <div class="startup-mark"><i aria-hidden="true" :class="['mdi', kind === 'loading' ? 'mdi-sync mdi-spin' : kind === 'error' ? 'mdi-lan-disconnect' : 'mdi-check-all']" /></div>
             <template v-if="kind === 'closed'">
               <h1>Workspace closed.</h1>
-              <p>Your files, settings, and history are saved on your machine.<br>Launch GDA Sync to pick up where you left off.</p>
+              <p>Your files, settings, and history are saved on your machine.<br>Launch EGT GDA Sync to pick up where you left off.</p>
             </template>
             <template v-else-if="kind === 'error'">
               <h1>Couldn’t connect to your workspace</h1>

@@ -9,6 +9,7 @@ const modifiedCount = computed(() => pending.value.length - newCount.value);
 
 <template>
   <section class="workspace-header" aria-labelledby="workspace-heading">
+    <a href="#" class="page-dashboard-link" @click.prevent="navigate('dashboard')"><i aria-hidden="true" class="mdi mdi-view-dashboard-outline" />Dashboard</a>
     <div class="workspace-header-top">
       <div class="workspace-header-intro">
         <p class="workspace-eyebrow">Your creative workflow, connected</p>

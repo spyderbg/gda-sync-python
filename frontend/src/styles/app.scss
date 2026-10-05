@@ -55,8 +55,8 @@ button.nav-link {
   color: $body-color;
 }
 
-/* Navbar */
-.navbar.default-layout {
+/* Site header */
+.app-header.navbar.default-layout {
   .navbar-brand-wrapper .navbar-brand {
     align-items: center;
     color: $white;
@@ -65,7 +65,14 @@ button.nav-link {
 
     .brand-text { font-size: 20px; white-space: nowrap; }
 
-    &.brand-logo:hover { color: $white; }
+    &.brand-logo:hover,
+    &.brand-logo:focus,
+    &.brand-logo:active { color: $white; }
+
+    &.brand-logo:focus-visible {
+      outline: 2px solid $white;
+      outline-offset: 2px;
+    }
 
     img.brand-mark {
       width: 36px;
@@ -88,6 +95,14 @@ button.nav-link {
       min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
       margin: 0 12px; font-size: 20px; font-weight: 500; letter-spacing: 0.3px; color: $white;
       @media (max-width: 575px) { margin: 0; }
+    }
+    .header-settings {
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      width: 40px; height: 40px; margin-left: auto; padding: 0; border: 0; border-radius: 50%;
+      color: $white; background: transparent; font-size: 24px; line-height: 1; cursor: pointer;
+      transition: background 0.15s;
+      &:hover, &.active { background: rgba($white, 0.18); }
+      &:focus-visible { outline: 2px solid $white; outline-offset: 2px; }
     }
     .workspace-holder {
       display: flex;
@@ -142,9 +157,26 @@ button.nav-link {
 .sidebar {
   > .nav > .nav-item.active > .nav-link {
     background: $sidebar-light-menu-hover-bg;
+  }
 
-    &:before {
-      background: $sidebar-nav-item-dot-color;
+  // Override the theme's dots and hover padding together so icons stay aligned.
+  &#sidebar > .nav > .nav-item > .nav-link {
+    padding-left: 30px;
+
+    &::before {
+      content: none;
+      display: none;
+    }
+
+    .menu-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      width: 20px;
+      margin-right: 10px;
+      font-size: 20px;
+      color: inherit;
     }
   }
 
@@ -153,41 +185,34 @@ button.nav-link {
     min-width: 26px;
   }
 
-  > .nav > .workspace-section {
-    padding: 20px 20px 12px;
+  .sidebar-section-label {
+    margin: 22px 30px 8px 32px; color: rgba($white, 0.65); font-family: inherit;
+    font-size: 10px; font-weight: 500; line-height: 16px; letter-spacing: 1.6px; text-transform: uppercase;
   }
-  .workspace-section-label {
-    display: block; margin: 0 0 10px 12px; color: rgba($white, 0.65);
-    font-size: 10px; font-weight: 500; letter-spacing: 1.6px; text-transform: uppercase;
-  }
-  .workspace-game {
-    display: block; width: 100%; padding: 9px 12px; border: 0; border-radius: 5px;
-    color: rgba($white, 0.8); background: transparent; text-align: left;
-    font: inherit; font-size: 13px; line-height: 20px; white-space: normal;
-    overflow-wrap: anywhere; cursor: pointer;
-    &:hover { color: $white; background: rgba($white, 0.08); }
+  .workspace-filter {
+    display: block; width: calc(100% - 40px); margin: 0 20px 8px; padding: 6px 12px;
+    border: 1px solid rgba($white, 0.2); border-radius: 5px;
+    color: $white; background: rgba($white, 0.1); font: inherit; font-size: 13px;
+    &::placeholder { color: rgba($white, 0.6); }
     &:focus-visible { outline: 2px solid $white; outline-offset: 2px; }
+  }
+  .workspace-game-list {
+    position: relative; list-style: none; padding: 0; margin: 0;
+    max-height: min(320px, 40vh); overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba($white, 0.35) transparent;
+  }
+  .workspace-game-list > .nav-item > .workspace-game {
+    height: auto;
+    min-height: $nav-link-height;
+
+    .menu-title {
+      white-space: normal;
+      overflow-wrap: anywhere;
+      line-height: 20px;
+    }
+
     &:disabled { opacity: 0.6; cursor: wait; }
-    &.active { color: $white; background: rgba($white, 0.14); font-weight: 500; }
   }
-  .workspace-game-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 2px; }
-
-  .sub-menu .nav-item .nav-link {
-    &.active {
-      color: $white;
-      font-weight: 600;
-
-      &:before {
-        background: $white;
-      }
-    }
-
-    .sub-count {
-      margin-left: auto;
-      margin-right: 30px;
-      opacity: 0.75;
-    }
-  }
+  .workspace-empty { margin: 4px 32px 0; color: rgba($white, 0.65); font-size: 13px; }
 
   .nav-link:focus-visible {
     outline-color: rgba($white, 0.8);
@@ -209,6 +234,27 @@ button.nav-link {
 }
 
 /* Page header */
+.page-dashboard-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+  color: $text-muted;
+  font-size: 13px;
+  font-weight: 500;
+
+  i {
+    font-size: 16px;
+    line-height: 1;
+  }
+
+  &:hover,
+  &[aria-current="page"] {
+    color: $primary;
+    text-decoration: none;
+  }
+}
+
 .page-header .page-title {
   flex-shrink: 0;
   margin-right: 1rem;
@@ -828,6 +874,20 @@ button.nav-link {
 }
 
 /* Settings */
+.settings-stop {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid $border-color;
+
+  @include media-breakpoint-up(lg) {
+    margin-top: 0;
+    padding-top: 0;
+    padding-left: 1.5rem;
+    border-top: 0;
+    border-left: 1px solid $border-color;
+  }
+}
+
 .forms-sample label i {
   margin-right: 6px;
 }

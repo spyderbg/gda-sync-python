@@ -17,7 +17,7 @@ You may edit:
 
 You must **not** edit:
 
-- the rest of the page content: everything else in `frontend/src/views/*` and `frontend/src/components/*` (including `DashboardView.vue`), `AppNavbar.vue`, `AppFooter.vue`
+- the rest of the page content: everything else in `frontend/src/views/*` and `frontend/src/components/*` (including `DashboardView.vue`), `AppFooter.vue`, and `AppHeader.vue` apart from its Workspace settings button (section 4.2)
 - shared state and types: `frontend/src/workspace.ts`, `frontend/src/types.ts`, `frontend/src/format.ts`, `frontend/src/App.vue`. Read them, call their existing exports, but do not change them. This means **no new `View` values, no new routes or pages, and no new store fields.**
 - anything in `egt_gda_sync/` (the backend and its HTTP API), `config/`, `scripts/`, `bundle/`, `pyproject.toml`, `README.md`
 
@@ -32,7 +32,7 @@ The navigation menu represents the **hierarchy of the working process**. The use
 It has two levels:
 
 - **Global level** (about all workspaces): **Workspaces**. The **Dashboard**, the overview of all workspaces, is global too, but it is **not in the menu**: it is reached from the link in every page header (section 6).
-- **Workspace level** (about one workspace): **Sync** and **Assets**
+- **Workspace level** (about one workspace): **Sync** and **Assets** in the menu, and **Workspace settings** as a gear button in the site header (`AppHeader.vue`)
 
 What a workspace is, in the user's words and in `workspace.json` fields:
 
@@ -45,7 +45,7 @@ What a workspace is, in the user's words and in `workspace.json` fields:
 
 - `AppSidebar.vue` currently renders: a Dashboard item, a "Workspace" list of buttons, a "Main Menu" category (Asset library, Needs sync, In sync, Sync activity), a collapsible "Asset types" item, and a "Workspace settings" item. The workspace list always highlights one workspace, even on the dashboard.
 - Page headers: `DashboardView`, `ActivityView` and `SettingsView` render `PageHeader.vue` (a title and the `links` and `links-right` quick-link slots). `LibraryView`, which serves `library`, `pending` and `synced`, renders `WorkspaceHeader.vue` instead. `ActivityView` and `SettingsView` each already have their own `Dashboard` quick link in `links-right`; the other pages have none.
-- In `AppNavbar.vue` the logo opens the dashboard on wide screens; on small screens the mini logo toggles the panel instead. Leave the navbar as it is.
+- `AppHeader.vue` renders the shared site header: the app name opens the dashboard on wide screens; on small screens the mini logo toggles the panel. The title is "Dashboard" on the dashboard and the workspace name on other views. At its right corner a gear button (`Workspace settings`) opens the settings view. Leave the rest of the site header as it is.
 - Navigation is done with `navigate(view, category?)` from `workspace.ts`. Views that exist: `dashboard`, `library`, `pending` ("Needs sync"), `synced` ("In sync"), `activity`, `settings`. `ui.view` and `ui.category` hold the current location. `navigate()` resets the category to `all`, clears search, filters and selection, and closes the off-canvas panel.
 - The app starts on `dashboard`. Several actions leave the dashboard on their own: searching (`ui.query` switches to `library`), inspecting an asset, and saving settings.
 - Workspaces come from `config.value.workspaces` (`workspaces` export): `{ id, name, source, destination }`. These map to the `workspace.json` fields as **`name` = `game_name`, `source` = `game_path`, `destination` = `gda_path`**. The backend does this translation; the frontend never sees the `game_*` names. The active workspace id is `config.value.defaultWorkspace`.
@@ -77,18 +77,18 @@ Because it is derived from `ui.view`, it also stays correct when something outsi
 | Workspaces list | **no entry highlighted**, no `aria-current` | the active workspace highlighted, `aria-current="true"` |
 | Sync section | **hidden** | shown, with the workspace name |
 | Assets section | **hidden** | shown, with the workspace name |
-| Workspace settings | shown | shown (highlighted on the settings view) |
+| Workspace settings (gear in the site header, not in the menu) | **hidden** | shown (highlighted on the settings view) |
 
 The menu has no Dashboard item in either state. The Dashboard link in the page header is on every page in both states (section 6).
 
-Hide the two sections instead of disabling them, so that on the first screen the menu shows only Workspaces and Workspace settings, and the rest appears once a workspace is chosen. Keep **Workspace settings** visible always: the settings page also holds "Stop application", which must stay reachable from the dashboard.
+Hide the workspace-level items instead of disabling them, so that on the first screen the menu shows only Workspaces, and the rest appears once a workspace is chosen. **Workspace settings** edits one workspace, so its gear in the site header is hidden on the dashboard as well. "Stop application" on the settings page stays reachable from the dashboard through the dashboard page's own "Settings" and "Workspace settings" links.
 
 ### 4.3 Transitions
 
 | User action | Result |
 | --- | --- |
-| App opens | Dashboard; nothing selected; Sync and Assets hidden |
-| Click **Dashboard** in the page header | Dashboard opens; selection cleared; Sync and Assets hidden |
+| App opens | Dashboard; nothing selected; Sync, Assets and Workspace settings hidden |
+| Click **Dashboard** in the page header | Dashboard opens; selection cleared; Sync, Assets and Workspace settings hidden |
 | Click a workspace **while on the Dashboard** | That workspace becomes selected and its **Needs sync** view opens (the first step of the working process after choosing a workspace). Keep the landing view in one named constant, so it is easy to change |
 | Click a **different** workspace **while in a workspace view** | The workspace switches and the user **stays where they were**: same view, and for `library` the same asset-type category (rules below) |
 | Click the already selected workspace | Nothing |
@@ -110,7 +110,7 @@ Carry-over rules when switching between two workspaces:
 
 | Part of the menu | Between workspaces |
 | --- | --- |
-| Workspaces, Sync items, Workspace settings | the same entries; only badges and tooltips change |
+| Workspaces, Sync items | the same entries; only badges and tooltips change |
 | Asset types (textures, models, materials, audio) | **the same list in the same order every time.** Define it once from `ASSET_TYPES`; only the counts change. Do not rebuild or reorder it on a switch |
 | The `*.json` resource lists | **different for each workspace** (section 5.4): the whole group is replaced on a switch |
 
@@ -128,6 +128,7 @@ A section with the heading **Workspaces** that lists **every** workspace from `w
 
 - One entry per workspace, showing `name`. Put the `id` and the two folders ("Game folder: …", "GDA folder: …") in the `title` attribute (tooltip), not in the visible text.
 - Selection, `aria-current` and clicks follow section 4. Disable the entries while `busy` is set, as the current list does.
+- Use the same `nav-item`, `nav-link` and `menu-title` styling as Sync and Assets, including the full-width active background. Workspace entries are text-only; Sync and Assets use their item icons. Do not render navigation dots. Long workspace names may wrap.
 - It must stay usable with **many** workspaces (assume 30 or more):
   - cap the list height with its own scrollbar so the sections below stay reachable, and scroll the selected entry into view
   - when there are more than 8 workspaces, show a small "Filter workspaces" text input above the list that filters by name or id (case-insensitive, local state in the panel only, empty-state text "No matching workspace")
@@ -136,7 +137,7 @@ A section with the heading **Workspaces** that lists **every** workspace from `w
 
 ### 5.2 Sync (workspace level)
 
-Shown only in a workspace view (section 4.2). Heading **Sync**, with the selected workspace's name in muted text beside or under it. The heading's `title` names the two folders ("Game folder: …", "GDA folder: …"), taken from `config.value.source` and `config.value.destination`; do not print long paths in the menu itself.
+Shown only in a workspace view (section 4.2). Heading **Sync**, without the workspace name. The heading's `title` names the two folders ("Game folder: …", "GDA folder: …"), taken from `config.value.source` and `config.value.destination`; do not print long paths in the menu itself.
 
 It shows how the game's resources and the GDA folder differ, using the existing statuses and views:
 
@@ -150,7 +151,7 @@ Where space allows, show the split of "Needs sync" in a `title` tooltip (for exa
 
 ### 5.3 Assets (workspace level)
 
-Shown only in a workspace view. Heading **Assets**, with the selected workspace's name in muted text. It lists the assets of the selected workspace by **every supported asset type**:
+Shown only in a workspace view. Heading **Assets**, without the workspace name. It lists the assets of the selected workspace by **every supported asset type**:
 
 - first item: `Asset library` (all assets), `navigate('library')`, badge `assets.length`
 - then one item per type in `ASSET_TYPES` (use `typeNames` and `typeIcons` for the label and icon), `navigate('library', type)`, badge `countType(type)`; the same list in the same order for every workspace (section 4.4)
@@ -196,16 +197,16 @@ The Dashboard is the overview of all the workspaces. It is no longer a menu item
 
 ## 8. Tests and names to keep
 
-Keep the accessible names that `tests/e2e/test_app.py` uses (`exact=True` for some): `Asset library`, `Needs sync`, `In sync`, `Sync activity` and `Workspace settings`. Add new names for new items. The menu's `Dashboard` button goes away and the header link (role `link`, name `Dashboard`) takes its place. No current test clicks either; the tests only check the `Dashboard` heading, which stays.
+Keep the accessible names that `tests/e2e/test_app.py` uses (`exact=True` for some): `Asset library`, `Needs sync`, `In sync`, `Sync activity`, and `Workspace settings` for the header's gear button. Add new names for new items. The menu's `Dashboard` button goes away and the header link (role `link`, name `Dashboard`) takes its place. No current test clicks either; the tests only check the `Dashboard` heading, which stays.
 
-The new navigation logic **intentionally** breaks the e2e steps that click a Sync or Assets item while the Dashboard is open, because those items are now hidden there. The tests that do this are `open_library()` and `test_syncing_all_pending_makes_the_workspace_current_including_after_reload` (it clicks "Needs sync" right after the dashboard loads and after a reload). Update such a step to choose the workspace first, with the smallest change, for example a helper:
+The new navigation logic **intentionally** breaks the e2e steps that click a Sync or Assets item, or the Workspace settings gear in the site header, while the Dashboard is open, because they are now hidden there. The tests that do this are `open_library()`, `test_syncing_all_pending_makes_the_workspace_current_including_after_reload` (it clicks "Needs sync" right after the dashboard loads and after a reload), `test_validates_workspace_folders_and_saves_a_project_configuration` and `test_stops_the_local_application_and_leaves_a_clear_closed_workspace_screen` (both click "Workspace settings" right after the dashboard loads). Update such a step to choose the workspace first, with the smallest change, for example a helper:
 
 ```python
 def select_workspace(page):
     page.get_by_role("list", name="Workspaces").get_by_role("button").first.click()
 ```
 
-After that click the Needs sync view is open, so `open_library()` goes on to click `Asset library`. Do not change anything else in the tests. Tests that click "Workspace settings" from the dashboard must keep working unchanged.
+After that click the Needs sync view is open, so `open_library()` goes on to click `Asset library`. The Needs sync page header has its own "Workspace settings" button, so the two settings tests click the gear within `get_by_role("banner")`, the site header. Do not change anything else in the tests.
 
 Before changing code, run the baseline and write down what already fails, because the user is editing the interface in parallel and some e2e tests may already fail for unrelated reasons (for example, a missing "Asset library" heading or a `.sidebar .profile-name` selector). Do not "fix" those; only make sure you add no new failures.
 

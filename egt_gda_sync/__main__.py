@@ -1,4 +1,4 @@
-"""Launcher: start the local backend and open GDA Sync in the default browser."""
+"""Launcher: start the local backend and open EGT GDA Sync in the default browser."""
 
 import json
 import os
@@ -63,7 +63,7 @@ def run(argv: list[str]) -> int:
             raise RuntimeError(f"Port {port} is in use by another application. Set PORT to choose another port.") from None
         if should_open:
             open_on_desktop(url)
-        print(f"GDA Sync is already running at {url}", flush=True)
+        print(f"EGT GDA Sync is already running at {url}", flush=True)
         return 0
 
     server: AppServer | None = None
@@ -74,7 +74,7 @@ def run(argv: list[str]) -> int:
 
     app = create_app(library, dev=dev, on_shutdown=shutdown)
     server = AppServer(app)
-    print(f"GDA Sync is ready at {url}\nWorkspace: {data_home}\nConfiguration: {library.config_path}", flush=True)
+    print(f"EGT GDA Sync is ready at {url}\nWorkspace: {data_home}\nConfiguration: {library.config_path}", flush=True)
     if should_open:
         threading.Thread(target=_open_browser, args=(url,), daemon=True).start()
     # uvicorn re-raises the signal that stopped it after its graceful shutdown; by then nothing is left to do.
@@ -102,7 +102,7 @@ def main(argv: list[str] | None = None) -> int:
     except KeyboardInterrupt:
         return 0
     except Exception as error:
-        print(f"GDA Sync: {error_message(error)}", file=sys.stderr, flush=True)
+        print(f"EGT GDA Sync: {error_message(error)}", file=sys.stderr, flush=True)
         _pause_before_console_closes()
         return 1
 

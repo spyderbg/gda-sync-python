@@ -30,9 +30,14 @@ def natural_size(image):
     return image.evaluate("img => [img.naturalWidth, img.naturalHeight]")
 
 
+def select_workspace(page):
+    page.get_by_role("list", name="Workspaces").get_by_role("button").first.click()
+
+
 def open_library(page):
     page.goto("/")
     expect(page.get_by_role("heading", name="Dashboard")).to_be_visible()
+    select_workspace(page)
     page.get_by_role("button", name="Asset library", exact=True).click()
     expect(page.get_by_role("heading", name="Asset library")).to_be_visible()
 
@@ -108,7 +113,8 @@ def test_supports_list_view_previews_keyboard_shortcuts_and_a_mobile_layout(page
 
 def test_validates_workspace_folders_and_saves_a_project_configuration(page):
     page.goto("/")
-    page.get_by_role("button", name="Workspace settings", exact=True).click()
+    select_workspace(page)
+    page.get_by_role("banner").get_by_role("button", name="Workspace settings", exact=True).click()
     source = page.get_by_label("Source folder", exact=True).input_value()
     destination = page.get_by_label("GDA destination", exact=True).input_value()
     page.get_by_label("GDA destination", exact=True).fill(source)
@@ -142,9 +148,11 @@ def test_syncing_all_pending_makes_the_workspace_current_including_after_reload(
     page.get_by_role("button", name="Sync all pending").click()
     page.get_by_role("button", name="Sync 7 assets", exact=True).click()
     expect(page.get_by_role("status")).to_contain_text("7 assets synced")
+    select_workspace(page)
     page.get_by_role("button", name="Needs sync").click()
     expect(page.get_by_role("heading", name="All caught up.")).to_be_visible()
     page.reload()
+    select_workspace(page)
     page.get_by_role("button", name="Needs sync").click()
     expect(page.get_by_role("heading", name="All caught up.")).to_be_visible()
     page.get_by_role("button", name="Rescan", exact=True).click()
@@ -224,7 +232,8 @@ def test_renews_an_expired_server_session_and_retries_the_rejected_rescan_once(p
 
 def test_stops_the_local_application_and_leaves_a_clear_closed_workspace_screen(page, backend):
     page.goto("/")
-    page.get_by_role("button", name="Workspace settings", exact=True).click()
+    select_workspace(page)
+    page.get_by_role("banner").get_by_role("button", name="Workspace settings", exact=True).click()
     page.get_by_role("button", name="Stop application", exact=True).click()
     page.get_by_role("dialog").get_by_role("button", name="Stop application", exact=True).click()
     expect(page.get_by_role("heading", name="Workspace closed.")).to_be_visible()

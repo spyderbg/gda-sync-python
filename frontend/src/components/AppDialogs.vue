@@ -26,8 +26,8 @@ import StatusBadge from './StatusBadge.vue';
     </div>
   </AppModal>
 
-  <AppModal v-if="ui.shutdownConfirm" title="Stop GDA Sync?" @close="ui.shutdownConfirm = false">
-    <div class="modal-body"><p class="mb-0">This stops the local server. Your files, settings, and sync history stay saved. Launch GDA Sync to open this workspace again.</p></div>
+  <AppModal v-if="ui.shutdownConfirm" title="Stop EGT GDA Sync?" @close="ui.shutdownConfirm = false">
+    <div class="modal-body"><p class="mb-0">This stops the local server. Your files, settings, and sync history stay saved. Launch EGT GDA Sync to open this workspace again.</p></div>
     <div class="modal-footer">
       <button type="button" class="btn btn-light" @click="ui.shutdownConfirm = false">Keep working</button>
       <button type="button" class="btn btn-danger" @click="stopApplication"><i aria-hidden="true" class="mdi mdi-power" />Stop application</button>

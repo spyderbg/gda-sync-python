@@ -22,7 +22,7 @@ cat > "$applications_dir/egt-gda-sync.desktop" <<DESKTOP
 [Desktop Entry]
 Version=1.0
 Type=Application
-Name=GDA Sync
+Name=EGT GDA Sync
 Comment=Your studio asset workspace
 Exec="$app_dir/egt-gda-sync"
 Icon=$app_dir/icon.svg
@@ -34,4 +34,4 @@ chmod +x "$app_dir/egt-gda-sync"
 if command -v update-desktop-database >/dev/null 2>&1; then
   update-desktop-database "$applications_dir"
 fi
-printf 'Installed GDA Sync in the application menu.\nLaunch with: %s\n' "$HOME/.local/bin/egt-gda-sync"
+printf 'Installed EGT GDA Sync in the application menu.\nLaunch with: %s\n' "$HOME/.local/bin/egt-gda-sync"

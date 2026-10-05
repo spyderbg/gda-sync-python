@@ -19,13 +19,12 @@ function cancel() {
       <li><a href="#" @click.prevent="openFolder('destination')">Open GDA folder</a></li>
     </template>
     <template #links-right>
-      <li><a href="#" @click.prevent="navigate('dashboard')">Dashboard</a></li>
       <li><a href="#" @click.prevent="navigate('activity')">Sync activity</a></li>
     </template>
   </PageHeader>
 
   <div class="row">
-    <div class="col-lg-7 grid-margin stretch-card">
+    <div class="col-12 grid-margin stretch-card">
       <div class="card">
         <div class="card-body">
           <div class="d-flex align-items-center">
@@ -57,23 +56,27 @@ function cancel() {
         </div>
       </div>
     </div>
-    <div class="col-lg-5 grid-margin stretch-card">
+    <div class="col-12 grid-margin stretch-card">
       <div class="card">
         <div class="card-body">
-          <h4 class="card-title">A Simple, Local Connection</h4>
-          <p>GDA Sync copies assets from your source folder to your destination, keeping the same folder structure.</p>
-          <ul class="list-ticked">
-            <li>Original source files are preserved</li>
-            <li>Existing GDA versions are backed up</li>
-            <li>File contents determine sync status</li>
-            <li>No uploads or cloud accounts</li>
-          </ul>
-          <h5 class="mt-4 mb-2">Your backups live here</h5>
-          <code class="backup-path">{{ data!.backupPath }}</code>
-          <div class="border-top pt-4 mt-4">
-            <h5 class="mb-1">Stop GDA Sync</h5>
-            <p class="text-muted">Close the local server when you’re done. Closing the last GDA Sync page also stops it.</p>
-            <button type="button" class="btn btn-outline-danger" :disabled="!!busy" @click="ui.shutdownConfirm = true"><i aria-hidden="true" class="mdi mdi-power" />Stop application</button>
+          <div class="row">
+            <div class="col-lg-8">
+              <h4 class="card-title">A Simple, Local Connection</h4>
+              <p>EGT GDA Sync copies assets from your source folder to your destination, keeping the same folder structure.</p>
+              <ul class="list-ticked">
+                <li>Original source files are preserved</li>
+                <li>Existing GDA versions are backed up</li>
+                <li>File contents determine sync status</li>
+                <li>No uploads or cloud accounts</li>
+              </ul>
+              <h5 class="mt-4 mb-2">Your backups live here</h5>
+              <code class="backup-path">{{ data!.backupPath }}</code>
+            </div>
+            <div class="col-lg-4 settings-stop">
+              <h5 class="mb-1">Stop EGT GDA Sync</h5>
+              <p class="text-muted">Close the local server when you’re done. Closing the last EGT GDA Sync page also stops it.</p>
+              <button type="button" class="btn btn-outline-danger" :disabled="!!busy" @click="ui.shutdownConfirm = true"><i aria-hidden="true" class="mdi mdi-power" />Stop application</button>
+            </div>
           </div>
         </div>
       </div>

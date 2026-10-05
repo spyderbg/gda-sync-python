@@ -177,7 +177,7 @@ def create_app(
 
     @app.exception_handler(OSError)
     async def filesystem_error(_request: Request, error: OSError) -> JSONResponse:
-        print(f"GDA Sync: {error}", file=sys.stderr, flush=True)
+        print(f"EGT GDA Sync: {error}", file=sys.stderr, flush=True)
         return JSONResponse({"error": SERVER_ERROR}, 500)
 
     @app.exception_handler(Exception)
@@ -253,7 +253,7 @@ def create_app(
         if dev:
             if not path:
                 return RedirectResponse(ui_url)
-            return HTMLResponse(f'<p>Development UI: <a href="{ui_url}">Open GDA Sync</a></p>')
+            return HTMLResponse(f'<p>Development UI: <a href="{ui_url}">Open EGT GDA Sync</a></p>')
         file = files.get("/" + path) if path else None
         if file is None and not os.path.splitext(path)[1]:
             file = files.get("/index.html")

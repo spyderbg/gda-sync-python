@@ -5,7 +5,7 @@ import AppToast from './components/AppToast.vue';
 import StartupState from './components/StartupState.vue';
 import { useBackendLifetime } from './composables/useBackendLifetime';
 import AppFooter from './layout/AppFooter.vue';
-import AppNavbar from './layout/AppNavbar.vue';
+import AppHeader from './layout/AppHeader.vue';
 import AppSidebar from './layout/AppSidebar.vue';
 import ActivityView from './views/ActivityView.vue';
 import DashboardView from './views/DashboardView.vue';
@@ -47,7 +47,7 @@ onBeforeUnmount(() => {
   <StartupState v-else-if="loadError" kind="error" :message="loadError" />
   <StartupState v-else-if="!data" kind="loading" />
   <div v-else class="container-scroller">
-    <AppNavbar />
+    <AppHeader />
     <div class="container-fluid page-body-wrapper">
       <AppSidebar />
       <div class="main-panel">

@@ -26,7 +26,6 @@ const colors = { sync: 'bg-success', scan: 'bg-primary', settings: 'bg-info' };
       <li><span>{{ count('settings') }} connection change{{ plural(count('settings')) }}</span></li>
     </template>
     <template #links-right>
-      <li><a href="#" @click.prevent="navigate('dashboard')">Dashboard</a></li>
       <li><a href="#" @click.prevent="navigate('library')">Asset library</a></li>
     </template>
   </PageHeader>

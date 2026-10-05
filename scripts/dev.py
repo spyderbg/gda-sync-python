@@ -24,7 +24,7 @@ FRONTEND = ROOT / "frontend"
 
 
 def wait_for_dev_server(vite: subprocess.Popen, port: int, timeout: float = 60) -> None:
-    """Wait until our Vite process serves the GDA Sync page; another program may hold the port."""
+    """Wait until our Vite process serves the EGT GDA Sync page; another program may hold the port."""
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
     deadline = time.monotonic() + timeout
     while True:
@@ -32,7 +32,7 @@ def wait_for_dev_server(vite: subprocess.Popen, port: int, timeout: float = 60) 
             raise SystemExit(f"The Vite dev server stopped. Is port {port} used by another program? Set vite_port in workspace.json or VITE_PORT to choose another port.")
         try:
             with opener.open(f"http://127.0.0.1:{port}", timeout=1) as response:
-                if b"<title>GDA Sync" in response.read():
+                if b"<title>EGT GDA Sync" in response.read():
                     return
         except OSError:
             pass
