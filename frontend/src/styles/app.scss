@@ -65,6 +65,8 @@ button.nav-link {
 
     .brand-text { font-size: 20px; white-space: nowrap; }
 
+    &.brand-logo:hover { color: $white; }
+
     img.brand-mark {
       width: 36px;
       height: 36px;
@@ -79,6 +81,14 @@ button.nav-link {
   }
 
   .navbar-menu-wrapper {
+    background: $sidebar-gradient-color-2;
+    color: $white;
+
+    .navbar-game-title {
+      min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      margin: 0 12px; font-size: 20px; font-weight: 500; letter-spacing: 0.3px; color: $white;
+      @media (max-width: 575px) { margin: 0; }
+    }
     .workspace-holder {
       display: flex;
       align-items: center;
@@ -150,32 +160,17 @@ button.nav-link {
     display: block; margin: 0 0 10px 12px; color: rgba($white, 0.65);
     font-size: 10px; font-weight: 500; letter-spacing: 1.6px; text-transform: uppercase;
   }
-  .workspace-selector {
-    position: relative; display: flex; align-items: center; gap: 10px;
-    padding: 10px; border: 1px solid rgba($white, 0.16); border-radius: 10px;
-    color: $white; background: rgba($white, 0.07);
-    transition: background 0.15s, border-color 0.15s;
-    &:hover { background: rgba($white, 0.12); border-color: rgba($white, 0.3); }
-    &:focus-within { outline: 2px solid $white; outline-offset: 3px; }
-    &.is-busy { opacity: 0.6; }
+  .workspace-game {
+    display: block; width: 100%; padding: 9px 12px; border: 0; border-radius: 5px;
+    color: rgba($white, 0.8); background: transparent; text-align: left;
+    font: inherit; font-size: 13px; line-height: 20px; white-space: normal;
+    overflow-wrap: anywhere; cursor: pointer;
+    &:hover { color: $white; background: rgba($white, 0.08); }
+    &:focus-visible { outline: 2px solid $white; outline-offset: 2px; }
+    &:disabled { opacity: 0.6; cursor: wait; }
+    &.active { color: $white; background: rgba($white, 0.14); font-weight: 500; }
   }
-  .workspace-icon {
-    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-    width: 32px; height: 34px; border-radius: 6px; background: rgba($white, 0.12);
-    color: #c9f9e6; font-size: 21px;
-  }
-  .workspace-summary { flex: 1; min-width: 0; }
-  .workspace-name {
-    display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    font-size: 13px; font-weight: 500; line-height: 20px;
-  }
-  .workspace-description { display: block; color: rgba($white, 0.65); font-size: 11px; line-height: 16px; }
-  .workspace-chevron { flex-shrink: 0; font-size: 18px; color: rgba($white, 0.85); }
-  .workspace-select {
-    position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;
-    option { color: #17213b; background: $white; }
-    &:disabled { cursor: wait; }
-  }
+  .workspace-game-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 2px; }
 
   .sub-menu .nav-item .nav-link {
     &.active {
@@ -197,6 +192,19 @@ button.nav-link {
   .nav-link:focus-visible {
     outline-color: rgba($white, 0.8);
     outline-offset: -3px;
+  }
+}
+
+/* The template slides the collapsed sidebar in from the right; open it on the left, below the toggle. */
+@media screen and (max-width: 991px) {
+  .sidebar-offcanvas {
+    right: auto;
+    left: -$sidebar-width-lg;
+
+    &.active {
+      right: auto;
+      left: 0;
+    }
   }
 }
 

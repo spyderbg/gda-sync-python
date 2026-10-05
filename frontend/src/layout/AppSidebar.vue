@@ -5,8 +5,9 @@ import type { AssetType, View } from '../types';
 import { assets, busy, config, countType, navigate, pending, selectWorkspace, syncedCount, ui, workspaces } from '../workspace';
 
 const typesOpen = ref(false);
+const games = computed(() => workspaces.value.length ? workspaces.value : [{ id: 'current', name: config.value.name }]);
+const selectedGame = (id: string) => id === (config.value.defaultWorkspace || 'current');
 const items: { view: View; title: string; icon: string }[] = [
-  { view: 'dashboard', title: 'Dashboard', icon: 'mdi-view-dashboard-outline' },
   { view: 'library', title: 'Asset library', icon: 'mdi-view-grid-outline' },
   { view: 'pending', title: 'Needs sync', icon: 'mdi-sync' },
   { view: 'synced', title: 'In sync', icon: 'mdi-check-all' },
@@ -24,20 +25,20 @@ const showType = (type: AssetType) => navigate('library', type);
 <template>
   <nav id="sidebar" :class="['sidebar', 'sidebar-offcanvas', { active: ui.sidebarOpen }]" aria-label="Main navigation">
     <ul class="nav">
+      <li :class="['nav-item', { active: ui.view === 'dashboard' }]">
+        <button type="button" class="nav-link" aria-label="Dashboard" @click="navigate('dashboard')">
+          <i aria-hidden="true" class="menu-icon mdi mdi-view-dashboard-outline" /><span class="menu-title">Dashboard</span>
+        </button>
+      </li>
       <li class="nav-item workspace-section">
-        <label for="workspace-select" class="workspace-section-label">Workspace</label>
-        <div :class="['workspace-selector', { 'is-busy': !!busy }]">
-          <span class="workspace-icon" aria-hidden="true"><i class="mdi mdi-creation" /></span>
-          <div class="workspace-summary" aria-hidden="true">
-            <span class="workspace-name">{{ config.name }}</span>
-            <span class="workspace-description">{{ config.demo ? 'Environment demo' : 'Asset workspace' }}</span>
-          </div>
-          <i class="mdi mdi-chevron-down workspace-chevron" aria-hidden="true" />
-          <select id="workspace-select" class="workspace-select" :value="config.defaultWorkspace || 'current'" :disabled="!!busy" @change="selectWorkspace(($event.target as HTMLSelectElement).value)">
-            <option v-if="!workspaces.length" value="current">{{ config.name }}</option>
-            <option v-for="workspace in workspaces" :key="workspace.id" :value="workspace.id">{{ workspace.name }}</option>
-          </select>
-        </div>
+        <p class="workspace-section-label" id="workspace-list-heading">Workspace</p>
+        <ul class="workspace-game-list" aria-labelledby="workspace-list-heading">
+          <li v-for="game in games" :key="game.id">
+            <button type="button" :class="['workspace-game', { active: selectedGame(game.id) }]" :aria-pressed="selectedGame(game.id)" :disabled="!!busy" @click="!selectedGame(game.id) && selectWorkspace(game.id)">
+              {{ game.name }}
+            </button>
+          </li>
+        </ul>
       </li>
       <li class="nav-item nav-category">Main Menu</li>
       <li v-for="item in items" :key="item.view" :class="['nav-item', { active: active(item.view) }]">
