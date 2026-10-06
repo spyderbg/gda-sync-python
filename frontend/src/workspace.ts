@@ -1,7 +1,7 @@
 // Application state shared by the layout and the views, and the actions that talk to the backend.
 import { computed, reactive, ref, watch } from 'vue';
 import { plural } from './format';
-import type { Asset, AssetStatus, AssetType, LibraryResponse, RssResource, RssSyncStatus, Session, SyncResult, View, WorkspaceConfig } from './types';
+import type { Asset, AssetStatus, AssetType, LibraryResponse, RssFileDetails, RssResource, RssSyncStatus, Session, SyncResult, View, WorkspaceConfig } from './types';
 
 const INVALID_SESSION = 'Invalid session. Reload the application.';
 const RSS_POLL_MS = 1000;
@@ -236,6 +236,11 @@ export async function openFolder(folder: 'source' | 'destination', assetId?: str
     await api('open-folder', 'POST', { folder, assetId });
     notify(`Opened ${folder === 'source' ? 'GDA' : 'Game'} folder.`);
   } catch (e) { notify((e as Error).message, true); }
+}
+
+/** The size, time and image dimensions of files the GDA sync report names, by their absolute paths. */
+export async function resourceDetails(files: string[]) {
+  return (await api<{ files: Record<string, RssFileDetails> }>('rss-sync/details', 'POST', { files })).files;
 }
 
 export async function openResourceFolder(file: string) {

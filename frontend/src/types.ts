@@ -54,6 +54,11 @@ export interface RssFrame {
   category: RssCategory | 'skipped'; status: string; resource: string; resourcePath: string; gdaFiles: RssGdaFile[];
   mipOnly?: boolean; source?: RssRectangle;
 }
+/** A file the GDA sync report names, as POST /api/rss-sync/details describes it: only an error when it does not exist. */
+export interface RssFileDetails {
+  size?: number; modifiedAt?: string; dimensions?: { width: number; height: number; format: string; mipmaps?: number };
+  dimensionsError?: string; error?: string;
+}
 /** A frame as SequencePreview plays it: the absolute path of its image, null when it has none, and the part it shows. */
 export interface PreviewFrame { file: string | null; source?: RssRectangle }
 /** loopCount 0 repeats forever; each loop after the first starts at frame loopTo. A guessed sequence is numbered

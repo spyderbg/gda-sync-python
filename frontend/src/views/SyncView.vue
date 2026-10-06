@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue';
 import CheckBox from '../components/CheckBox.vue';
 import ReportNotice from '../components/ReportNotice.vue';
 import ResourceCard from '../components/ResourceCard.vue';
+import ResourceDetails from '../components/ResourceDetails.vue';
 import { useSyncReport } from '../composables/useSyncReport';
 import { number, plural, rowMatches, time } from '../format';
 import type { RssCategory, RssResource } from '../types';
@@ -60,6 +61,10 @@ watch(pending, rows => {
   const ids = new Set(rows.map(row => row.id));
   if ([...selected.value].some(id => !ids.has(id))) selected.value = new Set([...selected.value].filter(id => ids.has(id)));
 });
+
+// Clicking a card shows its details; a new report that no longer lists the resource closes them.
+const detailsId = ref<string | null>(null);
+const detailsRow = computed(() => (detailsId.value ? differences.value.find(row => row.id === detailsId.value) ?? null : null));
 
 function toggle(id: string) {
   const next = new Set(selected.value);
@@ -169,7 +174,7 @@ function toggleAll(select: boolean) {
         <!-- A different resource spans the row, so its GDA files sit beside the game file. -->
         <div class="row asset-grid">
           <div v-for="row in visible" :key="row.id" :class="[row.category === 'different' ? 'col-12' : 'col-sm-6 col-xl-4', 'grid-margin', 'stretch-card']">
-            <ResourceCard :row="row" :revision="finishedAt ?? ''" :selected="selected.has(row.id)" @toggle="toggle(row.id)" />
+            <ResourceCard :row="row" :revision="finishedAt ?? ''" :selected="selected.has(row.id)" @toggle="toggle(row.id)" @open="detailsId = row.id" />
           </div>
         </div>
         <div v-if="rows.length > shown" class="sync-more grid-margin">
@@ -186,6 +191,8 @@ function toggleAll(select: boolean) {
       </div>
     </template>
   </template>
+
+  <ResourceDetails v-if="detailsRow" :row="detailsRow" :revision="finishedAt ?? ''" @close="detailsId = null" />
 </template>
 
 <style scoped>

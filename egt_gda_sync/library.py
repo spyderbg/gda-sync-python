@@ -108,6 +108,21 @@ def file_hash(file: str) -> str:
     return digest.hexdigest()
 
 
+def image_dimensions(file: str, extension: str) -> dict | None:
+    """The width, height and pixel format of a DDS or PNG file, read from its header, with a DDS file's mip levels; None
+    for any other file. A DDS header that cannot be read raises ValueError."""
+    if extension not in ("dds", "png"):
+        return None
+    with open(file, "rb") as handle:
+        header = handle.read(148)
+    if extension == "dds":
+        return read_dds_info(header)
+    if header.startswith(PNG_SIGNATURE):
+        width, height = struct.unpack_from(">II", header.ljust(24, b"\0"), 16)
+        return {"width": width, "height": height, "format": "RGBA"}
+    return None
+
+
 def _copy_exclusive(source: str, target: str) -> None:
     """Copy file bytes into a new file; fails if target already exists."""
     with open(source, "rb") as reader, open(target, "xb") as writer:
@@ -460,22 +475,18 @@ class Library:
             "extension": extension, "type": type_for(extension), "status": status, "size": info.st_size,
             "modifiedAt": iso_time(info.st_mtime_ns), "preview": extension in IMAGE_PREVIEWS,
         }
-        if extension in ("dds", "png"):
-            with open(file, "rb") as handle:
-                header = handle.read(148)
-            try:
-                if extension == "dds":
-                    dimensions = read_dds_info(header)
-                    asset["dimensions"] = dimensions
-                    asset["preview"] = dimensions["format"] in SUPPORTED_DDS_FORMATS
-                    if not asset["preview"]:
-                        asset["previewError"] = f"Preview unavailable for {dimensions['format']}. The original file can still be synced."
-                elif header.startswith(PNG_SIGNATURE):
-                    width, height = struct.unpack_from(">II", header.ljust(24, b"\0"), 16)
-                    asset["dimensions"] = {"width": width, "height": height, "format": "RGBA"}
-            except ValueError as error:
-                asset["preview"] = False
-                asset["previewError"] = str(error)
+        try:
+            dimensions = image_dimensions(file, extension)
+        except ValueError as error:
+            asset["preview"] = False
+            asset["previewError"] = str(error)
+        else:
+            if dimensions:
+                asset["dimensions"] = dimensions
+            if dimensions and extension == "dds":
+                asset["preview"] = dimensions["format"] in SUPPORTED_DDS_FORMATS
+                if not asset["preview"]:
+                    asset["previewError"] = f"Preview unavailable for {dimensions['format']}. The original file can still be synced."
         model_preview = os.path.join(config["source"], ".previews", asset["id"] + ".svg")
         if config["demo"] and asset["type"] == "model" and os.path.isfile(model_preview):
             asset["preview"] = True
@@ -657,6 +668,32 @@ class Library:
         if not os.path.isdir(folder):
             raise AppError("Folder does not exist", 404)
         return folder
+
+    def resource_details(self, files: list[str]) -> dict:
+        """The size, modification time and image dimensions of files the GDA sync report names, by path. Only files
+        inside the active workspace's resources and GDA folders are read; any other path, or a file that does not
+        exist, has only an error."""
+        details: dict[str, dict] = {}
+        for file in dict.fromkeys(files):
+            try:
+                path = self._resource_path(file)
+                info = os.stat(path)
+            except (AppError, OSError):
+                details[file] = {"error": "File not found"}
+                continue
+            if not stat.S_ISREG(info.st_mode):
+                details[file] = {"error": "Not a file"}
+                continue
+            entry: dict = {"size": info.st_size, "modifiedAt": iso_time(info.st_mtime_ns)}
+            try:
+                dimensions = image_dimensions(path, os.path.splitext(path)[1][1:].lower())
+            except (OSError, ValueError) as error:
+                entry["dimensionsError"] = error_message(error)
+            else:
+                if dimensions:
+                    entry["dimensions"] = dimensions
+            details[file] = entry
+        return {"files": details}
 
     def resource_preview(self, file: str) -> tuple[bytes, str]:
         """Preview an image inside the active workspace's resources and GDA folders."""

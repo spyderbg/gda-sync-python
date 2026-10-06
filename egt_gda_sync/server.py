@@ -78,6 +78,10 @@ class ResourceFileBody(_Body):
     file: Text4K
 
 
+class ResourceFilesBody(_Body):
+    files: Annotated[list[Text4K], Field(min_length=1, max_length=1000)]
+
+
 def _hostname(host: str) -> str:
     if host.startswith("["):
         return host[:host.find("]") + 1].lower()
@@ -249,6 +253,10 @@ def create_app(
     @app.post("/api/rss-sync/copy")
     def rss_sync_copy(body: SyncBody) -> dict:
         return library.sync_resources(body.ids)
+
+    @app.post("/api/rss-sync/details")
+    def rss_sync_details(body: ResourceFilesBody) -> dict:
+        return library.resource_details(body.files)
 
     @app.post("/api/rss-sync/open-folder")
     def open_resource_folder(body: ResourceFileBody) -> dict:

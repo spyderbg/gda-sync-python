@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { extensionOf, fileType, number, plural, sequenceName, sequenceSummary, splitPath, typeIcons } from '../format';
-import type { PreviewFrame, RssCategory, RssResource } from '../types';
+import { directoryOf, extensionOf, fileType, number, plural, previewFrames, rssBadges, sequenceName, sequenceSummary, splitPath, typeIcons } from '../format';
+import type { RssResource } from '../types';
 import { copy, openResourceFolder } from '../workspace';
 import CheckBox from './CheckBox.vue';
 import ReportThumbnail from './ReportThumbnail.vue';
@@ -9,23 +9,16 @@ import SequencePreview from './SequencePreview.vue';
 
 // One resource of the GDA sync report as a card in the look of AssetCard: the game file's preview, name, folder and the
 // report's status. A "different" resource also shows its GDA files as cards, closest folder first. Sync copies the first
-// of them over the game file, so only a "different" resource can be selected; clicking the card emits toggle.
+// of them over the game file, so only a "different" resource can be selected, with its check box, which emits toggle.
+// Clicking the card, or its details button, emits open to show the resource's details.
 // An image sequence is one card that plays its frames, and clicking its preview plays it again from the first frame.
 // It lists its files that are not in sync, and a "different" one plays the GDA files of its frames beside it.
 // A "supplementary" file is in the game folder, but no descriptor declares it; numbered images among them are played
 // as a guessed sequence.
 const props = withDefaults(defineProps<{ row: RssResource; revision: string; selected?: boolean }>(), { selected: false });
-const emit = defineEmits<{ toggle: [] }>();
+const emit = defineEmits<{ toggle: []; open: [] }>();
 
-const BADGES: Record<RssCategory, string> = {
-  identical: 'badge-success', different: 'badge-danger', missing: 'badge-warning', invalid: 'badge-dark', supplementary: 'badge-info',
-};
 const icon = (name: string) => typeIcons[fileType(extensionOf(name))];
-// Preserve the backend's native separators, including a POSIX or Windows drive root.
-const directoryOf = (path: string) => {
-  const end = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
-  return path.slice(0, end + (end === 0 || path[end - 1] === ':' ? 1 : 0));
-};
 
 const resource = computed(() => splitPath(props.row.resource));
 const resourceDirectory = computed(() => directoryOf(props.row.resourcePath));
@@ -35,8 +28,8 @@ const gdaFiles = computed(() => props.row.gdaFiles.map(file => ({ ...file, ...sp
 const sequence = computed(() => props.row.sequence);
 // The game side plays the game files, and the GDA side the GDA file of each frame: the one that matched, or the closest,
 // which sync copies. A frame without a file to show stays empty.
-const gameFrames = computed<PreviewFrame[]>(() => sequence.value?.frames.map(frame => ({ file: frame.category === 'invalid' ? null : frame.resourcePath, source: frame.source })) ?? []);
-const gdaFrames = computed<PreviewFrame[]>(() => sequence.value?.frames.map(frame => ({ file: frame.gdaFiles[0]?.absolutePath ?? null, source: frame.source })) ?? []);
+const gameFrames = computed(() => (sequence.value ? previewFrames(sequence.value, 'game') : []));
+const gdaFrames = computed(() => (sequence.value ? previewFrames(sequence.value, 'gda') : []));
 // Each file once: an atlas repeats one file in many frames.
 const unsynced = computed(() => [...new Map((sequence.value?.frames ?? [])
   .filter(frame => frame.category !== 'identical' && frame.category !== 'skipped' && frame.category !== 'supplementary')
@@ -51,18 +44,17 @@ const gdaFolder = computed(() => gdaFiles.value[0]?.directory ?? '');
   <div :class="['resource-card', `is-${row.category}`]">
     <article :class="['card', 'asset-card', 'resource-game', { selected }]">
       <SequencePreview v-if="sequence" :frames="gameFrames" :frame-time="sequence.frameTime" :loop-count="sequence.loopCount" :loop-to="sequence.loopTo" :name="sequence.id ?? resource.name" :revision="revision" />
-      <div class="asset-hit-target" @click="selectable && emit('toggle')">
-        <component v-if="!sequence" :is="selectable ? 'button' : 'div'" :type="selectable ? 'button' : undefined" class="resource-preview"
-                   :aria-label="selectable ? `Toggle selection of ${row.resource}` : undefined">
+      <div class="asset-hit-target" @click="emit('open')">
+        <button v-if="!sequence" type="button" class="resource-preview" :aria-label="`Show the details of ${row.resource}`">
           <ReportThumbnail :file="row.resourcePath" :name="resource.name" :revision="revision" :preview="row.category !== 'invalid'" />
-        </component>
+        </button>
         <div class="card-body">
           <p class="asset-name"><button type="button" class="resource-icon-button resource-file-copy" :aria-label="`Copy the game path of ${resource.name}`" title="Copy the game path" @click.stop="copy(row.resourcePath)"><i aria-hidden="true" :class="['mdi', sequence ? 'mdi-animation-outline' : icon(resource.name)]" /></button><span :title="row.resourcePath">{{ resource.name }}</span></p>
           <p class="asset-meta"><span class="resource-folder"><button type="button" class="resource-icon-button resource-folder-open" :aria-label="`Open game directory ${resourceDirectory}`" :title="`Open ${resourceDirectory}`" @click.stop="openResourceFolder(row.resourcePath)"><i aria-hidden="true" class="mdi mdi-folder-open-outline" /></button><span :title="resourceDirectory">{{ resourceDirectory }}</span></span><span v-if="row.scope !== 'game'">{{ row.scope }}</span></p>
           <p v-if="sequence" class="resource-sequence" :title="sequence.paths.join('\n')">
             <span :class="['resource-sequence-id', { 'is-guessed': sequence.guessed }]">{{ sequenceName(sequence) }}</span>{{ sequenceSummary(sequence) }}<template v-if="sequence.paths.length > 1"> · {{ sequence.paths.length }} paths</template>
           </p>
-          <div class="asset-footer"><span :class="['badge', 'resource-status', BADGES[row.category]]">{{ row.status }}</span></div>
+          <div class="asset-footer"><span :class="['badge', 'resource-status', rssBadges[row.category]]">{{ row.status }}</span></div>
           <div v-if="row.category === 'missing' || row.category === 'supplementary'" class="resource-declared">
             <small class="text-muted">{{ row.requiredBy.length ? 'Declared in' : 'No JSON descriptor' }}</small>
             <span v-for="use in row.requiredBy" :key="`${use.descriptor}:${use.line}`">{{ use.descriptor }}:{{ use.line }}</span>
@@ -76,6 +68,7 @@ const gdaFolder = computed(() => gdaFiles.value[0]?.directory ?? '');
         </ul>
       </details>
       <CheckBox v-if="selectable" class="asset-check" :checked="selected" :label="`Select ${row.resource}`" @change="emit('toggle')" />
+      <button type="button" class="asset-menu" :aria-label="`Show details for ${resource.name}`" title="Show details" @click="emit('open')"><i aria-hidden="true" class="mdi mdi-dots-horizontal" /></button>
     </article>
 
     <p v-if="row.category === 'different'" class="resource-operation">
@@ -101,7 +94,9 @@ const gdaFolder = computed(() => gdaFiles.value[0]?.directory ?? '');
     <section v-else-if="row.category === 'different'" class="resource-gda" :aria-label="`GDA files named ${resource.name}`">
       <div class="resource-gda-files">
         <article v-for="(file, index) in gdaFiles" :key="file.absolutePath" class="card asset-card gda-file-card">
-          <ReportThumbnail :file="file.absolutePath" :name="file.name" :revision="revision" />
+          <button type="button" class="resource-preview" :aria-label="`Show the details of ${row.resource}`" @click="emit('open')">
+            <ReportThumbnail :file="file.absolutePath" :name="file.name" :revision="revision" />
+          </button>
           <div class="card-body">
             <p class="asset-name"><button type="button" class="resource-icon-button resource-file-copy" :aria-label="`Copy the GDA path ${file.path}`" title="Copy the GDA path" @click="copy(file.absolutePath)"><i aria-hidden="true" :class="['mdi', icon(file.name)]" /></button><span :title="file.absolutePath">{{ file.name }}</span></p>
             <p class="asset-meta"><span class="resource-folder"><button type="button" class="resource-icon-button resource-folder-open" :aria-label="`Open GDA directory ${file.directory}`" :title="`Open ${file.directory}`" @click="openResourceFolder(file.absolutePath)"><i aria-hidden="true" class="mdi mdi-folder-open-outline" /></button><span :title="file.directory">{{ file.directory }}</span></span><span v-if="file.tree === 'common'">common GDA</span></p>
@@ -118,7 +113,8 @@ const gdaFolder = computed(() => gdaFiles.value[0]?.directory ?? '');
 <style scoped>
 .resource-card { width: 100%; }
 .resource-game { position: relative; display: flex; flex-direction: column; min-width: 0; }
-.resource-preview { display: block; width: 100%; padding: 0; border: 0; background: transparent; text-align: left; }
+.resource-preview { display: block; width: 100%; padding: 0; border: 0; background: transparent; text-align: left; cursor: pointer; }
+.asset-hit-target { cursor: pointer; }
 .resource-preview:focus-visible { outline-offset: -2px; }
 .resource-folder { display: inline-flex; align-items: flex-start; gap: 4px; min-width: 0; }
 .resource-folder i { flex-shrink: 0; font-size: 14px; line-height: 1; }

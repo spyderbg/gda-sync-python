@@ -1,4 +1,4 @@
-import type { Asset, AssetStatus, AssetType, RssResource, RssSequence } from './types';
+import type { Asset, AssetStatus, AssetType, PreviewFrame, RssCategory, RssResource, RssSequence } from './types';
 
 export const ASSET_TYPES = ['texture', 'model', 'material', 'audio'] as const;
 export const typeIcons: Record<AssetType, string> = {
@@ -64,6 +64,26 @@ export function sequenceSummary(sequence: RssSequence) {
   const count = sequence.frames.length;
   const loops = sequence.loopCount === 0 ? 'loops forever' : sequence.loopCount === 1 ? 'plays once' : `plays ${sequence.loopCount} times`;
   return `${number(count)} frame${plural(count)} · ${sequence.frameTime} ms · ${loops}`;
+}
+
+export const rssBadges: Record<RssCategory, string> = {
+  identical: 'badge-success', different: 'badge-danger', missing: 'badge-warning', invalid: 'badge-dark', supplementary: 'badge-info',
+};
+
+/** The folder of an absolute path the backend reported, keeping its native separators and a POSIX or Windows drive root. */
+export function directoryOf(path: string) {
+  const end = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
+  return path.slice(0, end + (end === 0 || path[end - 1] === ':' ? 1 : 0));
+}
+/** The file name of an absolute path the backend reported, whatever its separators. */
+export const baseName = (path: string) => path.slice(Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\')) + 1);
+
+/** A sequence's frames as SequencePreview plays them: the game files, or each frame's matching or closest GDA file. */
+export function previewFrames(sequence: RssSequence, side: 'game' | 'gda'): PreviewFrame[] {
+  return sequence.frames.map(frame => ({
+    file: side === 'gda' ? frame.gdaFiles[0]?.absolutePath ?? null : frame.category === 'invalid' ? null : frame.resourcePath,
+    source: frame.source,
+  }));
 }
 
 /** The preview of a file the GDA sync report names, by its absolute path; revision is the report it came from. */

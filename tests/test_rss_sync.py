@@ -522,6 +522,32 @@ def test_previews_files_of_the_workspace_folders_that_the_report_names(tmp_path)
         assert preview((game / "changed.dds").resolve()).status_code == 415
 
 
+def test_details_describe_report_files_of_the_workspace_folders(tmp_path):
+    game, gda = write_example(tmp_path)
+    (game / "art.dds").write_bytes(create_bc7_dds(8, 4))
+    png = b"\x89PNG\r\n\x1a\n" + struct.pack(">I", 13) + b"IHDR" + struct.pack(">II", 16, 2)
+    (gda / "b" / "art.png").write_bytes(png)
+    (tmp_path / "secret.png").write_bytes(png)
+    entry = {"id": "example", "game_name": "Example", "game_path": str(game), "gda_path": str(gda), "extensions": [".dds"]}
+    config = tmp_path / "workspace.json"
+    config.write_text(json.dumps({"config": {"port": 3457}, "defaultWorkspace": "example", "workspaces": [entry]}))
+    library = Library(str(tmp_path / "app"), config_path=str(config))
+    library.init()
+    with TestClient(create_app(library, dev=True), base_url="http://127.0.0.1") as client:
+        files = [str((game / "art.dds").resolve()), str((gda / "b" / "art.png").resolve()), str((game / "changed.dds").resolve()),
+                 str((game / "absent.dds").resolve()), str(tmp_path / "secret.png"), str(game.resolve())]
+        details = client.post("/api/rss-sync/details", headers=session_headers(client), json={"files": files}).json()["files"]
+        dds_file, png_file, invalid, absent, outside, folder = (details[file] for file in files)
+        assert dds_file["size"] == (game / "art.dds").stat().st_size and dds_file["modifiedAt"].endswith("Z")
+        assert dds_file["dimensions"] == {"width": 8, "height": 4, "format": "BC7_UNORM", "mipmaps": 1}
+        assert png_file["dimensions"] == {"width": 16, "height": 2, "format": "RGBA"}
+        # A file that is not a DDS texture keeps its size, and only the dimensions are missing.
+        assert invalid["size"] == 3 and "dimensions" not in invalid and invalid["dimensionsError"]
+        # Only existing files inside the workspace's resources and GDA folders.
+        assert absent == outside == {"error": "File not found"} and folder == {"error": "Not a file"}
+        assert client.post("/api/rss-sync/details", headers=session_headers(client), json={"files": []}).status_code == 400
+
+
 def test_opens_report_file_directories_without_opening_files_or_leaving_the_workspace(tmp_path):
     game, gda = write_example(tmp_path)
     common = tmp_path / "common"

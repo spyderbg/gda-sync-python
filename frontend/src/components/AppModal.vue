@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 
-defineProps<{ title: string; wide?: boolean }>();
+// wide is a large dialog, and xl an extra large one whose body scrolls between a fixed header and footer.
+defineProps<{ title: string; wide?: boolean; xl?: boolean }>();
 const emit = defineEmits<{ close: [] }>();
 const dialog = ref<HTMLDivElement>();
 let previous: HTMLElement | null = null;
@@ -31,7 +32,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="modal fade show d-block" role="dialog" aria-modal="true" :aria-label="title" @mousedown.self="emit('close')">
-    <div ref="dialog" :class="['modal-dialog', 'modal-dialog-centered', { 'modal-lg': wide }]" role="document">
+    <div ref="dialog" :class="['modal-dialog', 'modal-dialog-centered', { 'modal-lg': wide, 'modal-xl modal-dialog-scrollable': xl }]" role="document">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title">{{ title }}</h5>
