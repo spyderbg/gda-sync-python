@@ -149,12 +149,14 @@ def test_syncing_all_pending_makes_the_workspace_current_including_after_reload(
     page.get_by_role("button", name="Sync 7 assets", exact=True).click()
     expect(page.get_by_role("status")).to_contain_text("7 assets synced")
     select_workspace(page)
-    page.get_by_role("button", name="Needs sync").click()
-    expect(page.get_by_role("heading", name="All caught up.")).to_be_visible()
+    # The Sync page shows only the GDA sync report, and no Rescan has created one yet.
+    expect(page.get_by_role("heading", name="No GDA sync report yet")).to_be_visible()
+    page.get_by_role("button", name="Asset library", exact=True).click()
+    expect(page.locator(".asset-card .status-badge").filter(has_text="In sync")).to_have_count(18)
     page.reload()
     select_workspace(page)
-    page.get_by_role("button", name="Needs sync").click()
-    expect(page.get_by_role("heading", name="All caught up.")).to_be_visible()
+    page.get_by_role("button", name="Asset library", exact=True).click()
+    expect(page.locator(".asset-card .status-badge").filter(has_text="In sync")).to_have_count(18)
     page.get_by_role("button", name="Rescan", exact=True).click()
     expect(page.get_by_role("status")).to_contain_text("18 assets found")
 

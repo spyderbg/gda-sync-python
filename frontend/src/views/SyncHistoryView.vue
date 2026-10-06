@@ -5,6 +5,7 @@ import { syncRunBars } from '../charts/configs';
 import ChartCanvas from '../components/ChartCanvas.vue';
 import ChartLegend from '../components/ChartLegend.vue';
 import PageHeader from '../components/PageHeader.vue';
+import ReportNotice from '../components/ReportNotice.vue';
 import { ago, number, plural, size, time } from '../format';
 import type { RssSyncHistory, RssSyncHistoryEntry, RssSyncSummary, RssSyncWorkspace } from '../types';
 import { busy, data, navigate, rescan, rssSync } from '../workspace';
@@ -189,6 +190,8 @@ const legend = computed(() => [
     </article>
   </div>
 
+  <ReportNotice v-if="loaded && !runs.length && !running" />
+
   <div v-if="copies.length" class="card grid-margin">
     <div class="card-body">
       <h4 class="card-title mb-0">Copies to the Game folder</h4>
@@ -219,13 +222,6 @@ const legend = computed(() => [
     </div>
   </div>
 
-  <div v-if="loaded && !runs.length && !running && !copies.length" class="card empty-state grid-margin">
-    <div class="card-body">
-      <i aria-hidden="true" class="mdi mdi-history text-muted" />
-      <h4>No sync yet</h4>
-      <p class="text-muted">Click Rescan to run the first GDA sync of this workspace.</p>
-    </div>
-  </div>
 </template>
 
 <style scoped>

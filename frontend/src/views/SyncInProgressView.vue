@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import PageHeader from '../components/PageHeader.vue';
+import ReportNotice from '../components/ReportNotice.vue';
+import { useSyncReport } from '../composables/useSyncReport';
 import { number, plural, time } from '../format';
-import type { RssCategory, RssResource, RssSyncReport } from '../types';
+import type { RssCategory, RssResource } from '../types';
 import { activeSyncCount, busy, config, navigate, rescan, rssSync } from '../workspace';
 
 const PAGE_SIZE = 200;
@@ -14,8 +16,7 @@ const CATEGORIES: { key: RssCategory; label: string; badge: string; hint: string
 ];
 const PHASES = { descriptors: 'Reading the *Data.json descriptors', index: 'Indexing the GDA folder', compare: 'Comparing files' };
 
-const report = ref<RssSyncReport | null>(null);
-const loadError = ref('');
+const { report, loadError } = useSyncReport();
 const category = ref<RssCategory>('identical');
 const query = ref('');
 const shown = ref(PAGE_SIZE);
@@ -26,29 +27,13 @@ const progressPercent = computed(() => progress.value?.total
   ? Math.min(100, Math.max(0, Math.round(progress.value.done / progress.value.total * 100)))
   : undefined);
 const summary = computed(() => report.value?.summary);
+// The settings the run used; reports from an earlier version may not have them.
+const settings = computed(() => report.value?.workspace);
 const startedAt = computed(() => summary.value?.startedAt ?? report.value?.startedAt);
 const finishedAt = computed(() => summary.value?.finishedAt ?? report.value?.finishedAt);
 // The report is the last successful run; the run after it may have failed.
 const lastRun = computed(() => rssSync.value?.lastRun);
 const current = computed(() => CATEGORIES.find(item => item.key === category.value)!);
-
-// Load the stored report, and again whenever a run ends or the workspace changes.
-let request = 0;
-async function loadReport() {
-  const id = ++request;
-  loadError.value = '';
-  try {
-    const response = await fetch('/api/rss-sync/report', { cache: 'no-store' });
-    const body = await response.json();
-    if (id !== request) return;
-    if (response.status === 404) report.value = null;
-    else if (!response.ok) throw new Error(body.error || 'Request failed');
-    else report.value = body;
-  } catch (e) {
-    if (id === request) loadError.value = (e as Error).message;
-  }
-}
-watch(() => `${rssSync.value?.workspaceId}|${rssSync.value?.lastRun?.finishedAt ?? ''}`, loadReport, { immediate: true });
 
 const rows = computed<RssResource[]>(() => {
   const all = category.value === 'identical'
@@ -72,12 +57,12 @@ const segments = (path: string) => path.split(/(?<=\/)/);
 </script>
 
 <template>
-  <PageHeader title="In sync">
+  <PageHeader title="Sync in progress">
     <template #links>
       <li><span>{{ number(activeSyncCount) }} active sync process{{ activeSyncCount === 1 ? '' : 'es' }}</span></li>
       <li v-if="finishedAt"><span>Compared {{ time(finishedAt) }}</span></li>
       <li v-if="duration"><span>Took {{ duration }}</span></li>
-      <li v-if="report?.game"><span>Game {{ report.game }}</span></li>
+      <li v-if="report?.workspace?.game_name"><span>Game {{ report.workspace.game_name }}</span></li>
     </template>
     <template #links-right>
       <li><a href="#" @click.prevent="navigate('history')">Sync history</a></li>
@@ -128,6 +113,8 @@ const segments = (path: string) => path.split(/(?<=\/)/);
   </div>
   <div v-if="loadError" class="alert alert-danger rss-alert"><i aria-hidden="true" class="mdi mdi-alert-circle-outline" /><span>{{ loadError }}</span></div>
 
+  <ReportNotice v-if="!running && !summary && !loadError" />
+
   <template v-if="summary">
     <h4 class="rss-heading">Latest completed comparison</h4>
     <div class="card grid-margin">
@@ -140,12 +127,12 @@ const segments = (path: string) => path.split(/(?<=\/)/);
             <span class="rss-tile-hint">{{ item.key === 'identical' && summary.identicalMipOnly ? `${number(summary.identicalMipOnly)} differ only in DDS mip levels` : item.hint }}</span>
           </button>
         </div>
-        <dl class="rss-meta">
-          <dt>Game folder</dt><dd>{{ report!.gameDir }}</dd>
-          <dt>GDA folder</dt><dd>{{ report!.gdaDir }}</dd>
-          <template v-if="report!.commonGdaDir"><dt>Common GDA</dt><dd>{{ report!.commonGdaDir }}</dd></template>
-          <dt>Extensions</dt><dd>{{ report!.extensions?.join(', ') }}</dd>
-          <dt>DDS mip levels</dt><dd>{{ report!.ignoreDdsMips ? 'Ignored: a copy that differs only in mip levels counts as in sync' : 'Compared byte for byte' }}</dd>
+        <dl v-if="settings?.game_path" class="rss-meta">
+          <dt>Game folder</dt><dd>{{ settings.game_path }}</dd>
+          <dt>GDA folder</dt><dd>{{ settings.gda_path }}</dd>
+          <template v-if="settings.common_gda_path"><dt>Common GDA</dt><dd>{{ settings.common_gda_path }}</dd></template>
+          <dt>Extensions</dt><dd>{{ settings.extensions.join(', ') }}</dd>
+          <dt>DDS mip levels</dt><dd>{{ settings.ignore_dds_mips ? 'Ignored: a copy that differs only in mip levels counts as in sync' : 'Compared byte for byte' }}</dd>
         </dl>
       </div>
     </div>

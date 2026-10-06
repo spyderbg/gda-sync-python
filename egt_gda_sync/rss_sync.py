@@ -1,8 +1,8 @@
 """Compare a game's declared resources with the files in its GDA folder.
 
-A port of docs/rss_sync/gda_sync.py (described in docs/rss_sync/sync.md). It classifies resources exactly like
-the script, but returns JSON-ready data instead of a Markdown report, lists identical files too, and reports
-progress so it can run as a background job.
+A port of docs/rss_sync/gda_sync.py (described in docs/rss_sync/sync.md). It classifies resources like the script,
+except that only a file inside the game folder (game_path) is reported missing. It returns JSON-ready data instead of
+a Markdown report, lists identical files too, and reports progress so it can run as a background job.
 """
 
 from __future__ import annotations
@@ -296,9 +296,13 @@ def compare(config: Config, progress: Progress | None = None) -> dict:
             continue
         if source.suffix.lower() not in config.extensions:
             continue
-        selected += 1
         trees = (common_gda, game_gda) if common_gda and source.is_relative_to(common_dir) else (game_gda,)
         located = [(tree, root, path) for tree, root, by_name in trees for path in by_name.get(source.name, [])]
+        # Only the game's own files are reported missing. A shared file outside game_path without a GDA copy is left
+        # out, and not compared, since its GDA files can be kept elsewhere.
+        if not located and not source.is_relative_to(game_dir):
+            continue
+        selected += 1
         if not located:
             differences.append(row("missing", source, display))
             continue
@@ -327,14 +331,8 @@ def compare(config: Config, progress: Progress | None = None) -> dict:
     differences.sort(key=lambda item: (item["status"], item["resource"]))
     identical.sort(key=lambda item: item["resource"])
     counts = Counter(item["category"] for item in differences)
+    # The settings are not repeated here: a saved report keeps them once, in its "workspace".
     return {
-        "game": config.game,
-        "resourcesDir": str(config.resources_dir),
-        "gameDir": str(game_dir),
-        "gdaDir": str(config.gda_dir),
-        "commonGdaDir": str(config.common_gda_dir) if config.common_gda_dir else None,
-        "extensions": sorted(config.extensions),
-        "ignoreDdsMips": config.ignore_dds_mips,
         # Every *Data.json parsed, with its declared resource paths before and after {N-M} ranges are expanded.
         "descriptors": descriptors,
         "summary": {

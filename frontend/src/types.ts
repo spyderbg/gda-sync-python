@@ -46,11 +46,11 @@ export interface RssSyncWorkspace {
   extensions: string[]; resource_paths: string[]; ignore_dds_mips: boolean;
 }
 /** A run's report file. Its summary starts with the run's state and times; a failed run's file holds only those and the
- * workspace settings. Reports from earlier versions keep the times at the top level instead. */
+ * workspace settings, which are the report's only copy of the settings the run used. Reports from earlier versions keep
+ * the times at the top level instead. */
 export interface RssSyncReport {
   version: number; workspace: RssSyncWorkspace; run: RssSyncRun;
-  startedAt?: string; finishedAt?: string; game?: string; resourcesDir?: string; gameDir?: string; gdaDir?: string;
-  commonGdaDir?: string | null; extensions?: string[]; ignoreDdsMips?: boolean;
+  startedAt?: string; finishedAt?: string;
   descriptors?: { name: string; path: string; type: string; declarations: number; resources: number }[];
   summary?: RssSyncSummary & Partial<RssSyncRun>;
   differences?: RssResource[]; identical?: RssResource[];

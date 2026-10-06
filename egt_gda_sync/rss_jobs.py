@@ -18,7 +18,8 @@ from datetime import datetime, timezone
 
 from .rss_sync import Progress, compare_settings, run_in_process
 
-REPORT_VERSION = 1
+# Version 2 keeps the run's settings only in "workspace"; version 1 also repeated them at the top level.
+REPORT_VERSION = 2
 SAFE_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,99}")
 # Reports saved by an earlier version are named with this UTC date and time instead of epoch seconds.
 DATE_STAMP = "%Y%m%dT%H%M%SZ"

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { plural, size } from '../format';
-import { config, confirmSync, data, inspected, stopApplication, syncAssets, ui } from '../workspace';
+import { config, confirmResourceSync, confirmSync, data, inspected, stopApplication, syncAssets, ui } from '../workspace';
 import AppModal from './AppModal.vue';
 import AssetThumbnail from './AssetThumbnail.vue';
 import StatusBadge from './StatusBadge.vue';
@@ -23,6 +23,25 @@ import StatusBadge from './StatusBadge.vue';
     <div class="modal-footer">
       <button type="button" class="btn btn-light" @click="ui.syncIds = null">Cancel</button>
       <button type="button" class="btn btn-primary" :disabled="!syncAssets.length" @click="confirmSync"><i aria-hidden="true" class="mdi mdi-sync" />Sync {{ syncAssets.length }} asset{{ plural(syncAssets.length) }}</button>
+    </div>
+  </AppModal>
+
+  <AppModal v-if="ui.resourceSync" title="Ready to bring things up to date?" @close="ui.resourceSync = null">
+    <div class="modal-body">
+      <p>Copy {{ ui.resourceSync.length }} resource{{ plural(ui.resourceSync.length) }} of the GDA sync report from the GDA folder to the game, each from its closest GDA file. Existing game files will be replaced, with their previous versions saved in your backups. The GDA sync then compares again.</p>
+      <p v-if="ui.resourceSync.some(row => row.scope === 'common')" class="text-warning">
+        {{ ui.resourceSync.filter(row => row.scope === 'common').length }} of them are common resources, shared with other games.
+      </p>
+      <ul class="list-group sync-file-list">
+        <li v-for="row in ui.resourceSync" :key="row.id" class="list-group-item">
+          <i aria-hidden="true" class="mdi mdi-file-outline text-muted" /><span :title="`${row.gdaFiles[0].path} → ${row.resource}`">{{ row.resource }}</span><span v-if="row.scope === 'common'" class="badge badge-light">common</span>
+        </li>
+      </ul>
+      <p class="modal-folder"><i aria-hidden="true" class="mdi mdi-folder-outline text-primary" />{{ config.destination }}</p>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-light" @click="ui.resourceSync = null">Cancel</button>
+      <button type="button" class="btn btn-primary" :disabled="!ui.resourceSync.length" @click="confirmResourceSync"><i aria-hidden="true" class="mdi mdi-sync" />Sync {{ ui.resourceSync.length }} resource{{ plural(ui.resourceSync.length) }}</button>
     </div>
   </AppModal>
 

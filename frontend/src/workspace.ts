@@ -1,13 +1,13 @@
 // Application state shared by the layout and the views, and the actions that talk to the backend.
 import { computed, reactive, ref, watch } from 'vue';
 import { plural } from './format';
-import type { Asset, AssetStatus, AssetType, LibraryResponse, RssSyncStatus, Session, SyncResult, View, WorkspaceConfig } from './types';
+import type { Asset, AssetStatus, AssetType, LibraryResponse, RssResource, RssSyncStatus, Session, SyncResult, View, WorkspaceConfig } from './types';
 
 const INVALID_SESSION = 'Invalid session. Reload the application.';
 const RSS_POLL_MS = 1000;
 export const LIBRARY_VIEWS: View[] = ['library', 'pending', 'synced'];
 export const PAGE_NAMES: Record<View, string> = {
-  dashboard: 'Dashboard', library: 'Asset library', pending: 'Needs sync', synced: 'In sync', rssSync: 'In sync', history: 'Sync history', settings: 'Workspace settings',
+  dashboard: 'Dashboard', library: 'Asset library', pending: 'Sync', synced: 'In sync', rssSync: 'Sync in progress', history: 'Sync history', settings: 'Workspace settings',
 };
 
 export const data = ref<LibraryResponse | null>(null);
@@ -15,6 +15,14 @@ export const data = ref<LibraryResponse | null>(null);
 export const rssSync = ref<RssSyncStatus | null>(null);
 // The backend allows one active comparison per workspace.
 export const activeSyncCount = computed(() => rssSync.value?.running ? 1 : 0);
+/** What the loaded GDA sync report allows the sync views to show: none yet, only failed runs, or a result. */
+export const reportState = computed<'unknown' | 'creating' | 'none' | 'failed' | 'ready'>(() => {
+  const status = rssSync.value;
+  if (!status) return 'unknown';
+  if (status.summary) return 'ready';
+  if (status.running) return 'creating';
+  return status.reportPath ? 'failed' : 'none';
+});
 export const session = reactive({ token: '', version: '', platform: '' });
 export const loadError = ref('');
 export const stopped = ref(false);
@@ -32,6 +40,8 @@ export const ui = reactive({
   selected: new Set<string>(),
   inspecting: null as string | null,
   syncIds: null as string[] | null,
+  /** GDA sync report resources whose copy waits for confirmation. */
+  resourceSync: null as RssResource[] | null,
   help: false,
   shutdownConfirm: false,
   expanded: false,
@@ -201,6 +211,25 @@ export async function confirmSync() {
   } catch (e) { notify((e as Error).message, true); } finally { busy.value = ''; }
 }
 
+/** Ask to copy the closest GDA file of each "different" resource of the GDA sync report over the game resource. */
+export function requestResourceSync(rows: RssResource[]) {
+  ui.resourceSync = rows.filter(row => row.category === 'different' && row.gdaFiles.length);
+}
+
+export async function confirmResourceSync() {
+  if (!ui.resourceSync) return;
+  const ids = ui.resourceSync.map(row => row.id);
+  ui.resourceSync = null;
+  busy.value = 'sync';
+  try {
+    const result = await api<SyncResult>('rss-sync/copy', 'POST', { ids });
+    applyLibrary(result.library);
+    const copied = result.copied.length;
+    if (result.failures.length) notify(`${copied} synced; ${result.failures.length} failed. ${result.failures[0].name}: ${result.failures[0].message}`, true);
+    else notify(`${copied ? `${copied} resource${plural(copied)} synced.` : 'These resources are already in sync.'} Comparing again to update the report.`);
+  } catch (e) { notify((e as Error).message, true); } finally { busy.value = ''; }
+}
+
 export async function openFolder(folder: 'source' | 'destination', assetId?: string) {
   try {
     await api('open-folder', 'POST', { folder, assetId });
@@ -242,6 +271,7 @@ export async function selectWorkspace(id: string) {
     const library = await api<LibraryResponse>('workspace', 'PUT', { id });
     ui.inspecting = null;
     ui.syncIds = null;
+    ui.resourceSync = null;
     applyLibrary(library);
     navigate('dashboard');
     notify(`Switched to ${library.config.name}.`);

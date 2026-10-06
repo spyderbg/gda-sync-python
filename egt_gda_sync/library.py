@@ -114,6 +114,34 @@ def _copy_exclusive(source: str, target: str) -> None:
         shutil.copyfileobj(reader, writer, 1024 * 1024)
 
 
+def _replace_file(source: str, target_root: str, relative: str, backup: str, create_parents: bool = False) -> None:
+    """Copy source over target_root/relative through a verified temporary file; an existing target is saved to backup first."""
+    target = safe_path(target_root, relative, create_parents)
+    original_hash = file_hash(source)
+    temporary = os.path.join(os.path.dirname(target), f".egt-gda-sync-{uuid.uuid4()}.tmp")
+    try:
+        _copy_exclusive(source, temporary)
+        if file_hash(temporary) != original_hash or file_hash(source) != original_hash:
+            raise AppError("Source changed while copying. Please retry.")
+        # Check again immediately before replacing. Existing game files have a recoverable backup.
+        safe_path(target_root, relative)
+        try:
+            existing = os.lstat(target)
+        except FileNotFoundError:
+            pass
+        else:
+            if not stat.S_ISREG(existing.st_mode):
+                raise AppError("The destination is not a regular file")
+            os.makedirs(os.path.dirname(backup), exist_ok=True)
+            _copy_exclusive(target, backup)
+        os.replace(temporary, target)
+        temporary = None
+    finally:
+        if temporary:
+            with contextlib.suppress(OSError):
+                os.unlink(temporary)
+
+
 def safe_path(root: str, relative: str, create_parents: bool = False) -> str:
     """Resolve relative inside root, rejecting traversal and symbolic links along the way."""
     if not relative or os.path.isabs(relative):
@@ -523,39 +551,64 @@ class Library:
             for asset in (lookup[asset_id] for asset_id in wanted):
                 if asset["status"] == "synced":
                     continue
-                temporary = None
                 try:
-                    source = safe_path(config["source"], asset["path"])
-                    target = safe_path(config["destination"], asset["path"], create_parents=True)
-                    original_hash = file_hash(source)
-                    temporary = os.path.join(os.path.dirname(target), f".egt-gda-sync-{uuid.uuid4()}.tmp")
-                    _copy_exclusive(source, temporary)
-                    if file_hash(temporary) != original_hash or file_hash(source) != original_hash:
-                        raise AppError("Source changed while copying. Please retry.")
-                    # Check again immediately before replacing. Existing game files have a recoverable backup.
-                    safe_path(config["destination"], asset["path"])
-                    try:
-                        existing = os.lstat(target)
-                    except FileNotFoundError:
-                        pass
-                    else:
-                        if not stat.S_ISREG(existing.st_mode):
-                            raise AppError("The destination is not a regular file")
-                        backup = os.path.join(self.backup_path, operation_id, *asset["path"].split("/"))
-                        os.makedirs(os.path.dirname(backup), exist_ok=True)
-                        _copy_exclusive(target, backup)
-                    os.replace(temporary, target)
-                    temporary = None
+                    backup = os.path.join(self.backup_path, operation_id, *asset["path"].split("/"))
+                    _replace_file(safe_path(config["source"], asset["path"]), config["destination"], asset["path"], backup, create_parents=True)
                     copied.append(asset["path"])
                     total += asset["size"]
                 except Exception as error:
                     failures.append({"name": asset["name"], "message": error_message(error)})
-                finally:
-                    if temporary:
-                        with contextlib.suppress(OSError):
-                            os.unlink(temporary)
             if copied:
                 self._record("sync", f"Synced {len(copied)} asset{'' if len(copied) == 1 else 's'} to Game", copied, total)
+            return {"copied": copied, "failures": failures, "bytes": total, "library": self.scan()}
+
+        return self._exclusive(operation)
+
+    def sync_resources(self, ids: list[str]) -> dict:
+        """Copy the closest GDA file of each chosen "different" resource of the GDA sync report over the game resource,
+        then compare again, since the report lists a copied resource as different until the next run."""
+        def operation() -> dict:
+            workspace_id, entry = self._active_workspace()
+            if self.reports.status(workspace_id)["running"]:
+                raise AppError("The GDA sync is still comparing. Wait for it to finish and try again.", 409)
+            report = self.reports.report(workspace_id)
+            if report is None:
+                raise AppError("This workspace has no GDA sync report yet. Click Rescan to create one.", 404)
+            rows = {row["id"]: row for row in json.loads(report).get("differences", [])}
+            wanted = list(dict.fromkeys(ids))
+            if any(row_id not in rows for row_id in wanted):
+                raise AppError("A resource is no longer in the GDA sync report. Rescan and try again.")
+            if any(rows[row_id]["category"] != "different" or not rows[row_id]["gdaFiles"] for row_id in wanted):
+                raise AppError("Only a resource that differs from its GDA file can be synced")
+            settings = self._comparison(workspace_id, entry)[1]
+            # The report is data: copy only from the workspace's GDA folders into its resources folder.
+            resources = os.path.realpath(settings["resources_dir"])
+            gda_roots = [os.path.realpath(root) for root in (settings["gda_dir"], settings["common_gda_dir"]) if root]
+            operation_id = str(uuid.uuid4())
+            copied: list[str] = []
+            failures: list[dict] = []
+            total = 0
+            for row in (rows[row_id] for row_id in wanted):
+                try:
+                    source, target = row["gdaFiles"][0]["absolutePath"], row["resourcePath"]
+                    root = next((root for root in gda_roots if contained(root, source)), None)
+                    if root is None or not contained(resources, target):
+                        raise AppError("The files are outside the workspace folders")
+                    source = safe_path(root, os.path.relpath(source, root))
+                    relative = os.path.relpath(target, resources)
+                    target = safe_path(resources, relative)
+                    if os.path.isfile(target) and file_hash(source) == file_hash(target):
+                        continue
+                    size = os.path.getsize(source)
+                    _replace_file(source, resources, relative, os.path.join(self.backup_path, operation_id, relative))
+                    copied.append(row["resource"])
+                    total += size
+                except Exception as error:
+                    failures.append({"name": os.path.basename(row["resource"]), "message": error_message(error)})
+            if copied:
+                self._record("sync", f"Synced {len(copied)} resource{'' if len(copied) == 1 else 's'} to Game", copied, total)
+            if len(failures) < len(wanted):
+                self.start_comparison()
             return {"copied": copied, "failures": failures, "bytes": total, "library": self.scan()}
 
         return self._exclusive(operation)

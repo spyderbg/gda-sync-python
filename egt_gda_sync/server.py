@@ -237,6 +237,10 @@ def create_app(
     def sync(body: SyncBody) -> dict:
         return library.sync(body.ids)
 
+    @app.post("/api/rss-sync/copy")
+    def rss_sync_copy(body: SyncBody) -> dict:
+        return library.sync_resources(body.ids)
+
     @app.put("/api/settings")
     def settings(body: SettingsBody) -> dict:
         return library.update_config(body.name, body.source, body.destination)

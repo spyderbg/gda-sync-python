@@ -2,7 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { ASSET_TYPES, number, typeIcons, typeNames } from '../format';
 import type { AssetType, View } from '../types';
-import { activeSyncCount, assets, busy, config, countStatus, countType, navigate, pending, selectWorkspace, ui, workspaces } from '../workspace';
+import { activeSyncCount, assets, busy, config, countType, navigate, rssSync, selectWorkspace, ui, workspaces } from '../workspace';
 
 interface Entry { key: string; label: string; icon: string; count?: number; badge?: string; title?: string; active: boolean; onSelect: () => void }
 
@@ -49,10 +49,16 @@ async function chooseWorkspace(id: string) {
   navigate(target, target === 'library' && category !== 'all' && countType(category) ? category : 'all');
 }
 
+// The Sync badge counts what the summary of the latest GDA sync report has not in sync; there is none before the first report.
+const notInSync = computed(() => {
+  const summary = rssSync.value?.summary;
+  return summary && { count: summary.different + summary.missing + summary.invalid, title: `${number(summary.different)} different, ${number(summary.missing)} missing, ${number(summary.invalid)} invalid` };
+});
+
 const syncEntries = computed<Entry[]>(() => [
-  { key: 'pending', label: 'Needs sync', icon: 'mdi-sync', count: pending.value.length, badge: 'badge-warning', title: `${number(countStatus('new'))} new, ${number(countStatus('modified'))} modified` },
+  { key: 'pending', label: 'Sync', icon: 'mdi-sync', count: notInSync.value?.count, badge: 'badge-warning', title: notInSync.value?.title ?? 'No GDA sync report yet' },
   {
-    key: 'rssSync', label: 'In sync', icon: 'mdi-check-all', count: activeSyncCount.value || undefined, badge: 'badge-primary',
+    key: 'rssSync', label: 'Sync in progress', icon: 'mdi-check-all', count: activeSyncCount.value || undefined, badge: 'badge-primary',
     title: activeSyncCount.value ? 'GDA sync in progress' : undefined,
   },
   { key: 'history', label: 'Sync history', icon: 'mdi-history' },

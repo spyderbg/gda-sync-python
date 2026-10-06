@@ -174,6 +174,25 @@ def test_looks_up_common_assets_in_the_common_gda_folder(tmp_path):
     assert set(statuses(result)) == {("different SHA-256", "../common/art/shared.dds"), ("missing", "own.dds")}
 
 
+def test_only_a_file_inside_the_game_folder_is_reported_missing(tmp_path):
+    resources, gda = tmp_path / "resources", tmp_path / "gda"
+    game = resources / "example"
+    for directory in (game / "art", resources / "common", resources / "other", gda):
+        directory.mkdir(parents=True)
+    (game / "RssRawData.json").write_text(json.dumps({"rawFiles": [{"path": "../common/shared.dds"}, {"path": "../other/x.dds"}]}))
+    (game / "art" / "own.dds").write_bytes(b"own")
+    (resources / "common" / "shared.dds").write_bytes(b"shared")
+    (resources / "other" / "x.dds").write_bytes(b"x")
+    result = compare(Config(resources, gda, frozenset({".dds"}), "example"))
+    assert statuses(result) == [("missing", "art/own.dds")]
+    assert (result["summary"]["compared"], result["summary"]["missing"]) == (1, 1)
+    # A file outside the game folder is still compared when the GDA has a file with its name.
+    (gda / "shared.dds").write_bytes(b"other")
+    result = compare(Config(resources, gda, frozenset({".dds"}), "example"))
+    assert statuses(result) == [("different SHA-256", "../common/shared.dds"), ("missing", "art/own.dds")]
+    assert result["summary"]["compared"] == 2
+
+
 def test_validates_settings_with_the_script_messages(tmp_path):
     (tmp_path / "resources" / "example").mkdir(parents=True)
     (tmp_path / "gda").mkdir()
@@ -214,12 +233,11 @@ def test_each_run_saves_a_timestamped_report_and_a_failed_run_keeps_the_last_res
     assert report["workspace"] == WORKSPACE
     # The run's state and times lead the summary, the counts follow, and nothing repeats them at the top level.
     assert list(report["summary"])[:4] == ["state", "startedAt", "finishedAt", "compared"]
-    assert list(report) == ["version", "workspace", "game", "resourcesDir", "gameDir", "gdaDir", "commonGdaDir", "extensions",
-                            "ignoreDdsMips", "descriptors", "summary", "differences", "identical"]
+    assert list(report) == ["version", "workspace", "descriptors", "summary", "differences", "identical"]
     assert report["summary"]["state"] == "succeeded" and report["summary"]["finishedAt"] == status["comparedAt"]
     assert not {"run", "lastRun", "startedAt", "finishedAt", "history"} & set(report)
     counts = {key: value for key, value in report["summary"].items() if key not in ("state", "startedAt", "finishedAt", "error")}
-    assert report["game"] == "example" and len(report["differences"]) == 4 and len(report["identical"]) == 2
+    assert report["version"] == 2 and len(report["differences"]) == 4 and len(report["identical"]) == 2
     [first] = report_files(tmp_path / "reports")
     assert REPORT_FILE.fullmatch(first) and status["reportPath"] == str(tmp_path / "reports" / first)
 
@@ -313,6 +331,43 @@ def test_rescan_starts_the_comparison_and_the_api_serves_the_workspace_report(tm
             "gda_path": str(gda.resolve()), "common_gda_path": str(tmp_path / "common"), "extensions": [".dds", ".wav"],
             "resource_paths": [], "ignore_dds_mips": True,
         }
-        assert report["commonGdaDir"] == str((tmp_path / "common").resolve())
-        assert report["extensions"] == [".dds", ".wav"]
+        # The settings are kept only there.
+        assert not {"game", "resourcesDir", "gameDir", "gdaDir", "commonGdaDir", "extensions", "ignoreDdsMips"} & set(report)
     assert REPORT_FILE.fullmatch(report_files(tmp_path / "app" / "sync-reports")[0])
+
+
+def test_syncing_report_rows_copies_the_closest_gda_file_over_the_game_resource_and_compares_again(tmp_path):
+    game, gda = write_example(tmp_path)
+    entry = {"id": "example", "game_name": "Example", "game_path": str(game), "gda_path": str(gda), "extensions": [".dds"]}
+    config = tmp_path / "workspace.json"
+    config.write_text(json.dumps({"config": {"port": 3457}, "defaultWorkspace": "example", "workspaces": [entry]}))
+    library = Library(str(tmp_path / "app"), config_path=str(config))
+    library.init()
+    with TestClient(create_app(library, dev=True), base_url="http://127.0.0.1") as client:
+        headers = session_headers(client)
+        copy = lambda *ids: client.post("/api/rss-sync/copy", headers=headers, json={"ids": list(ids)})
+        assert copy("unknown").status_code == 404
+        client.post("/api/scan", headers=headers)
+        library.reports.wait("example", 60)
+        rows = {row["resource"]: row for row in client.get("/api/rss-sync/report").json()["differences"]}
+        assert copy("unknown").json()["error"] == "A resource is no longer in the GDA sync report. Rescan and try again."
+        assert copy(rows["required.dds"]["id"]).json()["error"] == "Only a resource that differs from its GDA file can be synced"
+
+        # The report is only data: a path outside the workspace folders is never copied.
+        report = Path(client.get("/api/rss-sync").json()["reportPath"])
+        original = report.read_text()
+        (tmp_path / "elsewhere.dds").write_bytes(b"elsewhere")
+        report.write_text(original.replace(str((gda / "a" / "changed.dds").resolve()), str(tmp_path / "elsewhere.dds")))
+        refused = copy(rows["changed.dds"]["id"]).json()
+        assert refused["copied"] == [] and refused["failures"] == [{"name": "changed.dds", "message": "The files are outside the workspace folders"}]
+        assert (game / "changed.dds").read_bytes() == b"new" and refused["library"]["rssSync"]["running"] is False
+        report.write_text(original)
+
+        result = copy(rows["changed.dds"]["id"], rows["changed.dds"]["id"]).json()
+        assert result["copied"] == ["changed.dds"] and result["failures"] == [] and result["bytes"] == 3
+        assert (game / "changed.dds").read_bytes() == b"old"
+        assert [path.read_bytes() for path in Path(library.backup_path).rglob("changed.dds")] == [b"new"]
+        assert result["library"]["activity"][0]["message"] == "Synced 1 resource to Game"
+        assert result["library"]["rssSync"]["running"] is True
+        library.reports.wait("example", 60)
+        assert client.get("/api/rss-sync").json()["summary"]["different"] == 0

@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import AssetCard from '../components/AssetCard.vue';
 import AssetThumbnail from '../components/AssetThumbnail.vue';
 import CheckBox from '../components/CheckBox.vue';
 import WorkspaceHeader from '../components/WorkspaceHeader.vue';
 import StatusBadge from '../components/StatusBadge.vue';
-import { size, time, typeIcons } from '../format';
-import type { Asset } from '../types';
+import { size, time } from '../format';
 import {
   allVisibleSelected, busy, data, filtered, formats, inspected, requestSync,
   selectedPending, setVisibleSelected, toggleSelected, ui,
@@ -13,7 +13,6 @@ import {
 import AssetInspector from './AssetInspector.vue';
 
 const caughtUp = computed(() => ui.view === 'pending' && !ui.query);
-const dimensions = (asset: Asset) => (asset.dimensions ? `${asset.dimensions.width} × ${asset.dimensions.height}` : asset.extension.toUpperCase());
 
 function showAll() {
   ui.query = '';
@@ -69,18 +68,8 @@ function showAll() {
     <div :class="inspected ? 'col-lg-7 col-xl-8' : 'col-12'">
       <div v-if="filtered.length && ui.layout === 'grid'" class="row asset-grid">
         <div v-for="asset in filtered" :key="asset.id" class="col-sm-6 col-xl-4 grid-margin stretch-card">
-          <article :class="['card', 'asset-card', { inspected: ui.inspecting === asset.id, selected: ui.selected.has(asset.id) }]">
-            <button type="button" class="asset-hit-target" :aria-label="`Inspect ${asset.name}`" @click="ui.inspecting = asset.id">
-              <AssetThumbnail :asset="asset" :revision="data!.scannedAt" />
-              <div class="card-body">
-                <p class="asset-name"><i aria-hidden="true" :class="['mdi', typeIcons[asset.type]]" /><span :title="asset.name">{{ asset.name }}</span></p>
-                <p class="asset-meta"><span>{{ asset.folder }}</span><span>{{ size(asset.size) }}</span></p>
-                <div class="asset-footer"><StatusBadge :status="asset.status" /><small>{{ dimensions(asset) }}</small></div>
-              </div>
-            </button>
-            <CheckBox class="asset-check" :checked="ui.selected.has(asset.id)" :label="`Select ${asset.name}`" @change="toggleSelected(asset.id)" />
-            <button type="button" class="asset-menu" :aria-label="`Show details for ${asset.name}`" @click="ui.inspecting = asset.id"><i aria-hidden="true" class="mdi mdi-dots-horizontal" /></button>
-          </article>
+          <AssetCard :asset="asset" :revision="data!.scannedAt" :inspected="ui.inspecting === asset.id" :selected="ui.selected.has(asset.id)"
+                     @open="ui.inspecting = asset.id" @toggle="toggleSelected(asset.id)" />
         </div>
       </div>
       <div v-else-if="filtered.length" class="card asset-list grid-margin">
