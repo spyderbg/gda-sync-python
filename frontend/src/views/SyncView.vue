@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import CheckBox from '../components/CheckBox.vue';
-import PageHeader from '../components/PageHeader.vue';
 import ReportNotice from '../components/ReportNotice.vue';
 import { useSyncReport } from '../composables/useSyncReport';
 import { number, plural, time } from '../format';
@@ -21,13 +20,11 @@ const CATEGORIES: Record<Category, { label: string; badge: string }> = {
 const FILTERS: { key: Filter; label: string }[] = [
   { key: 'all', label: 'All' }, { key: 'different', label: 'Different' }, { key: 'missing', label: 'Missing' }, { key: 'invalid', label: 'Invalid' },
 ];
-const SORTS = { status: 'Status', path: 'Resource path A–Z', name: 'File name A–Z' } as const;
 const PAGE_SIZE = 200;
 
 const { report, loadError } = useSyncReport();
 const query = ref('');
 const filter = ref<Filter>('all');
-const sort = ref<keyof typeof SORTS>('status');
 const shown = ref(PAGE_SIZE);
 const selected = ref(new Set<string>());
 
@@ -47,21 +44,20 @@ const counts = computed(() => {
 const fileName = (row: RssResource) => row.resource.slice(row.resource.lastIndexOf('/') + 1);
 const rows = computed(() => {
   const needle = query.value.trim().toLowerCase();
-  const matching = differences.value.filter(row => (filter.value === 'all' || row.category === filter.value) &&
+  // Preserve the report's order by status, then path.
+  return differences.value.filter(row => (filter.value === 'all' || row.category === filter.value) &&
     (!needle || row.resource.toLowerCase().includes(needle) || row.gdaFiles.some(file => file.path.toLowerCase().includes(needle))));
-  // The report already lists them by status, then path.
-  if (sort.value === 'path') matching.sort((a, b) => a.resource.localeCompare(b.resource));
-  else if (sort.value === 'name') matching.sort((a, b) => fileName(a).localeCompare(fileName(b)) || a.resource.localeCompare(b.resource));
-  return matching;
 });
 const visible = computed(() => rows.value.slice(0, shown.value));
-watch([filter, query, sort, report], () => { shown.value = PAGE_SIZE; });
+watch([filter, query, report], () => { shown.value = PAGE_SIZE; });
 
 const syncable = (row: RssResource) => row.category === 'different' && row.gdaFiles.length > 0;
 const pending = computed(() => differences.value.filter(syncable));
 // Like the library, only the selected resources that are shown are synced.
 const shownSyncable = computed(() => rows.value.filter(syncable));
 const selectedRows = computed(() => shownSyncable.value.filter(row => selected.value.has(row.id)));
+const hasSelection = computed(() => selected.value.size > 0);
+const syncTargets = computed(() => hasSelection.value ? selectedRows.value : pending.value);
 const allSelected = computed(() => shownSyncable.value.length > 0 && selectedRows.value.length === shownSyncable.value.length);
 
 // A resource that a new report no longer lists as different leaves the selection.
@@ -100,11 +96,11 @@ const segments = (path: string) => path.split(/(?<=\/)/);
         <p v-if="loadError" class="sync-report sync-report-failed"><i aria-hidden="true" class="mdi mdi-alert-circle-outline" />{{ loadError }}</p>
       </div>
       <div class="sync-workspace-actions">
-        <button type="button" class="btn btn-outline-primary" :disabled="!!busy || running" @click="rescan">
-          <i aria-hidden="true" :class="['mdi', busy === 'scan' || running ? 'mdi-loading mdi-spin' : 'mdi-refresh']" />{{ busy === 'scan' ? 'Scanning…' : running ? 'Comparing…' : 'Rescan' }}
+        <button type="button" class="btn btn-primary" :disabled="!!busy || running || !syncTargets.length" @click="requestResourceSync(syncTargets)">
+          <i aria-hidden="true" :class="['mdi', busy === 'sync' ? 'mdi-loading mdi-spin' : 'mdi-sync']" /><span>{{ busy === 'sync' ? 'Syncing…' : hasSelection ? 'Sync selected' : 'Sync all pending' }}</span><span v-if="syncTargets.length" class="badge badge-light">{{ number(syncTargets.length) }}</span>
         </button>
-        <button type="button" class="btn btn-primary" :disabled="!!busy || running || !pending.length" @click="requestResourceSync(pending)">
-          <i aria-hidden="true" :class="['mdi', busy === 'sync' ? 'mdi-loading mdi-spin' : 'mdi-sync']" />{{ busy === 'sync' ? 'Syncing…' : 'Sync all pending' }}<span v-if="pending.length" class="badge badge-light ml-2">{{ number(pending.length) }}</span>
+        <button type="button" class="btn btn-outline-primary" :disabled="!!busy || running" @click="rescan">
+          <i aria-hidden="true" :class="['mdi', busy === 'scan' || running ? 'mdi-loading mdi-spin' : 'mdi-refresh']" /><span>{{ busy === 'scan' ? 'Scanning…' : running ? 'Comparing…' : 'Rescan' }}</span>
         </button>
       </div>
     </div>
@@ -144,20 +140,6 @@ const segments = (path: string) => path.split(/(?<=\/)/);
     <p v-if="finishedAt" class="sync-last-scan">Compared {{ time(finishedAt) }}</p>
   </section>
 
-  <PageHeader title="Sync">
-    <template #links>
-      <li v-if="summary"><span>{{ number(counts.all) }} resource{{ plural(counts.all) }} not in sync</span></li>
-    </template>
-    <template #links-right>
-      <li><a href="#" @click.prevent="navigate('history')">Sync history</a></li>
-    </template>
-    <template v-if="summary" #toolbar>
-      <button type="button" class="btn btn-outline-primary toolbar-item" :disabled="!!busy || running || !selectedRows.length" @click="requestResourceSync(selectedRows)">
-        <i aria-hidden="true" class="mdi mdi-sync" />Sync selected<span v-if="selectedRows.length" class="badge badge-light ml-2">{{ number(selectedRows.length) }}</span>
-      </button>
-    </template>
-  </PageHeader>
-
   <ReportNotice />
 
   <template v-if="summary">
@@ -181,24 +163,22 @@ const segments = (path: string) => path.split(/(?<=\/)/);
             <i aria-hidden="true" class="mdi mdi-magnify" />
             <input v-model="query" type="search" class="form-control" aria-label="Search resources not in sync" placeholder="Search by resource or GDA path…">
           </div>
-          <select v-model="sort" class="form-control sync-sort" aria-label="Sort resources not in sync">
-            <option v-for="(label, key) in SORTS" :key="key" :value="key">{{ label }}</option>
-          </select>
         </div>
-      </div>
-
-      <div class="results-heading">
-        <CheckBox v-if="shownSyncable.length" :checked="allSelected" label="Select all shown different resources" @change="toggleAll">
-          {{ selectedRows.length ? `${number(selectedRows.length)} selected` : `${number(rows.length)} of ${number(counts.all)} resources` }}<small v-if="query" class="text-muted"> matching “{{ query }}”</small>
-        </CheckBox>
-        <span v-else>{{ number(rows.length) }} of {{ number(counts.all) }} resources<small v-if="query" class="text-muted"> matching “{{ query }}”</small></span>
       </div>
 
       <div v-if="rows.length" class="card grid-margin">
         <div class="card-body">
           <div class="table-responsive">
             <table class="table sync-table" aria-label="Resources not in sync">
-              <thead><tr><th scope="col"><span class="sr-only">Select</span></th><th scope="col">Resource</th><th scope="col">Status</th><th scope="col">GDA files, declarations or reason</th></tr></thead>
+              <thead>
+                <tr>
+                  <th scope="col">
+                    <CheckBox v-if="shownSyncable.length" :checked="allSelected" label="Select all shown different resources" @change="toggleAll" />
+                    <span v-else class="sr-only">Select</span>
+                  </th>
+                  <th scope="col">Resource</th><th scope="col">Status</th><th scope="col">GDA files, declarations or reason</th>
+                </tr>
+              </thead>
               <tbody>
                 <tr v-for="row in visible" :key="row.id" :class="{ selected: selected.has(row.id) }">
                   <td><CheckBox v-if="syncable(row)" :checked="selected.has(row.id)" :label="`Select ${row.resource}`" @change="toggle(row.id)" /></td>
@@ -258,7 +238,9 @@ h1 { margin: 0 0 10px; font-size: clamp(26px, 2.6vw, 34px); line-height: 1.2; fo
 .sync-report-failed { margin-top: 4px; color: #d2453c; }
 .sync-report i { margin-right: 6px; font-size: 14px; vertical-align: -2px; }
 .sync-workspace-actions { display: flex; flex-shrink: 0; flex-wrap: wrap; gap: 10px; }
-.sync-workspace-actions .btn { min-height: 40px; border-radius: 7px; white-space: nowrap; }
+.sync-workspace-actions .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; border-radius: 7px; white-space: nowrap; }
+.sync-workspace-actions .btn i.mdi { display: inline-flex; flex-shrink: 0; margin: 0; font-size: 16px; line-height: 1; }
+.sync-workspace-actions .btn .badge { flex-shrink: 0; }
 .sync-workspace-actions .btn-outline-primary { background: #fff; border-color: #dce2dc; color: #5d7063; }
 .sync-workspace-actions .btn-outline-primary:hover:not(:disabled) { background: #f1f5f1; }
 .sync-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-bottom: 20px; }
@@ -289,7 +271,6 @@ h1 { margin: 0 0 10px; font-size: clamp(26px, 2.6vw, 34px); line-height: 1.2; fo
 .sync-search { position: relative; flex: 1 1 220px; min-width: 0; }
 .sync-search i { position: absolute; top: 50%; left: 12px; transform: translateY(-50%); color: #97a098; font-size: 18px; pointer-events: none; }
 .sync-search input { padding-left: 38px; }
-.sync-sort { flex: 0 0 190px; width: auto; }
 /* The theme keeps table cells on one line; long paths have to wrap. Narrow screens scroll the table instead. */
 .sync-table { min-width: 660px; table-layout: fixed; }
 .sync-table th:nth-child(1) { width: 44px; }
@@ -310,7 +291,6 @@ h1 { margin: 0 0 10px; font-size: clamp(26px, 2.6vw, 34px); line-height: 1.2; fo
   .sync-workspace-top { flex-direction: column; align-items: flex-start; gap: 16px; }
   .sync-metrics { grid-template-columns: 1fr; gap: 10px; }
   .sync-metric { padding: 16px; }
-  .sync-sort { flex-basis: 100%; }
 }
 @media (max-width: 575px) {
   .sync-folder-button { grid-template-columns: 34px minmax(0, 1fr) 18px; column-gap: 10px; row-gap: 4px; }
