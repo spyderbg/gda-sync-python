@@ -52,7 +52,7 @@ const series = computed(() => timeline(assets.value, activity.value, period.valu
 const changedInPeriod = computed(() => series.value.changed.reduce((sum, value) => sum + value, 0));
 const syncedInPeriod = computed(() => series.value.synced.reduce((sum, value) => sum + value, 0));
 const overviewChart = computed(() => overview(series.value));
-const overviewLegend = computed(() => [{ label: 'Changed in source', color: themeColor('info') }, { label: 'Synced to GDA', color: themeColor('success') }]);
+const overviewLegend = computed(() => [{ label: 'Changed in GDA', color: themeColor('info') }, { label: 'Synced to Game', color: themeColor('success') }]);
 
 const radarChart = computed(() => formatRadar(formatMix(assets.value)));
 const radarLegend = [{ label: 'In sync', color: 'rgba(88, 208, 222, 0.8)' }, { label: 'Needs sync', color: 'rgba(150, 77, 247, 1)' }];
@@ -89,16 +89,16 @@ const avatarColors = ['bg-warning', 'bg-success', 'bg-info', 'bg-primary'];
     </template>
     <template #links-right>
       <li><a href="#" @click.prevent="navigate('settings')">Settings</a></li>
-      <li><a href="#" @click.prevent="openFolder('source')">Source folder</a></li>
-      <li><a href="#" @click.prevent="openFolder('destination')">GDA folder</a></li>
+      <li><a href="#" @click.prevent="openFolder('source')">GDA folder</a></li>
+      <li><a href="#" @click.prevent="openFolder('destination')">Game folder</a></li>
     </template>
     <template #toolbar>
       <div class="btn-group toolbar-item" role="group" aria-label="Workspace folders">
-        <button type="button" class="btn btn-secondary" :title="`Open ${config.source}`" aria-label="Open source folder" @click="openFolder('source')"><i aria-hidden="true" class="mdi mdi-folder-outline" /></button>
+        <button type="button" class="btn btn-secondary" :title="`Open ${config.source}`" aria-label="Open GDA folder" @click="openFolder('source')"><i aria-hidden="true" class="mdi mdi-folder-outline" /></button>
         <button type="button" class="btn btn-secondary folder-route" :title="`${config.source} → ${config.destination}`" @click="navigate('settings')">
           {{ folderName(config.source) }} → {{ folderName(config.destination) }}
         </button>
-        <button type="button" class="btn btn-secondary" :title="`Open ${config.destination}`" aria-label="Open GDA folder" @click="openFolder('destination')"><i aria-hidden="true" class="mdi mdi-folder-sync-outline" /></button>
+        <button type="button" class="btn btn-secondary" :title="`Open ${config.destination}`" aria-label="Open Game folder" @click="openFolder('destination')"><i aria-hidden="true" class="mdi mdi-folder-sync-outline" /></button>
       </div>
       <div class="filter-wrapper">
         <span class="toolbar-item scan-time">Last scanned {{ time(data!.scannedAt) }}</span>
@@ -144,7 +144,7 @@ const avatarColors = ['bg-warning', 'bg-success', 'bg-info', 'bg-primary'];
         <div class="card-body">
           <h4 class="card-title mb-0">Library Statistics Overview</h4>
           <div class="d-flex flex-column flex-lg-row">
-            <p>Source changes and files synced to GDA, {{ PERIODS.find(item => item.id === period)!.description }}</p>
+            <p>GDA changes and files synced to the game, {{ PERIODS.find(item => item.id === period)!.description }}</p>
             <ul class="nav nav-tabs sales-mini-tabs ml-lg-auto mb-4 mb-md-0" role="tablist" aria-label="Period">
               <li v-for="item in PERIODS" :key="item.id" class="nav-item">
                 <button type="button" role="tab" :aria-selected="period === item.id" :class="['nav-link', { active: period === item.id }]" @click="period = item.id">{{ item.label }}</button>
@@ -154,14 +154,14 @@ const avatarColors = ['bg-warning', 'bg-success', 'bg-info', 'bg-primary'];
           <div class="d-flex flex-column flex-lg-row">
             <div class="data-wrapper d-flex mt-2 mt-lg-0">
               <div class="wrapper pr-5">
-                <h5 class="mb-0">Changed in source</h5>
+                <h5 class="mb-0">Changed in GDA</h5>
                 <div class="d-flex align-items-center">
                   <h4 class="font-weight-semibold mb-0">{{ number(changedInPeriod) }}</h4>
                   <small class="ml-2 text-gray d-none d-lg-block"><b>{{ percent(changedInPeriod, assets.length) }}%</b> of {{ number(assets.length) }} assets</small>
                 </div>
               </div>
               <div class="wrapper">
-                <h5 class="mb-0">Synced to GDA</h5>
+                <h5 class="mb-0">Synced to Game</h5>
                 <div class="d-flex align-items-center">
                   <h4 class="font-weight-semibold mb-0">{{ number(syncedInPeriod) }}</h4>
                   <small class="ml-2 text-gray d-none d-lg-block"><b>{{ inSyncPercent }}%</b> of the library in sync</small>
@@ -170,7 +170,7 @@ const avatarColors = ['bg-warning', 'bg-success', 'bg-info', 'bg-primary'];
             </div>
             <div id="sales-statistics-legend" class="ml-lg-auto"><ChartLegend :items="overviewLegend" /></div>
           </div>
-          <ChartCanvas class="mt-5" :config="overviewChart" label="Source changes and synced files over time" :height="280" />
+          <ChartCanvas class="mt-5" :config="overviewChart" label="GDA changes and synced files over time" :height="280" />
         </div>
       </div>
     </div>
@@ -207,13 +207,13 @@ const avatarColors = ['bg-warning', 'bg-success', 'bg-info', 'bg-primary'];
           <div class="card">
             <div class="card-body pb-0">
               <div class="d-flex justify-content-between">
-                <h4 class="card-title mb-0">Copied to GDA</h4>
+                <h4 class="card-title mb-0">Copied to Game</h4>
                 <p class="font-weight-semibold mb-0">{{ syncs.length }} sync{{ plural(syncs.length) }}</p>
               </div>
               <h3 class="font-weight-medium">{{ size(copiedBytes) }}</h3>
             </div>
             <ChartCanvas v-if="syncs.length" class="mt-n3" :config="copiedChart" label="Data copied by recent syncs" :height="90" />
-            <p v-else class="chart-placeholder text-muted">No syncs yet. Data copied to GDA appears here.</p>
+            <p v-else class="chart-placeholder text-muted">No syncs yet. Data copied to the game appears here.</p>
           </div>
         </div>
         <div class="col-md-12 grid-margin">
@@ -247,7 +247,7 @@ const avatarColors = ['bg-warning', 'bg-success', 'bg-info', 'bg-primary'];
                 <h4 class="card-title mb-0">Waiting for Sync</h4>
                 <a href="#" @click.prevent="navigate('pending')"><small>Show all</small></a>
               </div>
-              <p>The most recently changed assets that are not in GDA yet.</p>
+              <p>The most recently changed assets that are not in the game yet.</p>
               <div class="table-responsive">
                 <table class="table table-striped table-hover">
                   <thead><tr><th>Asset</th><th>Folder</th><th>Status</th><th>Modified</th><th class="text-right">Size</th></tr></thead>
@@ -259,7 +259,7 @@ const avatarColors = ['bg-warning', 'bg-success', 'bg-info', 'bg-primary'];
                       <td>{{ time(asset.modifiedAt) }}</td>
                       <td class="text-right">{{ size(asset.size) }}</td>
                     </tr>
-                    <tr v-if="!waiting.length"><td colspan="5" class="text-center text-muted">Every asset is in sync with your GDA folder.</td></tr>
+                    <tr v-if="!waiting.length"><td colspan="5" class="text-center text-muted">Every asset is in sync with your Game folder.</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -314,11 +314,11 @@ const avatarColors = ['bg-warning', 'bg-success', 'bg-info', 'bg-primary'];
                 <div class="col-5 col-md-5">
                   <div class="wrapper border-bottom mb-2 pb-2">
                     <h4 class="font-weight-semibold mb-0">{{ number(assets.length) }}</h4>
-                    <div class="d-flex align-items-center"><p class="mb-0">Source files</p><div class="dot-indicator bg-secondary ml-auto" /></div>
+                    <div class="d-flex align-items-center"><p class="mb-0">GDA files</p><div class="dot-indicator bg-secondary ml-auto" /></div>
                   </div>
                   <div class="wrapper">
                     <h4 class="font-weight-semibold mb-0">{{ number(syncedCount) }}</h4>
-                    <div class="d-flex align-items-center"><p class="mb-0">In GDA</p><div class="dot-indicator bg-primary ml-auto" /></div>
+                    <div class="d-flex align-items-center"><p class="mb-0">In Game</p><div class="dot-indicator bg-primary ml-auto" /></div>
                   </div>
                 </div>
                 <div class="col-7 col-md-7 d-flex pl-4">

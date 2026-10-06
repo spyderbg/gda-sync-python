@@ -44,17 +44,17 @@ export function sparkline(values: number[]): ChartConfiguration<'line'> {
   };
 }
 
-/** Source changes and synced files over time ("Sales Statistics Overview"). */
+/** GDA changes and synced files over time ("Sales Statistics Overview"). */
 export function overview(series: Timeline): ChartConfiguration<'line'> {
   return {
     type: 'line',
     data: {
       labels: series.labels,
       datasets: [{
-        label: 'Changed in source', data: series.changed, borderColor: themeColor('info'), borderWidth: 2, fill: true,
+        label: 'Changed in GDA', data: series.changed, borderColor: themeColor('info'), borderWidth: 2, fill: true,
         backgroundColor: vertical([[0, 'rgba(102, 78, 235, 0.2)'], [1, 'rgba(255, 255, 255, 0)']]),
       }, {
-        label: 'Synced to GDA', data: series.synced, borderColor: themeColor('success'), borderWidth: 2, fill: true,
+        label: 'Synced to Game', data: series.synced, borderColor: themeColor('success'), borderWidth: 2, fill: true,
         backgroundColor: vertical([[0, '#14c671'], [1, 'rgba(255, 255, 255, 0.01)']]),
       }],
     },

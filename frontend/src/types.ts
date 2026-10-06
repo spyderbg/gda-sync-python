@@ -1,6 +1,7 @@
 export type AssetType = 'texture' | 'model' | 'material' | 'audio' | 'other';
 export type AssetStatus = 'new' | 'modified' | 'synced';
-export type View = 'dashboard' | 'library' | 'pending' | 'synced' | 'rssSync' | 'history' | 'settings';
+export type FolderKey = 'source' | 'destination';
+export type View ='dashboard' | 'library' | 'pending' | 'synced' | 'rssSync' | 'history' | 'settings';
 
 export interface Asset {
   id: string; name: string; path: string; folder: string; extension: string;
@@ -8,6 +9,7 @@ export interface Asset {
   dimensions?: { width: number; height: number; format: string; mipmaps?: number };
   preview: boolean; previewError?: string;
 }
+/** `source` is the GDA folder files are copied from, `destination` the game folder they are copied to. */
 export interface WorkspaceEntry { id: string; name: string; source: string; destination: string; demo?: boolean }
 export interface WorkspaceConfig { name: string; source: string; destination: string; demo: boolean; port?: number; defaultWorkspace?: string; workspaces?: WorkspaceEntry[] }
 export interface Activity {
@@ -17,6 +19,8 @@ export interface Activity {
 export interface LibraryResponse {
   assets: Asset[]; config: WorkspaceConfig; activity: Activity[];
   scannedAt: string; warnings: string[]; backupPath: string; rssSync: RssSyncStatus;
+  /** The active workspace's folders that do not exist on disk. */
+  missingFolders: FolderKey[];
 }
 
 /** The GDA sync: a workspace's game resources compared with its GDA folder, in a background process. */

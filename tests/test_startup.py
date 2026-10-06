@@ -91,7 +91,7 @@ def test_invalid_vite_port_override_does_not_fall_back_to_a_valid_configuration(
 
 
 def configured_workspace(tmp_path, port, nested=False):
-    source, destination = tmp_path / "source", tmp_path / "gda"
+    source, destination = tmp_path / "gda", tmp_path / "game"
     source.mkdir()
     destination.mkdir()
     home = tmp_path / "app-data"
@@ -99,7 +99,7 @@ def configured_workspace(tmp_path, port, nested=False):
     settings = {"name": "Port test", "source": str(source), "destination": str(destination), "port": port}
     if nested:
         settings = {"config": {"port": port}, "defaultWorkspace": "test",
-                    "workspaces": [{"id": "test", "game_name": "Port test", "game_path": str(source), "gda_path": str(destination)}]}
+                    "workspaces": [{"id": "test", "game_name": "Port test", "game_path": str(destination), "gda_path": str(source)}]}
     (home / "workspace.json").write_text(json.dumps(settings), encoding="utf-8")
     return home, settings
 
@@ -148,8 +148,8 @@ def test_launcher_listens_on_the_resolved_port_and_keeps_the_configured_value(tm
         active = get_json("/api/library")["config"]
         if nested:
             assert active["config"] == settings["config"]
-            assert active["source"] == settings["workspaces"][0]["game_path"]
-            assert active["destination"] == settings["workspaces"][0]["gda_path"]
+            assert active["source"] == settings["workspaces"][0]["gda_path"]
+            assert active["destination"] == settings["workspaces"][0]["game_path"]
         else:
             assert active == {**settings, "demo": False}
         assert json.loads((home / "workspace.json").read_text(encoding="utf-8")) == settings

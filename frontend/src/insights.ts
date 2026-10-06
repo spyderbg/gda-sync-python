@@ -45,7 +45,7 @@ const labels = (range: Buckets) => Array.from({ length: range.count }, (_, i) =>
 
 export interface Timeline { labels: string[]; changed: number[]; synced: number[] }
 
-/** Source files changed and files synced to GDA, per time bucket of the period. */
+/** GDA files changed and files synced to the game, per time bucket of the period. */
 export function timeline(assets: Asset[], activity: Activity[], period: Period, now = Date.now()): Timeline {
   const syncs = activity.filter(entry => entry.action === 'sync');
   const range = buckets(period, [...assets.map(modified), ...syncs.map(entry => Date.parse(entry.date))], now);

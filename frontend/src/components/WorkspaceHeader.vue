@@ -43,17 +43,17 @@ const modifiedCount = computed(() => pending.value.length - newCount.value);
     </div>
 
     <div class="workspace-folder-strip" role="group" aria-label="Sync flow: GDA folder to Game path">
-      <button type="button" class="workspace-folder" :title="config.destination" aria-label="Open GDA folder" @click="openFolder('destination')">
+      <button type="button" class="workspace-folder" :title="config.source" aria-label="Open GDA folder" @click="openFolder('source')">
         <i class="mdi mdi-folder-open-outline workspace-folder-icon" aria-hidden="true" />
         <span class="workspace-folder-label">GDA folder</span>
-        <span class="workspace-folder-path">{{ config.destination }}</span>
+        <span class="workspace-folder-path">{{ config.source }}</span>
         <i class="mdi mdi-open-in-new workspace-folder-open" aria-hidden="true" />
       </button>
       <i class="mdi mdi-arrow-down workspace-folder-direction" aria-hidden="true" />
-      <button type="button" class="workspace-folder" :title="config.source" aria-label="Open Game folder" @click="openFolder('source')">
+      <button type="button" class="workspace-folder" :title="config.destination" aria-label="Open Game folder" @click="openFolder('destination')">
         <i class="mdi mdi-folder-outline workspace-folder-icon" aria-hidden="true" />
         <span class="workspace-folder-label">Game path</span>
-        <span class="workspace-folder-path">{{ config.source }}</span>
+        <span class="workspace-folder-path">{{ config.destination }}</span>
         <i class="mdi mdi-open-in-new workspace-folder-open" aria-hidden="true" />
       </button>
     </div>

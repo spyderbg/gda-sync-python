@@ -43,6 +43,19 @@ def test_api_validates_payloads_rejects_foreign_requests_and_requires_a_session_
     assert api.get(f"/api/assets/{model['id']}/preview").headers["content-type"] == "image/svg+xml"
 
 
+def test_a_missing_folder_is_reported_and_cannot_be_opened(api, library, tmp_path):
+    headers = session_headers(api)
+    assert api.get("/api/library").json()["missingFolders"] == []
+    absent = tmp_path / "absent"
+    settings = {"name": "Absent", "source": library.config["source"], "destination": str(absent)}
+    assert api.put("/api/settings", headers=headers, json=settings).json()["missingFolders"] == ["destination"]
+    assert api.get("/api/library").json()["missingFolders"] == ["destination"]
+    refused = api.post("/api/open-folder", headers=headers, json={"folder": "destination"})
+    assert refused.status_code == 404 and "Game folder does not exist" in refused.json()["error"]
+    assert api.post("/api/open-folder", headers=headers, json={"folder": "source"}).status_code == 200
+    assert api.opened == [library.config["source"]]
+
+
 def test_unknown_endpoints_oversized_bodies_and_unavailable_shutdown(api):
     headers = session_headers(api)
     assert api.get("/api/unknown").json() == {"error": "Endpoint not found"}
@@ -61,7 +74,7 @@ def test_sync_endpoint_copies_selected_assets_and_records_activity(api, library)
     result = api.post("/api/sync", headers=headers, json={"ids": [asset["id"], asset["id"]]}).json()
     assert result["copied"] == [asset["path"]]
     assert result["bytes"] == asset["size"]
-    assert result["library"]["activity"][0]["message"] == "Synced 1 asset to GDA"
+    assert result["library"]["activity"][0]["message"] == "Synced 1 asset to Game"
     assert next(item for item in result["library"]["assets"] if item["id"] == asset["id"])["status"] == "synced"
 
 

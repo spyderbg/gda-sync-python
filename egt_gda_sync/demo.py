@@ -132,7 +132,8 @@ def _preview_name(relative: str) -> str:
 
 def seed_demo(home: str) -> dict:
     """Create the Verdant demo workspace in home and return its configuration."""
-    source, destination = os.path.join(home, "demo", "source"), os.path.join(home, "demo", "gda")
+    # The demo copies from its GDA folder to its game folder.
+    source, destination = os.path.join(home, "demo", "gda"), os.path.join(home, "demo", "game")
     os.makedirs(os.path.join(source, ".previews"), exist_ok=True)
     os.makedirs(destination, exist_ok=True)
     now = time.time()

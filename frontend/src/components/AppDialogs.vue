@@ -9,7 +9,7 @@ import StatusBadge from './StatusBadge.vue';
 <template>
   <AppModal v-if="ui.syncIds" title="Ready to bring things up to date?" @close="ui.syncIds = null">
     <div class="modal-body">
-      <p>Copy {{ syncAssets.length }} asset{{ plural(syncAssets.length) }} from your source folder to GDA. Existing destination files will be replaced, with their previous versions saved in your backups.</p>
+      <p>Copy {{ syncAssets.length }} asset{{ plural(syncAssets.length) }} from your GDA folder to the game. Existing game files will be replaced, with their previous versions saved in your backups.</p>
       <div class="sync-summary">
         <div><small class="text-muted">ASSETS TO SYNC</small><h4 class="font-weight-semibold mb-0">{{ syncAssets.length }}</h4></div>
         <i aria-hidden="true" class="mdi mdi-arrow-right text-primary" />
@@ -36,11 +36,11 @@ import StatusBadge from './StatusBadge.vue';
 
   <AppModal v-if="ui.help" title="A little help for your workflow" @close="ui.help = false">
     <div class="modal-body help-body">
-      <p>Search and inspect your assets, then sync the files you’re ready to move to GDA.</p>
+      <p>Search and inspect your assets, then sync the files you’re ready to move to the game.</p>
       <ul class="list-arrow">
         <li><strong>Explore your library.</strong> Filter by type, file format, or sync status. Click any asset to see its details and preview.</li>
         <li><strong>Choose what moves forward.</strong> Select individual assets, or use “Sync all pending” to copy every new and modified file.</li>
-        <li><strong>Keep it fresh.</strong> After editing your source files, use Rescan to compare them with GDA again.</li>
+        <li><strong>Keep it fresh.</strong> After editing your GDA files, use Rescan to compare them with the game again.</li>
       </ul>
       <table class="table table-sm mb-3">
         <tbody>

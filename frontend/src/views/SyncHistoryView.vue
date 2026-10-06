@@ -149,10 +149,10 @@ const legend = computed(() => [
 
   <div v-if="copies.length" class="card grid-margin">
     <div class="card-body">
-      <h4 class="card-title mb-0">Copies to the GDA folder</h4>
-      <p class="text-muted history-intro">Files copied with Sync selected or Sync all pending, in every workspace. Replaced GDA files are backed up in <code>{{ data!.backupPath }}</code>.</p>
+      <h4 class="card-title mb-0">Copies to the Game folder</h4>
+      <p class="text-muted history-intro">Files copied with Sync selected or Sync all pending, in every workspace. Replaced Game files are backed up in <code>{{ data!.backupPath }}</code>.</p>
       <div class="table-responsive">
-        <table class="table table-striped activity-table" aria-label="Copies to the GDA folder">
+        <table class="table table-striped activity-table" aria-label="Copies to the Game folder">
           <thead><tr><th scope="col">Operation</th><th scope="col">Date</th><th scope="col" class="text-right">Copied</th></tr></thead>
           <tbody>
             <tr v-for="entry in copies" :key="entry.id">

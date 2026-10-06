@@ -11,12 +11,13 @@ from tests.conftest import session_headers
 def configured_library(tmp_path, legacy=False):
     entries = []
     for name in ('first', 'second'):
-        source, destination = tmp_path / name / 'source', tmp_path / name / 'gda'
+        source, destination = tmp_path / name / 'gda', tmp_path / name / 'game'
         source.mkdir(parents=True)
         destination.mkdir()
         (source / f'{name}.txt').write_text(name)
         entry = {'id': name, ('name' if legacy else 'game_name'): name.title()}
-        entry.update({('source' if legacy else 'game_path'): str(source), ('destination' if legacy else 'gda_path'): str(destination)})
+        # Files are copied from the GDA folder (the source) to the game folder (the destination).
+        entry.update({('source' if legacy else 'gda_path'): str(source), ('destination' if legacy else 'game_path'): str(destination)})
         entries.append(entry)
     path = tmp_path / 'workspace.json'
     ports = dict(port=3457, vite_port=5174)
@@ -76,7 +77,7 @@ def test_rejects_invalid_workspace_lists(tmp_path, change):
     elif change == 'unknown':
         config['defaultWorkspace'] = 'missing'
     elif change == 'invalid_path':
-        config['workspaces'][1]['game_path'] = '/missing-workspace-source'
+        config['workspaces'][1]['game_path'] = 'relative/workspace-source'
     elif change == 'invalid_config':
         config['config'] = []
     else:
@@ -84,6 +85,39 @@ def test_rejects_invalid_workspace_lists(tmp_path, change):
     path.write_text(json.dumps(config))
     with pytest.raises(RuntimeError, match='Could not read workspace.json'):
         library.init()
+
+
+def test_sync_copies_from_the_gda_folder_to_the_game_folder(tmp_path):
+    library, path = configured_library(tmp_path)
+    gda, game = tmp_path / 'first' / 'gda', tmp_path / 'first' / 'game'
+    assert library.config['source'] == str(gda) and library.config['destination'] == str(game)
+    asset = library.scan()['assets'][0]
+    assert asset['status'] == 'new'
+    assert library.sync([asset['id']])['copied'] == ['first.txt']
+    assert (game / 'first.txt').read_text() == 'first' and (gda / 'first.txt').read_text() == 'first'
+    assert library.scan()['assets'][0]['status'] == 'synced'
+
+    # Saving settings writes the GDA folder back as gda_path and the game folder as game_path.
+    library.update_config('Renamed', str(gda), str(game))
+    saved = json.loads(path.read_text())['workspaces'][0]
+    assert saved['gda_path'] == str(gda) and saved['game_path'] == str(game)
+    # The GDA sync compares the game's resources with the GDA folder.
+    workspace, settings = library._comparison('first', library.workspace_entries()[0][1])
+    assert workspace['gda_path'] == str(gda) and workspace['game_path'] == str(game)
+    assert settings['gda_dir'] == str(gda) and settings['resources_dir'] == str(tmp_path / 'first') and settings['game'] == 'game'
+
+
+def test_a_workspace_with_missing_folders_loads_and_can_be_selected(tmp_path):
+    library, path = configured_library(tmp_path)
+    config = json.loads(path.read_text())
+    config['workspaces'][1].update(game_path=str(tmp_path / 'absent' / 'game'), gda_path=str(tmp_path / 'absent' / 'gda'))
+    path.write_text(json.dumps(config))
+    library.init()
+    assert library.missing_folders() == []
+    with TestClient(create_app(library, dev=True), base_url='http://127.0.0.1') as client:
+        result = client.put('/api/workspace', headers=session_headers(client), json={'id': 'second'}).json()
+        assert result['assets'] == [] and result['missingFolders'] == ['source', 'destination']
+        assert client.put('/api/workspace', headers=session_headers(client), json={'id': 'first'}).json()['missingFolders'] == []
 
 
 def test_switch_refuses_while_operation_in_progress(tmp_path):

@@ -23,7 +23,7 @@ The Linux installer works entirely in your user account, with no `sudo`, and cop
 
 ## Try the demo
 
-The app opens on the **Dashboard**, which follows the StarAdmin dashboard layout: totals with trend lines, source changes and synced files over time (1D, 1W, 1M, or all), the file-format mix, storage per folder and status, sync coverage per asset type, the share of the library in sync, the assets waiting for sync, the largest assets, recent changes, sync activity, and folders.
+The app opens on the **Dashboard**, which follows the StarAdmin dashboard layout: totals with trend lines, GDA changes and synced files over time (1D, 1W, 1M, or all), the file-format mix, storage per folder and status, sync coverage per asset type, the share of the library in sync, the assets waiting for sync, the largest assets, recent changes, sync activity, and folders.
 
 Launching without an existing workspace configuration creates the **Verdant** workspace with 18 real sample files: textures, DDS maps, OBJ models, materials, and audio. Five assets are new, three are modified, and ten are already in sync.
 
@@ -31,17 +31,17 @@ Launching without an existing workspace configuration creates the **Verdant** wo
 - Switch between grid and list views; sort by name, size, or modification time.
 - Click an asset to inspect its metadata and enlarge its preview.
 - Select assets and choose **Sync selected**, sync an individual asset, or **Sync all pending**.
-- Review the files and destination in the sync dialog, then confirm the copy.
-- Use **Rescan** after editing a source file to recompute its sync status and retry any failed previews.
-- Open the source or GDA folder in your file manager, or copy its full path.
-- Review the sync history: every GDA sync run with its result and what changed since the previous run, and every copy to the GDA folder, including the individual files copied.
-- Connect your own existing source and GDA folders under **Workspace settings**.
+- Review the files and the Game folder in the sync dialog, then confirm the copy.
+- Use **Rescan** after editing a GDA file to recompute its sync status and retry any failed previews.
+- Open the GDA or Game folder in your file manager, or copy a file's full path.
+- Review the sync history: every GDA sync run with its result and what changed since the previous run, and every copy to the Game folder, including the individual files copied.
+- Connect your own source and GDA folders under **Workspace settings**, which warns when a folder does not exist.
 
 `Ctrl+K` (or `⌘K`) focuses search; `Esc` closes dialogs. Fonts, icons, and sample previews are bundled, so the application works offline.
 
 ## Workspace configuration
 
-When you start the project with `python -m egt_gda_sync` or `python scripts/dev.py`, it reads **`config/workspace.json`**. Global ports live in the `config` section. The `workspaces` list contains `game_name` (game name), `game_path` (game assets folder), and `gda_path` (GDA folder) for each workspace. Saving settings in the app updates this same file; manual edits take effect on the next launch. The launcher prints the active configuration path.
+When you start the project with `python -m egt_gda_sync` or `python scripts/dev.py`, it reads **`config/workspace.json`**. Global ports live in the `config` section. The `workspaces` list contains `game_name` (game name), `gda_path` (GDA folder, the origin of a sync), and `game_path` (game folder, where files are copied to) for each workspace. Saving settings in the app updates this same file; manual edits take effect on the next launch. The launcher prints the active configuration path.
 
 For first use, copy the tracked template before launching:
 
@@ -55,7 +55,7 @@ On Windows, use PowerShell:
 Copy-Item config/workspace.json.template config/workspace.json
 ```
 
-Edit each workspace in `config/workspace.json` with your project name and the absolute paths of two existing, separate folders. Configure or remove the template's example entries before launching. Windows paths can use forward slashes, for example `C:/Users/you/assets/source`. Invalid JSON or invalid settings stop startup with an explanation. **`config/workspace.json` is Git ignored** so each user's paths stay local; `config/workspace.json.template` is shared as the starting point.
+Edit each workspace in `config/workspace.json` with your project name and the absolute paths of two separate folders. Configure or remove the template's example entries; until you do, the app still starts, lists no assets for them and warns in **Workspace settings** that the folders do not exist. Windows paths can use forward slashes, for example `C:/Users/you/assets/source`. Invalid JSON or invalid settings (for example a relative path, nested folders, or a path that is a file) stop startup with an explanation. Folders that do not exist, such as an unplugged drive, do not. **`config/workspace.json` is Git ignored** so each user's paths stay local; `config/workspace.json.template` is shared as the starting point.
 
 The template includes multiple workspaces and a `defaultWorkspace` ID:
 
@@ -73,7 +73,7 @@ The template includes multiple workspaces and a `defaultWorkspace` ID:
 }
 ```
 
-Each workspace needs a unique, non-empty ID and two existing, separate folders. Restart after editing the list. The sidebar Workspace selector loads this list and saves the active selection; Workspace settings edits only the selected entry. Older files using `name`, `source`, `destination`, `activeWorkspace`, and top-level ports still load. Saving a workspace list writes the new field names and nested `config` section.
+Each workspace needs a unique, non-empty ID and two separate folders. Restart after editing the list. The sidebar Workspace selector loads this list and saves the active selection; Workspace settings edits only the selected entry. Older files using `name`, `source`, `destination`, `activeWorkspace`, and top-level ports still load. In those files `source` is the folder files are copied from and `destination` the folder they are copied to, so they keep their direction. Saving a workspace list writes the new field names and nested `config` section.
 
 The optional `config.port` field sets the backend's listening port, for example `"config": { "port": 4567 }`. The template uses `3457`; files without this field use `3456`. The `PORT` environment variable supplied when launching the app overrides the value in `workspace.json`, for example `PORT=5678 ./dist/egt-gda-sync`. Ports must be integers between `1` and `65535`. Launch overrides apply for that run and leave the configured port intact; saving Workspace settings also preserves it. Restart the app after changing its configured port.
 
@@ -117,7 +117,7 @@ The packaged application always loads `workspace.json` beside the actual executa
 
 ## File behavior
 
-Sync is one-way: source → GDA. Relative subfolders and original file bytes are preserved. File size and SHA-256 contents determine whether a destination matches. Copies use temporary files in the destination folder and an atomic rename. Source changes during copying are rejected. Existing destination files are backed up before replacement. Source files and extra GDA files are never deleted.
+Sync is one-way: GDA → Game (`gda_path` → `game_path`). Relative subfolders and original file bytes are preserved. File size and SHA-256 contents determine whether a Game file matches. Copies use temporary files in the Game folder and an atomic rename. GDA changes during copying are rejected. Existing Game files are backed up before replacement. GDA files and extra Game files are never deleted. Earlier versions copied the other way, from `game_path` to `gda_path`: check the direction before syncing with a configuration written by one of them.
 
 History, demo files, and backups use these default data directories:
 
@@ -132,12 +132,12 @@ Both use this layout:
 ├── activity.json
 ├── dev.json                # Processes of a running scripts/dev.py session
 ├── sync-reports/<workspace-id>-<unix-timestamp>.json
-├── demo/source/
-├── demo/gda/
+├── demo/gda/               # The demo's GDA folder: where its files are copied from
+├── demo/game/              # The demo's game folder: where they are copied to
 └── backups/<sync-id>/<relative-file-path>
 ```
 
-The exact backup directory is displayed in settings. To restore a previous GDA version, copy the corresponding backup file back into the same relative location in your GDA folder. Set `EGT_GDA_SYNC_HOME` to use a different app data directory; `config/workspace.json.template` shows the configuration format. Source and destination must be existing, separate folders; nested roots are rejected, and symbolic links (and Windows junctions) are skipped. Hidden files and folders are skipped: names starting with `.`, and on Windows also items with the Hidden attribute. The demo supports up to 10,000 files per workspace.
+The exact backup directory is displayed in settings. To restore a previous Game version, copy the corresponding backup file back into the same relative location in your Game folder. Set `EGT_GDA_SYNC_HOME` to use a different app data directory; `config/workspace.json.template` shows the configuration format. The GDA and Game folders must be separate; nested roots are rejected. A folder that does not exist does not stop the app: Workspace settings warns about it, no assets are listed for a missing GDA folder, and syncing or opening a missing folder is refused until it exists (the app never creates a folder itself). Symbolic links (and Windows junctions) are skipped. Hidden files and folders are skipped: names starting with `.`, and on Windows also items with the Hidden attribute. The demo supports up to 10,000 files per workspace.
 
 DDS previews decode the first surface and mip of **DXT1, DXT3, DXT5, RGB24, RGB32, and DX10 BC7 (UNORM / sRGB)**. Other DDS formats remain available for syncing, with a clear preview-unavailable message. DDS previews are limited to 16 megapixels, and all previews to 64 MB. Demo model thumbnails are illustrations; arbitrary 3D files are copied but not rendered. Material/audio files use type thumbnails.
 
@@ -292,10 +292,10 @@ The interface has five page views and one asset detail panel in `frontend/src/vi
 | Vue file | Purpose |
 | --- | --- |
 | [DashboardView.vue](frontend/src/views/DashboardView.vue) | Overview of asset counts, pending changes, sync coverage, storage usage, and activity charts. Provides shortcuts to rescan, sync all pending assets, and open folders. |
-| [LibraryView.vue](frontend/src/views/LibraryView.vue) | Browse assets in grid or list form, with searching, filtering, sorting, inspection, and selection for copying to GDA. Also powers **Needs sync** (`pending`) and the filtered **synced** library mode (`synced`). |
+| [LibraryView.vue](frontend/src/views/LibraryView.vue) | Browse assets in grid or list form, with searching, filtering, sorting, inspection, and selection for copying to the game. Also powers **Needs sync** (`pending`) and the filtered **synced** library mode (`synced`). |
 | [SyncView.vue](frontend/src/views/SyncView.vue) | The sidebar's **In sync** page (`rssSync`). Displays the resource comparison report with **In sync**, **Missing**, **Different**, and **Invalid** categories, scan progress, matching GDA paths, descriptor references, and DDS mip-level differences. |
 | [SyncHistoryView.vue](frontend/src/views/SyncHistoryView.vue) | Shows previous comparison runs, their success or failure, duration, and count changes between runs. Also lists file-copy operations, the files copied, and bytes transferred. |
-| [SettingsView.vue](frontend/src/views/SettingsView.vue) | Configures the workspace name, source folder, and GDA destination. Shows backup information and provides the stop-application action. |
-| [AssetInspector.vue](frontend/src/views/AssetInspector.vue) | Detail panel inside the library showing the selected asset's preview, metadata, and sync status. Allows syncing that asset, opening its source folder, or copying its path. |
+| [SettingsView.vue](frontend/src/views/SettingsView.vue) | Configures the workspace name, GDA folder, and Game folder. Shows backup information and provides the stop-application action. |
+| [AssetInspector.vue](frontend/src/views/AssetInspector.vue) | Detail panel inside the library showing the selected asset's preview, metadata, and sync status. Allows syncing that asset, opening its GDA folder, or copying its path. |
 
 [App.vue](frontend/src/App.vue) switches pages using `ui.view` from [workspace.ts](frontend/src/workspace.ts), without Vue Router. **LibraryView** manages asset browsing and copying; **SyncView** displays comparison results without changing files. Its **In sync** page is separate from the library's `synced` filter mode.

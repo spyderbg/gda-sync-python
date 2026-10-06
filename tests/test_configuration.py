@@ -27,11 +27,11 @@ def workspace_settings(tmp_path):
 def test_template_settings_load_at_startup_and_ui_changes_persist_in_the_project_config(tmp_path):
     settings = json.loads(TEMPLATE.read_text(encoding="utf-8"))
     for index, entry in enumerate(settings["workspaces"]):
-        source, destination = tmp_path / f"game-{index}", tmp_path / f"gda-{index}"
-        source.mkdir()
-        destination.mkdir()
-        (source / "asset.txt").write_text("Project asset", encoding="utf-8")
-        entry.update(game_path=str(source), gda_path=str(destination))
+        gda, game = tmp_path / f"gda-{index}", tmp_path / f"game-{index}"
+        gda.mkdir()
+        game.mkdir()
+        (gda / "asset.txt").write_text("Project asset", encoding="utf-8")
+        entry.update(game_path=str(game), gda_path=str(gda))
     config_path = tmp_path / "project" / "config" / "workspace.json"
     config_path.parent.mkdir(parents=True)
     # PowerShell can save JSON as UTF-8 with a BOM.
@@ -42,8 +42,9 @@ def test_template_settings_load_at_startup_and_ui_changes_persist_in_the_project
     legacy.write_text("{unused legacy config}", encoding="utf-8")
     library = Library(str(home), config_path=str(config_path))
     library.init()
-    assert library.config["source"] == settings["workspaces"][0]["game_path"]
-    assert library.config["destination"] == settings["workspaces"][0]["gda_path"]
+    # Files are copied from the GDA folder (the source) to the game folder (the destination).
+    assert library.config["source"] == settings["workspaces"][0]["gda_path"]
+    assert library.config["destination"] == settings["workspaces"][0]["game_path"]
     assert library.config["config"] == settings["config"]
     assert not (home / "demo").exists()
 
@@ -169,13 +170,11 @@ def test_hand_edited_settings_use_the_same_validation_as_workspace_settings(tmp_
         Library(str(tmp_path / "app-data"), config_path=str(config_path)).init()
 
 
-@pytest.mark.parametrize("destination", ["same", "nested", "missing", "file"])
+@pytest.mark.parametrize("destination", ["same", "nested", "file"])
 def test_startup_rejects_invalid_workspace_folders(tmp_path, destination):
     settings = workspace_settings(tmp_path)
     source = Path(settings["source"])
-    target = {
-        "same": source, "nested": source / "nested", "missing": tmp_path / "missing", "file": source / "asset.txt",
-    }[destination]
+    target = {"same": source, "nested": source / "nested", "file": source / "asset.txt"}[destination]
     if destination == "nested":
         target.mkdir()
     settings["destination"] = str(target)
@@ -183,6 +182,21 @@ def test_startup_rejects_invalid_workspace_folders(tmp_path, destination):
     config_path.write_text(json.dumps(settings), encoding="utf-8")
     with pytest.raises(RuntimeError, match="Could not read workspace.json"):
         Library(str(tmp_path / "app-data"), config_path=str(config_path)).init()
+
+
+def test_startup_accepts_workspace_folders_that_do_not_exist_and_keeps_the_configuration(tmp_path):
+    settings = {**workspace_settings(tmp_path), "source": str(tmp_path / "missing-game"), "destination": str(tmp_path / "missing-gda")}
+    config_path = tmp_path / "workspace.json"
+    config_path.write_text(json.dumps(settings), encoding="utf-8")
+    library = Library(str(tmp_path / "app-data"), config_path=str(config_path))
+    library.init()
+    assert library.config["source"] == settings["source"] and library.config["destination"] == settings["destination"]
+    assert library.config["demo"] is False
+    assert json.loads(config_path.read_text(encoding="utf-8")) == settings
+    with TestClient(create_app(library, dev=True), base_url="http://127.0.0.1") as client:
+        data = client.get("/api/library").json()
+        assert data["assets"] == [] and data["missingFolders"] == ["source", "destination"]
+        assert client.post("/api/scan", headers=session_headers(client)).status_code == 200
 
 
 def test_a_failed_settings_save_keeps_the_previous_config_and_removes_temporary_files(tmp_path, monkeypatch):

@@ -1,4 +1,8 @@
-"""Workspace scanning, one-way source → GDA sync, settings, activity history and previews."""
+"""Workspace scanning, one-way GDA → Game sync, settings, activity history and previews.
+
+The "source" of a workspace is the folder files are copied from (the GDA folder, gda_path in workspace.json) and its
+"destination" is the folder they are copied to (the game folder, game_path).
+"""
 
 import base64
 import contextlib
@@ -37,6 +41,7 @@ ASSET_TYPES = (
     ("material", {"mat", "mtl", "material"}),
     ("audio", {"wav", "ogg", "mp3", "flac"}),
 )
+FOLDER_NAMES = {"source": "GDA", "destination": "Game"}
 _JUNCTION = 0xA0000003  # IO_REPARSE_TAG_MOUNT_POINT: Windows directory junctions behave like links.
 _HIDDEN = 0x2  # FILE_ATTRIBUTE_HIDDEN
 _EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
@@ -185,8 +190,8 @@ class Library:
                 for entry in entries:
                     if not isinstance(entry, dict) or not isinstance(entry.get("id"), str) or not entry["id"].strip():
                         raise TypeError("Each workspace needs a non-empty text id")
-                    source = entry.get("game_path", entry.get("source"))
-                    destination = entry.get("gda_path", entry.get("destination"))
+                    source = entry.get("gda_path", entry.get("source"))
+                    destination = entry.get("game_path", entry.get("destination"))
                     name = entry.get("game_name", entry.get("name"))
                     if not all(isinstance(value, str) for value in (name, source, destination)):
                         raise TypeError("Each workspace needs game_name, game_path and gda_path text fields")
@@ -226,20 +231,29 @@ class Library:
             raise AppError("Enter a project name of 1–80 characters")
         if not os.path.isabs(source) or not os.path.isabs(destination):
             raise AppError("Use absolute folder paths")
-        try:
-            real_source = os.path.realpath(source, strict=True)
-            real_destination = os.path.realpath(destination, strict=True)
-        except OSError as error:
-            raise AppError("Both folders must exist before you connect them") from error
-        if not os.path.isdir(real_source) or not os.path.isdir(real_destination):
+        # A folder may not exist yet, or its drive may be unplugged: the app starts anyway and warns about it.
+        real_source = os.path.realpath(source)
+        real_destination = os.path.realpath(destination)
+        if any(os.path.exists(path) and not os.path.isdir(path) for path in (real_source, real_destination)):
             raise AppError("Both paths must be folders")
         if contained(real_source, real_destination) or contained(real_destination, real_source):
-            raise AppError("Source and GDA folders must be separate, without nesting")
+            raise AppError("GDA and Game folders must be separate, without nesting")
         if contained(real_source, self.home) or contained(real_destination, self.home):
             raise AppError("Choose folders outside the application data directory’s parents")
-        if not os.access(real_source, os.R_OK) or not os.access(real_destination, os.W_OK):
-            raise AppError("The source must be readable and the GDA folder must be writable")
+        if (os.path.isdir(real_source) and not os.access(real_source, os.R_OK)) or \
+                (os.path.isdir(real_destination) and not os.access(real_destination, os.W_OK)):
+            raise AppError("The GDA folder must be readable and the Game folder must be writable")
         return {"name": name.strip(), "source": real_source, "destination": real_destination}
+
+    def missing_folders(self) -> list[str]:
+        """The active workspace's folders ("source", "destination") that are not folders on disk right now."""
+        return [key for key in FOLDER_NAMES if not os.path.isdir(self.config[key])]
+
+    def require_folders(self, *keys: str) -> None:
+        missing = [key for key in self.missing_folders() if key in keys]
+        if missing:
+            names = " and ".join(FOLDER_NAMES[key] for key in missing)
+            raise AppError(f"The {names} folder{'s do' if len(missing) > 1 else ' does'} not exist. Fix the path in Workspace settings.", 404)
 
     @property
     def backup_path(self) -> str:
@@ -266,7 +280,7 @@ class Library:
                 **{key: value for key, value in config.items() if key not in ("config", "name", "source", "destination", "demo", "workspaces")},
                 "workspaces": [
                     {**{key: value for key, value in entry.items() if key not in ("name", "source", "destination")},
-                     "game_name": entry["name"], "game_path": entry["source"], "gda_path": entry["destination"]}
+                     "game_name": entry["name"], "game_path": entry["destination"], "gda_path": entry["source"]}
                     for entry in config["workspaces"]
                 ],
             }
@@ -331,13 +345,15 @@ class Library:
                 except Exception as error:
                     warnings.append(f"{relative}: {error_message(error)}")
 
-        walk("")
+        missing = self.missing_folders()
+        if "source" not in missing:
+            walk("")
         # Give the demo an intentional order; real workspaces are sorted by recent changes.
         assets.sort(key=lambda asset: asset["modifiedAt"], reverse=True)
         self._scanned_assets = assets
         return {
             "assets": assets, "config": config, "activity": self.activity, "scannedAt": iso_time(),
-            "warnings": warnings, "backupPath": self.backup_path, "rssSync": self.rss_status(),
+            "warnings": warnings, "missingFolders": missing, "backupPath": self.backup_path, "rssSync": self.rss_status(),
         }
 
     def _active_workspace(self) -> tuple[str, dict]:
@@ -353,7 +369,7 @@ class Library:
         if isinstance(common, str) and common and not os.path.isabs(common):
             common = os.path.join(os.path.dirname(self.config_path), common)
         workspace = {
-            "id": workspace_id, "game_name": entry["name"], "game_path": entry["source"], "gda_path": entry["destination"],
+            "id": workspace_id, "game_name": entry["name"], "game_path": entry["destination"], "gda_path": entry["source"],
             "common_gda_path": common, "extensions": entry.get("extensions", list(DEFAULT_EXTENSIONS)),
             "resource_paths": entry.get("resource_paths", []), "ignore_dds_mips": entry.get("ignore_dds_mips", True),
         }
@@ -494,6 +510,7 @@ class Library:
 
     def sync(self, ids: list[str]) -> dict:
         def operation() -> dict:
+            self.require_folders("source", "destination")
             assets = self.scan()["assets"]
             wanted = list(dict.fromkeys(ids))
             lookup = {asset["id"]: asset for asset in assets}
@@ -515,7 +532,7 @@ class Library:
                     _copy_exclusive(source, temporary)
                     if file_hash(temporary) != original_hash or file_hash(source) != original_hash:
                         raise AppError("Source changed while copying. Please retry.")
-                    # Check again immediately before replacing. Existing GDA files have a recoverable backup.
+                    # Check again immediately before replacing. Existing game files have a recoverable backup.
                     safe_path(config["destination"], asset["path"])
                     try:
                         existing = os.lstat(target)
@@ -538,7 +555,7 @@ class Library:
                         with contextlib.suppress(OSError):
                             os.unlink(temporary)
             if copied:
-                self._record("sync", f"Synced {len(copied)} asset{'' if len(copied) == 1 else 's'} to GDA", copied, total)
+                self._record("sync", f"Synced {len(copied)} asset{'' if len(copied) == 1 else 's'} to Game", copied, total)
             return {"copied": copied, "failures": failures, "bytes": total, "library": self.scan()}
 
         return self._exclusive(operation)

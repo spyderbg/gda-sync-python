@@ -195,14 +195,14 @@ export async function confirmSync() {
     ui.selected = new Set();
     const copied = result.copied.length;
     if (result.failures.length) notify(`${copied} synced; ${result.failures.length} failed. ${result.failures[0].name}: ${result.failures[0].message}`, true);
-    else notify(copied ? `${copied} asset${plural(copied)} synced. Your GDA folder is up to date.` : 'These assets are already in sync.');
+    else notify(copied ? `${copied} asset${plural(copied)} synced. Your Game folder is up to date.` : 'These assets are already in sync.');
   } catch (e) { notify((e as Error).message, true); } finally { busy.value = ''; }
 }
 
 export async function openFolder(folder: 'source' | 'destination', assetId?: string) {
   try {
     await api('open-folder', 'POST', { folder, assetId });
-    notify(`Opened ${folder === 'source' ? 'source' : 'GDA'} folder.`);
+    notify(`Opened ${folder === 'source' ? 'GDA' : 'Game'} folder.`);
   } catch (e) { notify((e as Error).message, true); }
 }
 
@@ -213,7 +213,7 @@ export async function copy(text: string) {
   } catch { notify('Clipboard access is unavailable in this browser.', true); }
 }
 
-/** The full source path of an asset, with the separators of the backend's platform. */
+/** The full path of an asset in the GDA (source) folder, with the separators of the backend's platform. */
 export function sourcePath(asset: Asset) {
   return [config.value.source, ...asset.path.split('/')].join(session.platform === 'Windows' ? '\\' : '/');
 }
@@ -225,7 +225,7 @@ export async function saveSettings(settings: Pick<WorkspaceConfig, 'name' | 'sou
     applyLibrary(library);
     ui.inspecting = library.assets[0]?.id || null;
     navigate('library');
-    notify('Workspace connected successfully.');
+    notify(library.missingFolders.length ? 'Workspace saved, but a folder does not exist. Check Workspace settings.' : 'Workspace connected successfully.');
     return true;
   } catch (e) {
     notify((e as Error).message, true);

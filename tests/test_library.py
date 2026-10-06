@@ -95,8 +95,9 @@ def test_invalid_workspace_connections_are_rejected_and_valid_connections_persis
     os.mkdir(nested)
     with pytest.raises(AppError, match="nesting"):
         library.update_config("Test", source, nested)
-    with pytest.raises(AppError, match="must exist"):
-        library.update_config("Test", str(tmp_path / "does-not-exist"), str(tmp_path))
+    (tmp_path / "file.txt").write_text("not a folder")
+    with pytest.raises(AppError, match="must be folders"):
+        library.update_config("Test", str(tmp_path / "file.txt"), str(tmp_path / "gda"))
     with pytest.raises(AppError, match="1–80"):
         library.update_config("   ", source, str(tmp_path))
 
@@ -111,6 +112,35 @@ def test_invalid_workspace_connections_are_rejected_and_valid_connections_persis
     again.init()
     assert again.config["name"] == "Real project"
     assert again.activity[0]["message"] == "Connected Real project workspace"
+
+
+def test_missing_folders_are_reported_and_block_only_the_operations_that_need_them(library, tmp_path):
+    real_source, absent = tmp_path / "real-source", tmp_path / "absent-gda"
+    real_source.mkdir()
+    (real_source / "asset.txt").write_text("hello")
+
+    data = library.update_config("Absent GDA", str(real_source), str(absent))
+    assert data["missingFolders"] == ["destination"]
+    assert [(asset["path"], asset["status"]) for asset in data["assets"]] == [("asset.txt", "new")]
+    with pytest.raises(AppError, match="Game folder does not exist") as error:
+        library.sync([data["assets"][0]["id"]])
+    assert error.value.status_code == 404
+    assert not absent.exists()
+
+    data = library.update_config("Absent both", str(tmp_path / "absent-source"), str(absent))
+    assert data["missingFolders"] == ["source", "destination"]
+    assert data["assets"] == [] and data["warnings"] == []
+    with pytest.raises(AppError, match="GDA and Game folders do not exist"):
+        library.sync(["anything"])
+    assert library.rescan()["assets"] == []
+
+    again = Library(library.home)
+    again.init()
+    assert again.config["name"] == "Absent both"
+    assert again.scan()["missingFolders"] == ["source", "destination"]
+
+    absent.mkdir()
+    assert library.scan()["missingFolders"] == ["source"]
 
 
 def test_workspace_operations_are_exclusive(library):
@@ -144,7 +174,7 @@ def test_unsupported_dds_formats_remain_syncable_with_a_preview_message(library)
 
 
 def test_activity_keeps_every_copy_and_caps_only_other_entries(library):
-    library._record("sync", "Synced 1 asset to GDA", ["a.png"], 10)
+    library._record("sync", "Synced 1 asset to Game", ["a.png"], 10)
     for index in range(120):
         library._record("scan", f"Scanned {index} assets")
     assert len(library.activity) == 101

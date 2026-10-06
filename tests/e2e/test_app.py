@@ -78,14 +78,14 @@ def test_dashboard_summarizes_the_workspace_with_the_template_charts(page):
     for title in ("Library Statistics Overview", "Asset Mix", "Storage Overview", "Workspace Metrics", "Waiting for Sync"):
         expect(page.get_by_role("heading", name=title)).to_be_visible()
     expect(page.locator(".card-body h3").first).to_have_text("18")
-    for chart in ("Total assets over time", "Source changes and synced files over time", "Files per format in sync and waiting for sync",
+    for chart in ("Total assets over time", "GDA changes and synced files over time", "Files per format in sync and waiting for sync",
                   "Library size as files were added", "Storage per folder by sync status", "Files in sync per asset type", "56% of files in sync"):
         expect(page.get_by_role("img", name=chart)).to_be_visible()
     poll(lambda: page.locator("canvas").evaluate_all("canvases => canvases.every(canvas => canvas.width > 0)"), True)
     month = page.get_by_role("tab", name="1M")
     month.click()
     expect(month).to_have_attribute("aria-selected", "true")
-    expect(page.get_by_text("Source changes and files synced to GDA, last 30 days")).to_be_visible()
+    expect(page.get_by_text("GDA changes and files synced to the game, last 30 days")).to_be_visible()
     page.get_by_role("button", name="By size").click()
     page.get_by_role("button", name="By files", exact=True).click()
     expect(page.get_by_text("Files per top-level folder, by sync status.")).to_be_visible()
@@ -115,12 +115,12 @@ def test_validates_workspace_folders_and_saves_a_project_configuration(page):
     page.goto("/")
     select_workspace(page)
     page.get_by_role("banner").get_by_role("button", name="Workspace settings", exact=True).click()
-    source = page.get_by_label("Source folder", exact=True).input_value()
-    destination = page.get_by_label("GDA destination", exact=True).input_value()
-    page.get_by_label("GDA destination", exact=True).fill(source)
+    source = page.get_by_label("GDA path", exact=True).input_value()
+    destination = page.get_by_label("Game path", exact=True).input_value()
+    page.get_by_label("Game path", exact=True).fill(source)
     page.get_by_role("button", name="Save connection").click()
     expect(page.get_by_role("status")).to_contain_text("must be separate")
-    page.get_by_label("GDA destination", exact=True).fill(destination)
+    page.get_by_label("Game path", exact=True).fill(destination)
     page.get_by_label("Project name", exact=True).fill("Verdant Studio")
     page.get_by_role("button", name="Save connection").click()
     expect(page.get_by_role("heading", name="Asset library")).to_be_visible()
@@ -138,7 +138,7 @@ def test_selection_sync_changes_file_status_and_appears_in_activity_history(page
     card = page.locator(".asset-card").filter(has=page.get_by_role("button", name="Inspect moss_ground_albedo.png", exact=True))
     expect(card).to_contain_text("In sync")
     page.get_by_role("button", name="Sync history", exact=True).click()
-    expect(page.get_by_text("Synced 1 asset to GDA")).to_be_visible()
+    expect(page.get_by_text("Synced 1 asset to Game")).to_be_visible()
     page.get_by_text("View 1 files", exact=True).click()
     expect(page.get_by_text("textures/forest/moss_ground_albedo.png", exact=True)).to_be_visible()
 

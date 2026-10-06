@@ -16,7 +16,7 @@ const inWorkspace = computed(() => ui.view !== 'dashboard');
 const activeId = computed(() => config.value.defaultWorkspace || 'current');
 const selectedId = computed(() => inWorkspace.value ? activeId.value : null);
 const games = computed(() => workspaces.value.length ? workspaces.value : [{ id: 'current', name: config.value.name, source: config.value.source, destination: config.value.destination }]);
-const folders = (source: string, destination: string) => `Game folder: ${source}\nGDA folder: ${destination}`;
+const folders = (source: string, destination: string) => `GDA folder: ${source}\nGame folder: ${destination}`;
 
 const filter = ref('');
 const filterable = computed(() => games.value.length > MAX_UNFILTERED);

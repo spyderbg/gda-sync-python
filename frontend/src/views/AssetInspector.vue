@@ -10,9 +10,9 @@ const props = defineProps<{ asset: Asset }>();
 const synced = computed(() => props.asset.status === 'synced');
 const mipmaps = computed(() => props.asset.dimensions?.mipmaps || 1);
 const note = computed(() => ({
-  new: ['A fresh addition.', 'This asset hasn’t been copied to GDA yet.'],
-  modified: ['A newer version is ready.', 'Sync to update the copy in GDA.'],
-  synced: ['Everything looks good.', 'Source and GDA files match.'],
+  new: ['A fresh addition.', 'This asset hasn’t been copied to the game yet.'],
+  modified: ['A newer version is ready.', 'Sync to update the copy in the game.'],
+  synced: ['Everything looks good.', 'GDA and Game files match.'],
 })[props.asset.status]);
 </script>
 
@@ -53,7 +53,7 @@ const note = computed(() => ({
         <i aria-hidden="true" :class="['mdi', synced ? 'mdi-check' : 'mdi-sync']" />{{ synced ? 'Already in sync' : 'Sync this asset' }}
       </button>
       <div class="d-flex justify-content-between mt-2">
-        <button type="button" class="btn btn-link px-0" @click="openFolder('source', asset.id)"><i aria-hidden="true" class="mdi mdi-folder-open-outline" />Open source</button>
+        <button type="button" class="btn btn-link px-0" @click="openFolder('source', asset.id)"><i aria-hidden="true" class="mdi mdi-folder-open-outline" />Open in GDA</button>
         <button type="button" class="btn btn-link px-0" @click="copy(sourcePath(asset))"><i aria-hidden="true" class="mdi mdi-content-copy" />Copy path</button>
       </div>
     </div>

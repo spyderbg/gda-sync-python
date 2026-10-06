@@ -909,6 +909,16 @@ button.nav-link {
   }
 }
 
+.folder-missing {
+  margin: 0.5rem 0 0;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+
+  i {
+    margin-right: 6px;
+  }
+}
+
 /* Dialogs */
 .modal-header .modal-title {
   font-weight: 500;

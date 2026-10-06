@@ -110,7 +110,7 @@ function showAll() {
         <div class="card-body">
           <i aria-hidden="true" :class="['mdi', caughtUp ? 'mdi-check-all text-success' : 'mdi-magnify text-muted']" />
           <h4>{{ caughtUp ? 'All caught up.' : 'No assets found' }}</h4>
-          <p class="text-muted">{{ caughtUp ? 'Every asset is in sync with your GDA folder.' : 'Try a different search or clear your filters.' }}</p>
+          <p class="text-muted">{{ caughtUp ? 'Every asset is in sync with your Game folder.' : 'Try a different search or clear your filters.' }}</p>
           <button type="button" class="btn btn-outline-primary" @click="showAll">Show all assets</button>
         </div>
       </div>

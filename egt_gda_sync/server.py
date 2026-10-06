@@ -252,6 +252,7 @@ def create_app(
 
     @app.post("/api/open-folder")
     def open_folder(body: OpenFolderBody) -> dict:
+        library.require_folders(body.folder)
         target = library.config["source"] if body.folder == "source" else library.config["destination"]
         if body.assetId:
             asset = library.get_asset(body.assetId)
