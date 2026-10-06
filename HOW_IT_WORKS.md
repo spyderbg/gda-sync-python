@@ -1,6 +1,6 @@
-# How GDA Sync is built and runs
+# How EGT GDA Sync is built and runs
 
-GDA Sync becomes a standalone executable in two stages: **Vite builds the Vue
+EGT GDA Sync becomes a standalone executable in two stages: **Vite builds the Vue
 interface**, then **PyInstaller bundles that interface with the Python backend,
 Python runtime, and required libraries**. The user launches one executable and
 uses the application in their default browser. Python, Node.js, and npm are only
@@ -12,16 +12,16 @@ is a separate `workspace.json` file shipped beside it.
 ## Build flow
 
 ```text
-frontend/ Vue + TypeScript + styles + fonts
+frontend/ Vue + TypeScript + SCSS + fonts + icons
     |
     | npm ci, then npm run build
     v
-gda_sync/static/ HTML + JavaScript + CSS + fonts + favicon
+egt_gda_sync/static/ HTML + JavaScript + CSS + fonts + icon font + favicon
     |
-    | PyInstaller + bundle/launcher.py + gda_sync/ + Python dependencies
+    | PyInstaller + bundle/launcher.py + egt_gda_sync/ + Python dependencies
     v
-dist/gda-sync                 Linux
-dist/gda-sync.exe             Windows
+dist/egt-gda-sync                 Linux
+dist/egt-gda-sync.exe             Windows
 
 config/workspace.json -- copied separately --> dist/workspace.json
 ```
@@ -48,7 +48,7 @@ On Linux, from the repository root:
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
-cp config/config.json.template config/workspace.json
+cp config/workspace.json.template config/workspace.json
 ```
 
 On Windows, in PowerShell:
@@ -57,23 +57,40 @@ On Windows, in PowerShell:
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -e ".[dev]"
-Copy-Item config/config.json.template config/workspace.json
+Copy-Item config/workspace.json.template config/workspace.json
 ```
 
-Edit `config/workspace.json` with your workspace name and absolute paths to two
-existing, separate folders:
+Edit `config/workspace.json`: the global ports in `config`, the workspace that
+opens first in `defaultWorkspace`, and one entry per game in `workspaces`. Each
+entry has a unique `id`, the game's name in `game_name`, and absolute paths to
+two existing, separate folders: `gda_path`, the GDA folder files are copied
+from, and `game_path`, the game folder they are copied to.
 
 ```json
 {
-  "name": "My studio project",
-  "source": "/absolute/path/to/assets/source",
-  "destination": "/absolute/path/to/assets/gda"
+  "config": {
+    "port": 3457,
+    "vite_port": 5174
+  },
+  "defaultWorkspace": "burning_crown_tetra_spins_10",
+  "workspaces": [
+    {
+      "id": "burning_crown_tetra_spins_10",
+      "game_name": "Burning Crown Tetra Spins 10",
+      "game_path": "/absolute/path/to/resources/burning_crown_tetra_spins_10",
+      "gda_path": "/absolute/path/to/gda/burning_crown_tetra_spins_10/DEV"
+    }
+  ]
 }
 ```
 
-For Windows, paths can use forward slashes, such as `C:/Users/you/assets/source`.
-Neither folder may contain the other. Packaging requires the configuration file
-to exist; its contents and folder paths are validated when the application starts.
+For Windows, paths can use forward slashes, such as `C:/Users/you/assets/gda`.
+Neither folder may contain the other. The optional fields of the GDA sync
+(`common_gda_path`, `extensions`, `resource_paths`, and `ignore_dds_mips`) are
+described in [README.md](README.md). Packaging requires the configuration file to
+exist. Its contents are validated when the application starts: invalid JSON or
+invalid settings stop startup with an explanation, while a folder that does not
+exist only produces a warning in the app.
 
 [pyproject.toml](pyproject.toml) declares the runtime dependencies: FastAPI,
 uvicorn, and NumPy. The `dev` extra installs PyInstaller and the testing tools.
@@ -93,9 +110,10 @@ npm run build
 the TypeScript/Vue code, then `vite build` to produce the browser files.
 
 [frontend/vite.config.ts](frontend/vite.config.ts) places the result in
-`gda_sync/static/` and clears the previous output. The generated files include
-`index.html`, JavaScript, CSS, the favicon, and locally bundled DM Sans fonts.
-Vue and the used Lucide icons become part of the built interface.
+`egt_gda_sync/static/` and clears the previous output. The generated files
+include `index.html`, JavaScript, CSS, the favicon, the locally bundled Roboto
+font, and the Material Design Icons font. Vue, Chart.js, and the Bootstrap 4
+styles of the StarAdmin template become part of the built interface.
 
 To build only the interface:
 
@@ -106,21 +124,24 @@ python scripts/build.py
 This does not create an executable. To reuse an existing interface build during
 packaging, use `python scripts/package.py --skip-frontend`. You must rebuild the
 interface after frontend changes; the spec refuses to package without
-`gda_sync/static/index.html`.
+`egt_gda_sync/static/index.html`.
 
 ### 3. Bundle the application
 
-Packaging generates `build/gda-sync.ico`, then invokes PyInstaller using
-[bundle/gda-sync.spec](bundle/gda-sync.spec). Native builds use the active Python
-interpreter, with `--clean`, `--noconfirm`, output in `dist/`, and intermediate
-files in `build/pyinstaller/<target>/`.
+Packaging generates `build/egt-gda-sync.ico`, then invokes PyInstaller using
+[bundle/egt-gda-sync.spec](bundle/egt-gda-sync.spec). Native builds use the
+active Python interpreter, with `--clean`, `--noconfirm`, output in `dist/`, and
+intermediate files in `build/pyinstaller/<target>/`.
 
 The spec defines:
 
-- **Entry point:** `bundle/launcher.py`, which calls `gda_sync.__main__.main()`.
+- **Entry point:** `bundle/launcher.py`, which calls
+  `multiprocessing.freeze_support()` and then `egt_gda_sync.__main__.main()`.
+  The first call lets the executable start the GDA sync's background process
+  (see [What happens when the executable starts](#what-happens-when-the-executable-starts)).
 - **Import analysis:** `Analysis(...)` discovers the backend's required modules
   and binaries. The repository root is added to the import search path.
-- **Interface data:** the entire `gda_sync/static/` directory is explicitly
+- **Interface data:** the entire `egt_gda_sync/static/` directory is explicitly
   included at the same relative location inside the bundle.
 - **Dynamic imports:** uvicorn's asyncio loop, h11 HTTP implementation, and
   lifespan implementation are explicitly included as hidden imports.
@@ -128,8 +149,9 @@ The spec defines:
 - **Single executable:** `EXE(...)` receives the scripts, archive, binaries, and
   data directly, producing a one-file bundle. UPX compression is disabled,
   `tkinter` is excluded, and console output is enabled.
-- **Windows metadata:** the generated icon and product/file version from
-  `gda_sync/__init__.py` are embedded in `gda-sync.exe`.
+- **Windows metadata:** the generated icon and the product name "EGT GDA Sync"
+  with the file version from `egt_gda_sync/__init__.py` are embedded in
+  `egt-gda-sync.exe`.
 
 PyInstaller packages Python bytecode and an interpreter; the application logic
 continues to run as Python. Its import analysis and package hooks select the
@@ -144,8 +166,8 @@ build produces both executables with one shared configuration file:
 
 ```text
 dist/
-├── gda-sync
-├── gda-sync.exe
+├── egt-gda-sync
+├── egt-gda-sync.exe
 └── workspace.json
 ```
 
@@ -158,7 +180,7 @@ Distribute the executable for the recipient's operating system together with
 | --- | --- |
 | PyInstaller bootloader | Starts the packaged runtime. |
 | Python interpreter and required standard-library modules | Runs the backend without a separate Python installation. |
-| `gda_sync` application modules | Launching, HTTP API, scanning, hashing, syncing, backups, settings, activity, page lifetime, and desktop integration. |
+| `egt_gda_sync` application modules | Launching, HTTP API, asset scanning, hashing, syncing, backups, settings, activity, page lifetime, desktop integration, and the GDA sync: the `*Data.json` descriptor schemas, the comparison, its background runs and reports, and the `report` command. |
 | FastAPI, uvicorn, and their collected dependencies | Serves the local interface and API. This includes dependencies such as Starlette, Pydantic, AnyIO, and h11. |
 | NumPy and required native libraries | Supports texture generation and DDS/BC7 decoding. |
 | Built Vue interface | HTML, JavaScript, CSS, fonts, favicon, and interface icons, usable offline. |
@@ -174,8 +196,8 @@ in `pyproject.toml`; frontend dependencies are resolved by the frontend lockfile
 | Item | Location or requirement |
 | --- | --- |
 | Workspace settings | Editable `workspace.json` beside the executable. |
-| Your source and destination assets | The folders referenced by the settings; packaging does not copy them into the executable. |
-| Activity history, backups, and generated demo files | The application data directory. |
+| Your GDA and game folders | The folders referenced by the settings; packaging does not copy them into the executable. |
+| Activity history, backups, GDA sync reports, and generated demo files | The application data directory. |
 | Web browser | The user's installed default browser. |
 | Desktop integration | Linux uses the system's `xdg-open`; Windows uses its shell handler. |
 | Operating-system libraries | The executable still requires a compatible OS and architecture. |
@@ -184,9 +206,9 @@ Node.js, npm, Wine, the Vite development server, and a browser engine are not
 bundled. The spec does not add the repository's tests, build scripts, frontend
 source directory, or `node_modules` as application data.
 
-The demo's 18 sample files are generated by `gda_sync/demo.py` when no workspace
-configuration or saved settings exist. They are written to the data directory
-at runtime; packaging does not embed an existing demo workspace.
+The demo's 18 sample assets are generated by `egt_gda_sync/demo.py` when no
+workspace configuration or saved settings exist. They are written to the data
+directory at runtime; packaging does not embed an existing demo workspace.
 
 ## Linux and Windows builds
 
@@ -206,9 +228,9 @@ installed in the host Python environment.
 That path uses system Wine 11+ when available; otherwise it downloads and
 unpacks checksum-pinned WineHQ 11.0 packages for Ubuntu 24.04. The Wine runtime,
 prefix, Windows Python, and downloads are cached in
-`${XDG_CACHE_HOME:-~/.cache}/gda-sync-build`, or `GDA_SYNC_BUILD_CACHE` when set.
-They are build tools; the resulting Windows executable runs without Wine on
-Windows.
+`${XDG_CACHE_HOME:-~/.cache}/egt-gda-sync-build`, or `EGT_GDA_SYNC_BUILD_CACHE`
+when set. They are build tools; the resulting Windows executable runs without
+Wine on Windows.
 
 The documented distribution targets are Linux x64 on Ubuntu 24.04+
 (glibc 2.39+) and Windows 10/11 x64. Linux compatibility depends on the build
@@ -227,14 +249,21 @@ See [PyInstaller's Linux compatibility guidance](https://pyinstaller.org/en/stab
    real executable, regardless of the working directory or a launch symlink.
    If missing, it restores saved settings or generates a demo and writes a new
    configuration there. The executable's directory must be writable to save settings.
-3. **Start the local backend.** uvicorn serves FastAPI on `127.0.0.1:3456`, or
-   the port set by `PORT`. A second launch on the same port reopens the existing
-   GDA Sync instance; a different application occupying the port causes an error.
+3. **Start the local backend.** uvicorn serves FastAPI on `127.0.0.1`, on the
+   port in `config.port` of `workspace.json` (`3456` when it is not set), or the
+   port set by `PORT`. A second launch on the same port reopens the existing
+   EGT GDA Sync instance; a different application occupying the port causes an error.
 4. **Open the interface.** The launcher opens the default browser.
-   `gda_sync/server.py` reads the bundled static files and serves them together
-   with `/api/...` endpoints. Vue runs in the browser and calls this local API.
-   Use `--no-open` or `GDA_SYNC_NO_OPEN=1` to open the page manually.
-5. **Keep running while a page is open.** Each app page holds an event-stream
+   `egt_gda_sync/server.py` reads the bundled static files and serves them
+   together with `/api/...` endpoints. Vue runs in the browser and calls this
+   local API. Use `--no-open` or `EGT_GDA_SYNC_NO_OPEN=1` to open the page manually.
+5. **Run the GDA sync in the background.** **Rescan** compares the active
+   workspace's game resources with its GDA folder in a separate process, so the
+   app stays responsive. The process is started in spawn mode, which in the
+   executable means starting the executable again; `multiprocessing.freeze_support()`
+   in the launcher makes that copy run the comparison instead of the app. Each
+   run saves a report in the data directory's `sync-reports/`.
+6. **Keep running while a page is open.** Each app page holds an event-stream
    connection. Closing the last page schedules shutdown after a two-second
    grace period. Refreshing or another connected app page keeps the backend
    alive. Active file operations finish before shutdown completes.
@@ -243,14 +272,21 @@ Write operations require a per-process session token, and the server rejects
 foreign hosts and cross-site browser requests. No account or cloud service is
 needed for the application to operate.
 
+The executable also runs the GDA sync without the server or a browser:
+`egt-gda-sync report` compares the default workspace, `egt-gda-sync report ID ...`
+the listed workspaces, and `egt-gda-sync report --all` every workspace. Each
+report is saved where the app reads it. The exit status is `0` when everything
+compared is in sync, `1` when differences exist, and `2` when a sync could not run.
+
 Persistent data defaults to:
 
-- Linux: `${XDG_DATA_HOME:-~/.local/share}/gda-sync/`
-- Windows: `%LOCALAPPDATA%\GDA Sync\`
+- Linux: `${XDG_DATA_HOME:-~/.local/share}/egt-gda-sync/`
+- Windows: `%LOCALAPPDATA%\EGT GDA Sync\`
 
-These directories hold `activity.json`, `backups/`, and any generated `demo/`
-files. `GDA_SYNC_HOME` overrides the data directory. For packaged executables,
-it does not move the active configuration away from beside the executable.
+These directories hold `activity.json`, `backups/`, `sync-reports/`, and any
+generated `demo/` files. `EGT_GDA_SYNC_HOME` overrides the data directory. For
+packaged executables, it does not move the active configuration away from beside
+the executable.
 
 ## Verify a built executable
 
