@@ -1,4 +1,4 @@
-"""Build standalone executables: dist/gda-sync (Linux) and dist/gda-sync.exe (Windows).
+"""Build standalone executables: dist/egt-gda-sync (Linux) and dist/egt-gda-sync.exe (Windows).
 
 Each executable contains the Python runtime, the backend, its dependencies and the built Vue interface.
 On Linux, `--target windows` builds the Windows executable with a pinned Windows Python under Wine.
@@ -23,7 +23,7 @@ from package_support import (
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--target", choices=["linux", "windows", "all"], help="defaults to the current operating system")
-    parser.add_argument("--skip-frontend", action="store_true", help="reuse the existing build in gda_sync/static")
+    parser.add_argument("--skip-frontend", action="store_true", help="reuse the existing build in egt_gda_sync/static")
     args = parser.parse_args(argv)
     try:
         targets = package_targets(args.target)
@@ -40,7 +40,7 @@ def main(argv: list[str] | None = None) -> None:
             build_windows_with_wine()
         else:
             build_native(target)
-        output = DIST / ("gda-sync.exe" if target == "windows" else "gda-sync")
+        output = DIST / ("egt-gda-sync.exe" if target == "windows" else "egt-gda-sync")
         config = copy_workspace_configuration(output)
         print(f"Standalone {target} application → {output} ({output.stat().st_size / 1048576:.1f} MB)", flush=True)
         print(f"Workspace configuration → {config}", flush=True)

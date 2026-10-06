@@ -1,11 +1,11 @@
 import struct
 import zlib
 
-from gda_sync.png import PNG_SIGNATURE
+from egt_gda_sync.png import PNG_SIGNATURE
 
 
 def read_png(data: bytes) -> tuple[int, int, bytes]:
-    """Read the RGBA PNGs that gda_sync.png writes: returns (width, height, pixels)."""
+    """Read the RGBA PNGs that egt_gda_sync.png writes: returns (width, height, pixels)."""
     assert data[:8] == PNG_SIGNATURE, "Not a PNG file"
     position, width, height, compressed = 8, 0, 0, b""
     while position < len(data):

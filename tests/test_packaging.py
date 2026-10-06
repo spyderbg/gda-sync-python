@@ -49,7 +49,7 @@ def test_wine_sees_linux_paths_on_drive_z():
     assert windows_path(PurePosixPath("/home/artist/gda sync/dist")) == "Z:\\home\\artist\\gda sync\\dist"
 
 
-@pytest.mark.parametrize("binary_name", ["gda-sync", "gda-sync.exe"])
+@pytest.mark.parametrize("binary_name", ["egt-gda-sync", "egt-gda-sync.exe"])
 def test_packaging_copies_the_current_configuration_beside_either_executable(tmp_path, monkeypatch, binary_name):
     config = tmp_path / "config" / "workspace.json"
     config.parent.mkdir()
@@ -77,7 +77,7 @@ def test_the_package_entrypoint_ships_the_config_after_building_the_executable(t
     monkeypatch.setitem(sys.modules, "package_support", package_support)
 
     def build_native(target):
-        (dist / ("gda-sync.exe" if target == "windows" else "gda-sync")).write_bytes(b"test executable")
+        (dist / ("egt-gda-sync.exe" if target == "windows" else "egt-gda-sync")).write_bytes(b"test executable")
 
     monkeypatch.setattr(package_support, "build_native", build_native)
     entrypoint = runpy.run_path(str(script))
@@ -95,5 +95,5 @@ def test_missing_configuration_fails_packaging_before_a_build_starts(tmp_path, m
 
     monkeypatch.setattr(package_support, "build_frontend", unexpected_build)
     entrypoint = runpy.run_path(str(script))
-    with pytest.raises(SystemExit, match="config/config.json.template"):
+    with pytest.raises(SystemExit, match="config/workspace.json.template"):
         entrypoint["main"]([])

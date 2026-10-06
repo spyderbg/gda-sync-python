@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { Check } from '@lucide/vue';
-import { statusNames } from '../format';
+import { statusBadges, statusNames } from '../format';
 import type { AssetStatus } from '../types';
 
 defineProps<{ status: AssetStatus }>();
+const icons: Record<AssetStatus, string> = { new: 'mdi-plus-circle-outline', modified: 'mdi-pencil-circle-outline', synced: 'mdi-check' };
 </script>
 
 <template>
-  <span :class="['status', `status-${status}`]"><Check v-if="status === 'synced'" :size="11" /><span v-else class="status-dot" />{{ statusNames[status] }}</span>
+  <span :class="['badge', 'status-badge', statusBadges[status]]"><i aria-hidden="true" :class="['mdi', icons[status]]" />{{ statusNames[status] }}</span>
 </template>

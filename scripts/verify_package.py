@@ -18,8 +18,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from gda_sync import __version__  # noqa: E402
-from gda_sync.demo import seed_demo  # noqa: E402
+from egt_gda_sync import __version__  # noqa: E402
+from egt_gda_sync.demo import seed_demo  # noqa: E402
 from scripts.package_support import (  # noqa: E402
     windows_path,
     wine_bin,
@@ -58,7 +58,7 @@ def main() -> None:
     use_wine = target == "windows" and sys.platform != "win32"
     from playwright.sync_api import expect, sync_playwright
 
-    packaged_binary = ROOT / "dist" / ("gda-sync.exe" if target == "windows" else "gda-sync")
+    packaged_binary = ROOT / "dist" / ("egt-gda-sync.exe" if target == "windows" else "egt-gda-sync")
     root = Path(tempfile.mkdtemp(prefix="gda-package-"))
     app_dir = root / "app"
     app_dir.mkdir()
@@ -71,16 +71,18 @@ def main() -> None:
         for key in ("source", "destination"):
             config[key] = windows_path(Path(config[key]))
     config_path = app_dir / "workspace.json"
-    config_path.write_text(json.dumps(config), encoding="utf-8")
     with socket.socket() as probe:
         probe.bind(("127.0.0.1", 0))
         port = probe.getsockname()[1]
+    config["port"] = port
+    config_path.write_text(json.dumps(config), encoding="utf-8")
     url = f"http://127.0.0.1:{port}"
     # An isolated Wine prefix, so the app's default LocalAppData location starts empty.
     wine_env = wine_environment(wine_bin(), root / "wine") if use_wine else dict(os.environ)
     local_app_data, xdg_data = root / "AppData" / "Local", root / "data"
-    env = {**wine_env, "PORT": str(port), "GDA_SYNC_HOME": "", "LOCALAPPDATA": str(local_app_data), "XDG_DATA_HOME": str(xdg_data)}
-    data_home = local_app_data / "GDA Sync" if target == "windows" else xdg_data / "gda-sync"
+    env = {**wine_env, "EGT_GDA_SYNC_HOME": "", "LOCALAPPDATA": str(local_app_data), "XDG_DATA_HOME": str(xdg_data)}
+    env.pop("PORT", None)
+    data_home = local_app_data / "EGT GDA Sync" if target == "windows" else xdg_data / "egt-gda-sync"
     log_path = root / "backend.log"
     command = ["wine", str(binary), "--no-open"] if use_wine else [str(binary), "--no-open"]
     # Output is relayed through a pipe: Windows programs under Wine cannot use a redirected file as stdout.
@@ -141,6 +143,7 @@ def main() -> None:
         browser = playwright.chromium.launch(headless=True)
         page = browser.new_page()
         page.goto(url)
+        page.get_by_role("button", name="Asset library", exact=True).click()
         expect(page.locator(".asset-card")).to_have_count(19)
         poll(lambda: get_json(f"{url}/api/health")["openPages"], 1)
         page.get_by_role("textbox", name="Search assets").fill("k_active_en.dds")
@@ -153,6 +156,7 @@ def main() -> None:
         status, body = request(f"{url}/api/settings", settings, {"x-gda-token": token}, method="PUT")
         assert status == 200, body
         assert json.loads(config_path.read_text(encoding="utf-8"))["name"] == settings["name"]
+        assert json.loads(config_path.read_text(encoding="utf-8"))["port"] == port
         pending = [asset["id"] for asset in library["assets"] if asset["status"] != "synced"]
         status, body = request(f"{url}/api/sync", {"ids": pending}, {"x-gda-token": token})
         result = json.loads(body)
@@ -165,7 +169,7 @@ def main() -> None:
         assert json.loads((data_home / "activity.json").read_text(encoding="utf-8"))[0]["action"] == "sync"
 
         page.reload()
-        expect(page.locator(".asset-card")).to_have_count(19)
+        expect(page.get_by_role("heading", name="Dashboard")).to_be_visible()
         time.sleep(2.2)
         assert get_json(f"{url}/api/health")["openPages"] == 1
         start = time.monotonic()

@@ -1,8 +1,8 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from gda_sync.library import Library
-from gda_sync.server import create_app
+from egt_gda_sync.library import Library
+from egt_gda_sync.server import create_app
 
 
 @pytest.fixture

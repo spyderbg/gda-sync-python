@@ -1,8 +1,8 @@
 {
-  "name": "gda-sync-frontend",
-  "version": "2.0.0",
+  "name": "egt-gda-sync-frontend",
+  "version": "1.0.0",
   "private": true,
-  "description": "Vue 3 interface for GDA Sync, embedded into the Python backend",
+  "description": "Vue 3 interface for EGT GDA Sync, embedded into the Python backend",
   "type": "module",
   "engines": {
     "node": ">=20.19.0"
@@ -13,13 +13,16 @@
     "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
-    "@fontsource-variable/dm-sans": "^5.3.0",
-    "@lucide/vue": "^1.49.0",
+    "@fontsource-variable/roboto": "^5.3.0",
+    "@mdi/font": "^7.4.47",
+    "chart.js": "^4.5.1",
     "vue": "^3.5.43"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.9",
     "@vue/tsconfig": "^0.9.1",
+    "bootstrap": "^4.6.2",
+    "sass": "^1.105.1",
     "typescript": "~5.9.3",
     "vite": "^8.3.2",
     "vue-tsc": "^3.3.11"

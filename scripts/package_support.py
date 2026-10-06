@@ -16,17 +16,17 @@ import numpy as np
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from gda_sync.png import encode_png  # noqa: E402
+from egt_gda_sync.png import encode_png  # noqa: E402
 
 BUILD = ROOT / "build"
 DIST = ROOT / "dist"
 FRONTEND = ROOT / "frontend"
-SPEC = ROOT / "bundle" / "gda-sync.spec"
-ICON = BUILD / "gda-sync.ico"
+SPEC = ROOT / "bundle" / "egt-gda-sync.spec"
+ICON = BUILD / "egt-gda-sync.ico"
 # Wine, its prefix and the Windows Python live outside the project: the prefix links drive Z: to the
 # file system root, which tools that walk the project tree would otherwise follow.
 WINE_ROOT = Path(
-    os.environ.get("GDA_SYNC_BUILD_CACHE") or Path(os.environ.get("XDG_CACHE_HOME") or Path.home() / ".cache") / "gda-sync-build"
+    os.environ.get("EGT_GDA_SYNC_BUILD_CACHE") or Path(os.environ.get("XDG_CACHE_HOME") or Path.home() / ".cache") / "egt-gda-sync-build"
 )
 
 # Windows executables built on Linux use this pinned, checksum-verified CPython from nuget.org under Wine.
@@ -85,7 +85,7 @@ def package_targets(target: str | None, platform: str = sys.platform) -> list[st
 def workspace_configuration() -> Path:
     config = ROOT / "config" / "workspace.json"
     if not config.is_file():
-        raise SystemExit("Copy config/config.json.template to config/workspace.json and configure your workspace before packaging.")
+        raise SystemExit("Copy config/workspace.json.template to config/workspace.json and configure your workspace before packaging.")
     return config
 
 
@@ -198,7 +198,7 @@ def _host_constraints() -> str:
     pins = {}
     for distribution in metadata.distributions():
         name = (distribution.metadata["Name"] or "").lower()
-        if name and name not in ("gda-sync", "pip", "setuptools"):
+        if name and name not in ("egt-gda-sync", "pip", "setuptools"):
             pins[name] = f"{name}=={distribution.version}"
     return "\n".join(sorted(pins.values())) + "\n"
 
@@ -225,7 +225,7 @@ def prepare_windows_python() -> tuple[Path, dict[str, str]]:
 
     constraints = _host_constraints()
     requirements = [f"{name}=={metadata.version(name)}" for name in BUILD_REQUIREMENTS]
-    stamp = python_dir / "gda-sync-requirements.txt"
+    stamp = python_dir / "egt-gda-sync-requirements.txt"
     wanted = "\n".join(requirements) + "\n" + constraints
     if not stamp.exists() or stamp.read_text() != wanted:
         constraints_file = WINE_ROOT / "constraints.txt"
