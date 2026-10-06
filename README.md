@@ -284,3 +284,18 @@ dist/            Generated standalone Linux and Windows executables with workspa
 DDS decoding follows Microsoft's [DDS header](https://learn.microsoft.com/en-us/windows/win32/direct3ddds/dds-header) and [block-compression](https://learn.microsoft.com/en-us/windows/win32/direct3d10/d3d10-graphics-programming-guide-resources-block-compression) documentation. The BC7 decoder and partition tables are adapted from [bcdec](https://github.com/iOrange/bcdec) under the MIT license; its copyright and license are retained in `egt_gda_sync/bc7.py` and the bundled application. Regression vectors cover all eight BC7 modes, all partition patterns, channel rotations, and index selectors.
 
 The interface uses the SCSS of the [StarAdmin Free Bootstrap Admin Template](https://github.com/BootstrapDash/StarAdmin-Free-Bootstrap-Admin-Template) by BootstrapDash (MIT), compiled against Bootstrap 4.6 with Material Design Icons and Roboto; `frontend/src/theme/staradmin/README.md` lists its few changes.
+
+## Vue views
+
+The interface has five page views and one asset detail panel in `frontend/src/views`:
+
+| Vue file | Purpose |
+| --- | --- |
+| [DashboardView.vue](frontend/src/views/DashboardView.vue) | Overview of asset counts, pending changes, sync coverage, storage usage, and activity charts. Provides shortcuts to rescan, sync all pending assets, and open folders. |
+| [LibraryView.vue](frontend/src/views/LibraryView.vue) | Browse assets in grid or list form, with searching, filtering, sorting, inspection, and selection for copying to GDA. Also powers **Needs sync** (`pending`) and the filtered **synced** library mode (`synced`). |
+| [SyncView.vue](frontend/src/views/SyncView.vue) | The sidebar's **In sync** page (`rssSync`). Displays the resource comparison report with **In sync**, **Missing**, **Different**, and **Invalid** categories, scan progress, matching GDA paths, descriptor references, and DDS mip-level differences. |
+| [SyncHistoryView.vue](frontend/src/views/SyncHistoryView.vue) | Shows previous comparison runs, their success or failure, duration, and count changes between runs. Also lists file-copy operations, the files copied, and bytes transferred. |
+| [SettingsView.vue](frontend/src/views/SettingsView.vue) | Configures the workspace name, source folder, and GDA destination. Shows backup information and provides the stop-application action. |
+| [AssetInspector.vue](frontend/src/views/AssetInspector.vue) | Detail panel inside the library showing the selected asset's preview, metadata, and sync status. Allows syncing that asset, opening its source folder, or copying its path. |
+
+[App.vue](frontend/src/App.vue) switches pages using `ui.view` from [workspace.ts](frontend/src/workspace.ts), without Vue Router. **LibraryView** manages asset browsing and copying; **SyncView** displays comparison results without changing files. Its **In sync** page is separate from the library's `synced` filter mode.
