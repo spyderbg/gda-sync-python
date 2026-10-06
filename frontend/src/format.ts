@@ -1,4 +1,4 @@
-import type { Asset, AssetStatus, AssetType } from './types';
+import type { Asset, AssetStatus, AssetType, RssResource, RssSequence } from './types';
 
 export const ASSET_TYPES = ['texture', 'model', 'material', 'audio'] as const;
 export const typeIcons: Record<AssetType, string> = {
@@ -30,6 +30,45 @@ export function ago(value: string, now = Date.now()) {
   }
   return relative.format(0, 'minute');
 }
+
+// The asset types of the GDA sync report's files, grouped like ASSET_TYPES in egt_gda_sync/library.py.
+const TYPE_EXTENSIONS: [AssetType, string[]][] = [
+  ['texture', ['png', 'jpg', 'jpeg', 'webp', 'svg', 'dds', 'tga', 'bmp', 'exr', 'tif', 'tiff']],
+  ['model', ['obj', 'fbx', 'glb', 'gltf', 'blend']],
+  ['material', ['mat', 'mtl', 'material']],
+  ['audio', ['wav', 'ogg', 'mp3', 'flac']],
+];
+/** The image files the backend previews: DDS textures, which it decodes, and the formats a browser shows as they are. */
+export const PREVIEW_EXTENSIONS = ['dds', 'png', 'jpg', 'jpeg', 'webp', 'svg', 'bmp'];
+
+export const extensionOf = (name: string) => (name.lastIndexOf('.') > 0 ? name.slice(name.lastIndexOf('.') + 1).toLowerCase() : '');
+export const fileType = (extension: string): AssetType => TYPE_EXTENSIONS.find(([, extensions]) => extensions.includes(extension))?.[0] ?? 'other';
+/** A path's file name and its folder, which is "Root" for a file at the top. */
+export function splitPath(path: string) {
+  const index = path.lastIndexOf('/');
+  return { name: path.slice(index + 1), folder: index < 0 ? 'Root' : path.slice(0, index) };
+}
+
+/** Whether a row of the GDA sync report matches a lowercase search: its path, a GDA path, or an image sequence's id or
+ * frame paths. */
+export function rowMatches(row: RssResource, needle: string) {
+  return !needle || row.resource.toLowerCase().includes(needle) || row.gdaFiles.some(file => file.path.toLowerCase().includes(needle)) ||
+    !!row.sequence && (!!row.sequence.id?.toLowerCase().includes(needle) || row.sequence.paths.some(path => path.toLowerCase().includes(needle)));
+}
+
+/** A sequence's id, or what a guessed one is. */
+export const sequenceName = (sequence: RssSequence) => sequence.id ?? 'Guessed sequence';
+
+/** How an image sequence plays, for example "71 frames · 42 ms · loops forever". */
+export function sequenceSummary(sequence: RssSequence) {
+  const count = sequence.frames.length;
+  const loops = sequence.loopCount === 0 ? 'loops forever' : sequence.loopCount === 1 ? 'plays once' : `plays ${sequence.loopCount} times`;
+  return `${number(count)} frame${plural(count)} · ${sequence.frameTime} ms · ${loops}`;
+}
+
+/** The preview of a file the GDA sync report names, by its absolute path; revision is the report it came from. */
+export const reportPreviewURL = (file: string, revision: string) =>
+  `/api/rss-sync/preview?file=${encodeURIComponent(file)}&v=${encodeURIComponent(revision)}`;
 
 export const previewURL = (asset: Asset, revision: string) =>
   `/api/assets/${asset.id}/preview?v=${encodeURIComponent(asset.modifiedAt)}&scan=${encodeURIComponent(revision)}`;

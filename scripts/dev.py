@@ -1,7 +1,9 @@
 """Development mode: the Vite dev server with hot reload, plus the backend in development mode.
 
 The browser opens the configured Vite port, which proxies /api to the configured backend port.
-Closing the page stops the backend, which then stops the dev server.
+Unlike the packaged application, closing the page does not stop the backend: in development
+the backend keeps running so it does not take the Vite dev server down with it. End a session
+with `python scripts/dev.py stop` (or Ctrl+C in its terminal).
 
 The action is start, to run a session, or stop, to end a session started by an earlier run.
 """

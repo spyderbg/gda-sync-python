@@ -2,23 +2,20 @@
 import { computed, ref, watch } from 'vue';
 import CheckBox from '../components/CheckBox.vue';
 import ReportNotice from '../components/ReportNotice.vue';
+import ResourceCard from '../components/ResourceCard.vue';
 import { useSyncReport } from '../composables/useSyncReport';
-import { number, plural, time } from '../format';
+import { number, plural, rowMatches, time } from '../format';
 import type { RssCategory, RssResource } from '../types';
-import { busy, config, copy, navigate, openFolder, requestResourceSync, rescan, rssSync } from '../workspace';
+import { busy, config, navigate, openFolder, requestResourceSync, rescan, rssSync } from '../workspace';
 
-// Apart from the workspace's name and folders, everything on this page comes from the workspace's GDA sync report:
-// the counts of its comparison and the resources that differ from the GDA folder. Only a "different" resource has a
-// GDA file to copy, so only those can be selected and synced.
+// Apart from the workspace's folders, everything on this page comes from the workspace's GDA sync report:
+// the counts of its comparison and the resources that differ from the GDA folder, then the supplementary files, which
+// no descriptor declares. Only a "different" resource has a GDA file to copy, so only those can be selected and synced.
 type Category = Exclude<RssCategory, 'identical'>;
 type Filter = 'all' | Category;
-const CATEGORIES: Record<Category, { label: string; badge: string }> = {
-  different: { label: 'Different', badge: 'badge-danger' },
-  missing: { label: 'Missing', badge: 'badge-warning' },
-  invalid: { label: 'Invalid', badge: 'badge-dark' },
-};
 const FILTERS: { key: Filter; label: string }[] = [
   { key: 'all', label: 'All' }, { key: 'different', label: 'Different' }, { key: 'missing', label: 'Missing' }, { key: 'invalid', label: 'Invalid' },
+  { key: 'supplementary', label: 'Supplementary' },
 ];
 const PAGE_SIZE = 200;
 
@@ -36,17 +33,15 @@ const summary = computed(() => report.value?.summary);
 const finishedAt = computed(() => summary.value?.finishedAt ?? report.value?.finishedAt);
 const differences = computed(() => report.value?.differences ?? []);
 const counts = computed(() => {
-  const result = { all: differences.value.length, different: 0, missing: 0, invalid: 0 };
+  const result = { all: differences.value.length, different: 0, missing: 0, invalid: 0, supplementary: 0 };
   for (const row of differences.value) if (row.category !== 'identical') result[row.category]++;
   return result;
 });
 
-const fileName = (row: RssResource) => row.resource.slice(row.resource.lastIndexOf('/') + 1);
 const rows = computed(() => {
   const needle = query.value.trim().toLowerCase();
   // Preserve the report's order by status, then path.
-  return differences.value.filter(row => (filter.value === 'all' || row.category === filter.value) &&
-    (!needle || row.resource.toLowerCase().includes(needle) || row.gdaFiles.some(file => file.path.toLowerCase().includes(needle))));
+  return differences.value.filter(row => (filter.value === 'all' || row.category === filter.value) && rowMatches(row, needle));
 });
 const visible = computed(() => rows.value.slice(0, shown.value));
 watch([filter, query, report], () => { shown.value = PAGE_SIZE; });
@@ -77,18 +72,12 @@ function toggleAll(select: boolean) {
   for (const row of shownSyncable.value) if (select) next.add(row.id); else next.delete(row.id);
   selected.value = next;
 }
-
-const category = (row: RssResource) => CATEGORIES[row.category as Category];
-const reason = (row: RssResource) => row.status.replace(/^invalid: /, '');
-// Long paths wrap after a folder separator rather than inside a name.
-const segments = (path: string) => path.split(/(?<=\/)/);
 </script>
 
 <template>
-  <section class="sync-workspace" aria-labelledby="sync-workspace-heading">
+  <section class="sync-workspace" aria-label="Sync workspace">
     <div class="sync-workspace-top">
       <div class="sync-workspace-intro">
-        <h1 id="sync-workspace-heading">{{ config.name }}<span class="sync-title-dot">.</span></h1>
         <p v-if="reportPath" class="sync-report">Sync data: <span class="sync-report-path" :title="reportPath">{{ reportPath }}</span></p>
         <p v-if="reportPath && lastRun?.state === 'failed'" class="sync-report sync-report-failed">
           <i aria-hidden="true" class="mdi mdi-alert-circle-outline" />The last GDA sync failed: {{ lastRun.error }}<template v-if="summary && finishedAt"> Showing the result from {{ time(finishedAt) }}.</template>
@@ -113,12 +102,16 @@ const segments = (path: string) => path.split(/(?<=\/)/);
       </button>
       <button type="button" :class="['sync-metric', { active: filter === 'all' }]" @click="filter = 'all'">
         <span class="sync-metric-icon is-pending" aria-hidden="true"><i class="mdi mdi-sync" /></span>
-        <span class="sync-metric-copy"><span class="sync-metric-label">Not in sync</span><span class="sync-metric-value">{{ number(counts.all) }}<small>{{ number(counts.different) }} different · {{ number(counts.missing) }} missing · {{ number(counts.invalid) }} invalid</small></span></span>
+        <span class="sync-metric-copy"><span class="sync-metric-label">Not in sync</span><span class="sync-metric-value">{{ number(counts.different + counts.missing + counts.invalid) }}<small>{{ number(counts.different) }} different · {{ number(counts.missing) }} missing · {{ number(counts.invalid) }} invalid</small></span></span>
       </button>
       <button type="button" class="sync-metric" @click="navigate('rssSync')">
         <span class="sync-metric-icon is-synced" aria-hidden="true"><i class="mdi mdi-check-all" /></span>
         <span class="sync-metric-copy"><span class="sync-metric-label">In sync</span><span class="sync-metric-value">{{ number(summary.identical) }}<small>{{ summary.identicalMipOnly ? `${number(summary.identicalMipOnly)} differ only in DDS mip levels` : 'identical in the GDA folder' }}</small></span></span>
         <i class="mdi mdi-arrow-top-right sync-metric-arrow" aria-hidden="true" />
+      </button>
+      <button type="button" :class="['sync-metric', { active: filter === 'supplementary' }]" @click="filter = 'supplementary'">
+        <span class="sync-metric-icon is-supplementary" aria-hidden="true"><i class="mdi mdi-file-question-outline" /></span>
+        <span class="sync-metric-copy"><span class="sync-metric-label">Supplementary</span><span class="sync-metric-value">{{ number(counts.supplementary) }}<small>in the game, in no descriptor</small></span></span>
       </button>
     </div>
 
@@ -147,7 +140,7 @@ const segments = (path: string) => path.split(/(?<=\/)/);
       <div class="card-body">
         <i aria-hidden="true" class="mdi mdi-check-all text-success" />
         <h4>All caught up.</h4>
-        <p class="text-muted">Every resource of the game has an identical file in the GDA folder.</p>
+        <p class="text-muted">Every resource of the game has an identical file in the GDA folder, and every file of the game is declared.</p>
       </div>
     </div>
 
@@ -161,56 +154,29 @@ const segments = (path: string) => path.split(/(?<=\/)/);
           </div>
           <div class="sync-search">
             <i aria-hidden="true" class="mdi mdi-magnify" />
-            <input v-model="query" type="search" class="form-control" aria-label="Search resources not in sync" placeholder="Search by resource or GDA path…">
+            <input v-model="query" type="search" class="form-control" aria-label="Search resources not in sync" placeholder="Search by resource, GDA path or sequence…">
           </div>
         </div>
       </div>
 
-      <div v-if="rows.length" class="card grid-margin">
-        <div class="card-body">
-          <div class="table-responsive">
-            <table class="table sync-table" aria-label="Resources not in sync">
-              <thead>
-                <tr>
-                  <th scope="col">
-                    <CheckBox v-if="shownSyncable.length" :checked="allSelected" label="Select all shown different resources" @change="toggleAll" />
-                    <span v-else class="sr-only">Select</span>
-                  </th>
-                  <th scope="col">Resource</th><th scope="col">Status</th><th scope="col">GDA files, declarations or reason</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="row in visible" :key="row.id" :class="{ selected: selected.has(row.id) }">
-                  <td><CheckBox v-if="syncable(row)" :checked="selected.has(row.id)" :label="`Select ${row.resource}`" @change="toggle(row.id)" /></td>
-                  <td>
-                    <span class="sync-path" :title="row.resourcePath"><template v-for="(part, index) in segments(row.resource)" :key="index">{{ part }}<wbr></template></span>
-                    <span v-if="row.scope === 'common'" class="badge badge-light ml-1">common</span>
-                    <button type="button" class="sync-copy" :aria-label="`Copy the game path of ${fileName(row)}`" title="Copy the game path" @click="copy(row.resourcePath)"><i aria-hidden="true" class="mdi mdi-content-copy" /></button>
-                  </td>
-                  <td><span :class="['badge', category(row).badge]">{{ category(row).label }}</span></td>
-                  <td>
-                    <template v-if="row.category === 'missing'">
-                      <span v-if="!row.requiredBy.length" class="text-muted">No JSON descriptor</span>
-                      <span v-for="use in row.requiredBy" :key="`${use.descriptor}:${use.line}`" class="sync-path d-block">{{ use.descriptor }}:{{ use.line }}</span>
-                    </template>
-                    <span v-else-if="row.category === 'invalid'">{{ reason(row) }}</span>
-                    <template v-else>
-                      <span v-for="file in row.gdaFiles" :key="file.absolutePath" class="sync-path d-block" :title="file.absolutePath">
-                        <template v-for="(part, index) in segments(file.path)" :key="index">{{ part }}<wbr></template><span v-if="file.tree === 'common'" class="badge badge-light ml-1">common GDA</span>
-                        <button type="button" class="sync-copy" :aria-label="`Copy the GDA path ${file.path}`" title="Copy the GDA path" @click="copy(file.absolutePath)"><i aria-hidden="true" class="mdi mdi-content-copy" /></button>
-                      </span>
-                    </template>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <div v-if="rows.length > shown" class="sync-more">
-            <span class="text-muted">Showing {{ number(shown) }} of {{ number(rows.length) }}</span>
-            <button type="button" class="btn btn-outline-primary btn-sm" @click="shown += PAGE_SIZE">Show {{ number(Math.min(PAGE_SIZE, rows.length - shown)) }} more</button>
+      <template v-if="rows.length">
+        <div class="results-heading">
+          <CheckBox v-if="shownSyncable.length" :checked="allSelected" label="Select all shown different resources" @change="toggleAll">
+            {{ selectedRows.length ? `${number(selectedRows.length)} selected` : `${number(rows.length)} of ${number(counts.all)} resources` }}<small v-if="query" class="text-muted"> matching “{{ query }}”</small>
+          </CheckBox>
+          <span v-else>{{ number(rows.length) }} of {{ number(counts.all) }} resources<small v-if="query" class="text-muted"> matching “{{ query }}”</small></span>
+        </div>
+        <!-- A different resource spans the row, so its GDA files sit beside the game file. -->
+        <div class="row asset-grid">
+          <div v-for="row in visible" :key="row.id" :class="[row.category === 'different' ? 'col-12' : 'col-sm-6 col-xl-4', 'grid-margin', 'stretch-card']">
+            <ResourceCard :row="row" :revision="finishedAt ?? ''" :selected="selected.has(row.id)" @toggle="toggle(row.id)" />
           </div>
         </div>
-      </div>
+        <div v-if="rows.length > shown" class="sync-more grid-margin">
+          <span class="text-muted">Showing {{ number(shown) }} of {{ number(rows.length) }}</span>
+          <button type="button" class="btn btn-outline-primary btn-sm" @click="shown += PAGE_SIZE">Show {{ number(Math.min(PAGE_SIZE, rows.length - shown)) }} more</button>
+        </div>
+      </template>
       <div v-else class="card sync-none grid-margin">
         <div class="card-body text-muted">
           <i aria-hidden="true" class="mdi mdi-magnify" />
@@ -231,8 +197,6 @@ const segments = (path: string) => path.split(/(?<=\/)/);
 .sync-workspace { margin-bottom: 22px; }
 .sync-workspace-top { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
 .sync-workspace-intro { min-width: 0; }
-h1 { margin: 0 0 10px; font-size: clamp(26px, 2.6vw, 34px); line-height: 1.2; font-weight: 500; letter-spacing: -0.8px; overflow-wrap: anywhere; }
-.sync-title-dot { color: #85a777; }
 .sync-report { margin: 0; color: #87909b; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
 .sync-report-path { font-family: monospace; }
 .sync-report-failed { margin-top: 4px; color: #d2453c; }
@@ -243,13 +207,14 @@ h1 { margin: 0 0 10px; font-size: clamp(26px, 2.6vw, 34px); line-height: 1.2; fo
 .sync-workspace-actions .btn .badge { flex-shrink: 0; }
 .sync-workspace-actions .btn-outline-primary { background: #fff; border-color: #dce2dc; color: #5d7063; }
 .sync-workspace-actions .btn-outline-primary:hover:not(:disabled) { background: #f1f5f1; }
-.sync-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-bottom: 20px; }
+.sync-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 20px; }
 .sync-metric { display: flex; position: relative; align-items: center; gap: 14px; min-width: 0; padding: 20px 18px; border: 1px solid #e0e5de; border-radius: 9px; background: #fff; color: #29383b; text-align: left; font-family: inherit; cursor: pointer; transition: border-color 0.15s; }
 .sync-metric:hover { border-color: #aebcac; }
 .sync-metric-icon { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 42px; height: 44px; border-radius: 10px; font-size: 24px; }
 .sync-metric-icon.is-total { color: #828d70; background: #f0f2eb; }
 .sync-metric-icon.is-pending { color: #cc8a43; background: #fdf1e5; }
 .sync-metric-icon.is-synced { color: #80a263; background: #edf4e6; }
+.sync-metric-icon.is-supplementary { color: #8862e0; background: #f1ebfc; }
 .sync-metric-copy { display: block; min-width: 0; }
 .sync-metric-label { display: block; margin-bottom: 6px; color: #8a968d; font-size: 11px; }
 .sync-metric-value { display: flex; align-items: baseline; flex-wrap: wrap; column-gap: 9px; row-gap: 2px; font-size: 28px; font-weight: 500; line-height: 1.15; letter-spacing: -0.7px; }
@@ -271,16 +236,6 @@ h1 { margin: 0 0 10px; font-size: clamp(26px, 2.6vw, 34px); line-height: 1.2; fo
 .sync-search { position: relative; flex: 1 1 220px; min-width: 0; }
 .sync-search i { position: absolute; top: 50%; left: 12px; transform: translateY(-50%); color: #97a098; font-size: 18px; pointer-events: none; }
 .sync-search input { padding-left: 38px; }
-/* The theme keeps table cells on one line; long paths have to wrap. Narrow screens scroll the table instead. */
-.sync-table { min-width: 660px; table-layout: fixed; }
-.sync-table th:nth-child(1) { width: 44px; }
-.sync-table th:nth-child(3) { width: 104px; }
-.sync-table .form-check { margin: 0; }
-.sync-table tr.selected td { background: #f2f7ff; }
-.sync-table td { vertical-align: top; white-space: normal; line-height: 1.5; height: auto; }
-.sync-path { font-family: monospace; font-size: 12px; overflow-wrap: anywhere; }
-.sync-copy { padding: 0 4px; border: 0; border-radius: 4px; background: transparent; color: #9aa3ad; font-size: 13px; line-height: 1; cursor: pointer; }
-.sync-copy:hover { background: #ebedf2; color: #4b49ac; }
 .sync-more { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; }
 .sync-none .card-body { padding: 40px 20px; text-align: center; }
 .sync-none i { font-size: 32px; }

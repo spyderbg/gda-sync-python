@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import PageHeader from '../components/PageHeader.vue';
-import ReportNotice from '../components/ReportNotice.vue';
 import { useSyncReport } from '../composables/useSyncReport';
-import { number, plural, time } from '../format';
+import { number, plural, rowMatches, sequenceName, sequenceSummary, splitPath, time } from '../format';
 import type { RssCategory, RssResource } from '../types';
-import { activeSyncCount, busy, config, navigate, rescan, rssSync } from '../workspace';
+import { activeSyncCount, busy, config, rescan, rssSync } from '../workspace';
 
 const PAGE_SIZE = 200;
 const CATEGORIES: { key: RssCategory; label: string; badge: string; hint: string; detail: string }[] = [
@@ -13,6 +12,7 @@ const CATEGORIES: { key: RssCategory; label: string; badge: string; hint: string
   { key: 'missing', label: 'Missing', badge: 'badge-warning', hint: 'no GDA file with this name', detail: 'Declared in' },
   { key: 'different', label: 'Different', badge: 'badge-danger', hint: 'same name, other content', detail: 'GDA files with this name, closest folder first' },
   { key: 'invalid', label: 'Invalid', badge: 'badge-dark', hint: 'declared path not usable', detail: 'Reason' },
+  { key: 'supplementary', label: 'Supplementary', badge: 'badge-info', hint: 'in the game, in no descriptor', detail: 'Not compared' },
 ];
 const PHASES = { descriptors: 'Reading the *Data.json descriptors', index: 'Indexing the GDA folder', compare: 'Comparing files' };
 
@@ -40,8 +40,7 @@ const rows = computed<RssResource[]>(() => {
     ? report.value?.identical ?? []
     : (report.value?.differences ?? []).filter(row => row.category === category.value);
   const needle = query.value.trim().toLowerCase();
-  if (!needle) return all;
-  return all.filter(row => row.resource.toLowerCase().includes(needle) || row.gdaFiles.some(file => file.path.toLowerCase().includes(needle)));
+  return needle ? all.filter(row => rowMatches(row, needle)) : all;
 });
 const visible = computed(() => rows.value.slice(0, shown.value));
 watch([category, query, report], () => { shown.value = PAGE_SIZE; });
@@ -54,6 +53,17 @@ const duration = computed(() => {
 const reason = (row: RssResource) => row.status.replace(/^invalid: /, '');
 // Long paths wrap after a folder separator rather than inside a name.
 const segments = (path: string) => path.split(/(?<=\/)/);
+/** The GDA folders of an image sequence's files, with how many of them each holds. */
+function gdaFolders(row: RssResource) {
+  const folders = new Map<string, { folder: string; tree: string; count: number }>();
+  for (const file of row.gdaFiles) {
+    const folder = splitPath(file.path).folder;
+    const entry = folders.get(`${file.tree}:${folder}`) ?? { folder, tree: file.tree, count: 0 };
+    entry.count++;
+    folders.set(`${file.tree}:${folder}`, entry);
+  }
+  return [...folders.values()];
+}
 </script>
 
 <template>
@@ -63,9 +73,6 @@ const segments = (path: string) => path.split(/(?<=\/)/);
       <li v-if="finishedAt"><span>Compared {{ time(finishedAt) }}</span></li>
       <li v-if="duration"><span>Took {{ duration }}</span></li>
       <li v-if="report?.workspace?.game_name"><span>Game {{ report.workspace.game_name }}</span></li>
-    </template>
-    <template #links-right>
-      <li><a href="#" @click.prevent="navigate('history')">Sync history</a></li>
     </template>
     <template #toolbar>
       <button type="button" class="btn btn-primary toolbar-item" :disabled="!!busy || running" @click="rescan">
@@ -113,8 +120,6 @@ const segments = (path: string) => path.split(/(?<=\/)/);
   </div>
   <div v-if="loadError" class="alert alert-danger rss-alert"><i aria-hidden="true" class="mdi mdi-alert-circle-outline" /><span>{{ loadError }}</span></div>
 
-  <ReportNotice v-if="!running && !summary && !loadError" />
-
   <template v-if="summary">
     <h4 class="rss-heading">Latest completed comparison</h4>
     <div class="card grid-margin">
@@ -123,7 +128,7 @@ const segments = (path: string) => path.split(/(?<=\/)/);
         <div class="rss-tiles" role="group" aria-label="Result categories">
           <button v-for="item in CATEGORIES" :key="item.key" type="button" :class="['rss-tile', item.key, { active: category === item.key }]" :aria-pressed="category === item.key" @click="category = item.key">
             <span class="rss-tile-label">{{ item.label }}</span>
-            <span class="rss-tile-value">{{ number(summary[item.key]) }}</span>
+            <span class="rss-tile-value">{{ number(summary[item.key] ?? 0) }}</span>
             <span class="rss-tile-hint">{{ item.key === 'identical' && summary.identicalMipOnly ? `${number(summary.identicalMipOnly)} differ only in DDS mip levels` : item.hint }}</span>
           </button>
         </div>
@@ -151,6 +156,7 @@ const segments = (path: string) => path.split(/(?<=\/)/);
                 <td>
                   <span class="rss-path" :title="row.resourcePath"><template v-for="(part, index) in segments(row.resource)" :key="index">{{ part }}<wbr></template></span>
                   <span v-if="row.scope === 'common'" class="badge badge-light ml-1">common</span>
+                  <small v-if="row.sequence" class="d-block text-muted"><span :class="{ 'rss-path': !row.sequence.guessed }">{{ sequenceName(row.sequence) }}</span> · {{ sequenceSummary(row.sequence) }}</small>
                 </td>
                 <td>
                   <template v-if="row.category === 'missing'">
@@ -158,6 +164,13 @@ const segments = (path: string) => path.split(/(?<=\/)/);
                     <span v-for="use in row.requiredBy" :key="`${use.descriptor}:${use.line}`" class="rss-path d-block">{{ use.descriptor }}:{{ use.line }}</span>
                   </template>
                   <span v-else-if="row.category === 'invalid'">{{ reason(row) }}</span>
+                  <span v-else-if="row.category === 'supplementary'" class="text-muted">No JSON descriptor declares {{ row.sequence ? 'these files' : 'this file' }}</span>
+                  <template v-else-if="row.sequence">
+                    <span v-for="item in gdaFolders(row)" :key="`${item.tree}:${item.folder}`" class="rss-path d-block">
+                      <template v-for="(part, index) in segments(`${item.folder}/`)" :key="index">{{ part }}<wbr></template><span class="text-muted ml-2">{{ number(item.count) }} file{{ plural(item.count) }}</span><span v-if="item.tree === 'common'" class="badge badge-light ml-1">common GDA</span>
+                    </span>
+                    <span v-if="row.mipOnly" class="badge badge-info">some files differ only in DDS mip levels</span>
+                  </template>
                   <template v-else>
                     <span v-for="file in row.gdaFiles" :key="file.absolutePath" class="rss-path d-block" :title="file.absolutePath">
                       <template v-for="(part, index) in segments(file.path)" :key="index">{{ part }}<wbr></template><span v-if="file.tree === 'common'" class="badge badge-light ml-1">common GDA</span>
@@ -196,13 +209,14 @@ const segments = (path: string) => path.split(/(?<=\/)/);
 .rss-alert i { font-size: 18px; line-height: 1.2; }
 .rss-alert span { overflow-wrap: anywhere; }
 .rss-compared { margin: 0 0 12px; color: #6c757d; font-size: 13px; }
-.rss-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 20px; }
+.rss-tiles { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-bottom: 20px; }
 .rss-tile { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; padding: 14px 16px; border: 1px solid #e3e7ec; border-left-width: 4px; border-radius: 8px; background: #fff; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .rss-tile:hover { border-color: #b9c4d0; }
 .rss-tile.identical { border-left-color: #19d895; }
 .rss-tile.missing { border-left-color: #ffaf00; }
 .rss-tile.different { border-left-color: #ff6258; }
 .rss-tile.invalid { border-left-color: #3e4b5b; }
+.rss-tile.supplementary { border-left-color: #8862e0; }
 .rss-tile.active { background: #f2f7ff; box-shadow: 0 0 0 2px #2277cf inset; }
 .rss-tile-label { color: #6c757d; font-size: 12px; }
 .rss-tile-value { font-size: 26px; font-weight: 500; line-height: 1.2; }

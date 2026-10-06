@@ -7,12 +7,12 @@ import ChartLegend from '../components/ChartLegend.vue';
 import PageHeader from '../components/PageHeader.vue';
 import ReportNotice from '../components/ReportNotice.vue';
 import { ago, number, plural, size, time } from '../format';
-import type { RssSyncHistory, RssSyncHistoryEntry, RssSyncSummary, RssSyncWorkspace } from '../types';
+import type { RssSyncCount, RssSyncHistory, RssSyncHistoryEntry, RssSyncSummary, RssSyncWorkspace } from '../types';
 import { busy, data, navigate, rescan, rssSync } from '../workspace';
 
 const CHART_RUNS = 20;
 // Whether a rise of each count is an improvement decides the color of its change.
-const COLUMNS: { key: keyof RssSyncSummary; label: string; riseIsBetter: boolean }[] = [
+const COLUMNS: { key: RssSyncCount; label: string; riseIsBetter: boolean }[] = [
   { key: 'identical', label: 'In sync', riseIsBetter: true },
   { key: 'missing', label: 'Missing', riseIsBetter: false },
   { key: 'different', label: 'Different', riseIsBetter: false },
@@ -184,6 +184,7 @@ const legend = computed(() => [
         <div class="history-run-footer">
           <small class="text-muted history-file" :title="run.file">{{ run.file }}</small>
           <small v-if="run.descriptors !== undefined" class="text-muted">{{ number(run.descriptors) }} descriptor{{ plural(run.descriptors) }} parsed</small>
+          <small v-if="run.summary?.supplementary" class="text-muted">{{ number(run.summary.supplementary) }} supplementary, in no descriptor</small>
           <small v-if="settingsChanged(run)" class="text-warning"><i aria-hidden="true" class="mdi mdi-alert-outline" /> Workspace settings have changed since this run</small>
         </div>
       </div>

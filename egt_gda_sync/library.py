@@ -566,7 +566,8 @@ class Library:
 
     def sync_resources(self, ids: list[str]) -> dict:
         """Copy the closest GDA file of each chosen "different" resource of the GDA sync report over the game resource,
-        then compare again, since the report lists a copied resource as different until the next run."""
+        or of each different frame of an image sequence, then compare again, since the report lists a copied resource
+        as different until the next run."""
         def operation() -> dict:
             workspace_id, entry = self._active_workspace()
             if self.reports.status(workspace_id)["running"]:
@@ -584,13 +585,22 @@ class Library:
             # The report is data: copy only from the workspace's GDA folders into its resources folder.
             resources = os.path.realpath(settings["resources_dir"])
             gda_roots = [os.path.realpath(root) for root in (settings["gda_dir"], settings["common_gda_dir"]) if root]
+            # The game files to replace, each once with the resource it belongs to: the frames of a sequence can
+            # repeat a file.
+            files = {
+                file["resourcePath"]: (row["id"], file)
+                for row in (rows[row_id] for row_id in wanted)
+                for file in (row["sequence"]["frames"] if "sequence" in row else [row])
+                if file["category"] == "different" and file["gdaFiles"]
+            }
             operation_id = str(uuid.uuid4())
             copied: list[str] = []
+            synced: set[str] = set()
             failures: list[dict] = []
             total = 0
-            for row in (rows[row_id] for row_id in wanted):
+            for row_id, file in files.values():
                 try:
-                    source, target = row["gdaFiles"][0]["absolutePath"], row["resourcePath"]
+                    source, target = file["gdaFiles"][0]["absolutePath"], file["resourcePath"]
                     root = next((root for root in gda_roots if contained(root, source)), None)
                     if root is None or not contained(resources, target):
                         raise AppError("The files are outside the workspace folders")
@@ -601,15 +611,17 @@ class Library:
                         continue
                     size = os.path.getsize(source)
                     _replace_file(source, resources, relative, os.path.join(self.backup_path, operation_id, relative))
-                    copied.append(row["resource"])
+                    copied.append(file["resource"])
+                    synced.add(row_id)
                     total += size
                 except Exception as error:
-                    failures.append({"name": os.path.basename(row["resource"]), "message": error_message(error)})
+                    failures.append({"name": os.path.basename(file["resource"]), "message": error_message(error)})
             if copied:
-                self._record("sync", f"Synced {len(copied)} resource{'' if len(copied) == 1 else 's'} to Game", copied, total)
-            if len(failures) < len(wanted):
+                self._record("sync", f"Synced {len(synced)} resource{'' if len(synced) == 1 else 's'} to Game", copied, total)
+            if len(failures) < len(files):
                 self.start_comparison()
-            return {"copied": copied, "failures": failures, "bytes": total, "library": self.scan()}
+            # A sequence is one resource however many of its files were copied.
+            return {"copied": copied, "resources": len(synced), "failures": failures, "bytes": total, "library": self.scan()}
 
         return self._exclusive(operation)
 
@@ -627,11 +639,43 @@ class Library:
         if asset["type"] == "model" and config["demo"]:
             with open(os.path.join(config["source"], ".previews", asset["id"] + ".svg"), "rb") as handle:
                 return handle.read(), "image/svg+xml"
-        file = safe_path(config["source"], asset["path"])
-        if os.stat(file).st_size > MAX_PREVIEW_BYTES:
+        return self._image(safe_path(config["source"], asset["path"]), asset["extension"])
+
+    def _resource_path(self, file: str) -> str:
+        """Resolve a report file inside the active workspace's game, GDA or common GDA folders."""
+        workspace_id, entry = self._active_workspace()
+        settings = self._comparison(workspace_id, entry)[1]
+        roots = [os.path.realpath(root) for root in (settings["resources_dir"], settings["gda_dir"], settings["common_gda_dir"]) if root]
+        root = next((root for root in roots if os.path.isabs(file) and contained(root, file)), None)
+        if root is None:
+            raise AppError("File not found", 404)
+        return safe_path(root, os.path.relpath(file, root))
+
+    def resource_folder(self, file: str) -> str:
+        """The existing parent directory of a report file, including a missing file or sequence pattern."""
+        folder = os.path.dirname(self._resource_path(file))
+        if not os.path.isdir(folder):
+            raise AppError("Folder does not exist", 404)
+        return folder
+
+    def resource_preview(self, file: str) -> tuple[bytes, str]:
+        """Preview an image inside the active workspace's resources and GDA folders."""
+        file = self._resource_path(file)
+        extension = os.path.splitext(file)[1][1:].lower()
+        if extension != "dds" and extension not in IMAGE_PREVIEWS:
+            raise AppError("No image preview for this file", 415)
+        try:
+            return self._image(file, extension)
+        except FileNotFoundError as error:
+            raise AppError("File not found", 404) from error
+
+    def _image(self, file: str, extension: str) -> tuple[bytes, str]:
+        """An image file as the browser can show it: decoded DDS textures are cached by file, time and size."""
+        info = os.stat(file)
+        if info.st_size > MAX_PREVIEW_BYTES:
             raise AppError("Preview is limited to files smaller than 64 MB", 413)
-        if asset["extension"] == "dds":
-            key = f"{file}:{asset['modifiedAt']}:{asset['size']}"
+        if extension == "dds":
+            key = f"{file}:{info.st_mtime_ns}:{info.st_size}"
             with self._previews_lock:
                 data = self._previews.get(key)
             if data is None:
@@ -646,4 +690,4 @@ class Library:
                     self._previews[key] = data
             return data, "image/png"
         with open(file, "rb") as handle:
-            return handle.read(), IMAGE_PREVIEWS.get(asset["extension"], "application/octet-stream")
+            return handle.read(), IMAGE_PREVIEWS.get(extension, "application/octet-stream")

@@ -16,6 +16,8 @@ from egt_gda_sync.rss_sync import (
 )
 from egt_gda_sync.server import create_app
 from tests.conftest import session_headers
+from tests.fixtures.bc7_dds import create_bc7_dds
+from tests.fixtures.png_reader import read_png
 
 
 def dds(levels: list[bytes], *, width: int = 8, height: int = 8, format_id: int = 98,
@@ -66,24 +68,28 @@ def test_classifies_every_status_with_descriptor_lines_and_lists_identical_files
     _game, gda = write_example(tmp_path)
     result = compare(Config(tmp_path / "resources", gda, frozenset({".dds"}), "example",
                             resource_paths=("extra-missing.dds", "../../outside.dds")))
-    assert result["summary"] == {"compared": 6, "identical": 2, "identicalMipOnly": 0, "missing": 3, "different": 1, "invalid": 2}
+    # The image sequence is one resource: one of its two frames is missing. No descriptor declares unlisted.dds.
+    assert result["summary"] == {"compared": 4, "identical": 1, "identicalMipOnly": 0, "missing": 2, "different": 1, "invalid": 2,
+                                 "supplementary": 1}
     # The script's report order: by status string, then resource.
     assert statuses(result) == [
         ("different SHA-256", "changed.dds"),
         ("invalid: outside resources_dir", "../../outside.dds"),
         ("invalid: source file does not exist", "extra-missing.dds"),
-        ("missing", "frame_001.dds"), ("missing", "required.dds"), ("missing", "unlisted.dds"),
+        ("missing (1 of 2 files)", "frame_{000-001}.dds"), ("missing", "required.dds"), ("supplementary", "unlisted.dds"),
     ]
     rows = {row["resource"]: row for row in result["differences"] + result["identical"]}
     assert rows["required.dds"]["requiredBy"] == [{"descriptor": "AllRssData.json", "line": 3}, {"descriptor": "RssRawData.json", "line": 5}]
-    assert rows["frame_001.dds"]["requiredBy"] == [{"descriptor": "RssImagesSeqData.json", "line": 4}]
-    assert rows["unlisted.dds"]["requiredBy"] == []
+    assert rows["frame_{000-001}.dds"]["requiredBy"] == [{"descriptor": "RssImagesSeqData.json", "line": 4}]
+    assert [(frame["resource"], frame["category"]) for frame in rows["frame_{000-001}.dds"]["sequence"]["frames"]] == [
+        ("frame_000.dds", "identical"), ("frame_001.dds", "missing")]
+    assert rows["unlisted.dds"]["requiredBy"] == [] and rows["unlisted.dds"]["gdaFiles"] == []
     assert [file["path"] for file in rows["changed.dds"]["gdaFiles"]] == ["a/changed.dds"]
     assert rows["changed.dds"]["gdaFiles"][0]["absolutePath"] == str((gda / "a" / "changed.dds").resolve())
     assert rows["../../outside.dds"]["scope"] == "outside" and rows["same.dds"]["scope"] == "game"
     # Identical files are listed with the GDA copy that matched, past the same-named decoy.
     assert [(row["resource"], row["gdaFiles"][0]["path"], row["mipOnly"]) for row in result["identical"]] == [
-        ("frame_000.dds", "a/frame_000.dds", False), ("same.dds", "b/same.dds", False),
+        ("same.dds", "b/same.dds", False),
     ]
     assert len({row["id"] for row in rows.values()}) == len(rows)
     # The parsed descriptors come just before the summary: one per file, with its declarations before and after ranges.
@@ -94,6 +100,100 @@ def test_classifies_every_status_with_descriptor_lines_and_lists_identical_files
     assert result["descriptors"][0]["path"] == str((tmp_path / "resources" / "example" / "AllRssData.json").resolve())
 
 
+def write_sequences(root: Path) -> tuple[Path, Path]:
+    """Image sequences: a {N-M} range with two changed frames, an atlas that repeats one file with source rectangles,
+    and a sequence whose only compared file is in sync. One frame is also declared as an image."""
+    game, gda = root / "resources" / "example", root / "gda"
+    (game / "anim").mkdir(parents=True)
+    (gda / "DDS" / "anim").mkdir(parents=True)
+    for number, (game_data, gda_data) in enumerate([(b"0", b"0"), (b"1", b"one"), (b"2", b"two")]):
+        (game / "anim" / f"a_{number:02d}.dds").write_bytes(game_data)
+        (gda / "DDS" / "anim" / f"a_{number:02d}.dds").write_bytes(gda_data)
+    (game / "atlas.dds").write_bytes(b"atlas")
+    (game / "cover.png").write_bytes(b"png")
+    (game / "RssImagesSeqData.json").write_text(json.dumps({"imagesSeq": [
+        {"id": "ANIM", "frameTime": 42, "loopCount": 0, "loopTo": 1, "frames": [{"path": "anim/a_{00-02}.dds"}]},
+        {"id": "ATLAS", "frameTime": 60, "loopCount": 2, "frames": [
+            {"path": "atlas.dds", "source": {"x": 0, "y": 0, "w": 4, "h": 4}},
+            {"path": "atlas.dds", "source": {"x": 4, "y": 0, "w": 4, "h": 4}},
+        ]},
+        {"id": "MIXED", "frameTime": 30, "loopCount": 1, "frames": [{"path": "cover.png"}, {"path": "anim/a_00.dds"}]},
+    ]}, indent=2))
+    (game / "RssImagesData.json").write_text(json.dumps({"images": [{"id": "FIRST", "path": "anim/a_01.dds"}]}, indent=2))
+    return game, gda
+
+
+def test_an_image_sequence_is_one_resource_with_its_frames(tmp_path):
+    game, gda = write_sequences(tmp_path)
+    result = compare(Config(tmp_path / "resources", gda, frozenset({".dds"}), "example"))
+    rows = {row.get("sequence", {}).get("id", row["resource"]): row for row in result["differences"] + result["identical"]}
+    # The frame files are not rows of their own, except a_01.dds, which is also declared as an image.
+    assert set(rows) == {"ANIM", "ATLAS", "MIXED", "anim/a_01.dds"}
+    assert result["summary"] == {"compared": 4, "identical": 1, "identicalMipOnly": 0, "missing": 1, "different": 2, "invalid": 0,
+                                 "supplementary": 0}
+
+    anim = rows["ANIM"]
+    assert (anim["category"], anim["status"], anim["resource"]) == ("different", "different SHA-256 (2 of 3 files)", "anim/a_{00-02}.dds")
+    assert anim["resourcePath"] == str((game / "anim" / "a_{00-02}.dds").resolve())
+    assert anim["requiredBy"] == [{"descriptor": "RssImagesSeqData.json", "line": 10}] and anim["scope"] == "game"
+    sequence = anim["sequence"]
+    assert (sequence["frameTime"], sequence["loopCount"], sequence["loopTo"], sequence["paths"]) == (42, 0, 1, ["anim/a_{00-02}.dds"])
+    assert [(frame["resource"], frame["category"]) for frame in sequence["frames"]] == [
+        ("anim/a_00.dds", "identical"), ("anim/a_01.dds", "different"), ("anim/a_02.dds", "different")]
+    assert sequence["frames"][1]["gdaFiles"][0]["absolutePath"] == str((gda / "DDS" / "anim" / "a_01.dds").resolve())
+    # The sequence lists the GDA file of each frame, the one that matched or the closest.
+    assert [file["path"] for file in anim["gdaFiles"]] == ["DDS/anim/a_00.dds", "DDS/anim/a_01.dds", "DDS/anim/a_02.dds"]
+
+    # An atlas repeats one file, so its status counts the file once; each frame keeps its source rectangle.
+    atlas = rows["ATLAS"]
+    assert (atlas["category"], atlas["status"]) == ("missing", "missing")
+    assert [frame["source"] for frame in atlas["sequence"]["frames"]] == [{"x": 0, "y": 0, "w": 4, "h": 4}, {"x": 4, "y": 0, "w": 4, "h": 4}]
+    assert atlas["sequence"]["loopTo"] is None
+
+    # A frame whose extension is not compared stays in the sequence, so it still plays.
+    mixed = rows["MIXED"]
+    assert (mixed["category"], mixed["status"], mixed["mipOnly"]) == ("identical", "identical", False)
+    assert [(frame["category"], frame["status"]) for frame in mixed["sequence"]["frames"]] == [("skipped", "not compared"), ("identical", "identical")]
+    assert mixed["sequence"]["paths"] == ["cover.png", "anim/a_00.dds"] and mixed["resource"] == "cover.png"
+    assert rows["anim/a_01.dds"]["requiredBy"] == [{"descriptor": "RssImagesData.json", "line": 5}]
+    assert len({row["id"] for row in rows.values()}) == len(rows)
+
+
+def test_files_no_descriptor_declares_are_supplementary_and_numbered_images_are_guessed_sequences(tmp_path):
+    resources, gda = tmp_path / "resources", tmp_path / "gda"
+    game = resources / "example"
+    for directory in (game / "glow", game / "spark", game / "sizes", game / "s", gda):
+        directory.mkdir(parents=True)
+    (game / "RssRawData.json").write_text(json.dumps({"rawFiles": [{"path": "used.dds"}]}))
+    (game / "used.dds").write_bytes(b"used")
+    (gda / "used.dds").write_bytes(b"used")
+    # Five frames in a row, one after a gap and a lone PNG; only four in a row; sizes that do not follow each other;
+    # numbered sounds; and a file whose extension is not compared.
+    for name in ("glow/glow01.dds", "glow/glow02.dds", "glow/glow03.dds", "glow/glow04.dds", "glow/glow05.dds", "glow/glow07.dds",
+                 "glow/glow02.png", "spark/spark1.dds", "spark/spark2.dds", "spark/spark3.dds", "spark/spark4.dds",
+                 "sizes/button_237.dds", "sizes/button_711.dds", "s/stop_1.wav", "s/stop_2.wav", "s/stop_3.wav", "readme.txt"):
+        (game / name).write_bytes(name.encode())
+    (gda / "glow01.dds").write_bytes(b"a supplementary file is not compared")
+    result = compare(Config(resources, gda, frozenset({".dds", ".png", ".wav"}), "example"))
+
+    assert result["summary"] == {"compared": 1, "identical": 1, "identicalMipOnly": 0, "missing": 0, "different": 0, "invalid": 0,
+                                 "supplementary": 12}
+    assert statuses(result) == [("supplementary", resource) for resource in (
+        "glow/glow02.png", "glow/glow07.dds", "glow/glow{01-05}.dds", "s/stop_1.wav", "s/stop_2.wav", "s/stop_3.wav",
+        "sizes/button_237.dds", "sizes/button_711.dds", "spark/spark1.dds", "spark/spark2.dds", "spark/spark3.dds", "spark/spark4.dds")]
+    rows = {row["resource"]: row for row in result["differences"]}
+    assert all(row["gdaFiles"] == [] and row["requiredBy"] == [] and row["scope"] == "game" for row in rows.values())
+    assert "sequence" not in rows["glow/glow07.dds"] and "sequence" not in rows["spark/spark4.dds"]
+    guessed = rows["glow/glow{01-05}.dds"]
+    assert guessed["resourcePath"] == str((game / "glow" / "glow{01-05}.dds").resolve())
+    sequence = guessed["sequence"]
+    assert (sequence["id"], sequence["guessed"], sequence["frameTime"], sequence["loopCount"], sequence["loopTo"]) == (None, True, 50, 0, None)
+    assert sequence["paths"] == ["glow/glow{01-05}.dds"]
+    assert [(frame["resource"], frame["category"]) for frame in sequence["frames"]] == [
+        (f"glow/glow0{number}.dds", "supplementary") for number in range(1, 6)]
+    assert len({row["id"] for row in rows.values()}) == len(rows)
+
+
 def test_finds_the_line_of_every_audio_sample(tmp_path):
     game = tmp_path / "example"
     game.mkdir()
@@ -101,7 +201,7 @@ def test_finds_the_line_of_every_audio_sample(tmp_path):
     descriptor.write_text('{\n  "audioEvents": [\n    {"id": "beep", "samples": [\n'
                           '      "one\\u0020sample.wav",\n      "two.wav"\n    ]}\n  ]\n}\n')
     document = load_documents(game)[descriptor]
-    assert list(declared_path_lines(descriptor, document)) == [("one sample.wav", 4), ("two.wav", 5)]
+    assert list(declared_path_lines(descriptor, document)) == [("one sample.wav", 4, None), ("two.wav", 5, None)]
 
 
 def test_dds_files_that_differ_only_in_mip_levels_count_as_identical(tmp_path):
@@ -152,7 +252,8 @@ def test_looks_up_common_assets_in_the_common_gda_folder(tmp_path):
     gda, common_gda = tmp_path / "gda", tmp_path / "common_gda" / "DEV" / "01_MG"
     for directory in (game, common, gda, common_gda):
         directory.mkdir(parents=True)
-    (game / "RssRawData.json").write_text(json.dumps({"rawFiles": [{"path": "../common/art/shared.dds"}, {"path": "../common/art/kept.dds"}]}))
+    (game / "RssRawData.json").write_text(json.dumps({"rawFiles": [{"path": "../common/art/shared.dds"}, {"path": "../common/art/kept.dds"},
+                                                                  {"path": "own.dds"}]}))
     (game / "own.dds").write_bytes(b"own")
     (common / "shared.dds").write_bytes(b"shared")
     (common / "kept.dds").write_bytes(b"kept")
@@ -179,7 +280,8 @@ def test_only_a_file_inside_the_game_folder_is_reported_missing(tmp_path):
     game = resources / "example"
     for directory in (game / "art", resources / "common", resources / "other", gda):
         directory.mkdir(parents=True)
-    (game / "RssRawData.json").write_text(json.dumps({"rawFiles": [{"path": "../common/shared.dds"}, {"path": "../other/x.dds"}]}))
+    (game / "RssRawData.json").write_text(json.dumps({"rawFiles": [{"path": "../common/shared.dds"}, {"path": "../other/x.dds"},
+                                                                  {"path": "art/own.dds"}]}))
     (game / "art" / "own.dds").write_bytes(b"own")
     (resources / "common" / "shared.dds").write_bytes(b"shared")
     (resources / "other" / "x.dds").write_bytes(b"x")
@@ -228,7 +330,7 @@ def test_each_run_saves_a_timestamped_report_and_a_failed_run_keeps_the_last_res
     jobs.wait("example", 60)
     status = jobs.status("example")
     assert status["running"] is False and status["lastRun"]["state"] == "succeeded"
-    assert status["summary"]["missing"] == 3 and status["comparedAt"] == status["lastRun"]["finishedAt"]
+    assert status["summary"]["missing"] == 2 and status["comparedAt"] == status["lastRun"]["finishedAt"]
     report = json.loads(jobs.report("example"))
     assert report["workspace"] == WORKSPACE
     # The run's state and times lead the summary, the counts follow, and nothing repeats them at the top level.
@@ -237,7 +339,7 @@ def test_each_run_saves_a_timestamped_report_and_a_failed_run_keeps_the_last_res
     assert report["summary"]["state"] == "succeeded" and report["summary"]["finishedAt"] == status["comparedAt"]
     assert not {"run", "lastRun", "startedAt", "finishedAt", "history"} & set(report)
     counts = {key: value for key, value in report["summary"].items() if key not in ("state", "startedAt", "finishedAt", "error")}
-    assert report["version"] == 2 and len(report["differences"]) == 4 and len(report["identical"]) == 2
+    assert report["version"] == 3 and len(report["differences"]) == 4 and len(report["identical"]) == 1
     [first] = report_files(tmp_path / "reports")
     assert REPORT_FILE.fullmatch(first) and status["reportPath"] == str(tmp_path / "reports" / first)
 
@@ -319,7 +421,7 @@ def test_rescan_starts_the_comparison_and_the_api_serves_the_workspace_report(tm
         assert scanned["rssSync"]["running"] is True and scanned["rssSync"]["workspaceId"] == "example"
         library.reports.wait("example", 60)
         status = client.get("/api/rss-sync").json()
-        assert status["lastRun"]["state"] == "succeeded" and status["summary"]["compared"] == 6
+        assert status["lastRun"]["state"] == "succeeded" and status["summary"]["compared"] == 4
         history = client.get("/api/rss-sync/history").json()
         assert history["workspaceId"] == "example" and history["history"][0]["summary"] == status["summary"]
         assert history["workspace"]["game_name"] == "Example" and history["workspace"] == history["history"][0]["workspace"]
@@ -371,3 +473,77 @@ def test_syncing_report_rows_copies_the_closest_gda_file_over_the_game_resource_
         assert result["library"]["rssSync"]["running"] is True
         library.reports.wait("example", 60)
         assert client.get("/api/rss-sync").json()["summary"]["different"] == 0
+
+
+def test_syncing_an_image_sequence_copies_its_different_frames_as_one_resource(tmp_path):
+    game, gda = write_sequences(tmp_path)
+    entry = {"id": "example", "game_name": "Example", "game_path": str(game), "gda_path": str(gda), "extensions": [".dds"]}
+    config = tmp_path / "workspace.json"
+    config.write_text(json.dumps({"config": {"port": 3457}, "defaultWorkspace": "example", "workspaces": [entry]}))
+    library = Library(str(tmp_path / "app"), config_path=str(config))
+    library.init()
+    with TestClient(create_app(library, dev=True), base_url="http://127.0.0.1") as client:
+        headers = session_headers(client)
+        client.post("/api/scan", headers=headers)
+        library.reports.wait("example", 60)
+        rows = {row.get("sequence", {}).get("id"): row for row in client.get("/api/rss-sync/report").json()["differences"]}
+        result = client.post("/api/rss-sync/copy", headers=headers, json={"ids": [rows["ANIM"]["id"]]}).json()
+        assert result["copied"] == ["anim/a_01.dds", "anim/a_02.dds"] and result["resources"] == 1 and result["failures"] == []
+        assert [(game / "anim" / f"a_{number:02d}.dds").read_bytes() for number in range(3)] == [b"0", b"one", b"two"]
+        assert result["library"]["activity"][0]["message"] == "Synced 1 resource to Game"
+        assert result["library"]["activity"][0]["files"] == ["anim/a_01.dds", "anim/a_02.dds"]
+        library.reports.wait("example", 60)
+        # a_01.dds, also declared as an image, was copied with the sequence.
+        assert client.get("/api/rss-sync").json()["summary"]["different"] == 0
+
+
+def test_previews_files_of_the_workspace_folders_that_the_report_names(tmp_path):
+    game, gda = write_example(tmp_path)
+    (game / "art.dds").write_bytes(create_bc7_dds(8, 4))
+    (gda / "b" / "art.png").write_bytes(b"\x89PNG fake")
+    (tmp_path / "secret.png").write_bytes(b"secret")
+    entry = {"id": "example", "game_name": "Example", "game_path": str(game), "gda_path": str(gda), "extensions": [".dds"]}
+    config = tmp_path / "workspace.json"
+    config.write_text(json.dumps({"config": {"port": 3457}, "defaultWorkspace": "example", "workspaces": [entry]}))
+    library = Library(str(tmp_path / "app"), config_path=str(config))
+    library.init()
+    with TestClient(create_app(library, dev=True), base_url="http://127.0.0.1") as client:
+        preview = lambda file: client.get("/api/rss-sync/preview", params={"file": str(file)})
+        decoded = preview((game / "art.dds").resolve())
+        assert decoded.status_code == 200 and decoded.headers["content-type"] == "image/png"
+        assert read_png(decoded.content)[:2] == (8, 4)
+        served = preview((gda / "b" / "art.png").resolve())
+        assert served.content == b"\x89PNG fake" and "sandbox" in served.headers["content-security-policy"]
+        # Only image files inside the workspace's resources and GDA folders.
+        assert preview(tmp_path / "secret.png").status_code == 404
+        assert preview(f"{gda.resolve()}/../secret.png").status_code == 404
+        assert preview((game / "AllRssData.json").resolve()).status_code == 415
+        assert preview((game / "absent.png").resolve()).status_code == 404
+        assert preview((game / "changed.dds").resolve()).status_code == 415
+
+
+def test_opens_report_file_directories_without_opening_files_or_leaving_the_workspace(tmp_path):
+    game, gda = write_example(tmp_path)
+    common = tmp_path / "common"
+    common.mkdir()
+    entry = {"id": "example", "game_name": "Example", "game_path": str(game), "gda_path": str(gda),
+             "common_gda_path": str(common), "extensions": [".dds"]}
+    config = tmp_path / "workspace.json"
+    config.write_text(json.dumps({"config": {"port": 3457}, "defaultWorkspace": "example", "workspaces": [entry]}))
+    library = Library(str(tmp_path / "app"), config_path=str(config))
+    library.init()
+    opened = []
+    with TestClient(create_app(library, dev=True, opener=opened.append), base_url="http://127.0.0.1") as client:
+        endpoint = "/api/rss-sync/open-folder"
+        assert client.post(endpoint, json={"file": str(game / "changed.dds")}).status_code == 403
+        headers = session_headers(client)
+        for file, folder in [(game / "changed.dds", game), (gda / "a" / "changed.dds", gda / "a"),
+                             (game / "missing.dds", game), (game / "anim{00-70}.dds", game), (common / "image.dds", common)]:
+            result = client.post(endpoint, headers=headers, json={"file": str(file.resolve())})
+            assert result.status_code == 200 and result.json() == {"opened": True}
+            assert opened[-1] == str(folder.resolve())
+        for file in [tmp_path / "secret.png", gda / ".." / "secret.png", game / "absent" / "image.png"]:
+            assert client.post(endpoint, headers=headers, json={"file": str(file)}).status_code == 404
+        (game / "linked").symlink_to(tmp_path, target_is_directory=True)
+        assert client.post(endpoint, headers=headers, json={"file": str(game / "linked" / "secret.png")}).status_code == 400
+        assert len(opened) == 5

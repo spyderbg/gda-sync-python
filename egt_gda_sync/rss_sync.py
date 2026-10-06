@@ -1,8 +1,11 @@
 """Compare a game's declared resources with the files in its GDA folder.
 
-A port of docs/rss_sync/gda_sync.py (described in docs/rss_sync/sync.md). It classifies resources like the script,
-except that only a file inside the game folder (game_path) is reported missing. It returns JSON-ready data instead of
-a Markdown report, lists identical files too, and reports progress so it can run as a background job.
+A port of docs/rss_sync/gda_sync.py (described in docs/rss_sync/sync.md). It classifies files like the script,
+except that only a file inside the game folder (game_path) is reported missing, and an image sequence is one resource:
+its frames, often a {N-M} range of files, are compared one by one, and the sequence takes the status of its frames.
+A game file that nothing declares is "supplementary" and not compared; numbered images among them are guessed to be
+image sequences. It returns JSON-ready data instead of a Markdown report, lists identical files too, and reports progress so it can run
+as a background job.
 """
 
 from __future__ import annotations
@@ -15,11 +18,11 @@ import struct
 import time
 from collections import Counter, defaultdict
 from collections.abc import Callable, Iterator
-from dataclasses import dataclass, fields, is_dataclass
+from dataclasses import asdict, dataclass, fields, is_dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-from .rss_schemas import DOCUMENT_TYPES, parse_dataclass
+from .rss_schemas import DOCUMENT_TYPES, ImageSequence, parse_dataclass
 
 RANGE_PATTERN = re.compile(r"\{(\d+)-(\d+)\}")
 JSON_STRING_PATTERN = re.compile(r'"(?:\\.|[^"\\])*"')
@@ -32,6 +35,16 @@ DDS_MAGIC = b"DDS "
 DDS_HEADER_END = 128
 DDS_DX10_END = 148
 PROGRESS_INTERVAL = 0.2
+# The status a sequence takes from its frames: the first of these that any of its files has.
+SEQUENCE_PRECEDENCE = ("different", "invalid", "missing", "identical")
+# Supplementary images in one folder named <name><number>.<ext>, with the same name and extension and at least
+# GUESSED_SEQUENCE_MIN numbers in a row, are guessed to be an image sequence, which plays with these settings.
+NUMBERED_NAME = re.compile(r"^(.*?)(\d+)(\.[A-Za-z0-9]+)$")
+SEQUENCE_IMAGE_EXTENSIONS = frozenset({".dds", ".png", ".jpg", ".jpeg", ".webp", ".bmp"})
+GUESSED_SEQUENCE_MIN = 5
+GUESSED_FRAME_TIME = 50
+GUESSED_LOOP_COUNT = 0
+SUPPLEMENTARY = {"status": "supplementary", "located": []}  # the result of a file that is listed but not compared
 
 Progress = Callable[[str, int, int], None]
 
@@ -115,24 +128,29 @@ def load_documents(game_dir: Path) -> dict[Path, Any]:
     return documents
 
 
-def declared_paths(value: Any) -> Iterator[str]:
-    """Walk typed entries; include is a descriptor reference, not an asset."""
+def declared_paths(value: Any, sequence: ImageSequence | None = None) -> Iterator[tuple[str, ImageSequence | None]]:
+    """Walk typed entries, with the image sequence a path is a frame of; include is a descriptor reference, not an asset."""
     if not is_dataclass(value):
         return
+    if isinstance(value, ImageSequence):
+        sequence = value
     for item in fields(value):
         field_value = getattr(value, item.name)
         if item.name == "path":
-            yield field_value
+            yield field_value, sequence
         elif item.name == "samples":
-            yield from field_value
+            for sample in field_value:
+                yield sample, sequence
         elif item.name != "include" and isinstance(field_value, list):
             for child in field_value:
-                yield from declared_paths(child)
+                yield from declared_paths(child, sequence)
 
 
-def declared_path_lines(path: Path, document: Any) -> Iterator[tuple[str, int]]:
-    """Find the JSON string token for each typed path or sample declaration."""
-    expected = Counter(declared_paths(document))
+def declared_path_lines(path: Path, document: Any) -> Iterator[tuple[str, int, ImageSequence | None]]:
+    """Find the JSON string token for each typed path or sample declaration, in the order of the typed entries, with
+    the image sequence it is a frame of. A value declared more than once takes its lines in order."""
+    declarations = list(declared_paths(document))
+    expected = Counter(value for value, _sequence in declarations)
     if not expected:
         return
     raw = path.read_text(encoding="utf-8")
@@ -148,8 +166,9 @@ def declared_path_lines(path: Path, document: Any) -> Iterator[tuple[str, int]]:
     for value, count in expected.items():
         if len(found[value]) != count:
             raise ValueError(f"{path}: cannot locate the exact JSON line for {value!r}")
-        for declaration_line in found[value]:
-            yield value, declaration_line
+    lines = {value: iter(value_lines) for value, value_lines in found.items()}
+    for value, sequence in declarations:
+        yield value, next(lines[value]), sequence
 
 
 def expand_path(path: str) -> Iterator[str]:
@@ -225,8 +244,37 @@ def mip_chain_only_differs(first: bytes, second: bytes) -> bool:
     return bool(shorter) and longer.startswith(shorter)
 
 
+def guess_sequences(files: list[Path]) -> tuple[list[list[Path]], list[Path]]:
+    """Split files into guessed image sequences, each in frame order, and the files that stay on their own. A sequence
+    is images in one folder named <name><number>.<ext>, with the same name and extension, whose numbers follow each
+    other for at least GUESSED_SEQUENCE_MIN files; a gap or a repeated number ends it."""
+    groups: dict[tuple[Path, str, str], list[tuple[int, Path]]] = defaultdict(list)
+    single: list[Path] = []
+    for path in files:
+        match = NUMBERED_NAME.match(path.name)
+        if match and path.suffix.lower() in SEQUENCE_IMAGE_EXTENSIONS:
+            groups[(path.parent, match[1], match[3].lower())].append((int(match[2]), path))
+        else:
+            single.append(path)
+    sequences: list[list[Path]] = []
+    for numbered in groups.values():
+        numbered.sort()
+        runs = [[numbered[0]]]
+        for item in numbered[1:]:
+            if item[0] == runs[-1][-1][0] + 1:
+                runs[-1].append(item)
+            else:
+                runs.append([item])
+        for run in runs:
+            if len(run) >= GUESSED_SEQUENCE_MIN:
+                sequences.append([path for _number, path in run])
+            else:
+                single.extend(path for _number, path in run)
+    return sequences, sorted(single)
+
+
 def status_category(status: str) -> str:
-    """The leading status word: identical, different, invalid or missing."""
+    """The leading status word: identical, different, invalid, missing or supplementary."""
     return status.partition(" ")[0].removesuffix(":")
 
 
@@ -238,22 +286,37 @@ def compare(config: Config, progress: Progress | None = None) -> dict:
     documents = load_documents(game_dir)
     declared = set(config.resource_paths)
     source_documents: dict[Path, set[tuple[str, int]]] = defaultdict(set)
+    # Each image sequence, by object, with the descriptor and the line of each of its frames.
+    sequences: dict[int, tuple[str, ImageSequence, list[int]]] = {}
     descriptors: list[dict] = []
     for document_path, document in documents.items():
         document_name = os.path.relpath(document_path, game_dir)
         declarations = resources = 0
-        for template, line in declared_path_lines(document_path, document):
-            declared.add(template)
+        for template, line, sequence in declared_path_lines(document_path, document):
             declarations += 1
-            for relative in expand_path(template):
-                resources += 1
+            relatives = list(expand_path(template))
+            resources += len(relatives)
+            if sequence is not None:
+                sequences.setdefault(id(sequence), (document_name, sequence, []))[2].append(line)
+                continue
+            declared.add(template)
+            for relative in relatives:
                 source_documents[(game_dir / relative).resolve()].add((document_name, line))
         descriptors.append({"name": document_name, "path": str(document_path), "type": type(document).__name__,
                             "declarations": declarations, "resources": resources})
     descriptors.sort(key=lambda item: item["name"])
-    # Compare every physical game asset, including files absent from a descriptor.
-    # Descriptor paths additionally bring in shared assets outside the game folder.
-    declared.update(path.relative_to(game_dir).as_posix() for path in game_dir.rglob("*") if path.is_file())
+    # A sequence's frames in order, each frame of a {N-M} range once per file.
+    sequence_frames = [(document_name, sequence, lines, [(frame, (game_dir / relative).resolve())
+                                                         for frame in sequence.frames for relative in expand_path(frame.path)])
+                       for document_name, sequence, lines in sequences.values()]
+    frame_files = {source for *_, frames in sequence_frames for _, source in frames}
+    # The game files that nothing declares are supplementary: the game does not load them, so they are listed but not
+    # compared. Files with an extension that is not compared are left out. Descriptor paths additionally bring in
+    # shared assets outside the game folder.
+    declared_files = frame_files | {(game_dir / relative).resolve() for template in declared for relative in expand_path(template)}
+    supplementary = sorted({path.resolve() for path in game_dir.rglob("*") if path.is_file() and path.suffix.lower() in config.extensions}
+                           - declared_files)
+    guessed_sequences, supplementary_files = guess_sequences(supplementary)
 
     # Shared assets live in their own GDA tree, but some are also kept in the game's tree, so they are searched in
     # both. Without common_gda_dir only gda_dir is used.
@@ -262,82 +325,145 @@ def compare(config: Config, progress: Progress | None = None) -> dict:
     common_gda = ("common", config.common_gda_dir, index_gda(config.common_gda_dir, config.extensions)) \
         if config.common_gda_dir is not None else None
     common_dir = config.resources_dir / COMMON_DIR
-
-    def row(status: str, source: Path, display: str, located=(), **extra) -> dict:
-        scope = "common" if source.is_relative_to(common_dir) else "game" if source.is_relative_to(game_dir) else "outside"
-        return {
-            "id": hashlib.sha256(display.encode("utf-8", "surrogateescape")).hexdigest()[:16],
-            "category": status_category(status), "status": status, "resource": display,
-            "resourcePath": str(source), "scope": scope,
-            "gdaFiles": [{"tree": tree, "path": path.relative_to(root).as_posix(), "absolutePath": str(path)}
-                         for tree, root, path in located],
-            "requiredBy": [{"descriptor": name, "line": line} for name, line in sorted(source_documents.get(source, ()))],
-            **extra,
-        }
-
-    differences: list[dict] = []
-    identical: list[dict] = []
-    mip_matched = 0
-    selected = 0
     gda_hashes: dict[Path, str] = {}
-    seen: set[Path] = set()
-    relatives = [relative for template in sorted(declared) for relative in expand_path(template)]
-    report("compare", 0, len(relatives))
-    for done, relative in enumerate(relatives, 1):
-        report("compare", done, len(relatives))
-        source = (game_dir / relative).resolve()
-        if source in seen:
-            continue
-        seen.add(source)
-        display = os.path.relpath(source, game_dir)
+    checked: dict[Path, dict | None] = {}
+
+    def classify(source: Path) -> dict | None:
+        """A game file's status, the GDA files that go with it and whether only DDS mip levels differ, or None when
+        the file is not compared."""
         if not source.is_relative_to(config.resources_dir) or not source.is_file():
             reason = "outside resources_dir" if not source.is_relative_to(config.resources_dir) else "source file does not exist"
-            differences.append(row(f"invalid: {reason}", source, display))
-            continue
+            return {"status": f"invalid: {reason}", "located": []}
         if source.suffix.lower() not in config.extensions:
-            continue
+            return None
         trees = (common_gda, game_gda) if common_gda and source.is_relative_to(common_dir) else (game_gda,)
         located = [(tree, root, path) for tree, root, by_name in trees for path in by_name.get(source.name, [])]
         # Only the game's own files are reported missing. A shared file outside game_path without a GDA copy is left
         # out, and not compared, since its GDA files can be kept elsewhere.
         if not located and not source.is_relative_to(game_dir):
-            continue
-        selected += 1
+            return None
         if not located:
-            differences.append(row("missing", source, display))
-            continue
+            return {"status": "missing", "located": []}
         # Same-named candidates in other folders are listed after the closest folder match.
+        display = os.path.relpath(source, game_dir)
         located.sort(key=lambda item: -path_overlap(display, item[2].relative_to(item[1]).as_posix()))
         source_hash = file_hash(source)
-        match = None
         for candidate in located:
             path = candidate[2]
             if path not in gda_hashes:
                 gda_hashes[path] = file_hash(path)
             if gda_hashes[path] == source_hash:
-                match = candidate
-                break
-        if match is not None:
-            identical.append(row("identical", source, display, [match], mipOnly=False))
-            continue
+                return {"status": "identical", "located": [candidate], "mipOnly": False}
         if config.ignore_dds_mips and source.suffix.lower() == ".dds":
             source_data = source.read_bytes()
             match = next((candidate for candidate in located if mip_chain_only_differs(source_data, candidate[2].read_bytes())), None)
             if match is not None:
-                mip_matched += 1
-                identical.append(row("identical", source, display, [match], mipOnly=True))
-                continue
-        differences.append(row("different SHA-256", source, display, located))
-    differences.sort(key=lambda item: (item["status"], item["resource"]))
-    identical.sort(key=lambda item: item["resource"])
+                return {"status": "identical", "located": [match], "mipOnly": True}
+        return {"status": "different SHA-256", "located": located}
+
+    def check(source: Path) -> dict | None:
+        """classify, once per file: a file can be a frame of several sequences."""
+        if source not in checked:
+            checked[source] = classify(source)
+        return checked[source]
+
+    def file_entry(source: Path, result: dict | None) -> dict:
+        """A game file as a row or a sequence frame shows it; a frame that is not compared is "skipped"."""
+        status = result["status"] if result else "not compared"
+        return {
+            "category": status_category(status) if result else "skipped", "status": status,
+            "resource": os.path.relpath(source, game_dir), "resourcePath": str(source),
+            "gdaFiles": [{"tree": tree, "path": path.relative_to(root).as_posix(), "absolutePath": str(path)}
+                         for tree, root, path in (result["located"] if result else ())],
+            **({"mipOnly": result["mipOnly"]} if result and "mipOnly" in result else {}),
+        }
+
+    def scope(source: Path) -> str:
+        return "common" if source.is_relative_to(common_dir) else "game" if source.is_relative_to(game_dir) else "outside"
+
+    def row_id(text: str) -> str:
+        return hashlib.sha256(text.encode("utf-8", "surrogateescape")).hexdigest()[:16]
+
+    def file_row(source: Path, result: dict) -> dict:
+        entry = file_entry(source, result)
+        return {"id": row_id(entry["resource"]), **entry, "scope": scope(source),
+                "requiredBy": [{"descriptor": name, "line": line} for name, line in sorted(source_documents.get(source, ()))]}
+
+    def sequence_row(document_name: str, sequence: ImageSequence, lines: list[int], frames: list[tuple[Any, Path]]) -> dict | None:
+        """One row for a sequence, with each of its frames; None when none of its files is compared."""
+        entries = [{**file_entry(source, check(source)), **({"source": asdict(frame.source)} if frame.source else {})}
+                   for frame, source in frames]
+        # An atlas shows one file in many frames, so the counts are of files.
+        files = {entry["resourcePath"]: entry for entry in entries if entry["category"] != "skipped"}
+        if not files:
+            return None
+        counts = Counter(entry["category"] for entry in files.values())
+        category = next(name for name in SEQUENCE_PRECEDENCE if counts[name])
+        first = next(entry for entry in files.values() if entry["category"] == category)
+        status = first["status"]
+        if len(files) > 1 and category != "identical":
+            status += f" ({counts[category]} of {len(files)} files)" if counts[category] < len(files) else f" (all {len(files)} files)"
+        paths = list(dict.fromkeys(os.path.relpath((game_dir / frame.path).resolve(), game_dir) for frame in sequence.frames))
+        gda_files = list({entry["gdaFiles"][0]["absolutePath"]: entry["gdaFiles"][0] for entry in entries if entry["gdaFiles"]}.values())
+        return {
+            "id": row_id(f"{paths[0]}\0{document_name}\0{sequence.id}"), "category": category, "status": status,
+            "resource": paths[0], "resourcePath": str((game_dir / sequence.frames[0].path).resolve()), "gdaFiles": gda_files,
+            **({"mipOnly": any(entry.get("mipOnly") for entry in files.values())} if category == "identical" else {}),
+            "scope": scope(frames[0][1]),
+            "requiredBy": [{"descriptor": document_name, "line": min(lines)}],
+            "sequence": {"id": sequence.id, "frameTime": sequence.frameTime, "loopCount": sequence.loopCount,
+                         "loopTo": sequence.loopTo, "paths": paths, "frames": entries},
+        }
+
+    def guessed_sequence_row(files: list[Path]) -> dict:
+        """A guessed sequence of supplementary images; it has no id and plays with the guessed settings."""
+        first, last = NUMBERED_NAME.match(files[0].name), NUMBERED_NAME.match(files[-1].name)
+        template = files[0].parent / f"{first[1]}{{{first[2]}-{last[2]}}}{first[3]}"
+        display = os.path.relpath(template, game_dir)
+        return {
+            "id": row_id(f"{display}\0supplementary"), "category": "supplementary", "status": "supplementary",
+            "resource": display, "resourcePath": str(template), "gdaFiles": [], "scope": scope(files[0]), "requiredBy": [],
+            "sequence": {"id": None, "guessed": True, "frameTime": GUESSED_FRAME_TIME, "loopCount": GUESSED_LOOP_COUNT,
+                         "loopTo": None, "paths": [display], "frames": [file_entry(source, SUPPLEMENTARY) for source in files]},
+        }
+
+    rows: list[dict] = [file_row(source, SUPPLEMENTARY) for source in supplementary_files]
+    rows.extend(guessed_sequence_row(files) for files in guessed_sequences)
+    seen: set[Path] = set()
+    relatives = [relative for template in sorted(declared) for relative in expand_path(template)]
+    total = len(relatives) + sum(len(frames) for *_, frames in sequence_frames)
+    report("compare", 0, total)
+    for done, relative in enumerate(relatives, 1):
+        report("compare", done, total)
+        source = (game_dir / relative).resolve()
+        if source in seen:
+            continue
+        seen.add(source)
+        result = check(source)
+        if result is not None:
+            rows.append(file_row(source, result))
+    done = len(relatives)
+    for document_name, sequence, lines, frames in sequence_frames:
+        for _frame, source in frames:
+            check(source)
+            done += 1
+            report("compare", done, total)
+        if (row := sequence_row(document_name, sequence, lines, frames)) is not None:
+            rows.append(row)
+    # The script's order, by status and then resource; a sequence's file counts do not take part.
+    differences = sorted((row for row in rows if row["category"] != "identical"),
+                         key=lambda item: (item["status"].partition(" (")[0], item["resource"]))
+    identical = sorted((row for row in rows if row["category"] == "identical"), key=lambda item: item["resource"])
     counts = Counter(item["category"] for item in differences)
     # The settings are not repeated here: a saved report keeps them once, in its "workspace".
     return {
         # Every *Data.json parsed, with its declared resource paths before and after {N-M} ranges are expanded.
         "descriptors": descriptors,
         "summary": {
-            "compared": selected, "identical": len(identical), "identicalMipOnly": mip_matched,
+            "compared": len(identical) + counts["missing"] + counts["different"], "identical": len(identical),
+            "identicalMipOnly": sum(1 for row in identical if row["mipOnly"]),
             "missing": counts["missing"], "different": counts["different"], "invalid": counts["invalid"],
+            "supplementary": counts["supplementary"],
         },
         "differences": differences,
         "identical": identical,

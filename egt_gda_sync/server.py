@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Annotated, Literal
 
 import anyio.to_thread
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Query, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
@@ -72,6 +72,10 @@ class WorkspaceBody(_Body):
 class OpenFolderBody(_Body):
     folder: Literal["source", "destination"]
     assetId: Text4K | None = None
+
+
+class ResourceFileBody(_Body):
+    file: Text4K
 
 
 def _hostname(host: str) -> str:
@@ -237,9 +241,19 @@ def create_app(
     def sync(body: SyncBody) -> dict:
         return library.sync(body.ids)
 
+    @app.get("/api/rss-sync/preview")
+    def rss_sync_preview(file: Annotated[str, Query(max_length=4096)]) -> Response:
+        data, mime = library.resource_preview(file)
+        return Response(data, media_type=mime, headers={"Content-Security-Policy": PREVIEW_CSP})
+
     @app.post("/api/rss-sync/copy")
     def rss_sync_copy(body: SyncBody) -> dict:
         return library.sync_resources(body.ids)
+
+    @app.post("/api/rss-sync/open-folder")
+    def open_resource_folder(body: ResourceFileBody) -> dict:
+        opener(library.resource_folder(body.file))
+        return {"opened": True}
 
     @app.put("/api/settings")
     def settings(body: SettingsBody) -> dict:

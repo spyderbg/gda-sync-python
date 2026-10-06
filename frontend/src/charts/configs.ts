@@ -1,7 +1,7 @@
 // Chart configurations with the colors, gradients and axes of the StarAdmin dashboard charts.
 import type { ChartConfiguration, ScriptableContext } from 'chart.js';
 import type { Coverage, Mix, Series, Storage, StorageMetric, Timeline } from '../insights';
-import type { RssSyncSummary } from '../types';
+import type { RssSyncCount, RssSyncSummary } from '../types';
 import { type ThemeColor, themeColor } from './chartjs';
 
 type Stops = [number, string][];
@@ -182,7 +182,7 @@ export function gauge(percentInSync: number): ChartConfiguration<'doughnut'> {
 
 /** The results of recent GDA sync runs, oldest first, stacked by category, for the sync history page. */
 export function syncRunBars(runs: { label: string; summary: RssSyncSummary }[]): ChartConfiguration<'bar'> {
-  const results: [string, keyof RssSyncSummary, ThemeColor][] = [
+  const results: [string, RssSyncCount, ThemeColor][] = [
     ['In sync', 'identical', 'success'], ['Missing', 'missing', 'warning'], ['Different', 'different', 'danger'], ['Invalid', 'invalid', 'dark'],
   ];
   return {

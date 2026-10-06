@@ -13,11 +13,11 @@ PHASES = {"descriptors": "Reading descriptors", "index": "Indexing the GDA folde
 
 
 def summary_line(summary: dict) -> str:
-    """The summary line of gda_sync.py."""
+    """The summary line of gda_sync.py, with the supplementary files the script does not report."""
     mip = summary["identicalMipOnly"]
     identical = f"{summary['identical']} ({mip} differing only in DDS mip levels)" if mip else str(summary["identical"])
     return (f"Compared: {summary['compared']}; identical: {identical}; missing: {summary['missing']}; "
-            f"different: {summary['different']}; invalid: {summary['invalid']}")
+            f"different: {summary['different']}; invalid: {summary['invalid']}; supplementary: {summary['supplementary']}")
 
 
 def _progress_line(phase: str, done: int, total: int) -> None:
@@ -31,7 +31,8 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         prog="egt-gda-sync report",
         description="Run the GDA sync of workspaces from workspace.json without starting the app, and save each "
                     "workspace's report where the app reads it. Exit status: 0 when every compared resource is in "
-                    "sync, 1 when differences exist, 2 when a sync could not run.",
+                    "sync, 1 when differences exist, 2 when a sync could not run. Supplementary files, which no "
+                    "descriptor declares, are not differences.",
     )
     parser.add_argument("workspaces", nargs="*", metavar="ID", help="workspace ids (default: the default workspace)")
     parser.add_argument("--all", action="store_true", help="every workspace in workspace.json, in its order")

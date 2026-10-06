@@ -28,13 +28,13 @@ import StatusBadge from './StatusBadge.vue';
 
   <AppModal v-if="ui.resourceSync" title="Ready to bring things up to date?" @close="ui.resourceSync = null">
     <div class="modal-body">
-      <p>Copy {{ ui.resourceSync.length }} resource{{ plural(ui.resourceSync.length) }} of the GDA sync report from the GDA folder to the game, each from its closest GDA file. Existing game files will be replaced, with their previous versions saved in your backups. The GDA sync then compares again.</p>
+      <p>Copy {{ ui.resourceSync.length }} resource{{ plural(ui.resourceSync.length) }} of the GDA sync report from the GDA folder to the game, each from its closest GDA file; an image sequence copies each of its different frames. Existing game files will be replaced, with their previous versions saved in your backups. The GDA sync then compares again.</p>
       <p v-if="ui.resourceSync.some(row => row.scope === 'common')" class="text-warning">
         {{ ui.resourceSync.filter(row => row.scope === 'common').length }} of them are common resources, shared with other games.
       </p>
       <ul class="list-group sync-file-list">
         <li v-for="row in ui.resourceSync" :key="row.id" class="list-group-item">
-          <i aria-hidden="true" class="mdi mdi-file-outline text-muted" /><span :title="`${row.gdaFiles[0].path} → ${row.resource}`">{{ row.resource }}</span><span v-if="row.scope === 'common'" class="badge badge-light">common</span>
+          <i aria-hidden="true" :class="['mdi', row.sequence ? 'mdi-animation-outline' : 'mdi-file-outline', 'text-muted']" /><span :title="`${row.gdaFiles[0].path} → ${row.resource}`">{{ row.resource }}</span><small v-if="row.sequence" class="text-muted ml-2">{{ row.sequence.id }}</small><span v-if="row.scope === 'common'" class="badge badge-light">common</span>
         </li>
       </ul>
       <p class="modal-folder"><i aria-hidden="true" class="mdi mdi-folder-outline text-primary" />{{ config.destination }}</p>

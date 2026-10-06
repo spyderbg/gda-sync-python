@@ -5,15 +5,19 @@ import type { FolderKey } from '../types';
 import { busy, config, data, navigate, openFolder, saveSettings, session, ui } from '../workspace';
 
 const form = reactive({ name: config.value.name, source: config.value.source, destination: config.value.destination });
+const hasChanges = computed(() => form.name !== config.value.name
+  || form.source !== config.value.source
+  || form.destination !== config.value.destination);
 const windows = session.platform === 'Windows';
 // The scan knows only the saved folders, so a path being edited is not reported until it is saved.
 const missing = (folder: FolderKey) => data.value!.missingFolders.includes(folder) && form[folder] === config.value[folder];
 const anyMissing = computed(() => missing('source') || missing('destination'));
 
-function cancel() {
-  Object.assign(form, { name: config.value.name, source: config.value.source, destination: config.value.destination });
-  navigate('dashboard');
+async function save() {
+  if (!hasChanges.value || busy.value) return;
+  await saveSettings(form);
 }
+
 </script>
 
 <template>
@@ -33,7 +37,7 @@ function cancel() {
             <span v-else class="badge badge-success ml-auto"><i aria-hidden="true" class="mdi mdi-lan-connect" />Connected</span>
           </div>
           <p class="card-description mt-2">Connect your GDA assets to their home in the game.</p>
-          <form class="forms-sample" @submit.prevent="saveSettings(form)">
+          <form class="forms-sample" @submit.prevent="save">
             <div class="form-group">
               <label for="project-name">Project name</label>
               <input id="project-name" v-model="form.name" class="form-control" required maxlength="80" placeholder="Your project name">
@@ -65,10 +69,9 @@ function cancel() {
                 <i aria-hidden="true" class="mdi mdi-alert-outline" />The Game folder does not exist. Assets cannot be synced until it does.
               </div>
             </div>
-            <button type="submit" class="btn btn-primary mr-2 settings-save" :disabled="!!busy">
-              <i aria-hidden="true" :class="['mdi', busy === 'settings' ? 'mdi-loading mdi-spin' : 'mdi-check']" /><span>Save connection</span>
+            <button type="submit" class="btn btn-primary settings-save" :disabled="!!busy || !hasChanges">
+              <i aria-hidden="true" :class="['mdi', busy === 'settings' ? 'mdi-loading mdi-spin' : 'mdi-check']" /><span>Save workspace</span>
             </button>
-            <button type="button" class="btn btn-light" @click="cancel">Cancel</button>
           </form>
         </div>
       </div>

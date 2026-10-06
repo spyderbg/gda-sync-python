@@ -73,7 +73,10 @@ def run(argv: list[str]) -> int:
         if server:
             server.request_shutdown()
 
-    app = create_app(library, dev=dev, on_shutdown=shutdown)
+    # Automatic shutdown on page close is a production-only behaviour. In development mode
+    # (scripts/dev.py) the backend keeps running after the last tab closes so it does not
+    # take the Vite dev server down with it; it is stopped with Ctrl+C or `dev.py stop`.
+    app = create_app(library, dev=dev, on_shutdown=None if dev else shutdown)
     server = AppServer(app)
     print(f"EGT GDA Sync is ready at {url}\nWorkspace: {data_home}\nConfiguration: {library.config_path}", flush=True)
     if should_open:

@@ -105,7 +105,7 @@ watch(rssSync, (status, previous) => {
   else if (status && previous?.running && previous.workspaceId === status.workspaceId && status.lastRun) {
     const { lastRun, summary } = status;
     if (lastRun.state === 'failed') notify(`GDA sync failed: ${lastRun.error}`, true);
-    else if (summary) notify(`GDA sync finished: ${summary.identical} in sync, ${summary.missing} missing, ${summary.different} different, ${summary.invalid} invalid.`);
+    else if (summary) notify(`GDA sync finished: ${summary.identical} in sync, ${summary.missing} missing, ${summary.different} different, ${summary.invalid} invalid, ${summary.supplementary ?? 0} supplementary.`);
   }
 });
 
@@ -224,7 +224,8 @@ export async function confirmResourceSync() {
   try {
     const result = await api<SyncResult>('rss-sync/copy', 'POST', { ids });
     applyLibrary(result.library);
-    const copied = result.copied.length;
+    // An image sequence is one resource, however many of its files were copied.
+    const copied = result.resources ?? result.copied.length;
     if (result.failures.length) notify(`${copied} synced; ${result.failures.length} failed. ${result.failures[0].name}: ${result.failures[0].message}`, true);
     else notify(`${copied ? `${copied} resource${plural(copied)} synced.` : 'These resources are already in sync.'} Comparing again to update the report.`);
   } catch (e) { notify((e as Error).message, true); } finally { busy.value = ''; }
@@ -234,6 +235,13 @@ export async function openFolder(folder: 'source' | 'destination', assetId?: str
   try {
     await api('open-folder', 'POST', { folder, assetId });
     notify(`Opened ${folder === 'source' ? 'GDA' : 'Game'} folder.`);
+  } catch (e) { notify((e as Error).message, true); }
+}
+
+export async function openResourceFolder(file: string) {
+  try {
+    await api('rss-sync/open-folder', 'POST', { file });
+    notify('Opened folder.');
   } catch (e) { notify((e as Error).message, true); }
 }
 

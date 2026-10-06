@@ -18,6 +18,7 @@ def configure(tmp_path: Path, monkeypatch) -> Path:
     (same / "RssRawData.json").write_text(json.dumps({"rawFiles": [{"path": "same.dds"}]}))
     (same / "same.dds").write_bytes(b"same")
     (same_gda / "same.dds").write_bytes(b"same")
+    (same / "notes.dds").write_bytes(b"not declared")
     (tmp_path / "resources" / "empty").mkdir()
     (tmp_path / "empty-gda").mkdir()
     home = tmp_path / "app"
@@ -42,10 +43,11 @@ def test_reports_the_default_workspace_and_exits_like_the_script(tmp_path, monke
     home = configure(tmp_path, monkeypatch)
     assert main(["report"]) == 0
     output = capsys.readouterr().out
-    assert "Same (same)\n  Compared: 1; identical: 1; missing: 0; different: 0; invalid: 0" in output
+    # A supplementary file, which no descriptor declares, is not a difference.
+    assert "Same (same)\n  Compared: 1; identical: 1; missing: 0; different: 0; invalid: 0; supplementary: 1" in output
     assert f"Report: {newest(home, 'same')}" in output
     assert main(["report", "example"]) == 1
-    assert "Compared: 6; identical: 2; missing: 3; different: 1; invalid: 0" in capsys.readouterr().out
+    assert "Compared: 4; identical: 1; missing: 2; different: 1; invalid: 0; supplementary: 1" in capsys.readouterr().out
 
 
 def test_reports_every_workspace_and_records_a_failed_one(tmp_path, monkeypatch, capsys):
