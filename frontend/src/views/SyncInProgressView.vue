@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue';
 import PageHeader from '../components/PageHeader.vue';
 import { number, plural, time } from '../format';
 import type { RssCategory, RssResource, RssSyncReport } from '../types';
-import { busy, rescan, rssSync } from '../workspace';
+import { activeSyncCount, busy, config, navigate, rescan, rssSync } from '../workspace';
 
 const PAGE_SIZE = 200;
 const CATEGORIES: { key: RssCategory; label: string; badge: string; hint: string; detail: string }[] = [
@@ -15,14 +15,16 @@ const CATEGORIES: { key: RssCategory; label: string; badge: string; hint: string
 const PHASES = { descriptors: 'Reading the *Data.json descriptors', index: 'Indexing the GDA folder', compare: 'Comparing files' };
 
 const report = ref<RssSyncReport | null>(null);
-const loading = ref(false);
 const loadError = ref('');
 const category = ref<RssCategory>('identical');
 const query = ref('');
 const shown = ref(PAGE_SIZE);
 
-const running = computed(() => !!rssSync.value?.running);
+const running = computed(() => activeSyncCount.value > 0);
 const progress = computed(() => rssSync.value?.progress);
+const progressPercent = computed(() => progress.value?.total
+  ? Math.min(100, Math.max(0, Math.round(progress.value.done / progress.value.total * 100)))
+  : undefined);
 const summary = computed(() => report.value?.summary);
 const startedAt = computed(() => summary.value?.startedAt ?? report.value?.startedAt);
 const finishedAt = computed(() => summary.value?.finishedAt ?? report.value?.finishedAt);
@@ -34,7 +36,6 @@ const current = computed(() => CATEGORIES.find(item => item.key === category.val
 let request = 0;
 async function loadReport() {
   const id = ++request;
-  loading.value = true;
   loadError.value = '';
   try {
     const response = await fetch('/api/rss-sync/report', { cache: 'no-store' });
@@ -45,8 +46,6 @@ async function loadReport() {
     else report.value = body;
   } catch (e) {
     if (id === request) loadError.value = (e as Error).message;
-  } finally {
-    if (id === request) loading.value = false;
   }
 }
 watch(() => `${rssSync.value?.workspaceId}|${rssSync.value?.lastRun?.finishedAt ?? ''}`, loadReport, { immediate: true });
@@ -75,9 +74,13 @@ const segments = (path: string) => path.split(/(?<=\/)/);
 <template>
   <PageHeader title="In sync">
     <template #links>
+      <li><span>{{ number(activeSyncCount) }} active sync process{{ activeSyncCount === 1 ? '' : 'es' }}</span></li>
       <li v-if="finishedAt"><span>Compared {{ time(finishedAt) }}</span></li>
       <li v-if="duration"><span>Took {{ duration }}</span></li>
       <li v-if="report?.game"><span>Game {{ report.game }}</span></li>
+    </template>
+    <template #links-right>
+      <li><a href="#" @click.prevent="navigate('history')">Sync history</a></li>
     </template>
     <template #toolbar>
       <button type="button" class="btn btn-primary toolbar-item" :disabled="!!busy || running" @click="rescan">
@@ -87,18 +90,37 @@ const segments = (path: string) => path.split(/(?<=\/)/);
     </template>
   </PageHeader>
 
-  <div v-if="running" class="card grid-margin rss-progress" aria-live="polite">
-    <div class="card-body">
-      <p class="rss-progress-title"><i aria-hidden="true" class="mdi mdi-loading mdi-spin" />GDA sync in progress</p>
-      <p class="rss-progress-step">
-        {{ progress ? PHASES[progress.phase] : 'Starting the background process' }}<span v-if="progress?.total"> · {{ number(progress.done) }} of {{ number(progress.total) }}</span>
-      </p>
-      <div class="progress">
-        <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-label="GDA sync progress"
-             :style="{ width: `${progress?.total ? Math.round(progress.done / progress.total * 100) : 100}%` }" />
+  <section class="grid-margin" aria-label="Active sync processes" aria-live="polite">
+    <h4 class="rss-heading">Active sync processes</h4>
+    <article v-if="running" class="card rss-run">
+      <div class="card-body">
+        <div class="rss-run-row">
+          <div class="rss-run-when">
+            <span class="badge badge-primary"><i aria-hidden="true" class="mdi mdi-loading mdi-spin" /> Running</span>
+            <h5 class="rss-run-time">{{ rssSync?.startedAt ? `Started ${time(rssSync.startedAt)}` : 'Starting…' }}</h5>
+            <small class="text-muted">{{ config.name }}</small>
+          </div>
+          <div class="rss-run-progress">
+            <p class="rss-progress-title">{{ progress ? PHASES[progress.phase] : 'Starting the background process' }}</p>
+            <p v-if="progress?.total" class="rss-progress-step">{{ number(progress.done) }} of {{ number(progress.total) }} · {{ progressPercent }}%</p>
+            <div class="progress">
+              <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-label="GDA sync progress"
+                   :aria-valuemin="progressPercent !== undefined ? 0 : undefined" :aria-valuemax="progressPercent !== undefined ? 100 : undefined" :aria-valuenow="progressPercent"
+                   :style="{ width: `${progressPercent ?? 100}%` }" />
+            </div>
+          </div>
+        </div>
+        <div class="rss-run-footer"><small class="text-muted">The report and sync history update when this process finishes.</small></div>
+      </div>
+    </article>
+    <div v-else class="card empty-state">
+      <div class="card-body">
+        <i aria-hidden="true" class="mdi mdi-sync text-muted" />
+        <h3>No active sync processes</h3>
+        <p class="text-muted">No GDA sync is running for this workspace. Click Rescan to start a comparison.</p>
       </div>
     </div>
-  </div>
+  </section>
 
   <div v-if="lastRun?.state === 'failed' && !running" class="alert alert-danger rss-alert">
     <i aria-hidden="true" class="mdi mdi-alert-circle-outline" />
@@ -106,15 +128,8 @@ const segments = (path: string) => path.split(/(?<=\/)/);
   </div>
   <div v-if="loadError" class="alert alert-danger rss-alert"><i aria-hidden="true" class="mdi mdi-alert-circle-outline" /><span>{{ loadError }}</span></div>
 
-  <div v-if="!summary && !running && !loading && !loadError" class="card empty-state">
-    <div class="card-body">
-      <i aria-hidden="true" class="mdi mdi-compare-horizontal text-primary" />
-      <h3>No GDA sync yet</h3>
-      <p class="text-muted">Click Rescan to compare this workspace's resources with its GDA folder.</p>
-    </div>
-  </div>
-
   <template v-if="summary">
+    <h4 class="rss-heading">Latest completed comparison</h4>
     <div class="card grid-margin">
       <div class="card-body">
         <p class="rss-compared">{{ number(summary.compared) }} resource{{ plural(summary.compared) }} compared</p>
@@ -179,10 +194,17 @@ const segments = (path: string) => path.split(/(?<=\/)/);
 
 <style scoped>
 .rss-hint { margin-left: 12px; color: #8a939c; font-size: 12px; }
-.rss-progress-title { display: flex; align-items: center; gap: 8px; margin: 0 0 4px; font-weight: 500; }
-.rss-progress-title i { font-size: 18px; color: #2277cf; }
-.rss-progress-step { margin: 0 0 12px; color: #6c757d; font-size: 13px; }
-.rss-progress .progress { height: 6px; }
+.rss-heading { margin: 4px 0 14px; font-size: 16px; }
+.rss-run { border-left: 3px solid #2277cf; }
+.rss-run-row { display: flex; align-items: center; gap: 12px 28px; flex-wrap: wrap; }
+.rss-run-when { flex: 0 0 190px; min-width: 0; overflow-wrap: anywhere; }
+.rss-run-time { margin: 10px 0 2px; font-size: 16px; font-weight: 500; }
+.rss-run-progress { flex: 1 1 220px; min-width: 0; }
+.rss-progress-title { margin: 0 0 8px; font-weight: 500; }
+.rss-progress-step { margin: 0 0 12px; color: #87909b; font-size: 13px; }
+.rss-run .progress { height: 8px; border-radius: 4px; }
+.rss-run-footer { margin-top: 14px; padding-top: 10px; border-top: 1px solid #ebedf2; }
+.rss-run-footer small { font-size: 11px; line-height: 1.5; }
 .rss-alert { display: flex; align-items: flex-start; gap: 10px; }
 .rss-alert i { font-size: 18px; line-height: 1.2; }
 .rss-alert span { overflow-wrap: anywhere; }
@@ -212,6 +234,7 @@ const segments = (path: string) => path.split(/(?<=\/)/);
 .rss-more { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; }
 @media (max-width: 991px) { .rss-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 575px) {
+  .rss-run-when { flex-basis: 100%; }
   .rss-meta { grid-template-columns: 1fr; }
   .rss-meta dd { margin-bottom: 6px; }
   .rss-filter { max-width: none; }

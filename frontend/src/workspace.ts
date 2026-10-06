@@ -13,6 +13,8 @@ export const PAGE_NAMES: Record<View, string> = {
 export const data = ref<LibraryResponse | null>(null);
 /** The active workspace's GDA sync: whether it is running, and the summary of its latest report. */
 export const rssSync = ref<RssSyncStatus | null>(null);
+// The backend allows one active comparison per workspace.
+export const activeSyncCount = computed(() => rssSync.value?.running ? 1 : 0);
 export const session = reactive({ token: '', version: '', platform: '' });
 export const loadError = ref('');
 export const stopped = ref(false);

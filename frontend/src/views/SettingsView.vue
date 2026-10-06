@@ -18,10 +18,6 @@ function cancel() {
 
 <template>
   <PageHeader title="Workspace settings">
-    <template #links>
-      <li><a href="#" @click.prevent="openFolder('source')">Open GDA folder</a></li>
-      <li><a href="#" @click.prevent="openFolder('destination')">Open Game folder</a></li>
-    </template>
     <template #links-right>
       <li><a href="#" @click.prevent="navigate('history')">Sync history</a></li>
     </template>
@@ -43,7 +39,12 @@ function cancel() {
               <input id="project-name" v-model="form.name" class="form-control" required maxlength="80" placeholder="Your project name">
             </div>
             <div class="form-group">
-              <label for="source-folder"><i aria-hidden="true" class="mdi mdi-harddisk text-success" />GDA path</label>
+              <label for="source-folder" class="settings-folder-label">
+                <a href="#" class="settings-folder-link" :title="`Open GDA folder: ${config.source}`" @click.prevent="openFolder('source')">
+                  <span class="settings-folder-name"><i aria-hidden="true" class="mdi mdi-harddisk text-success" />GDA path</span>
+                  <i aria-hidden="true" class="mdi mdi-open-in-new" />
+                </a>
+              </label>
               <input id="source-folder" v-model="form.source" class="form-control" :aria-describedby="missing('source') ? 'source-help source-missing' : 'source-help'" required :placeholder="windows ? 'C:\\Users\\you\\project\\gda' : '/home/you/project/gda'">
               <small id="source-help" class="form-text text-muted">The originals you’re working with. All subfolders are included.</small>
               <div v-if="missing('source')" id="source-missing" class="alert alert-warning folder-missing" role="status">
@@ -52,15 +53,20 @@ function cancel() {
             </div>
             <div class="flow-hint"><i aria-hidden="true" class="mdi mdi-arrow-down" />Assets flow from GDA to Game</div>
             <div class="form-group">
-              <label for="destination-folder"><i aria-hidden="true" class="mdi mdi-folder-outline text-primary" />Game path</label>
+              <label for="destination-folder" class="settings-folder-label">
+                <a href="#" class="settings-folder-link" :title="`Open Game folder: ${config.destination}`" @click.prevent="openFolder('destination')">
+                  <span class="settings-folder-name"><i aria-hidden="true" class="mdi mdi-folder-outline text-primary" />Game path</span>
+                  <i aria-hidden="true" class="mdi mdi-open-in-new" />
+                </a>
+              </label>
               <input id="destination-folder" v-model="form.destination" class="form-control" :aria-describedby="missing('destination') ? 'destination-help destination-missing' : 'destination-help'" required :placeholder="windows ? 'C:\\Users\\you\\project\\game' : '/home/you/project/game'">
               <small id="destination-help" class="form-text text-muted">A separate folder where your synced assets belong.</small>
               <div v-if="missing('destination')" id="destination-missing" class="alert alert-warning folder-missing" role="status">
                 <i aria-hidden="true" class="mdi mdi-alert-outline" />The Game folder does not exist. Assets cannot be synced until it does.
               </div>
             </div>
-            <button type="submit" class="btn btn-primary mr-2" :disabled="!!busy">
-              <i aria-hidden="true" :class="['mdi', busy === 'settings' ? 'mdi-loading mdi-spin' : 'mdi-check']" />Save connection
+            <button type="submit" class="btn btn-primary mr-2 settings-save" :disabled="!!busy">
+              <i aria-hidden="true" :class="['mdi', busy === 'settings' ? 'mdi-loading mdi-spin' : 'mdi-check']" /><span>Save connection</span>
             </button>
             <button type="button" class="btn btn-light" @click="cancel">Cancel</button>
           </form>
@@ -84,9 +90,12 @@ function cancel() {
               <code class="backup-path">{{ data!.backupPath }}</code>
             </div>
             <div class="col-lg-4 settings-stop">
-              <h5 class="mb-1">Stop EGT GDA Sync</h5>
-              <p class="text-muted">Close the local server when you’re done. Closing the last EGT GDA Sync page also stops it.</p>
-              <button type="button" class="btn btn-outline-danger" :disabled="!!busy" @click="ui.shutdownConfirm = true"><i aria-hidden="true" class="mdi mdi-power" />Stop application</button>
+              <section class="settings-stop-panel" aria-labelledby="settings-stop-heading">
+                <h4 id="settings-stop-heading" class="card-title">Stop EGT GDA Sync</h4>
+                <p>Close the local server when you’re done.</p>
+                <p class="text-muted">Closing the last EGT GDA Sync page also stops it.</p>
+                <button type="button" class="btn btn-outline-danger" :disabled="!!busy" @click="ui.shutdownConfirm = true"><i aria-hidden="true" class="mdi mdi-power" />Stop application</button>
+              </section>
             </div>
           </div>
         </div>

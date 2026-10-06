@@ -240,6 +240,9 @@ def test_each_run_saves_a_timestamped_report_and_a_failed_run_keeps_the_last_res
     history = jobs.history("example")
     assert [(run["state"], run["file"]) for run in history] == [("failed", files[1]), ("succeeded", files[0])]
     assert "summary" not in history[0] and history[1]["summary"] == counts
+    # A successful run says how many descriptors it parsed. Settings in the shape of an earlier version are left out.
+    assert "workspace" not in history[0] and "workspace" not in history[1]
+    assert "descriptors" not in history[0] and history[1]["descriptors"] == len(report["descriptors"])
     assert history[1]["finishedAt"] == report["summary"]["finishedAt"] and jobs.history("other") == []
 
 
@@ -301,6 +304,7 @@ def test_rescan_starts_the_comparison_and_the_api_serves_the_workspace_report(tm
         assert status["lastRun"]["state"] == "succeeded" and status["summary"]["compared"] == 6
         history = client.get("/api/rss-sync/history").json()
         assert history["workspaceId"] == "example" and history["history"][0]["summary"] == status["summary"]
+        assert history["workspace"]["game_name"] == "Example" and history["workspace"] == history["history"][0]["workspace"]
         assert history["history"][0]["file"] == Path(status["reportPath"]).name
         report = client.get("/api/rss-sync/report").json()
         # The report keeps the workspace settings the run used, with defaults filled in, whatever workspace.json says later.

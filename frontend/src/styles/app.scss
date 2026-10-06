@@ -240,27 +240,6 @@ button.nav-link {
 }
 
 /* Page header */
-.page-dashboard-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 12px;
-  color: $text-muted;
-  font-size: 13px;
-  font-weight: 500;
-
-  i {
-    font-size: 16px;
-    line-height: 1;
-  }
-
-  &:hover,
-  &[aria-current="page"] {
-    color: $primary;
-    text-decoration: none;
-  }
-}
-
 .page-header .page-title {
   flex-shrink: 0;
   margin-right: 1rem;
@@ -880,17 +859,97 @@ button.nav-link {
 }
 
 /* Settings */
+.settings-folder-label {
+  width: 100%;
+
+  .settings-folder-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    color: $primary;
+    text-decoration: none;
+
+    &:hover .settings-folder-name {
+      text-decoration: underline;
+    }
+
+    > i.mdi {
+      flex-shrink: 0;
+      margin: 0;
+      font-size: 18px;
+      line-height: 1;
+    }
+  }
+
+  .settings-folder-name {
+    display: inline-flex;
+    align-items: center;
+
+    i {
+      font-size: 16px;
+      line-height: 1;
+    }
+  }
+}
+
+.settings-save {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  vertical-align: middle;
+
+  i.mdi {
+    display: inline-flex;
+    flex-shrink: 0;
+    margin: 0;
+    font-size: 16px;
+    line-height: 1;
+  }
+}
+
 .settings-stop {
   margin-top: 1.5rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid $border-color;
 
   @include media-breakpoint-up(lg) {
     margin-top: 0;
-    padding-top: 0;
-    padding-left: 1.5rem;
-    border-top: 0;
-    border-left: 1px solid $border-color;
+  }
+}
+
+.settings-stop-panel {
+  padding: 18px;
+  border: 1px solid $border-color;
+  border-radius: 8px;
+  background: mix($content-bg, $white, 50%);
+
+  .card-title {
+    margin-bottom: 12px;
+    line-height: 1.4;
+  }
+
+  p {
+    margin-bottom: 12px;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 40px;
+    margin-top: 20px;
+    padding: 10px 12px;
+    white-space: normal;
+
+    i {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1;
+    }
   }
 }
 

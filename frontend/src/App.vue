@@ -11,7 +11,7 @@ import DashboardView from './views/DashboardView.vue';
 import LibraryView from './views/LibraryView.vue';
 import SettingsView from './views/SettingsView.vue';
 import SyncHistoryView from './views/SyncHistoryView.vue';
-import SyncView from './views/SyncView.vue';
+import SyncInProgressView from './views/SyncInProgressView.vue';
 import { data, isLibraryView, load, loadError, stopped, ui } from './workspace';
 
 useBackendLifetime(() => !stopped.value);
@@ -55,7 +55,7 @@ onBeforeUnmount(() => {
         <div class="content-wrapper">
           <DashboardView v-if="ui.view === 'dashboard'" />
           <LibraryView v-else-if="isLibraryView" />
-          <SyncView v-else-if="ui.view === 'rssSync'" />
+          <SyncInProgressView v-else-if="ui.view === 'rssSync'" />
           <SyncHistoryView v-else-if="ui.view === 'history'" />
           <SettingsView v-else-if="ui.view === 'settings'" />
         </div>

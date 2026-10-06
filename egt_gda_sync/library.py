@@ -384,8 +384,8 @@ class Library:
         return self.reports.status(self._active_workspace()[0])
 
     def rss_history(self) -> dict:
-        workspace_id = self._active_workspace()[0]
-        return {"workspaceId": workspace_id, "history": self.reports.history(workspace_id)}
+        workspace_id, entry = self._active_workspace()
+        return {"workspaceId": workspace_id, "workspace": self._comparison(workspace_id, entry)[0], "history": self.reports.history(workspace_id)}
 
     def rss_report(self) -> bytes:
         report = self.reports.report(self._active_workspace()[0])

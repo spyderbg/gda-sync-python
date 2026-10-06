@@ -28,8 +28,8 @@ export type RssCategory = 'identical' | 'missing' | 'different' | 'invalid';
 export interface RssSyncSummary { compared: number; identical: number; identicalMipOnly: number; missing: number; different: number; invalid: number }
 export interface RssSyncRun { state: 'succeeded' | 'failed'; startedAt: string; finishedAt: string; error?: string }
 /** One finished run in a workspace's history, read from its report file; only a successful run has counts. */
-export interface RssSyncHistoryEntry extends RssSyncRun { summary?: RssSyncSummary; file: string }
-export interface RssSyncHistory { workspaceId: string; history: RssSyncHistoryEntry[] }
+export interface RssSyncHistoryEntry extends RssSyncRun { summary?: RssSyncSummary; workspace?: RssSyncWorkspace; descriptors?: number; file: string }
+export interface RssSyncHistory { workspaceId: string; workspace: RssSyncWorkspace; history: RssSyncHistoryEntry[] }
 export interface RssSyncStatus {
   workspaceId: string; reportPath: string | null; running: boolean; startedAt: string | null;
   progress: { phase: 'descriptors' | 'index' | 'compare'; done: number; total: number } | null;

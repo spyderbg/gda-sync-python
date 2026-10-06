@@ -17,10 +17,10 @@ const modifiedCount = computed(() => pending.value.length - newCount.value);
       </div>
       <div class="workspace-header-actions">
         <button type="button" class="btn btn-outline-primary" :disabled="!!busy" @click="rescan">
-          <i aria-hidden="true" :class="['mdi', busy === 'scan' ? 'mdi-loading mdi-spin' : 'mdi-refresh']" />{{ busy === 'scan' ? 'Scanning…' : 'Rescan' }}
+          <i aria-hidden="true" :class="['mdi', busy === 'scan' ? 'mdi-loading mdi-spin' : 'mdi-refresh']" /><span>{{ busy === 'scan' ? 'Scanning…' : 'Rescan' }}</span>
         </button>
         <button type="button" class="btn btn-primary" :disabled="!!busy || !pending.length" @click="requestSync(pending.map(asset => asset.id))">
-          <i aria-hidden="true" :class="['mdi', busy === 'sync' ? 'mdi-loading mdi-spin' : 'mdi-sync']" />{{ busy === 'sync' ? 'Syncing…' : 'Sync all pending' }}<span v-if="pending.length" class="badge badge-light ml-2">{{ number(pending.length) }}</span>
+          <i aria-hidden="true" :class="['mdi', busy === 'sync' ? 'mdi-loading mdi-spin' : 'mdi-sync']" /><span>{{ busy === 'sync' ? 'Syncing…' : 'Sync all pending' }}</span><span v-if="pending.length" class="badge badge-light">{{ number(pending.length) }}</span>
         </button>
       </div>
     </div>
@@ -71,7 +71,9 @@ h1 { margin: 0 0 10px; font-size: clamp(26px, 2.6vw, 34px); line-height: 1.2; fo
 .workspace-subtitle { margin: 0; color: #87909b; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
 .workspace-sync-data-path { font-family: monospace; }
 .workspace-header-actions { display: flex; flex-shrink: 0; gap: 10px; flex-wrap: wrap; }
-.workspace-header-actions .btn { min-height: 40px; border-radius: 7px; white-space: nowrap; }
+.workspace-header-actions .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; border-radius: 7px; white-space: nowrap; }
+.workspace-header-actions .btn i.mdi { display: inline-flex; flex-shrink: 0; margin: 0; font-size: 16px; line-height: 1; }
+.workspace-header-actions .btn .badge { flex-shrink: 0; }
 .workspace-header-actions .btn-outline-primary { background: #fff; border-color: #dce2dc; color: #5d7063; }
 .workspace-header-actions .btn-outline-primary:hover { background: #f1f5f1; }
 .workspace-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-bottom: 20px; }

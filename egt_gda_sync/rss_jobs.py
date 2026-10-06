@@ -232,13 +232,22 @@ class SyncJobs:
             return handle.read()
 
     def history(self, workspace_id: str) -> list[dict]:
-        """Every finished run of the workspace, newest first: one per report file, with the counts of a successful one."""
+        """Every finished run of the workspace, newest first: one per report file, with the settings the run used and,
+        for a successful one, its counts and how many descriptors it parsed. Reports from earlier versions hold other
+        workspace fields, which are left out."""
         runs = []
         for file in self._files(workspace_id):
             header = self._header(file)
             if run := _run(header):
                 counts = _counts(header)
-                runs.append({**run, **({"summary": counts} if counts else {}), "file": os.path.basename(file)})
+                workspace = header.get("workspace")
+                descriptors = header.get("descriptors")
+                runs.append({
+                    **run, **({"summary": counts} if counts else {}),
+                    **({"workspace": workspace} if isinstance(workspace, dict) and "game_path" in workspace else {}),
+                    **({"descriptors": len(descriptors)} if counts and isinstance(descriptors, list) else {}),
+                    "file": os.path.basename(file),
+                })
         return runs
 
     def status(self, workspace_id: str) -> dict:
