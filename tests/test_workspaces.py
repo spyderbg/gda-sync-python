@@ -15,6 +15,8 @@ def configured_library(tmp_path, legacy=False):
         source.mkdir(parents=True)
         destination.mkdir()
         (source / f'{name}.txt').write_text(name)
+        # The asset library lists the game folder.
+        (destination / f'{name}-game.txt').write_text(name)
         entry = {'id': name, ('name' if legacy else 'game_name'): name.title()}
         # Files are copied from the GDA folder (the source) to the game folder (the destination).
         entry.update({('source' if legacy else 'gda_path'): str(source), ('destination' if legacy else 'game_path'): str(destination)})
@@ -35,13 +37,13 @@ def test_switch_persists_and_settings_update_only_selected_workspace(tmp_path, l
     with TestClient(create_app(library, dev=True), base_url='http://127.0.0.1') as client:
         headers = session_headers(client)
         first = client.get('/api/library').json()
-        assert first['assets'][0]['name'] == 'first.txt'
+        assert [asset['name'] for asset in first['assets']] == ['first-game.txt']
         # No report file exists before a workspace's first GDA sync run.
         assert first['rssSync']['workspaceId'] == 'first' and first['rssSync']['reportPath'] is None
         assert client.put('/api/workspace', json={'id': 'second'}).status_code == 403
         result = client.put('/api/workspace', headers=headers, json={'id': 'second'})
         assert result.status_code == 200
-        assert result.json()['assets'][0]['name'] == 'second.txt'
+        assert [asset['name'] for asset in result.json()['assets']] == ['second-game.txt']
         assert result.json()['config']['defaultWorkspace'] == 'second'
         assert result.json()['rssSync']['workspaceId'] == 'second' and result.json()['rssSync']['reportPath'] is None
         config = result.json()['config']
@@ -63,7 +65,7 @@ def test_switch_persists_and_settings_update_only_selected_workspace(tmp_path, l
     restored = Library(library.home, config_path=str(path))
     restored.init()
     assert restored.config['name'] == 'Renamed'
-    assert restored.scan()['assets'][0]['name'] == 'second.txt'
+    assert restored.scan()['assets'][0]['name'] == 'second-game.txt'
 
 
 @pytest.mark.parametrize('change', ['empty', 'duplicate', 'unknown', 'invalid_path', 'invalid_config', 'missing_path'])
@@ -91,11 +93,13 @@ def test_sync_copies_from_the_gda_folder_to_the_game_folder(tmp_path):
     library, path = configured_library(tmp_path)
     gda, game = tmp_path / 'first' / 'gda', tmp_path / 'first' / 'game'
     assert library.config['source'] == str(gda) and library.config['destination'] == str(game)
-    asset = library.scan()['assets'][0]
+    status = lambda: next(asset for asset in library.dashboard()['assets'] if asset['workspaceId'] == 'first')
+    asset = status()
     assert asset['status'] == 'new'
     assert library.sync([asset['id']])['copied'] == ['first.txt']
     assert (game / 'first.txt').read_text() == 'first' and (gda / 'first.txt').read_text() == 'first'
-    assert library.scan()['assets'][0]['status'] == 'synced'
+    assert status()['status'] == 'synced'
+    assert sorted(asset['name'] for asset in library.scan()['assets']) == ['first-game.txt', 'first.txt']
 
     # Saving settings writes the GDA folder back as gda_path and the game folder as game_path.
     library.update_config('Renamed', str(gda), str(game))
@@ -203,8 +207,9 @@ def test_dashboard_refreshes_file_status_after_a_workspace_copy(tmp_path):
         initial = client.get('/api/dashboard').json()
         assert all(asset['status'] == 'new' for asset in initial['assets'])
         headers = session_headers(client)
-        selected = client.put('/api/workspace', headers=headers, json={'id': 'second'}).json()
-        result = client.post('/api/sync', headers=headers, json={'ids': [selected['assets'][0]['id']]})
+        client.put('/api/workspace', headers=headers, json={'id': 'second'})
+        second = next(asset for asset in initial['assets'] if asset['workspaceId'] == 'second')
+        result = client.post('/api/sync', headers=headers, json={'ids': [second['id']]})
         assert result.status_code == 200
         dashboard = client.get('/api/dashboard').json()
     assert {asset['workspaceId']: asset['status'] for asset in dashboard['assets']} == {'first': 'new', 'second': 'synced'}

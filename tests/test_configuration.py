@@ -30,7 +30,7 @@ def test_template_settings_load_at_startup_and_ui_changes_persist_in_the_project
         gda, game = tmp_path / f"gda-{index}", tmp_path / f"game-{index}"
         gda.mkdir()
         game.mkdir()
-        (gda / "asset.txt").write_text("Project asset", encoding="utf-8")
+        (game / "asset.txt").write_text("Project asset", encoding="utf-8")
         entry.update(game_path=str(game), gda_path=str(gda))
     config_path = tmp_path / "project" / "config" / "workspace.json"
     config_path.parent.mkdir(parents=True)
@@ -76,7 +76,8 @@ def test_local_configuration_takes_precedence_and_settings_save_to_the_same_file
     source, destination = tmp_path / "source", tmp_path / "gda"
     source.mkdir()
     destination.mkdir()
-    (source / "asset.txt").write_text("Workspace asset", encoding="utf-8")
+    # The asset library lists the game folder (the destination).
+    (destination / "asset.txt").write_text("Workspace asset", encoding="utf-8")
     settings = {"name": "Packaged workspace", "source": str(source), "destination": str(destination)}
     config_path = tmp_path / "app" / "workspace.json"
     config_path.parent.mkdir()
@@ -138,7 +139,8 @@ def test_a_new_user_gets_a_demo_configuration_in_the_active_location(tmp_path, l
     library.init()
     assert json.loads(config_path.read_text(encoding="utf-8")) == library.config
     assert library.config["demo"] is True
-    assert len(library.scan()["assets"]) == 18
+    # The demo game has 13 of the demo's 18 assets.
+    assert len(library.scan()["assets"]) == 13
     assert not (home / "workspace.json").exists()
 
 

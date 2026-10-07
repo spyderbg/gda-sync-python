@@ -1,26 +1,31 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { number, time } from '../format';
-import { assets, busy, config, data, navigate, openFolder, pending, requestSync, rescan, rssSync, syncedCount } from '../workspace';
+import { ago, number, plural, size, time } from '../format';
+import { assets, busy, config, copy, data, navigate, openFolder, rescan, rssSync, totalSize, ui } from '../workspace';
 
-const newCount = computed(() => pending.value.filter(asset => asset.status === 'new').length);
-const modifiedCount = computed(() => pending.value.length - newCount.value);
+// The asset library browses the game folder: how many files it has, their size and formats, and the newest change.
+const formats = computed(() => {
+  const counts = new Map<string, number>();
+  for (const { extension } of assets.value) counts.set(extension, (counts.get(extension) ?? 0) + 1);
+  return [...counts].sort((a, b) => b[1] - a[1]).map(([extension]) => extension.toUpperCase() || 'No extension');
+});
+// The backend lists the newest files first.
+const newest = computed(() => assets.value[0] ?? null);
 </script>
 
 <template>
-  <section class="workspace-header" aria-labelledby="workspace-heading">
+  <section class="workspace-header" aria-label="Workspace summary">
     <div class="workspace-header-top">
       <div class="workspace-header-intro">
-        <p class="workspace-eyebrow">Your creative workflow, connected</p>
-        <h1 id="workspace-heading">{{ config.name }}<span class="workspace-title-dot">.</span></h1>
-        <p class="workspace-subtitle">Sync data: <span class="workspace-sync-data-path">{{ rssSync?.reportPath || 'Unavailable' }}</span></p>
+        <p class="workspace-subtitle">
+          <span>Sync data:</span>
+          <span class="workspace-sync-data-path">{{ rssSync?.reportPath || 'Unavailable' }}</span>
+          <button v-if="rssSync?.reportPath" type="button" class="workspace-sync-data-copy" aria-label="Copy sync report path" title="Copy sync report path" @click="copy(rssSync.reportPath)"><i aria-hidden="true" class="mdi mdi-content-copy" /></button>
+        </p>
       </div>
       <div class="workspace-header-actions">
         <button type="button" class="btn btn-outline-primary" :disabled="!!busy" @click="rescan">
           <i aria-hidden="true" :class="['mdi', busy === 'scan' ? 'mdi-loading mdi-spin' : 'mdi-refresh']" /><span>{{ busy === 'scan' ? 'Scanning…' : 'Rescan' }}</span>
-        </button>
-        <button type="button" class="btn btn-primary" :disabled="!!busy || !pending.length" @click="requestSync(pending.map(asset => asset.id))">
-          <i aria-hidden="true" :class="['mdi', busy === 'sync' ? 'mdi-loading mdi-spin' : 'mdi-sync']" /><span>{{ busy === 'sync' ? 'Syncing…' : 'Sync all pending' }}</span><span v-if="pending.length" class="badge badge-light">{{ number(pending.length) }}</span>
         </button>
       </div>
     </div>
@@ -28,28 +33,21 @@ const modifiedCount = computed(() => pending.value.length - newCount.value);
     <div class="workspace-metrics">
       <button type="button" class="workspace-metric" @click="navigate('library')">
         <span class="workspace-metric-icon total" aria-hidden="true"><i class="mdi mdi-layers-outline" /></span>
-        <span class="workspace-metric-copy"><span class="workspace-metric-label">Total assets</span><span class="workspace-metric-value">{{ number(assets.length) }}<small>in your workspace</small></span></span>
+        <span class="workspace-metric-copy"><span class="workspace-metric-label">Total assets</span><span class="workspace-metric-value">{{ number(assets.length) }}<small>in the game path</small></span></span>
         <i class="mdi mdi-arrow-top-right workspace-metric-arrow" aria-hidden="true" />
       </button>
-      <button type="button" class="workspace-metric" @click="navigate('pending')">
-        <span class="workspace-metric-icon pending" aria-hidden="true"><i class="mdi mdi-sync" /></span>
-        <span class="workspace-metric-copy"><span class="workspace-metric-label">Ready to sync</span><span class="workspace-metric-value">{{ number(pending.length) }}<small>{{ number(newCount) }} new · {{ number(modifiedCount) }} modified</small></span></span>
-        <i class="mdi mdi-arrow-top-right workspace-metric-arrow" aria-hidden="true" />
-      </button>
-      <button type="button" class="workspace-metric" @click="navigate('synced')">
-        <span class="workspace-metric-icon synced" aria-hidden="true"><i class="mdi mdi-check-all" /></span>
-        <span class="workspace-metric-copy"><span class="workspace-metric-label">Already in sync</span><span class="workspace-metric-value">{{ number(syncedCount) }}<small>good to go</small></span></span>
+      <div class="workspace-metric is-static">
+        <span class="workspace-metric-icon size" aria-hidden="true"><i class="mdi mdi-harddisk" /></span>
+        <span class="workspace-metric-copy"><span class="workspace-metric-label">Total size</span><span class="workspace-metric-value">{{ size(totalSize) }}<small :title="formats.join(', ')">{{ number(formats.length) }} format{{ plural(formats.length) }}<template v-if="formats.length"> · {{ formats.slice(0, 3).join(' · ') }}</template></small></span></span>
+      </div>
+      <button type="button" class="workspace-metric" :disabled="!newest" @click="newest && (ui.inspecting = newest.id)">
+        <span class="workspace-metric-icon recent" aria-hidden="true"><i class="mdi mdi-clock-outline" /></span>
+        <span class="workspace-metric-copy"><span class="workspace-metric-label">Last changed</span><span class="workspace-metric-value">{{ newest ? ago(newest.modifiedAt) : '—' }}<small v-if="newest" :title="newest.path">{{ newest.name }}</small></span></span>
+        <i v-if="newest" class="mdi mdi-arrow-top-right workspace-metric-arrow" aria-hidden="true" />
       </button>
     </div>
 
-    <div class="workspace-folder-strip" role="group" aria-label="Sync flow: GDA folder to Game path">
-      <button type="button" class="workspace-folder" :title="config.source" aria-label="Open GDA folder" @click="openFolder('source')">
-        <i class="mdi mdi-folder-open-outline workspace-folder-icon" aria-hidden="true" />
-        <span class="workspace-folder-label">GDA folder</span>
-        <span class="workspace-folder-path">{{ config.source }}</span>
-        <i class="mdi mdi-open-in-new workspace-folder-open" aria-hidden="true" />
-      </button>
-      <i class="mdi mdi-arrow-down workspace-folder-direction" aria-hidden="true" />
+    <div class="workspace-folder-strip" role="group" aria-label="Game path">
       <button type="button" class="workspace-folder" :title="config.destination" aria-label="Open Game folder" @click="openFolder('destination')">
         <i class="mdi mdi-folder-outline workspace-folder-icon" aria-hidden="true" />
         <span class="workspace-folder-label">Game path</span>
@@ -65,24 +63,24 @@ const modifiedCount = computed(() => pending.value.length - newCount.value);
 .workspace-header { margin-bottom: 22px; }
 .workspace-header-top { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
 .workspace-header-intro { min-width: 0; }
-.workspace-eyebrow { margin: 0 0 9px; font-size: 9px; font-weight: 500; letter-spacing: 2px; text-transform: uppercase; color: #87958c; }
-h1 { margin: 0 0 10px; font-size: clamp(26px, 2.6vw, 34px); line-height: 1.2; font-weight: 500; letter-spacing: -0.8px; overflow-wrap: anywhere; }
-.workspace-title-dot { color: #85a777; }
-.workspace-subtitle { margin: 0; color: #87909b; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
-.workspace-sync-data-path { font-family: monospace; }
+.workspace-subtitle { display: flex; align-items: center; gap: 4px; margin: 0; color: #87909b; font-size: 12px; line-height: 1.5; }
+.workspace-subtitle > span:first-child { flex-shrink: 0; }
+.workspace-sync-data-path { min-width: 0; font-family: monospace; overflow-wrap: anywhere; }
+.workspace-sync-data-copy { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 4px; background: transparent; color: #87909b; font-size: 16px; cursor: pointer; }
+.workspace-sync-data-copy:hover { background: #edf7ff; color: #2196f3; }
 .workspace-header-actions { display: flex; flex-shrink: 0; gap: 10px; flex-wrap: wrap; }
 .workspace-header-actions .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; border-radius: 7px; white-space: nowrap; }
 .workspace-header-actions .btn i.mdi { display: inline-flex; flex-shrink: 0; margin: 0; font-size: 16px; line-height: 1; }
-.workspace-header-actions .btn .badge { flex-shrink: 0; }
 .workspace-header-actions .btn-outline-primary { background: #fff; border-color: #dce2dc; color: #5d7063; }
 .workspace-header-actions .btn-outline-primary:hover { background: #f1f5f1; }
 .workspace-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-bottom: 20px; }
 .workspace-metric { display: flex; position: relative; align-items: center; gap: 14px; min-width: 0; padding: 20px 18px; border: 1px solid #e0e5de; border-radius: 9px; background: #fff; color: #29383b; text-align: left; font-family: inherit; cursor: pointer; transition: border-color 0.15s; }
-.workspace-metric:hover { border-color: #aebcac; }
+.workspace-metric:hover:not(:disabled):not(.is-static) { border-color: #aebcac; }
+.workspace-metric.is-static, .workspace-metric:disabled { cursor: default; }
 .workspace-metric-icon { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 42px; height: 44px; border-radius: 10px; font-size: 24px; }
 .workspace-metric-icon.total { color: #828d70; background: #f0f2eb; }
-.workspace-metric-icon.pending { color: #cc8a43; background: #fdf1e5; }
-.workspace-metric-icon.synced { color: #80a263; background: #edf4e6; }
+.workspace-metric-icon.size { color: #5b86b8; background: #e9f1fa; }
+.workspace-metric-icon.recent { color: #80a263; background: #edf4e6; }
 .workspace-metric-copy { display: block; min-width: 0; }
 .workspace-metric-label { display: block; margin-bottom: 6px; color: #8a968d; font-size: 11px; }
 .workspace-metric-value { display: flex; align-items: baseline; flex-wrap: wrap; column-gap: 9px; row-gap: 2px; font-size: 28px; font-weight: 500; line-height: 1.15; letter-spacing: -0.7px; }
@@ -94,7 +92,6 @@ h1 { margin: 0 0 10px; font-size: clamp(26px, 2.6vw, 34px); line-height: 1.2; fo
 .workspace-folder-label { font-size: 8px; font-weight: 500; text-transform: uppercase; letter-spacing: 1.4px; }
 .workspace-folder-path { display: block; font-family: monospace; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .workspace-folder-open { font-size: 16px; }
-.workspace-folder-direction { position: absolute; left: 25px; top: 50%; transform: translateY(-50%); color: #9eae92; font-size: 16px; line-height: 1; }
 .workspace-last-scan { margin: 8px 0 0; color: #929aa1; font-size: 11px; text-align: right; }
 @media (max-width: 1199px) { .workspace-metric { padding: 18px 12px; gap: 10px; } .workspace-metric-value { font-size: 25px; } }
 @media (max-width: 767px) {

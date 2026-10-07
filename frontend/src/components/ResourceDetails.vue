@@ -8,8 +8,8 @@ import AudioPreview from './AudioPreview.vue';
 import ReportThumbnail from './ReportThumbnail.vue';
 import SequencePreview from './SequencePreview.vue';
 
-// The details of one resource of the GDA sync report in a dialog, like the asset library's enlarged preview and asset
-// details: a large preview, beside the GDA file's when the GDA has one, what the status means, the files' format, size,
+// The details of one resource of the GDA sync report in a dialog, like the asset library's asset details (AssetDetails):
+// a large preview, beside the GDA file's when the GDA has one, what the status means, the files' format, size,
 // resolution, pixel format, mip levels and time, for the game and the GDA side by side, and where the resource is
 // declared. An image sequence plays in the dialog, with how it plays, the totals of its files and each frame's status.
 // An audio file plays once when the dialog opens, and each audio preview has a play and stop button.
@@ -154,7 +154,7 @@ function sync() {
 
 <template>
   <AppModal :title="name" xl @close="emit('close')">
-    <div class="modal-body resource-details">
+    <div class="modal-body details-dialog">
       <div :class="['details-previews', { 'is-paired': pairedPreview }]">
         <figure class="details-preview">
           <figcaption>{{ sequence ? 'Game frames' : 'Game file' }}<small v-if="sequence">Click to play again</small></figcaption>
@@ -263,55 +263,3 @@ function sync() {
   </AppModal>
 </template>
 
-<style scoped>
-.resource-details { padding: 1.25rem 1.5rem; }
-.details-previews { display: grid; gap: 16px; margin-bottom: 1.25rem; }
-.details-previews.is-paired { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.details-preview { margin: 0; min-width: 0; }
-.details-preview figcaption { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 6px; color: #6c757d; font-size: 12px; }
-.details-preview figcaption small { color: #97a098; }
-.details-preview :deep(.thumbnail) { height: 42vh; min-height: 200px; border-radius: 4px; }
-.details-preview :deep(.thumbnail img) { object-fit: contain; }
-.details-columns { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 28px; }
-.details-status { max-width: 100%; white-space: normal; text-align: left; line-height: 1.3; }
-.details-name { margin: 10px 0 4px; font-weight: 500; word-break: break-word; }
-.details-folder { margin-bottom: 1rem; font-size: 0.8125rem; overflow-wrap: anywhere; }
-.details-note { display: flex; align-items: flex-start; margin-bottom: 1rem; padding: 12px 14px; border-radius: 3px; background: rgba(255, 175, 0, 0.12); }
-.details-note i { margin-right: 12px; color: #e69d00; font-size: 20px; line-height: 1; }
-.details-note p { margin: 0; font-weight: 500; }
-.details-note small { display: block; color: #6c757d; font-weight: 400; }
-.details-note.is-synced { background: rgba(25, 216, 149, 0.12); }
-.details-note.is-synced i { color: #13b57c; }
-.details-note.is-invalid { background: rgba(37, 44, 70, 0.08); }
-.details-note.is-invalid i { color: #252c46; }
-.details-note.is-supplementary { background: rgba(136, 98, 224, 0.1); }
-.details-note.is-supplementary i { color: #8862e0; }
-.details-scope { font-size: 0.8125rem; }
-.details-heading { margin: 1.25rem 0 0.5rem; color: #6c757d; font-size: 11px; font-weight: 500; letter-spacing: 0.8px; text-transform: uppercase; }
-.details-small { margin: 0; font-size: 0.8125rem; }
-.details-list { margin: 0; padding: 0; list-style: none; }
-.details-code { font-family: monospace; font-size: 12px; overflow-wrap: anywhere; }
-.details-path { display: flex; align-items: center; gap: 4px; margin-bottom: 4px; }
-.details-path > .details-code { flex: 1 1 auto; min-width: 0; }
-.details-path .badge { flex-shrink: 0; }
-.details-icon { display: flex; flex-shrink: 0; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: #6b7280; font-size: 15px; cursor: pointer; }
-.details-icon:hover { background: #ebedf2; color: #4b49ac; }
-.details-table { margin: 0; }
-.details-table th, .details-table td { padding: 6px 8px 6px 0; border-top: 1px solid #f0f1f4; font-size: 0.8125rem; vertical-align: top; }
-.details-table thead th { border-top: 0; color: #6c757d; font-size: 12px; font-weight: 500; }
-.details-table tbody th { width: 34%; color: #6c757d; font-weight: 400; }
-.details-table td { font-weight: 500; overflow-wrap: anywhere; }
-.details-table td.is-different { color: #d2453c; }
-.details-frames { max-height: 260px; overflow-y: auto; border: 1px solid #ebedf2; border-radius: 4px; }
-.details-frames table { margin: 0; }
-.details-frames th { position: sticky; top: 0; background: #fff; font-size: 12px; font-weight: 500; }
-.details-frames td, .details-frames th { padding: 4px 10px; font-size: 12px; vertical-align: middle; }
-.details-frames .badge { white-space: normal; text-align: left; }
-.details-footer { gap: 8px; }
-.details-footer > span { flex: 1 1 auto; min-width: 0; overflow: hidden; font-family: monospace; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
-@media (max-width: 991px) {
-  .details-columns { grid-template-columns: minmax(0, 1fr); gap: 0; }
-  .details-previews.is-paired { grid-template-columns: minmax(0, 1fr); }
-  .details-preview :deep(.thumbnail) { height: 32vh; }
-}
-</style>

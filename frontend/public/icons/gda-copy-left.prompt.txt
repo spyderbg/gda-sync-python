@@ -1,0 +1,5 @@
+Generated with the built-in image_gen tool.
+
+Use case: logo-brand. Asset type: an application UI button icon. Generate a single polished left-pointing arrow icon on a genuinely transparent background. The arrow points horizontally from right to left, with one bold straight shaft and one unmistakable left arrowhead, gently rounded corners and crisp clean edges. Solid vivid azure blue matching #2196f3, flat modern desktop application style. Center it in a square canvas with small even transparent margins; the arrow occupies about 80 percent of the width. It will be displayed at 36px inside a clickable button between a Game file card on the left and a GDA file card on the right, meaning copy from GDA to Game. No text, no letters, no file symbols, no enclosing circle, no button background, no gradients, no shadows, no watermark, no checkerboard pixels.
+
+transparent_background: true

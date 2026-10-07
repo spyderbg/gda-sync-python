@@ -1,5 +1,6 @@
 """The GDA sync comparison (a port of docs/rss_sync/gda_sync.py), its background runs and its API."""
 
+import contextlib
 import json
 import struct
 from pathlib import Path
@@ -495,6 +496,179 @@ def test_syncing_an_image_sequence_copies_its_different_frames_as_one_resource(t
         library.reports.wait("example", 60)
         # a_01.dds, also declared as an image, was copied with the sequence.
         assert client.get("/api/rss-sync").json()["summary"]["different"] == 0
+
+
+def crlf(text: str) -> bytes:
+    return text.replace("\n", "\r\n").encode()
+
+
+RAW_DESCRIPTOR = """{
+    "rawFiles": [
+        {
+            "path": "same.dds"
+        },
+        {
+            "path": "gone.wav"
+        },
+        {
+            "path": "kept.wav"
+        }
+    ]
+}
+"""
+AUDIO_DESCRIPTOR = """{
+    "audioEvents": [
+        {
+            "id": "BOTH",
+            "samples": [
+                "gone.wav",
+                "kept.wav"
+            ]
+        },
+        {
+            "id": "GONE",
+            "samples": [
+                "gone.wav"
+            ]
+        }
+    ]
+}
+"""
+SEQUENCE_DESCRIPTOR = """{
+    "imagesSeq": [
+        {
+            "id": "BROKEN",
+            "frameTime": 40,
+            "loopCount": 0,
+            "frames": [
+                {
+                    "path": "broken_{0-1}.dds"
+                }
+            ]
+        },
+        {
+            "id": "KEPT",
+            "frameTime": 40,
+            "loopCount": 0,
+            "frames": [
+                {
+                    "path": "same.dds"
+                }
+            ]
+        }
+    ]
+}
+"""
+
+
+def write_invalid(root: Path) -> tuple[Path, Path]:
+    """Descriptors, with CRLF line endings, that declare a file that does not exist as a raw file and as audio samples,
+    and an image sequence with a frame that does not exist."""
+    game, gda = root / "resources" / "example", root / "gda"
+    game.mkdir(parents=True)
+    gda.mkdir()
+    for name in ("same.dds", "kept.wav", "broken_0.dds"):
+        (game / name).write_bytes(name.encode())
+        (gda / name).write_bytes(name.encode())
+    (game / "RssRawData.json").write_bytes(crlf(RAW_DESCRIPTOR))
+    (game / "RssAudioData.json").write_bytes(crlf(AUDIO_DESCRIPTOR))
+    (game / "RssImagesSeqData.json").write_bytes(crlf(SEQUENCE_DESCRIPTOR))
+    return game, gda
+
+
+@contextlib.contextmanager
+def compared(tmp_path: Path, game: Path, gda: Path, **settings):
+    """A client of the app for the workspace, after its first GDA sync, with the report's rows by resource or sequence id."""
+    entry = {"id": "example", "game_name": "Example", "game_path": str(game), "gda_path": str(gda), "extensions": [".dds", ".wav"], **settings}
+    config = tmp_path / "workspace.json"
+    config.write_text(json.dumps({"config": {"port": 3457}, "defaultWorkspace": "example", "workspaces": [entry]}))
+    library = Library(str(tmp_path / "app"), config_path=str(config))
+    library.init()
+    with TestClient(create_app(library, dev=True), base_url="http://127.0.0.1") as client:
+        headers = session_headers(client)
+        client.post("/api/scan", headers=headers)
+        library.reports.wait("example", 60)
+        differences = client.get("/api/rss-sync/report").json()["differences"]
+        rows = {(row["sequence"]["id"] or row["resource"]) if "sequence" in row else row["resource"]: row for row in differences}
+        apply = lambda *rows: client.post("/api/rss-sync/apply", headers=headers, json={
+            "resources": [{"id": row["id"], "category": row["category"]} for row in rows]})
+        yield client, library, rows, apply
+
+
+def test_applying_invalid_rows_removes_their_declarations_and_keeps_the_rest_of_the_descriptors(tmp_path):
+    game, gda = write_invalid(tmp_path)
+    with compared(tmp_path, game, gda) as (client, library, rows, apply):
+        assert {name: row["category"] for name, row in rows.items()} == {"gone.wav": "invalid", "BROKEN": "invalid"}
+        result = apply(rows["gone.wav"], rows["BROKEN"]).json()
+        assert result["removed"] == 2 and result["failures"] == [] and result["copied"] == []
+        # The raw file entry goes, and the audio event that would have no samples left; the other keeps its other sample.
+        assert (game / "RssRawData.json").read_bytes() == crlf(RAW_DESCRIPTOR.replace(
+            '        {\n            "path": "gone.wav"\n        },\n', ""))
+        assert (game / "RssAudioData.json").read_bytes() == crlf(
+            '{\n    "audioEvents": [\n        {\n            "id": "BOTH",\n            "samples": [\n'
+            '                "kept.wav"\n            ]\n        }\n    ]\n}\n')
+        assert json.loads((game / "RssImagesSeqData.json").read_bytes())["imagesSeq"] == [
+            {"id": "KEPT", "frameTime": 40, "loopCount": 0, "frames": [{"path": "same.dds"}]}]
+        # Each changed descriptor is in the backups as it was.
+        backups = {path.name: path.read_bytes() for path in Path(library.backup_path).rglob("*.json")}
+        assert backups == {"RssRawData.json": crlf(RAW_DESCRIPTOR), "RssAudioData.json": crlf(AUDIO_DESCRIPTOR),
+                           "RssImagesSeqData.json": crlf(SEQUENCE_DESCRIPTOR)}
+        activity = result["library"]["activity"][0]
+        assert activity["action"] == "cleanup" and activity["message"] == "Removed the declarations of 2 invalid resources"
+        assert sorted(activity["files"]) == ["RssAudioData.json", "RssImagesSeqData.json", "RssRawData.json"]
+        assert result["library"]["rssSync"]["running"] is True
+        library.reports.wait("example", 60)
+        summary = client.get("/api/rss-sync").json()["summary"]
+        # The frame of the removed sequence that exists is now declared by nothing.
+        assert summary["invalid"] == 0 and summary["supplementary"] == 1
+
+
+def test_applying_supplementary_rows_deletes_their_files_into_the_backups_and_syncs_different_rows(tmp_path):
+    game, gda = write_example(tmp_path)
+    for number in range(5):
+        (game / f"loop{number:02d}.dds").write_bytes(b"loop")
+    (game / "late.dds").write_bytes(b"late")
+    with compared(tmp_path, game, gda) as (client, library, rows, apply):
+        assert [name for name, row in rows.items() if row["category"] == "supplementary"] == ["late.dds", "loop{00-04}.dds", "unlisted.dds"]
+        # A file that a descriptor declares since the report was made is kept.
+        raw = game / "RssRawData.json"
+        raw.write_text(raw.read_text().replace('{"path": "same.dds"}', '{"path": "same.dds"}, {"path": "late.dds"}'))
+        result = apply(rows["unlisted.dds"], rows["loop{00-04}.dds"], rows["late.dds"], rows["changed.dds"]).json()
+        assert result["deleted"] == 2 and result["resources"] == 1 and result["copied"] == ["changed.dds"]
+        assert result["failures"] == [{"name": "late.dds", "message": "A descriptor declares it now. Rescan to update the report."}]
+        assert (game / "late.dds").exists() and (game / "changed.dds").read_bytes() == b"old"
+        assert not any((game / name).exists() for name in ["unlisted.dds", *(f"loop{number:02d}.dds" for number in range(5))])
+        backups = {path.name: path.read_bytes() for path in Path(library.backup_path).rglob("*.dds")}
+        assert backups == {"changed.dds": b"new", "unlisted.dds": b"other", **{f"loop{number:02d}.dds": b"loop" for number in range(5)}}
+        assert [(entry["action"], entry["message"]) for entry in result["library"]["activity"][:2]] == [
+            ("cleanup", "Deleted 2 supplementary resources from Game"), ("sync", "Synced 1 resource to Game")]
+        assert sorted(result["library"]["activity"][0]["files"]) == ["loop00.dds", "loop01.dds", "loop02.dds", "loop03.dds", "loop04.dds", "unlisted.dds"]
+        library.reports.wait("example", 60)
+        summary = client.get("/api/rss-sync").json()["summary"]
+        assert summary["supplementary"] == 0 and summary["different"] == 0
+
+
+def test_applying_report_rows_checks_the_status_the_caller_saw_and_that_the_report_is_still_true(tmp_path):
+    game, gda = write_invalid(tmp_path)
+    with compared(tmp_path, game, gda, resource_paths=["nowhere.dds"]) as (client, library, rows, apply):
+        headers = session_headers(client)
+        post = lambda resources: client.post("/api/rss-sync/apply", headers=headers, json={"resources": resources})
+        gone = rows["gone.wav"]
+        assert post([{"id": gone["id"], "category": "supplementary"}]).json()["error"] == \
+            "A resource has another status in the GDA sync report now. Review it and try again."
+        # A missing resource has no action.
+        assert post([{"id": gone["id"], "category": "missing"}]).status_code == 400
+        assert post([{"id": "unknown", "category": "invalid"}]).json()["error"] == "A resource is no longer in the GDA sync report. Rescan and try again."
+        # Only the workspace's resource_paths declare nowhere.dds, and gone.wav exists now: nothing changes.
+        (game / "gone.wav").write_bytes(b"gone")
+        result = apply(rows["nowhere.dds"], gone).json()
+        assert result["removed"] == 0 and result["library"]["rssSync"]["running"] is False
+        assert result["failures"] == [
+            {"name": "nowhere.dds", "message": "No descriptor declares it, only the workspace's resource_paths"},
+            {"name": "gone.wav", "message": "Its file exists now. Rescan to update the report."},
+        ]
+        assert (game / "RssRawData.json").read_bytes() == crlf(RAW_DESCRIPTOR)
+        assert not Path(library.backup_path).exists() or not any(Path(library.backup_path).rglob("*.json"))
 
 
 def test_previews_files_of_the_workspace_folders_that_the_report_names(tmp_path):

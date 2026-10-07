@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { directoryOf, extensionOf, fileType, number, plural, previewFrames, rssBadges, sequenceName, sequenceSummary, splitPath, typeIcons } from '../format';
+import { directoryOf, extensionOf, fileType, number, plural, previewFrames, resourceAction, rssBadges, sequenceName, sequenceSummary, splitPath, typeIcons } from '../format';
 import type { RssResource } from '../types';
 import { copy, openResourceFolder } from '../workspace';
 import CheckBox from './CheckBox.vue';
@@ -9,23 +9,28 @@ import SequencePreview from './SequencePreview.vue';
 
 // One resource of the GDA sync report as a card in the look of AssetCard: the game file's preview, name, folder and the
 // report's status. A "different" resource also shows its GDA files as cards, closest folder first. Sync copies the first
-// of them over the game file, so only a "different" resource can be selected, with its check box, which emits toggle.
+// of them over the game file. A resource with an action, which a "missing" one has not, can be selected with its check
+// box, which emits toggle.
 // Clicking the card, or its details button, emits open to show the resource's details.
 // An image sequence is one card that plays its frames, and clicking its preview plays it again from the first frame.
 // It lists its files that are not in sync, and a "different" one plays the GDA files of its frames beside it.
 // A "supplementary" file is in the game folder, but no descriptor declares it; numbered images among them are played
 // as a guessed sequence.
-const props = withDefaults(defineProps<{ row: RssResource; revision: string; selected?: boolean }>(), { selected: false });
-const emit = defineEmits<{ toggle: []; open: [] }>();
+const props = withDefaults(defineProps<{ row: RssResource; revision: string; selected?: boolean; syncDisabled?: boolean }>(), { selected: false, syncDisabled: false });
+const emit = defineEmits<{ toggle: []; open: []; sync: [] }>();
 
 const icon = (name: string) => typeIcons[fileType(extensionOf(name))];
 
 const resource = computed(() => splitPath(props.row.resource));
 const resourceDirectory = computed(() => directoryOf(props.row.resourcePath));
-const selectable = computed(() => props.row.category === 'different' && props.row.gdaFiles.length > 0);
+const selectable = computed(() => !!resourceAction(props.row));
+const syncable = computed(() => resourceAction(props.row) === 'sync');
 const gdaFiles = computed(() => props.row.gdaFiles.map(file => ({ ...file, ...splitPath(file.path), directory: directoryOf(file.absolutePath) })));
 
 const sequence = computed(() => props.row.sequence);
+const copyLabel = computed(() => sequence.value
+  ? `Copy different GDA frames over game files for ${props.row.resource}`
+  : `Copy GDA file over game file for ${props.row.resource}`);
 // The game side plays the game files, and the GDA side the GDA file of each frame: the one that matched, or the closest,
 // which sync copies. A frame without a file to show stays empty.
 const gameFrames = computed(() => (sequence.value ? previewFrames(sequence.value, 'game') : []));
@@ -55,7 +60,7 @@ const gdaFolder = computed(() => gdaFiles.value[0]?.directory ?? '');
             <span :class="['resource-sequence-id', { 'is-guessed': sequence.guessed }]">{{ sequenceName(sequence) }}</span>{{ sequenceSummary(sequence) }}<template v-if="sequence.paths.length > 1"> · {{ sequence.paths.length }} paths</template>
           </p>
           <div class="asset-footer"><span :class="['badge', 'resource-status', rssBadges[row.category]]">{{ row.status }}</span></div>
-          <div v-if="row.category === 'missing' || row.category === 'supplementary'" class="resource-declared">
+          <div v-if="row.category !== 'different'" class="resource-declared">
             <small class="text-muted">{{ row.requiredBy.length ? 'Declared in' : 'No JSON descriptor' }}</small>
             <span v-for="use in row.requiredBy" :key="`${use.descriptor}:${use.line}`">{{ use.descriptor }}:{{ use.line }}</span>
           </div>
@@ -71,10 +76,12 @@ const gdaFolder = computed(() => gdaFiles.value[0]?.directory ?? '');
       <button type="button" class="asset-menu" :aria-label="`Show details for ${resource.name}`" title="Show details" @click="emit('open')"><i aria-hidden="true" class="mdi mdi-dots-horizontal" /></button>
     </article>
 
-    <p v-if="row.category === 'different'" class="resource-operation">
-      <i aria-hidden="true" class="mdi mdi-arrow-left" />
-      <span>{{ sequence ? 'GDA frames, matching or closest file' : gdaFiles.length === 1 ? 'GDA file' : 'GDA files, closest folder first' }}</span>
-    </p>
+    <div v-if="row.category === 'different'" class="resource-operation">
+      <button type="button" class="resource-copy-button" :aria-label="copyLabel" :title="copyLabel"
+              :disabled="syncDisabled || !syncable" @click.stop="emit('sync')">
+        <img src="/icons/gda-copy-left.png" class="resource-copy-icon" alt="" aria-hidden="true" width="36" height="36">
+      </button>
+    </div>
 
     <section v-if="row.category === 'different' && sequence" class="resource-gda" :aria-label="`GDA files of ${sequence.id}`">
       <div class="resource-gda-files">
@@ -138,14 +145,16 @@ const gdaFolder = computed(() => gdaFiles.value[0]?.directory ?? '');
 .resource-folder-open i { margin: 0; }
 .asset-name .resource-file-copy i { margin-right: 0; }
 .resource-gda { min-width: 0; }
-.resource-operation { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 64px 0 0; color: #6c757d; font-size: 12px; line-height: 1.4; }
-.resource-operation i { flex-shrink: 0; font-size: 18px; }
+.resource-operation { display: flex; align-self: center; align-items: center; justify-content: center; margin: 0; }
+.resource-copy-button { display: flex; align-items: center; justify-content: center; width: 56px; height: 48px; padding: 6px; border: 1px solid #c5def3; border-radius: 10px; background: #fff; box-shadow: 0 3px 10px rgba(33, 150, 243, 0.1); cursor: pointer; transition: background 0.15s, border-color 0.15s; }
+.resource-copy-button:hover:not(:disabled) { background: #edf7ff; border-color: #2196f3; }
+.resource-copy-button:disabled { opacity: 0.4; cursor: default; }
+.resource-copy-icon { display: block; width: 36px; height: 36px; object-fit: contain; }
 .resource-gda-files { display: grid; gap: 16px; }
 .gda-file-card { min-width: 0; }
 .resource-card :deep(.thumbnail img) { object-fit: contain; }
 @media (max-width: 767px) {
   .resource-card.is-different { grid-template-columns: minmax(0, 1fr); max-width: none; }
-  .resource-operation { margin: 0; }
-  .resource-operation i { transform: rotate(90deg); }
+  .resource-copy-icon { transform: rotate(90deg); }
 }
 </style>

@@ -13,13 +13,15 @@ def read(path: str) -> bytes:
         return handle.read()
 
 
-def test_demo_has_real_assets_and_identifies_new_modified_and_matching_files(library):
+def test_demo_library_lists_the_game_folder_and_the_dashboard_compares_the_gda_folder_with_it(library):
     data = library.scan()
-    assert len(data["assets"]) == 18
+    # The game has the 13 demo assets that are not new, 3 of them in an older version; the library only lists them.
+    assert len(data["assets"]) == 13
     assert data["warnings"] == []
-    statuses = [asset["status"] for asset in data["assets"]]
+    assert not any("status" in asset for asset in data["assets"])
+    statuses = [asset["status"] for asset in library.dashboard()["assets"]]
     assert (statuses.count("new"), statuses.count("modified"), statuses.count("synced")) == (5, 3, 10)
-    dds = next(asset for asset in data["assets"] if asset["extension"] == "dds")
+    dds = next(asset for asset in data["assets"] if asset["name"] == "limestone_normal.dds")
     assert dds["dimensions"]["width"] == 512
     preview, mime = library.preview(dds)
     assert mime == "image/png"
@@ -27,7 +29,7 @@ def test_demo_has_real_assets_and_identifies_new_modified_and_matching_files(lib
 
 
 def test_sync_copies_originals_keeps_folder_structure_and_backs_up_replaced_gda_files(library):
-    pending = [asset for asset in library.scan()["assets"] if asset["status"] != "synced"]
+    pending = [asset for asset in library.dashboard()["assets"] if asset["status"] != "synced"]
     changed = next(asset for asset in pending if asset["status"] == "modified")
     destination = os.path.join(library.config["destination"], changed["path"])
     previous = read(destination)
@@ -36,7 +38,8 @@ def test_sync_copies_originals_keeps_folder_structure_and_backs_up_replaced_gda_
     result = library.sync([asset["id"] for asset in pending])
     assert result["failures"] == []
     assert len(result["copied"]) == 8
-    assert all(asset["status"] == "synced" for asset in result["library"]["assets"])
+    assert len(result["library"]["assets"]) == 18
+    assert all(asset["status"] == "synced" for asset in library.dashboard()["assets"])
     assert read(os.path.join(library.config["source"], changed["path"])) == original
     assert read(destination) == original
     [operation] = os.listdir(library.backup_path)
@@ -55,13 +58,13 @@ def test_equal_sized_files_with_different_contents_are_modified(library):
         handle.write("alpha")
     with open(os.path.join(library.config["destination"], "equal.txt"), "w") as handle:
         handle.write("bravo")
-    asset = next(asset for asset in library.scan()["assets"] if asset["name"] == "equal.txt")
+    asset = next(asset for asset in library.dashboard()["assets"] if asset["name"] == "equal.txt")
     assert asset["status"] == "modified"
 
 
 def test_hidden_files_are_skipped_and_unknown_types_are_listed(library):
     for name in (".hidden.png", "notes.txt"):
-        with open(os.path.join(library.config["source"], name), "w") as handle:
+        with open(os.path.join(library.config["destination"], name), "w") as handle:
             handle.write("x")
     names = {asset["name"]: asset for asset in library.scan()["assets"]}
     assert ".hidden.png" not in names
@@ -104,7 +107,7 @@ def test_invalid_workspace_connections_are_rejected_and_valid_connections_persis
     real_source, real_destination = tmp_path / "real-source", tmp_path / "real-gda"
     real_source.mkdir()
     real_destination.mkdir()
-    (real_source / "asset.txt").write_text("hello")
+    (real_destination / "asset.txt").write_text("hello")
     data = library.update_config("Real project", str(real_source), str(real_destination))
     assert len(data["assets"]) == 1
     assert data["config"]["demo"] is False
@@ -121,9 +124,12 @@ def test_missing_folders_are_reported_and_block_only_the_operations_that_need_th
 
     data = library.update_config("Absent GDA", str(real_source), str(absent))
     assert data["missingFolders"] == ["destination"]
-    assert [(asset["path"], asset["status"]) for asset in data["assets"]] == [("asset.txt", "new")]
+    # The library lists the game folder, which does not exist; the dashboard still compares the GDA folder.
+    assert data["assets"] == []
+    [asset] = library.dashboard()["assets"]
+    assert (asset["path"], asset["status"]) == ("asset.txt", "new")
     with pytest.raises(AppError, match="Game folder does not exist") as error:
-        library.sync([data["assets"][0]["id"]])
+        library.sync([asset["id"]])
     assert error.value.status_code == 404
     assert not absent.exists()
 
@@ -161,16 +167,17 @@ def test_an_unreadable_workspace_configuration_stops_startup(tmp_path):
         Library(str(tmp_path)).init()
 
 
-def test_unsupported_dds_formats_remain_syncable_with_a_preview_message(library):
+def test_unsupported_dds_formats_remain_syncable_and_are_listed_with_a_preview_message(library):
     with open(os.path.join(library.config["source"], "bc6.dds"), "wb") as handle:
         handle.write(create_bc7_dds(4, 4, 95))
+    gda = next(asset for asset in library.dashboard()["assets"] if asset["name"] == "bc6.dds")
+    assert library.sync([gda["id"]])["copied"] == ["bc6.dds"]
     asset = next(asset for asset in library.scan()["assets"] if asset["name"] == "bc6.dds")
     assert asset["preview"] is False
-    assert asset["previewError"] == "Preview unavailable for DXGI 95. The original file can still be synced."
+    assert asset["previewError"] == "Preview unavailable for DXGI 95. The original file is unchanged."
     with pytest.raises(AppError) as error:
         library.preview(asset)
     assert error.value.status_code == 415
-    assert library.sync([asset["id"]])["copied"] == ["bc6.dds"]
 
 
 def test_activity_keeps_every_copy_and_caps_only_other_entries(library):

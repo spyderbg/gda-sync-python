@@ -1,4 +1,5 @@
-"""Workspace scanning, one-way GDA → Game sync, settings, activity history and previews.
+"""Workspace scanning, one-way GDA → Game sync, settings, activity history and previews. The asset library lists the
+game folder; the dashboard compares the GDA folder with it.
 
 The "source" of a workspace is the folder files are copied from (the GDA folder, gda_path in workspace.json) and its
 "destination" is the folder they are copied to (the game folder, game_path).
@@ -19,14 +20,16 @@ import uuid
 from collections import OrderedDict
 from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import TypeVar
 
 from .dds import SUPPORTED_DDS_FORMATS, decode_dds, read_dds_info
 from .demo import seed_demo
 from .errors import AppError, error_message
 from .png import PNG_SIGNATURE
+from .rss_edit import remove_declarations
 from .rss_jobs import SyncJobs
-from .rss_sync import DEFAULT_EXTENSIONS
+from .rss_sync import DEFAULT_EXTENSIONS, declared_files
 
 MAX_ASSETS = 10_000
 MAX_PREVIEW_BYTES = 64 * 1024 * 1024
@@ -44,6 +47,9 @@ ASSET_TYPES = (
     ("audio", {"wav", "ogg", "mp3", "flac"}),
 )
 FOLDER_NAMES = {"source": "GDA", "destination": "Game"}
+# The GDA sync report statuses that have an action: copy the GDA file over a "different" resource, remove the
+# declarations of an "invalid" one, and delete the files of a "supplementary" one. A "missing" resource has none.
+RESOURCE_ACTIONS = ("different", "invalid", "supplementary")
 _JUNCTION = 0xA0000003  # IO_REPARSE_TAG_MOUNT_POINT: Windows directory junctions behave like links.
 _HIDDEN = 0x2  # FILE_ATTRIBUTE_HIDDEN
 _EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
@@ -151,6 +157,21 @@ def _replace_file(source: str, target_root: str, relative: str, backup: str, cre
                 raise AppError("The destination is not a regular file")
             os.makedirs(os.path.dirname(backup), exist_ok=True)
             _copy_exclusive(target, backup)
+        os.replace(temporary, target)
+        temporary = None
+    finally:
+        if temporary:
+            with contextlib.suppress(OSError):
+                os.unlink(temporary)
+
+
+def _write_file(target: str, data: bytes) -> None:
+    """Replace an existing file's contents through a temporary file beside it, keeping its permissions."""
+    temporary = os.path.join(os.path.dirname(target), f".egt-gda-sync-{uuid.uuid4()}.tmp")
+    try:
+        with open(temporary, "xb") as handle:
+            handle.write(data)
+        shutil.copymode(target, temporary)
         os.replace(temporary, target)
         temporary = None
     finally:
@@ -361,8 +382,10 @@ class Library:
             pass
 
     def scan(self) -> dict:
+        """The asset library: the files of the selected workspace's game folder, with the workspace's settings,
+        activity and GDA sync status."""
         config = dict(self.config)
-        scanned = self._scan_workspace(config)
+        scanned = self._scan_game(config)
         self._scanned_assets = scanned["assets"]
         return {
             **scanned, "config": config, "activity": self.activity, "scannedAt": iso_time(),
@@ -370,12 +393,23 @@ class Library:
         }
 
     def _scan_workspace(self, config: dict) -> dict:
-        """Describe one workspace without changing the selected workspace or its preview cache."""
+        """The GDA folder's files of one workspace, each with its status against the game file at the same relative
+        path, for the dashboard and the copy by relative path. It leaves the selected workspace and its preview cache
+        as they are."""
+        return self._walk(config, "source", lambda folder, relative, name: self._describe(config, folder, relative, name))
+
+    def _scan_game(self, config: dict) -> dict:
+        """The game folder's files of one workspace, which the asset library browses, without comparing them."""
+        return self._walk(config, "destination", lambda folder, relative, name: self._facts(config, "destination", folder, relative, name))
+
+    def _walk(self, config: dict, key: str, describe: Callable[[str, str, str], dict]) -> dict:
+        """Describe each file of a workspace folder, "source" or "destination", newest first, skipping hidden files and
+        links; a file that cannot be described is a warning."""
         assets: list[dict] = []
         warnings: list[str] = []
 
         def walk(folder: str) -> None:
-            with os.scandir(os.path.join(config["source"], folder)) as iterator:
+            with os.scandir(os.path.join(config[key], folder)) as iterator:
                 entries = sorted(iterator, key=lambda entry: entry.name)
             for entry in entries:
                 if _is_hidden(entry):
@@ -395,12 +429,12 @@ class Library:
                 if len(assets) >= MAX_ASSETS:
                     raise AppError("This demo supports up to 10,000 files per workspace")
                 try:
-                    assets.append(self._describe(config, folder, relative, entry.name))
+                    assets.append(describe(folder, relative, entry.name))
                 except Exception as error:
                     warnings.append(f"{relative}: {error_message(error)}")
 
-        missing = [key for key in FOLDER_NAMES if not os.path.isdir(config[key])]
-        if "source" not in missing:
+        missing = [name for name in FOLDER_NAMES if not os.path.isdir(config[name])]
+        if key not in missing:
             walk("")
         # Give the demo an intentional order; real workspaces are sorted by recent changes.
         assets.sort(key=lambda asset: asset["modifiedAt"], reverse=True)
@@ -484,24 +518,15 @@ class Library:
     def close(self) -> None:
         self.reports.stop_all()
 
-    def _describe(self, config: dict, folder: str, relative: str, name: str) -> dict:
-        file = safe_path(config["source"], relative)
+    def _facts(self, config: dict, key: str, folder: str, relative: str, name: str) -> dict:
+        """What a file of the workspace's GDA ("source") or game ("destination") folder is: its type, size, time, image
+        dimensions, and whether the browser can preview it."""
+        file = safe_path(config[key], relative)
         info = os.stat(file)
         extension = os.path.splitext(relative)[1][1:].lower()
-        target = safe_path(config["destination"], relative)
-        status = "new"
-        try:
-            destination = os.stat(target)
-        except FileNotFoundError:
-            pass
-        else:
-            if not stat.S_ISREG(destination.st_mode):
-                raise AppError("The destination is not a regular file")
-            same = info.st_size == destination.st_size and file_hash(file) == file_hash(target)
-            status = "synced" if same else "modified"
         asset: dict = {
             "id": asset_id(relative), "name": name, "path": _portable(relative), "folder": _portable(folder) or "Root",
-            "extension": extension, "type": type_for(extension), "status": status, "size": info.st_size,
+            "extension": extension, "type": type_for(extension), "size": info.st_size,
             "modifiedAt": iso_time(info.st_mtime_ns), "preview": extension in IMAGE_PREVIEWS,
         }
         try:
@@ -515,11 +540,28 @@ class Library:
             if dimensions and extension == "dds":
                 asset["preview"] = dimensions["format"] in SUPPORTED_DDS_FORMATS
                 if not asset["preview"]:
-                    asset["previewError"] = f"Preview unavailable for {dimensions['format']}. The original file can still be synced."
+                    asset["previewError"] = f"Preview unavailable for {dimensions['format']}. The original file is unchanged."
+        # The demo's models have illustrations in its GDA folder, by asset id.
         model_preview = os.path.join(config["source"], ".previews", asset["id"] + ".svg")
         if config["demo"] and asset["type"] == "model" and os.path.isfile(model_preview):
             asset["preview"] = True
         return asset
+
+    def _describe(self, config: dict, folder: str, relative: str, name: str) -> dict:
+        """A GDA file with its status against the game file at the same relative path: new, modified or synced."""
+        asset = self._facts(config, "source", folder, relative, name)
+        file, target = safe_path(config["source"], relative), safe_path(config["destination"], relative)
+        status = "new"
+        try:
+            destination = os.stat(target)
+        except FileNotFoundError:
+            pass
+        else:
+            if not stat.S_ISREG(destination.st_mode):
+                raise AppError("The destination is not a regular file")
+            same = asset["size"] == destination.st_size and file_hash(file) == file_hash(target)
+            status = "synced" if same else "modified"
+        return {**asset, "status": status}
 
     def rescan(self) -> dict:
         def operation() -> dict:
@@ -579,7 +621,8 @@ class Library:
     def sync(self, ids: list[str]) -> dict:
         def operation() -> dict:
             self.require_folders("source", "destination")
-            assets = self.scan()["assets"]
+            # The asset library lists the game folder, so the files to copy come from the GDA folder's comparison.
+            assets = self._scan_workspace(dict(self.config))["assets"]
             wanted = list(dict.fromkeys(ids))
             lookup = {asset["id"]: asset for asset in assets}
             if any(asset_id not in lookup for asset_id in wanted):
@@ -608,6 +651,16 @@ class Library:
         """Copy the closest GDA file of each chosen "different" resource of the GDA sync report over the game resource,
         or of each different frame of an image sequence, then compare again, since the report lists a copied resource
         as different until the next run."""
+        return self._apply_resources(dict.fromkeys(ids, "different"), "Only a resource that differs from its GDA file can be synced")
+
+    def apply_resources(self, resources: dict[str, str]) -> dict:
+        """Apply the action of each chosen resource of the GDA sync report, by row id, for the status the caller saw,
+        which must still be its status in the report: sync a "different" resource as sync_resources does, remove the
+        declarations of an "invalid" one from the descriptors, and delete the files of a "supplementary" one. Every
+        changed or deleted file is saved in the backups first. Then compare again."""
+        return self._apply_resources(resources, "A resource has another status in the GDA sync report now. Review it and try again.")
+
+    def _apply_resources(self, wanted: dict[str, str], other_status: str) -> dict:
         def operation() -> dict:
             workspace_id, entry = self._active_workspace()
             if self.reports.status(workspace_id)["running"]:
@@ -616,54 +669,161 @@ class Library:
             if report is None:
                 raise AppError("This workspace has no GDA sync report yet. Click Rescan to create one.", 404)
             rows = {row["id"]: row for row in json.loads(report).get("differences", [])}
-            wanted = list(dict.fromkeys(ids))
             if any(row_id not in rows for row_id in wanted):
                 raise AppError("A resource is no longer in the GDA sync report. Rescan and try again.")
-            if any(rows[row_id]["category"] != "different" or not rows[row_id]["gdaFiles"] for row_id in wanted):
-                raise AppError("Only a resource that differs from its GDA file can be synced")
+            if any(rows[row_id]["category"] != category or category not in RESOURCE_ACTIONS
+                   or (category == "different" and not rows[row_id]["gdaFiles"]) for row_id, category in wanted.items()):
+                raise AppError(other_status)
+            chosen = {category: [rows[row_id] for row_id, wanted_category in wanted.items() if wanted_category == category]
+                      for category in RESOURCE_ACTIONS}
             settings = self._comparison(workspace_id, entry)[1]
-            # The report is data: copy only from the workspace's GDA folders into its resources folder.
-            resources = os.path.realpath(settings["resources_dir"])
-            gda_roots = [os.path.realpath(root) for root in (settings["gda_dir"], settings["common_gda_dir"]) if root]
-            # The game files to replace, each once with the resource it belongs to: the frames of a sequence can
-            # repeat a file.
-            files = {
-                file["resourcePath"]: (row["id"], file)
-                for row in (rows[row_id] for row_id in wanted)
-                for file in (row["sequence"]["frames"] if "sequence" in row else [row])
-                if file["category"] == "different" and file["gdaFiles"]
+            # The report is data: change only files inside the workspace's resources folder, and copy only from its GDA
+            # folders.
+            folders = {
+                "resources": os.path.realpath(settings["resources_dir"]),
+                "gda": [os.path.realpath(root) for root in (settings["gda_dir"], settings["common_gda_dir"]) if root],
+                # The game folder as the GDA sync resolves it, which the report's paths are relative to.
+                "game": Path(settings["resources_dir"]).resolve() / settings["game"],
+                "backups": os.path.join(self.backup_path, str(uuid.uuid4())),
             }
-            operation_id = str(uuid.uuid4())
-            copied: list[str] = []
-            synced: set[str] = set()
             failures: list[dict] = []
-            total = 0
-            for row_id, file in files.values():
-                try:
-                    source, target = file["gdaFiles"][0]["absolutePath"], file["resourcePath"]
-                    root = next((root for root in gda_roots if contained(root, source)), None)
-                    if root is None or not contained(resources, target):
-                        raise AppError("The files are outside the workspace folders")
-                    source = safe_path(root, os.path.relpath(source, root))
-                    relative = os.path.relpath(target, resources)
-                    target = safe_path(resources, relative)
-                    if os.path.isfile(target) and file_hash(source) == file_hash(target):
-                        continue
-                    size = os.path.getsize(source)
-                    _replace_file(source, resources, relative, os.path.join(self.backup_path, operation_id, relative))
-                    copied.append(file["resource"])
-                    synced.add(row_id)
-                    total += size
-                except Exception as error:
-                    failures.append({"name": os.path.basename(file["resource"]), "message": error_message(error)})
-            if copied:
-                self._record("sync", f"Synced {len(synced)} resource{'' if len(synced) == 1 else 's'} to Game", copied, total)
-            if len(failures) < len(files):
+            synced = self._copy_resources(chosen["different"], folders, failures)
+            removed = self._remove_declarations(chosen["invalid"], folders, failures)
+            deleted = self._delete_resources(chosen["supplementary"], folders, settings["resource_paths"], failures)
+            if synced["files"]:
+                count = synced["resources"]
+                self._record("sync", f"Synced {count} resource{'' if count == 1 else 's'} to Game", synced["files"], synced["bytes"])
+            if removed["resources"]:
+                count = removed["resources"]
+                self._record("cleanup", f"Removed the declarations of {count} invalid resource{'' if count == 1 else 's'}", removed["files"])
+            if deleted["resources"]:
+                count = deleted["resources"]
+                self._record("cleanup", f"Deleted {count} supplementary resource{'' if count == 1 else 's'} from Game", deleted["files"])
+            # Compare again unless nothing was done: a copy that found the file already in sync still outdates the report.
+            if synced["outdated"] or removed["resources"] or deleted["resources"]:
                 self.start_comparison()
-            # A sequence is one resource however many of its files were copied.
-            return {"copied": copied, "resources": len(synced), "failures": failures, "bytes": total, "library": self.scan()}
+            # A sequence is one resource however many of its files were copied or deleted.
+            return {"copied": synced["files"], "resources": synced["resources"], "removed": removed["resources"],
+                    "deleted": deleted["resources"], "failures": failures, "bytes": synced["bytes"], "library": self.scan()}
 
         return self._exclusive(operation)
+
+    def _copy_resources(self, rows: list[dict], folders: dict, failures: list[dict]) -> dict:
+        """Copy the closest GDA file of each "different" row, or of each different frame of a sequence, over the game file."""
+        resources = folders["resources"]
+        # The game files to replace, each once with the resource it belongs to: the frames of a sequence can repeat a file.
+        files = {
+            file["resourcePath"]: (row["id"], file)
+            for row in rows
+            for file in (row["sequence"]["frames"] if "sequence" in row else [row])
+            if file["category"] == "different" and file["gdaFiles"]
+        }
+        copied: list[str] = []
+        synced: set[str] = set()
+        total = 0
+        failed = 0
+        for row_id, file in files.values():
+            try:
+                source, target = file["gdaFiles"][0]["absolutePath"], file["resourcePath"]
+                root = next((root for root in folders["gda"] if contained(root, source)), None)
+                if root is None or not contained(resources, target):
+                    raise AppError("The files are outside the workspace folders")
+                source = safe_path(root, os.path.relpath(source, root))
+                relative = os.path.relpath(target, resources)
+                target = safe_path(resources, relative)
+                if os.path.isfile(target) and file_hash(source) == file_hash(target):
+                    continue
+                size = os.path.getsize(source)
+                _replace_file(source, resources, relative, os.path.join(folders["backups"], relative))
+                copied.append(file["resource"])
+                synced.add(row_id)
+                total += size
+            except Exception as error:
+                failed += 1
+                failures.append({"name": os.path.basename(file["resource"]), "message": error_message(error)})
+        return {"files": copied, "resources": len(synced), "bytes": total, "outdated": failed < len(files)}
+
+    def _remove_declarations(self, rows: list[dict], folders: dict, failures: list[dict]) -> dict:
+        """Remove the entries that declare each "invalid" row from the descriptors that the report says declare it.
+        A row whose file exists now is left alone, since the report is out of date."""
+        resources, game = folders["resources"], folders["game"]
+        by_descriptor: dict[str, list[dict]] = {}
+        problems: dict[str, str] = {}
+        for row in rows:
+            files = [frame["resourcePath"] for frame in row["sequence"]["frames"] if frame["category"] == "invalid"] \
+                if "sequence" in row else [row["resourcePath"]]
+            if not row["requiredBy"]:
+                problems[row["id"]] = "No descriptor declares it, only the workspace's resource_paths"
+            elif all(contained(resources, file) and os.path.isfile(file) for file in files):
+                problems[row["id"]] = "Its file exists now. Rescan to update the report."
+            else:
+                for descriptor in dict.fromkeys(use["descriptor"] for use in row["requiredBy"]):
+                    by_descriptor.setdefault(descriptor, []).append(row)
+        changed: list[str] = []
+        found: dict[str, int] = {}
+        for descriptor, descriptor_rows in by_descriptor.items():
+            try:
+                relative = os.path.relpath(os.path.normpath(os.path.join(game, descriptor)), resources)
+                path = safe_path(resources, relative)
+                with open(path, "rb") as handle:
+                    text = handle.read().decode("utf-8")
+                result, counts = remove_declarations(Path(path), text, descriptor_rows, game)
+                for row_id, count in counts.items():
+                    found[row_id] = found.get(row_id, 0) + count
+                if result == text:
+                    continue
+                backup = os.path.join(folders["backups"], relative)
+                os.makedirs(os.path.dirname(backup), exist_ok=True)
+                _copy_exclusive(path, backup)
+                _write_file(path, result.encode("utf-8"))
+                changed.append(descriptor)
+            except Exception as error:
+                for row in descriptor_rows:
+                    problems.setdefault(row["id"], f"{descriptor}: {error_message(error)}")
+        for row in rows:
+            if row["id"] not in problems and not found.get(row["id"]):
+                problems[row["id"]] = "Its declaration is not in the descriptors any more. Rescan to update the report."
+        failures.extend({"name": os.path.basename(row["resource"]), "message": problems[row["id"]]} for row in rows if row["id"] in problems)
+        return {"files": changed, "resources": sum(1 for row in rows if row["id"] not in problems)}
+
+    def _delete_resources(self, rows: list[dict], folders: dict, resource_paths: list[str], failures: list[dict]) -> dict:
+        """Delete the files of each "supplementary" row, each saved in the backups first. A file that a descriptor
+        declares now is left alone, since the report is out of date."""
+        resources, game = folders["resources"], folders["game"]
+        deleted: list[str] = []
+        count = 0
+        try:
+            declared = declared_files(game, tuple(resource_paths)) if rows else set()
+        except (OSError, ValueError) as error:
+            failures.extend({"name": os.path.basename(row["resource"]), "message": f"The descriptors cannot be read: {error_message(error)}"} for row in rows)
+            return {"files": [], "resources": 0}
+        for row in rows:
+            files = [frame["resourcePath"] for frame in row["sequence"]["frames"]] if "sequence" in row else [row["resourcePath"]]
+            try:
+                if not all(contained(str(game), file) for file in files):
+                    raise AppError("The files are outside the game folder")
+                if any(Path(file) in declared for file in files):
+                    raise AppError("A descriptor declares it now. Rescan to update the report.")
+                targets = [(os.path.relpath(file, resources), safe_path(resources, os.path.relpath(file, resources))) for file in files]
+                for _relative, target in targets:
+                    try:
+                        info = os.lstat(target)
+                    except FileNotFoundError:
+                        raise AppError("The file does not exist any more. Rescan to update the report.") from None
+                    if not stat.S_ISREG(info.st_mode):
+                        raise AppError("The game file is not a regular file")
+                for relative, target in targets:
+                    backup = os.path.join(folders["backups"], relative)
+                    os.makedirs(os.path.dirname(backup), exist_ok=True)
+                    _copy_exclusive(target, backup)
+                    if file_hash(backup) != file_hash(target):
+                        raise AppError("The backup does not match the game file, so it was kept")
+                    os.unlink(target)
+                    deleted.append(os.path.relpath(target, game))
+                count += 1
+            except Exception as error:
+                failures.append({"name": os.path.basename(row["resource"]), "message": error_message(error)})
+        return {"files": deleted, "resources": count}
 
     def get_asset(self, asset_id: str) -> dict:
         assets = self._scanned_assets if self._scanned_assets is not None else self.scan()["assets"]
@@ -679,7 +839,7 @@ class Library:
         if asset["type"] == "model" and config["demo"]:
             with open(os.path.join(config["source"], ".previews", asset["id"] + ".svg"), "rb") as handle:
                 return handle.read(), "image/svg+xml"
-        return self._media(safe_path(config["source"], asset["path"]), asset["extension"])
+        return self._media(safe_path(config["destination"], asset["path"]), asset["extension"])
 
     def _resource_path(self, file: str) -> str:
         """Resolve a report file inside the active workspace's game, GDA or common GDA folders."""

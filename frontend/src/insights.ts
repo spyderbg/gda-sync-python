@@ -1,6 +1,6 @@
 // Workspace summaries for the dashboard charts. Everything is derived from the library scan and sync history.
 import { ASSET_TYPES, time, typeNames } from './format';
-import type { Activity, Asset, AssetStatus, AssetType, DashboardAsset } from './types';
+import type { Activity, ComparedAsset, AssetStatus, AssetType, DashboardAsset } from './types';
 
 export type Period = 'day' | 'week' | 'month' | 'all';
 export const PERIODS: { id: Period; label: string; description: string }[] = [
@@ -18,7 +18,7 @@ interface Buckets { start: number; size: number; count: number; label: (start: n
 
 const hourLabel = (value: number) => new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' }).format(value);
 const dayLabel = (value: number) => new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' }).format(value);
-const modified = (asset: Asset) => Date.parse(asset.modifiedAt);
+const modified = (asset: ComparedAsset) => Date.parse(asset.modifiedAt);
 
 function buckets(period: Period, times: number[], now: number, count = 12): Buckets {
   if (period === 'day') {
@@ -46,7 +46,7 @@ const labels = (range: Buckets) => Array.from({ length: range.count }, (_, i) =>
 export interface Timeline { labels: string[]; changed: number[]; synced: number[] }
 
 /** GDA files changed and files synced to the game, per time bucket of the period. */
-export function timeline(assets: Asset[], activity: Activity[], period: Period, now = Date.now()): Timeline {
+export function timeline(assets: ComparedAsset[], activity: Activity[], period: Period, now = Date.now()): Timeline {
   const syncs = activity.filter(entry => entry.action === 'sync');
   const range = buckets(period, [...assets.map(modified), ...syncs.map(entry => Date.parse(entry.date))], now);
   const changed = new Array<number>(range.count).fill(0);
@@ -63,7 +63,7 @@ export function timeline(assets: Asset[], activity: Activity[], period: Period, 
 }
 
 /** A sparkline over the whole modification history: each asset adds weight(asset) to its bucket. */
-export function trend(assets: Asset[], weight: (asset: Asset) => number, cumulative = false, now = Date.now()): number[] {
+export function trend(assets: ComparedAsset[], weight: (asset: ComparedAsset) => number, cumulative = false, now = Date.now()): number[] {
   const range = buckets('all', assets.map(modified), now, 13);
   const values = new Array<number>(range.count).fill(0);
   for (const asset of assets) {
@@ -77,7 +77,7 @@ export function trend(assets: Asset[], weight: (asset: Asset) => number, cumulat
 export interface Mix { labels: string[]; synced: number[]; pending: number[] }
 
 /** Assets in sync and waiting for sync, per file format (the most common formats). */
-export function formatMix(assets: Asset[], limit = 8): Mix {
+export function formatMix(assets: ComparedAsset[], limit = 8): Mix {
   const groups = new Map<string, { synced: number; pending: number }>();
   for (const asset of assets) {
     const key = asset.extension.toUpperCase() || 'NONE';
@@ -97,13 +97,13 @@ export function formatMix(assets: Asset[], limit = 8): Mix {
 export type StorageMetric = 'size' | 'files';
 export interface Storage { labels: string[]; byStatus: Record<AssetStatus, number[]> }
 
-export const topFolder = (asset: Asset | DashboardAsset) => {
+export const topFolder = (asset: ComparedAsset | DashboardAsset) => {
   const folder = asset.path.includes('/') ? asset.path.split('/')[0] : 'Root';
   return 'workspaceName' in asset ? `${asset.workspaceName} / ${folder}` : folder;
 };
 
 /** Size (MB) or file count per top-level folder, split by sync status. */
-export function folderStorage(assets: Asset[], metric: StorageMetric, limit = 8): Storage {
+export function folderStorage(assets: ComparedAsset[], metric: StorageMetric, limit = 8): Storage {
   const folders = new Map<string, Record<AssetStatus, number>>();
   for (const asset of assets) {
     const key = topFolder(asset);
@@ -119,7 +119,7 @@ export function folderStorage(assets: Asset[], metric: StorageMetric, limit = 8)
 
 export interface FolderSummary { name: string; files: number; size: number; pending: number }
 
-export function folderSummaries(assets: Asset[], limit = 5): FolderSummary[] {
+export function folderSummaries(assets: ComparedAsset[], limit = 5): FolderSummary[] {
   const folders = new Map<string, FolderSummary>();
   for (const asset of assets) {
     const name = topFolder(asset);
@@ -135,7 +135,7 @@ export function folderSummaries(assets: Asset[], limit = 5): FolderSummary[] {
 export interface Coverage { labels: string[]; synced: number[]; total: number[] }
 
 /** Per asset type: files in sync against all files of that type. */
-export function typeCoverage(assets: Asset[]): Coverage {
+export function typeCoverage(assets: ComparedAsset[]): Coverage {
   const types: AssetType[] = [...ASSET_TYPES, ...(assets.some(asset => asset.type === 'other') ? ['other' as const] : [])];
   return {
     labels: types.map(type => typeNames[type]),
@@ -146,7 +146,7 @@ export function typeCoverage(assets: Asset[]): Coverage {
 
 export interface FormatShare { format: string; files: number; share: number }
 
-export function formatShares(assets: Asset[], limit = 4): FormatShare[] {
+export function formatShares(assets: ComparedAsset[], limit = 4): FormatShare[] {
   const mix = formatMix(assets, limit);
   return mix.labels.map((format, i) => {
     const files = mix.synced[i] + mix.pending[i];
@@ -157,7 +157,7 @@ export function formatShares(assets: Asset[], limit = 4): FormatShare[] {
 export interface Series { labels: string[]; values: number[] }
 
 /** Cumulative library size (MB) in modification order, reduced to at most `points` points. */
-export function growth(assets: Asset[], points = 40): Series {
+export function growth(assets: ComparedAsset[], points = 40): Series {
   const ordered = [...assets].sort((a, b) => a.modifiedAt.localeCompare(b.modifiedAt));
   let total = 0;
   const all = ordered.map(asset => ({ label: time(asset.modifiedAt), value: (total += asset.size) / MB }));

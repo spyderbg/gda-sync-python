@@ -1,13 +1,13 @@
 // Application state shared by the layout and the views, and the actions that talk to the backend.
 import { computed, reactive, ref, watch } from 'vue';
-import { plural } from './format';
-import type { Asset, AssetStatus, AssetType, LibraryResponse, RssFileDetails, RssResource, RssSyncStatus, Session, SyncResult, View, WorkspaceConfig } from './types';
+import { commonAction, plural, resourceAction } from './format';
+import type { Asset, AssetType, LibraryResponse, RssFileDetails, RssResource, RssSyncStatus, Session, SyncResult, View, WorkspaceConfig } from './types';
 
 const INVALID_SESSION = 'Invalid session. Reload the application.';
 const RSS_POLL_MS = 1000;
-export const LIBRARY_VIEWS: View[] = ['library', 'pending', 'synced'];
+export const LIBRARY_VIEWS: View[] = ['library', 'pending'];
 export const PAGE_NAMES: Record<View, string> = {
-  dashboard: 'Dashboard', library: 'Asset library', pending: 'Sync', synced: 'In sync', rssSync: 'Sync in progress', history: 'Sync history', settings: 'Workspace settings',
+  dashboard: 'Dashboard', library: 'Asset library', pending: 'Sync', rssSync: 'Sync in progress', history: 'Sync history', settings: 'Workspace settings',
 };
 
 export const data = ref<LibraryResponse | null>(null);
@@ -27,50 +27,38 @@ export const session = reactive({ token: '', version: '', platform: '' });
 export const loadError = ref('');
 export const stopped = ref(false);
 export const busy = ref<'' | 'scan' | 'sync' | 'settings' | 'shutdown'>('');
+/** What the GDA sync report resources being applied do, while busy is "sync" for them. */
+export const applying = ref<ReturnType<typeof commonAction>>(null);
 export const toast = ref<{ text: string; error?: boolean } | null>(null);
 
 export const ui = reactive({
   view: 'dashboard' as View,
   category: 'all' as AssetType | 'all',
   query: '',
-  format: 'all',
-  status: 'all' as AssetStatus | 'all',
-  sort: 'recent',
   layout: 'grid' as 'grid' | 'list',
-  selected: new Set<string>(),
+  /** The asset whose details dialog is open. */
   inspecting: null as string | null,
-  syncIds: null as string[] | null,
-  /** GDA sync report resources whose copy waits for confirmation. */
-  resourceSync: null as RssResource[] | null,
+  /** GDA sync report resources whose action waits for confirmation. */
+  resourceActions: null as RssResource[] | null,
   help: false,
   shutdownConfirm: false,
-  expanded: false,
   sidebarOpen: false,
 });
 
 export const config = computed(() => data.value?.config as WorkspaceConfig);
 export const workspaces = computed(() => config.value?.workspaces || []);
 export const assets = computed(() => data.value?.assets || []);
-export const pending = computed(() => assets.value.filter(asset => asset.status !== 'synced'));
-export const syncedCount = computed(() => assets.value.length - pending.value.length);
 export const totalSize = computed(() => assets.value.reduce((sum, asset) => sum + asset.size, 0));
-export const countStatus = (status: AssetStatus) => assets.value.filter(asset => asset.status === status).length;
 export const countType = (type: AssetType) => assets.value.filter(asset => asset.type === type).length;
 export const isLibraryView = computed(() => LIBRARY_VIEWS.includes(ui.view));
-export const formats = computed(() => [...new Set(assets.value.map(asset => asset.extension))].sort());
 
 export const filtered = computed(() => {
   const needle = ui.query.toLowerCase();
   return assets.value.filter(asset =>
-    (ui.view !== 'pending' || asset.status !== 'synced') && (ui.view !== 'synced' || asset.status === 'synced') &&
-    (ui.category === 'all' || asset.type === ui.category) && (ui.format === 'all' || asset.extension === ui.format) &&
-    (ui.status === 'all' || asset.status === ui.status) && `${asset.name} ${asset.path}`.toLowerCase().includes(needle),
-  ).sort((a, b) => ui.sort === 'name' ? a.name.localeCompare(b.name) : ui.sort === 'size' ? b.size - a.size : b.modifiedAt.localeCompare(a.modifiedAt));
+    (ui.category === 'all' || asset.type === ui.category) && `${asset.name} ${asset.path}`.toLowerCase().includes(needle),
+  ).sort((a, b) => b.modifiedAt.localeCompare(a.modifiedAt));
 });
 export const inspected = computed(() => assets.value.find(asset => asset.id === ui.inspecting));
-export const selectedPending = computed(() => assets.value.filter(asset => ui.selected.has(asset.id) && asset.status !== 'synced'));
-export const syncAssets = computed(() => assets.value.filter(asset => ui.syncIds?.includes(asset.id) && asset.status !== 'synced'));
-export const allVisibleSelected = computed(() => filtered.value.length > 0 && filtered.value.every(asset => ui.selected.has(asset.id)));
 
 // Searching from any page shows the matching assets.
 watch(() => ui.query, query => { if (query && !isLibraryView.value) ui.view = 'library'; });
@@ -94,7 +82,8 @@ function applySession(value: Session) {
 function applyLibrary(library: LibraryResponse) {
   data.value = library;
   rssSync.value = library.rssSync;
-  if (!library.assets.some(asset => asset.id === ui.inspecting)) ui.inspecting = library.assets[0]?.id || null;
+  // The details of an asset that a new scan no longer lists close.
+  if (!library.assets.some(asset => asset.id === ui.inspecting)) ui.inspecting = null;
 }
 
 // The GDA sync runs in a background process after a rescan: follow it, then report how it ended.
@@ -158,32 +147,17 @@ async function api<T>(path: string, method = 'POST', body?: unknown): Promise<T>
 export function navigate(view: View, category: AssetType | 'all' = 'all') {
   ui.view = view;
   ui.category = category;
-  ui.selected = new Set();
   ui.query = '';
-  ui.status = 'all';
-  ui.format = 'all';
+  ui.inspecting = null;
   ui.sidebarOpen = false;
 }
 
+/** Show an asset of the dashboard, a GDA file, in the asset library: the game file at the same path, or, when the
+ * game has none, the game files with its name. */
 export function inspect(asset: Asset) {
   if (!isLibraryView.value) navigate('library');
-  ui.inspecting = asset.id;
-}
-
-export function toggleSelected(id: string) {
-  const next = new Set(ui.selected);
-  if (next.has(id)) next.delete(id); else next.add(id);
-  ui.selected = next;
-}
-
-export function setVisibleSelected(select: boolean) {
-  const next = new Set(ui.selected);
-  for (const asset of filtered.value) if (select) next.add(asset.id); else next.delete(asset.id);
-  ui.selected = next;
-}
-
-export function requestSync(ids: string[]) {
-  ui.syncIds = ids;
+  if (assets.value.some(item => item.id === asset.id)) ui.inspecting = asset.id;
+  else ui.query = asset.name;
 }
 
 export async function rescan() {
@@ -191,44 +165,45 @@ export async function rescan() {
   try {
     const library = await api<LibraryResponse>('scan');
     applyLibrary(library);
-    ui.selected = new Set();
     notify(`Library refreshed. ${library.assets.length} assets found.`);
-  } catch (e) { notify((e as Error).message, true); } finally { busy.value = ''; }
-}
-
-export async function confirmSync() {
-  if (!ui.syncIds) return;
-  const ids = ui.syncIds;
-  ui.syncIds = null;
-  busy.value = 'sync';
-  try {
-    const result = await api<SyncResult>('sync', 'POST', { ids });
-    applyLibrary(result.library);
-    ui.selected = new Set();
-    const copied = result.copied.length;
-    if (result.failures.length) notify(`${copied} synced; ${result.failures.length} failed. ${result.failures[0].name}: ${result.failures[0].message}`, true);
-    else notify(copied ? `${copied} asset${plural(copied)} synced. Your Game folder is up to date.` : 'These assets are already in sync.');
   } catch (e) { notify((e as Error).message, true); } finally { busy.value = ''; }
 }
 
 /** Ask to copy the closest GDA file of each "different" resource of the GDA sync report over the game resource. */
 export function requestResourceSync(rows: RssResource[]) {
-  ui.resourceSync = rows.filter(row => row.category === 'different' && row.gdaFiles.length);
+  ui.resourceActions = rows.filter(row => resourceAction(row) === 'sync');
 }
 
-export async function confirmResourceSync() {
-  if (!ui.resourceSync) return;
-  const ids = ui.resourceSync.map(row => row.id);
-  ui.resourceSync = null;
+/** Ask to apply the action of each resource of the GDA sync report that has one: sync a different resource, remove the
+ * declarations of an invalid one, or delete a supplementary one. */
+export function requestResourceActions(rows: RssResource[]) {
+  ui.resourceActions = rows.filter(row => resourceAction(row));
+}
+
+export async function confirmResourceActions() {
+  if (!ui.resourceActions) return;
+  const rows = ui.resourceActions;
+  ui.resourceActions = null;
   busy.value = 'sync';
+  applying.value = commonAction(rows);
   try {
-    const result = await api<SyncResult>('rss-sync/copy', 'POST', { ids });
+    // Copies alone go to the endpoint that can only copy. Otherwise each resource names the status it was chosen with,
+    // so the backend refuses one that a newer report gives another status, and another action.
+    const result = applying.value === 'sync'
+      ? await api<SyncResult>('rss-sync/copy', 'POST', { ids: rows.map(row => row.id) })
+      : await api<SyncResult>('rss-sync/apply', 'POST', { resources: rows.map(row => ({ id: row.id, category: row.category })) });
     applyLibrary(result.library);
-    // An image sequence is one resource, however many of its files were copied.
-    const copied = result.resources ?? result.copied.length;
-    if (result.failures.length) notify(`${copied} synced; ${result.failures.length} failed. ${result.failures[0].name}: ${result.failures[0].message}`, true);
-    else notify(`${copied ? `${copied} resource${plural(copied)} synced.` : 'These resources are already in sync.'} Comparing again to update the report.`);
-  } catch (e) { notify((e as Error).message, true); } finally { busy.value = ''; }
+    // An image sequence is one resource, however many of its files were copied or deleted.
+    const synced = result.resources ?? result.copied.length;
+    const done = [
+      synced ? `${synced} resource${plural(synced)} synced` : '',
+      result.removed ? `${result.removed} invalid resource${plural(result.removed)} removed from the descriptors` : '',
+      result.deleted ? `${result.deleted} supplementary resource${plural(result.deleted)} deleted` : '',
+    ].filter(Boolean).join(', ');
+    const [failure] = result.failures;
+    if (failure) notify(`${done || 'Nothing changed'}; ${result.failures.length} failed. ${failure.name}: ${failure.message}`, true);
+    else notify(`${done ? `${done[0].toUpperCase()}${done.slice(1)}.` : 'These resources are already in sync.'} Comparing again to update the report.`);
+  } catch (e) { notify((e as Error).message, true); } finally { busy.value = ''; applying.value = null; }
 }
 
 export async function openFolder(folder: 'source' | 'destination', assetId?: string) {
@@ -257,9 +232,9 @@ export async function copy(text: string) {
   } catch { notify('Clipboard access is unavailable in this browser.', true); }
 }
 
-/** The full path of an asset in the GDA (source) folder, with the separators of the backend's platform. */
-export function sourcePath(asset: Asset) {
-  return [config.value.source, ...asset.path.split('/')].join(session.platform === 'Windows' ? '\\' : '/');
+/** The full path of an asset in the game (destination) folder, with the separators of the backend's platform. */
+export function gamePath(asset: Asset) {
+  return [config.value.destination, ...asset.path.split('/')].join(session.platform === 'Windows' ? '\\' : '/');
 }
 
 export async function saveSettings(settings: Pick<WorkspaceConfig, 'name' | 'source' | 'destination'>) {
@@ -267,7 +242,6 @@ export async function saveSettings(settings: Pick<WorkspaceConfig, 'name' | 'sou
   try {
     const library = await api<LibraryResponse>('settings', 'PUT', settings);
     applyLibrary(library);
-    ui.inspecting = library.assets[0]?.id || null;
     navigate('library');
     notify(library.missingFolders.length ? 'Workspace saved, but a folder does not exist. Check Workspace settings.' : 'Workspace connected successfully.');
     return true;
@@ -283,8 +257,7 @@ export async function selectWorkspace(id: string) {
   try {
     const library = await api<LibraryResponse>('workspace', 'PUT', { id });
     ui.inspecting = null;
-    ui.syncIds = null;
-    ui.resourceSync = null;
+    ui.resourceActions = null;
     applyLibrary(library);
     navigate('dashboard');
     notify(`Switched to ${library.config.name}.`);

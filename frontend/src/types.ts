@@ -1,19 +1,23 @@
 export type AssetType = 'texture' | 'model' | 'material' | 'audio' | 'other';
 export type AssetStatus = 'new' | 'modified' | 'synced';
 export type FolderKey = 'source' | 'destination';
-export type View ='dashboard' | 'library' | 'pending' | 'synced' | 'rssSync' | 'history' | 'settings';
+export type View ='dashboard' | 'library' | 'pending' | 'rssSync' | 'history' | 'settings';
 
+/** A file of the game folder, which the asset library lists. */
 export interface Asset {
   id: string; name: string; path: string; folder: string; extension: string;
-  type: AssetType; status: AssetStatus; size: number; modifiedAt: string;
+  type: AssetType; size: number; modifiedAt: string;
   dimensions?: { width: number; height: number; format: string; mipmaps?: number };
   preview: boolean; previewError?: string;
 }
+/** A file of the GDA folder with its status against the game file at the same relative path, as the dashboard counts it. */
+export interface ComparedAsset extends Asset { status: AssetStatus }
 /** `source` is the GDA folder files are copied from, `destination` the game folder they are copied to. */
 export interface WorkspaceEntry { id: string; name: string; source: string; destination: string; demo?: boolean }
 export interface WorkspaceConfig { name: string; source: string; destination: string; demo: boolean; port?: number; defaultWorkspace?: string; workspaces?: WorkspaceEntry[] }
 export interface Activity {
-  id: string; date: string; action: 'sync' | 'scan' | 'settings';
+  /** cleanup removes the declarations of invalid resources, or deletes supplementary ones. */
+  id: string; date: string; action: 'sync' | 'scan' | 'settings' | 'cleanup';
   message: string; files: string[]; bytes?: number;
 }
 export interface LibraryResponse {
@@ -24,7 +28,7 @@ export interface LibraryResponse {
 }
 
 /** Dashboard files keep their owning workspace so matching paths in different games remain distinct. */
-export interface DashboardAsset extends Asset { workspaceId: string; workspaceName: string }
+export interface DashboardAsset extends ComparedAsset { workspaceId: string; workspaceName: string }
 export interface DashboardResponse {
   assets: DashboardAsset[]; workspaces: (WorkspaceEntry & { missingFolders: FolderKey[]; error?: string })[];
   activity: Activity[]; scannedAt: string; warnings: string[];
@@ -89,5 +93,9 @@ export interface RssSyncReport {
   differences?: RssResource[]; identical?: RssResource[];
 }
 export interface Session { token: string; version: string; autoShutdownOnClose: boolean; platform: string }
-/** resources counts the report rows a GDA sync copy synced: a sequence is one, however many of its files were copied. */
-export interface SyncResult { copied: string[]; resources?: number; failures: { name: string; message: string }[]; bytes: number; library: LibraryResponse }
+/** resources counts the report rows a GDA sync copy synced: a sequence is one, however many of its files were copied.
+ * Applying report rows also counts the invalid rows whose declarations were removed and the supplementary rows deleted. */
+export interface SyncResult {
+  copied: string[]; resources?: number; removed?: number; deleted?: number;
+  failures: { name: string; message: string }[]; bytes: number; library: LibraryResponse;
+}

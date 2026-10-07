@@ -59,6 +59,15 @@ class SyncBody(_Body):
     ids: Annotated[list[Text4K], Field(min_length=1, max_length=10_000)]
 
 
+class ResourceAction(_Body):
+    id: Text4K
+    category: Literal["different", "invalid", "supplementary"]
+
+
+class ResourceActionsBody(_Body):
+    resources: Annotated[list[ResourceAction], Field(min_length=1, max_length=10_000)]
+
+
 class SettingsBody(_Body):
     name: Annotated[str, StringConstraints(max_length=80)]
     source: Text4K
@@ -257,6 +266,10 @@ def create_app(
     @app.post("/api/rss-sync/copy")
     def rss_sync_copy(body: SyncBody) -> dict:
         return library.sync_resources(body.ids)
+
+    @app.post("/api/rss-sync/apply")
+    def rss_sync_apply(body: ResourceActionsBody) -> dict:
+        return library.apply_resources({resource.id: resource.category for resource in body.resources})
 
     @app.post("/api/rss-sync/details")
     def rss_sync_details(body: ResourceFilesBody) -> dict:

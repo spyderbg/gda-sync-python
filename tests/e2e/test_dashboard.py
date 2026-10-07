@@ -56,8 +56,9 @@ def test_dashboard_combines_workspaces_and_inspects_the_owning_workspace(new_con
     row = page.get_by_role('row').filter(has=page.get_by_role('cell', name='shared.txt', exact=True))
     expect(row).to_contain_text('Second / Root')
     row.click()
-    expect(page.get_by_role('heading', name='shared.txt', exact=True)).to_be_visible()
-    expect(page.locator('.inspector')).to_contain_text('Modified')
+    details = page.get_by_role('dialog', name='shared.txt')
+    # The library lists the game folder, which has the waiting file too.
+    expect(details).to_contain_text('Game file')
     assert json.loads(config_path.read_text())['defaultWorkspace'] == 'second'
 
     # Returning to Dashboard still includes First, regardless of the selected workspace.

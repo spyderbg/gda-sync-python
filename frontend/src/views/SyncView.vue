@@ -1,22 +1,77 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import CheckBox from '../components/CheckBox.vue';
+import ButtonTooltip from '../components/ButtonTooltip.vue';
 import ReportNotice from '../components/ReportNotice.vue';
 import ResourceCard from '../components/ResourceCard.vue';
 import ResourceDetails from '../components/ResourceDetails.vue';
 import { useSyncReport } from '../composables/useSyncReport';
-import { number, plural, rowMatches, time } from '../format';
+import { commonAction, number, plural, resourceAction, resourceActionIcons, rowMatches, time } from '../format';
 import type { RssCategory, RssResource } from '../types';
-import { busy, config, navigate, openFolder, requestResourceSync, rescan, rssSync } from '../workspace';
+import { applying, busy, config, copy, navigate, openFolder, requestResourceActions, requestResourceSync, rescan, rssSync } from '../workspace';
 
 // Apart from the workspace's folders, everything on this page comes from the workspace's GDA sync report:
 // the counts of its comparison and the resources that differ from the GDA folder, then the supplementary files, which
-// no descriptor declares. Only a "different" resource has a GDA file to copy, so only those can be selected and synced.
+// no descriptor declares. A resource with an action can be selected: a "different" one is synced, an "invalid" one has
+// its declarations removed from the descriptors, and a "supplementary" one is deleted. A "missing" one has none.
 type Category = Exclude<RssCategory, 'identical'>;
 type Filter = 'all' | Category;
-const FILTERS: { key: Filter; label: string }[] = [
-  { key: 'all', label: 'All' }, { key: 'different', label: 'Different' }, { key: 'missing', label: 'Missing' }, { key: 'invalid', label: 'Invalid' },
-  { key: 'supplementary', label: 'Supplementary' },
+// Each filter's tooltip says what its status means and why the GDA sync gives a resource that status.
+const FILTERS: { key: Filter; label: string; hint: string }[] = [
+  {
+    key: 'all', label: 'All',
+    hint: 'Every resource the report lists apart from the ones in sync: the Different, Missing, Invalid and Supplementary '
+      + 'resources together, in the report\'s order, by status and then path.\n\n'
+      + 'Select resources to act on them with the button at the top: a Different resource is synced, an Invalid one has '
+      + 'its declarations removed from the descriptors, and a Supplementary one is deleted. A Missing resource has no '
+      + 'action. Without a selection, the button syncs every Different resource. The In sync page lists the resources '
+      + 'that are in sync.',
+  },
+  {
+    key: 'different', label: 'Different',
+    hint: 'The GDA folder has a file with the same name as the game file, but with other content: the GDA has another '
+      + 'version of the resource.\n\n'
+      + 'The GDA sync looks up each file that a descriptor declares by its file name, in any folder of the GDA folder (a '
+      + 'common file also in the common GDA folder), and compares the contents by SHA-256. When none of the same-named GDA '
+      + 'files is identical, the resource is different. By default, a DDS file that differs only in its mip levels counts '
+      + 'as in sync. An image sequence is different when any of its files is.\n\n'
+      + 'These are the only resources that Sync updates: it copies the GDA file from the closest folder over the game file, '
+      + 'and keeps the replaced file in your backups.',
+  },
+  {
+    key: 'missing', label: 'Missing',
+    hint: 'No file in the GDA folder has the name of the game file, so there is nothing to compare it with or to copy.\n\n'
+      + 'The GDA sync looks up each file that a descriptor declares by its file name, in any folder of the GDA folder. A '
+      + 'file in the game folder without a same-named GDA file is missing. A shared file outside the game folder, such as '
+      + 'one in common, that has no GDA file is left out of the report instead, since its GDA files can be kept elsewhere. '
+      + 'An image sequence is '
+      + 'missing when some of its files are missing and none is different or invalid.\n\n'
+      + 'There is nothing to apply, so it cannot be selected: add the file to the GDA folder, or correct its name, then '
+      + 'rescan.',
+  },
+  {
+    key: 'invalid', label: 'Invalid',
+    hint: 'A descriptor declares a path that cannot be used: its file does not exist, or the path leads outside the '
+      + 'resources folder that holds the game folder.\n\n'
+      + 'The GDA sync resolves each path that a descriptor declares, with a {N-M} range expanded to one path per file, '
+      + 'before it looks for the file in the GDA folder. A path whose file does not exist, or that leads outside the '
+      + 'resources folder, is invalid and is not compared. An image sequence is invalid when any of its files is invalid '
+      + 'and none is different.\n\n'
+      + 'Correct the path in the descriptor, or add the file to the game, then rescan. Or select it and remove its '
+      + 'declarations: each entry, image sequence or audio sample that names it leaves the descriptors, and each changed '
+      + 'descriptor is saved in your backups first. One that only the workspace\'s resource_paths declare cannot be '
+      + 'selected.',
+  },
+  {
+    key: 'supplementary', label: 'Supplementary',
+    hint: 'A file in the game folder that no *Data.json descriptor declares, so the game does not load it.\n\n'
+      + 'The GDA sync lists every file in the game folder with a compared extension that no descriptor, and no '
+      + 'resource_paths entry of the workspace, declares. It is not compared with the GDA folder and does not count as '
+      + 'not in sync. Numbered images in one folder with the same name and extension, at least five numbers in a row, '
+      + 'such as name00.dds to name70.dds, are guessed to be one image sequence.\n\n'
+      + 'It can be a leftover to remove, or a resource whose declaration is missing. Select it to delete it from the game '
+      + 'folder, a guessed sequence with all its files; each file is saved in your backups first.',
+  },
 ];
 const PAGE_SIZE = 200;
 
@@ -47,18 +102,26 @@ const rows = computed(() => {
 const visible = computed(() => rows.value.slice(0, shown.value));
 watch([filter, query, report], () => { shown.value = PAGE_SIZE; });
 
-const syncable = (row: RssResource) => row.category === 'different' && row.gdaFiles.length > 0;
-const pending = computed(() => differences.value.filter(syncable));
-// Like the library, only the selected resources that are shown are synced.
-const shownSyncable = computed(() => rows.value.filter(syncable));
-const selectedRows = computed(() => shownSyncable.value.filter(row => selected.value.has(row.id)));
+const selectable = (row: RssResource) => !!resourceAction(row);
+const pending = computed(() => differences.value.filter(row => resourceAction(row) === 'sync'));
+// Like the library, only the selected resources that are shown are acted on.
+const shownSelectable = computed(() => rows.value.filter(selectable));
+const selectedRows = computed(() => shownSelectable.value.filter(row => selected.value.has(row.id)));
 const hasSelection = computed(() => selected.value.size > 0);
-const syncTargets = computed(() => hasSelection.value ? selectedRows.value : pending.value);
-const allSelected = computed(() => shownSyncable.value.length > 0 && selectedRows.value.length === shownSyncable.value.length);
+// The button syncs every different resource, or applies the action of each selected one by its status.
+const targets = computed(() => hasSelection.value ? selectedRows.value : pending.value);
+const targetAction = computed(() => (hasSelection.value ? commonAction(selectedRows.value) : null) ?? 'sync');
+const ACTION_LABELS = {
+  sync: { idle: 'Sync selected', busy: 'Syncing…' }, remove: { idle: 'Remove declarations', busy: 'Removing…' },
+  delete: { idle: 'Delete selected', busy: 'Deleting…' }, mixed: { idle: 'Apply to selected', busy: 'Applying…' },
+};
+const actionLabel = computed(() => (busy.value === 'sync' ? ACTION_LABELS[applying.value ?? 'sync'].busy
+  : hasSelection.value ? ACTION_LABELS[targetAction.value].idle : 'Sync all pending'));
+const allSelected = computed(() => shownSelectable.value.length > 0 && selectedRows.value.length === shownSelectable.value.length);
 
-// A resource that a new report no longer lists as different leaves the selection.
-watch(pending, rows => {
-  const ids = new Set(rows.map(row => row.id));
+// A resource that a new report no longer lists with an action leaves the selection.
+watch(differences, rows => {
+  const ids = new Set(rows.filter(selectable).map(row => row.id));
   if ([...selected.value].some(id => !ids.has(id))) selected.value = new Set([...selected.value].filter(id => ids.has(id)));
 });
 
@@ -74,7 +137,7 @@ function toggle(id: string) {
 
 function toggleAll(select: boolean) {
   const next = new Set(selected.value);
-  for (const row of shownSyncable.value) if (select) next.add(row.id); else next.delete(row.id);
+  for (const row of shownSelectable.value) if (select) next.add(row.id); else next.delete(row.id);
   selected.value = next;
 }
 </script>
@@ -83,15 +146,19 @@ function toggleAll(select: boolean) {
   <section class="sync-workspace" aria-label="Sync workspace">
     <div class="sync-workspace-top">
       <div class="sync-workspace-intro">
-        <p v-if="reportPath" class="sync-report">Sync data: <span class="sync-report-path" :title="reportPath">{{ reportPath }}</span></p>
+        <p v-if="reportPath" class="sync-report sync-report-file">
+          <button type="button" class="sync-report-copy" aria-label="Copy sync report path" title="Copy sync report path" @click="copy(reportPath)"><i aria-hidden="true" class="mdi mdi-content-copy" /></button>
+          <span>Sync data: <span class="sync-report-path" :title="reportPath">{{ reportPath }}</span></span>
+        </p>
         <p v-if="reportPath && lastRun?.state === 'failed'" class="sync-report sync-report-failed">
           <i aria-hidden="true" class="mdi mdi-alert-circle-outline" />The last GDA sync failed: {{ lastRun.error }}<template v-if="summary && finishedAt"> Showing the result from {{ time(finishedAt) }}.</template>
         </p>
         <p v-if="loadError" class="sync-report sync-report-failed"><i aria-hidden="true" class="mdi mdi-alert-circle-outline" />{{ loadError }}</p>
       </div>
       <div class="sync-workspace-actions">
-        <button type="button" class="btn btn-primary" :disabled="!!busy || running || !syncTargets.length" @click="requestResourceSync(syncTargets)">
-          <i aria-hidden="true" :class="['mdi', busy === 'sync' ? 'mdi-loading mdi-spin' : 'mdi-sync']" /><span>{{ busy === 'sync' ? 'Syncing…' : hasSelection ? 'Sync selected' : 'Sync all pending' }}</span><span v-if="syncTargets.length" class="badge badge-light">{{ number(syncTargets.length) }}</span>
+        <button type="button" :class="['btn', targetAction === 'sync' ? 'btn-primary' : 'btn-danger']" :disabled="!!busy || running || !targets.length"
+                @click="hasSelection ? requestResourceActions(targets) : requestResourceSync(targets)">
+          <i aria-hidden="true" :class="['mdi', busy === 'sync' ? 'mdi-loading mdi-spin' : resourceActionIcons[targetAction]]" /><span>{{ actionLabel }}</span><span v-if="targets.length" class="badge badge-light">{{ number(targets.length) }}</span>
         </button>
         <button type="button" class="btn btn-outline-primary" :disabled="!!busy || running" @click="rescan">
           <i aria-hidden="true" :class="['mdi', busy === 'scan' || running ? 'mdi-loading mdi-spin' : 'mdi-refresh']" /><span>{{ busy === 'scan' ? 'Scanning…' : running ? 'Comparing…' : 'Rescan' }}</span>
@@ -153,9 +220,11 @@ function toggleAll(select: boolean) {
       <div class="card grid-margin">
         <div class="card-body sync-controls">
           <div class="btn-group sync-filter" role="group" aria-label="Filter by status">
-            <button v-for="item in FILTERS" :key="item.key" type="button" :class="['btn', 'btn-secondary', { active: filter === item.key }]" :aria-pressed="filter === item.key" @click="filter = item.key">
-              {{ item.label }} <span class="sync-filter-count">{{ number(counts[item.key]) }}</span>
-            </button>
+            <ButtonTooltip v-for="item in FILTERS" :key="item.key" :text="item.hint" v-slot="{ bindings }">
+              <button v-bind="bindings" type="button" :class="['btn', 'btn-secondary', { active: filter === item.key }]" :aria-pressed="filter === item.key" @click="filter = item.key">
+                {{ item.label }} <span class="sync-filter-count">{{ number(counts[item.key]) }}</span>
+              </button>
+            </ButtonTooltip>
           </div>
           <div class="sync-search">
             <i aria-hidden="true" class="mdi mdi-magnify" />
@@ -166,7 +235,7 @@ function toggleAll(select: boolean) {
 
       <template v-if="rows.length">
         <div class="results-heading">
-          <CheckBox v-if="shownSyncable.length" :checked="allSelected" label="Select all shown different resources" @change="toggleAll">
+          <CheckBox v-if="shownSelectable.length" :checked="allSelected" label="Select all shown resources that have an action" @change="toggleAll">
             {{ selectedRows.length ? `${number(selectedRows.length)} selected` : `${number(rows.length)} of ${number(counts.all)} resources` }}<small v-if="query" class="text-muted"> matching “{{ query }}”</small>
           </CheckBox>
           <span v-else>{{ number(rows.length) }} of {{ number(counts.all) }} resources<small v-if="query" class="text-muted"> matching “{{ query }}”</small></span>
@@ -174,7 +243,7 @@ function toggleAll(select: boolean) {
         <!-- A different resource spans the row, so its GDA files sit beside the game file. -->
         <div class="row asset-grid">
           <div v-for="row in visible" :key="row.id" :class="[row.category === 'different' ? 'col-12' : 'col-sm-6 col-xl-4', 'grid-margin', 'stretch-card']">
-            <ResourceCard :row="row" :revision="finishedAt ?? ''" :selected="selected.has(row.id)" @toggle="toggle(row.id)" @open="detailsId = row.id" />
+            <ResourceCard :row="row" :revision="finishedAt ?? ''" :selected="selected.has(row.id)" :sync-disabled="!!busy || running" @toggle="toggle(row.id)" @open="detailsId = row.id" @sync="requestResourceSync([row])" />
           </div>
         </div>
         <div v-if="rows.length > shown" class="sync-more grid-margin">
@@ -202,12 +271,17 @@ function toggleAll(select: boolean) {
 .sync-empty p { margin: 0; }
 
 .sync-workspace { margin-bottom: 22px; }
-.sync-workspace-top { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
+.sync-workspace-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
 .sync-workspace-intro { min-width: 0; }
 .sync-report { margin: 0; color: #87909b; font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
 .sync-report-path { font-family: monospace; }
 .sync-report-failed { margin-top: 4px; color: #d2453c; }
 .sync-report i { margin-right: 6px; font-size: 14px; vertical-align: -2px; }
+.sync-report-file { display: flex; align-items: flex-start; gap: 8px; }
+.sync-report-copy { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; padding: 0; border: 0; background: transparent; color: inherit; cursor: pointer; line-height: 18px; }
+.sync-report-copy:hover { color: #2196f3; }
+.sync-report-copy:focus-visible { outline: 2px solid #2196f3; outline-offset: 3px; }
+.sync-report-copy i.mdi { margin: 0; line-height: 18px; }
 .sync-workspace-actions { display: flex; flex-shrink: 0; flex-wrap: wrap; gap: 10px; }
 .sync-workspace-actions .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; border-radius: 7px; white-space: nowrap; }
 .sync-workspace-actions .btn i.mdi { display: inline-flex; flex-shrink: 0; margin: 0; font-size: 16px; line-height: 1; }

@@ -185,6 +185,13 @@ def expand_path(path: str) -> Iterator[str]:
         yield f"{path[:match.start()]}{number:0{width}d}{path[match.end():]}"
 
 
+def declared_files(game_dir: Path, resource_paths: tuple[str, ...] = ()) -> set[Path]:
+    """Every file that the game's descriptors, image sequence frames included, or resource_paths declare, resolved: the
+    files that are not supplementary."""
+    templates = [*resource_paths, *(value for document in load_documents(game_dir).values() for value, _sequence in declared_paths(document))]
+    return {(game_dir / relative).resolve() for template in templates for relative in expand_path(template)}
+
+
 def file_hash(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as stream:

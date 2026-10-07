@@ -70,6 +70,24 @@ export const rssBadges: Record<RssCategory, string> = {
   identical: 'badge-success', different: 'badge-danger', missing: 'badge-warning', invalid: 'badge-dark', supplementary: 'badge-info',
 };
 
+/** What applying a resource of the GDA sync report does: copy its GDA file over the game file, remove the descriptor
+ * entries that declare it, or delete its game files. A missing resource, and an invalid one that only the workspace's
+ * resource_paths declare, has none. */
+export type ResourceAction = 'sync' | 'remove' | 'delete';
+export function resourceAction(row: RssResource): ResourceAction | null {
+  if (row.category === 'different') return row.gdaFiles.length ? 'sync' : null;
+  if (row.category === 'invalid') return row.requiredBy.length ? 'remove' : null;
+  return row.category === 'supplementary' ? 'delete' : null;
+}
+/** The one action of the given resources, "mixed" when they have several, or null when there are none. */
+export function commonAction(rows: RssResource[]): ResourceAction | 'mixed' | null {
+  const actions = new Set(rows.map(resourceAction));
+  return actions.size > 1 ? 'mixed' : (rows.length ? resourceAction(rows[0]) : null);
+}
+export const resourceActionIcons: Record<ResourceAction | 'mixed', string> = {
+  sync: 'mdi-sync', remove: 'mdi-playlist-remove', delete: 'mdi-delete-outline', mixed: 'mdi-playlist-check',
+};
+
 /** The folder of an absolute path the backend reported, keeping its native separators and a POSIX or Windows drive root. */
 export function directoryOf(path: string) {
   const end = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));

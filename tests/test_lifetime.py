@@ -160,7 +160,7 @@ def test_manual_server_shutdown_finishes_open_event_streams_without_hanging(live
 def test_shutdown_waits_for_an_active_file_copy_even_when_its_browser_request_disconnects(live, monkeypatch):
     server = live()
     library = server.library
-    asset = next(asset for asset in library.scan()["assets"] if asset["status"] == "new")
+    asset = next(asset for asset in library.dashboard()["assets"] if asset["status"] == "new")
     with open(os.path.join(library.config["source"], asset["path"]), "rb") as handle:
         original = handle.read()
     page = server.connect()
