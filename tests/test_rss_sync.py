@@ -501,6 +501,8 @@ def test_previews_files_of_the_workspace_folders_that_the_report_names(tmp_path)
     game, gda = write_example(tmp_path)
     (game / "art.dds").write_bytes(create_bc7_dds(8, 4))
     (gda / "b" / "art.png").write_bytes(b"\x89PNG fake")
+    (game / "click.wav").write_bytes(b"RIFF fake")
+    (gda / "b" / "theme.ogg").write_bytes(b"OggS fake")
     (tmp_path / "secret.png").write_bytes(b"secret")
     entry = {"id": "example", "game_name": "Example", "game_path": str(game), "gda_path": str(gda), "extensions": [".dds"]}
     config = tmp_path / "workspace.json"
@@ -514,7 +516,11 @@ def test_previews_files_of_the_workspace_folders_that_the_report_names(tmp_path)
         assert read_png(decoded.content)[:2] == (8, 4)
         served = preview((gda / "b" / "art.png").resolve())
         assert served.content == b"\x89PNG fake" and "sandbox" in served.headers["content-security-policy"]
-        # Only image files inside the workspace's resources and GDA folders.
+        # Audio files play as they are.
+        wav = preview((game / "click.wav").resolve())
+        assert wav.content == b"RIFF fake" and wav.headers["content-type"] == "audio/wav"
+        assert preview((gda / "b" / "theme.ogg").resolve()).headers["content-type"] == "audio/ogg"
+        # Only image and audio files inside the workspace's resources and GDA folders.
         assert preview(tmp_path / "secret.png").status_code == 404
         assert preview(f"{gda.resolve()}/../secret.png").status_code == 404
         assert preview((game / "AllRssData.json").resolve()).status_code == 415

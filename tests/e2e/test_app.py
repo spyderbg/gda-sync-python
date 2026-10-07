@@ -36,7 +36,7 @@ def select_workspace(page):
 
 def open_library(page):
     page.goto("/")
-    expect(page.get_by_role("heading", name="Dashboard")).to_be_visible()
+    expect(page.get_by_role("heading", name="Keep game resources in sync with the GDA")).to_be_visible()
     select_workspace(page)
     page.get_by_role("button", name="Asset library", exact=True).click()
     expect(page.get_by_role("heading", name="Asset library")).to_be_visible()
@@ -74,10 +74,10 @@ def test_dashboard_summarizes_the_workspace_with_the_template_charts(page):
     errors = []
     page.on("pageerror", lambda error: errors.append(str(error)))
     page.goto("/")
-    expect(page.get_by_role("heading", name="Dashboard")).to_be_visible()
-    for title in ("Library Statistics Overview", "Asset Mix", "Storage Overview", "Workspace Metrics", "Waiting for Sync"):
+    expect(page.get_by_role("heading", name="Keep game resources in sync with the GDA")).to_be_visible()
+    for title in ("Library Statistics Overview", "Asset Mix", "Storage Overview", "Combined Workspace Metrics", "Waiting for Sync"):
         expect(page.get_by_role("heading", name=title)).to_be_visible()
-    expect(page.locator(".card-body h3").first).to_have_text("18")
+    expect(page.locator(".dashboard-stats h3").first).to_have_text("18")
     for chart in ("Total assets over time", "GDA changes and synced files over time", "Files per format in sync and waiting for sync",
                   "Library size as files were added", "Storage per folder by sync status", "Files in sync per asset type", "56% of files in sync"):
         expect(page.get_by_role("img", name=chart)).to_be_visible()

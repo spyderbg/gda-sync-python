@@ -128,3 +128,85 @@ def test_switch_refuses_while_operation_in_progress(tmp_path):
             response = client.put('/api/workspace', headers=session_headers(client), json={'id': 'second'})
             assert response.status_code == 409
     assert path.read_text() == before
+
+
+def test_dashboard_combines_workspaces_without_changing_selection_or_cached_assets(tmp_path):
+    library, path = configured_library(tmp_path)
+    for name in ('first', 'second'):
+        (tmp_path / name / 'gda' / 'shared.txt').write_text('same')
+    (tmp_path / 'first' / 'game' / 'shared.txt').write_text('same')
+    (tmp_path / 'second' / 'game' / 'shared.txt').write_text('else')
+    active = library.scan()
+    cached = library._scanned_assets
+    config = dict(library.config)
+    persisted = path.read_text()
+    with TestClient(create_app(library, dev=True), base_url='http://127.0.0.1') as client:
+        response = client.get('/api/dashboard')
+        assert response.status_code == 200
+        dashboard = response.json()
+    assert len(dashboard['assets']) == 4
+    assert [workspace['id'] for workspace in dashboard['workspaces']] == ['first', 'second']
+    assert dashboard['warnings'] == []
+    shared = [asset for asset in dashboard['assets'] if asset['name'] == 'shared.txt']
+    assert {asset['workspaceId']: asset['status'] for asset in shared} == {'first': 'synced', 'second': 'modified'}
+    assert {asset['workspaceName'] for asset in shared} == {'First', 'Second'}
+    assert shared[0]['id'] == shared[1]['id']  # Workspace ownership distinguishes matching relative paths.
+    assert sum(asset['size'] for asset in dashboard['assets']) == len('firstsecondsamesame')
+    assert library.config == config and path.read_text() == persisted
+    assert library._scanned_assets is cached and library._scanned_assets == active['assets']
+    assert library.activity == dashboard['activity'] == []
+    assert not any(library.reports.status(name)['running'] for name in ('first', 'second'))
+
+
+def test_dashboard_supports_a_single_workspace_configuration(library):
+    dashboard = library.dashboard()
+    assert len(dashboard['workspaces']) == 1 and dashboard['workspaces'][0]['id'] == 'current'
+    assert len(dashboard['assets']) == 18
+    assert all(asset['workspaceId'] == 'current' and asset['workspaceName'] == library.config['name'] for asset in dashboard['assets'])
+    assert dashboard['warnings'] == []
+
+
+@pytest.mark.parametrize('missing', ['source', 'destination'])
+def test_dashboard_reports_missing_workspace_folders_without_creating_them(tmp_path, missing):
+    library, path = configured_library(tmp_path)
+    config = json.loads(path.read_text())
+    absent = tmp_path / 'absent'
+    config['workspaces'][1]['gda_path' if missing == 'source' else 'game_path'] = str(absent)
+    path.write_text(json.dumps(config))
+    library.init()
+    dashboard = library.dashboard()
+    assert dashboard['workspaces'][1]['missingFolders'] == [missing]
+    assert any(warning.startswith('Second:') and 'folder does not exist' in warning for warning in dashboard['warnings'])
+    assert len(dashboard['assets']) == (1 if missing == 'source' else 2)
+    assert library.config['defaultWorkspace'] == 'first' and not absent.exists()
+
+
+def test_dashboard_keeps_other_workspaces_when_one_cannot_be_read(tmp_path, monkeypatch):
+    library, _ = configured_library(tmp_path)
+    scan = library._scan_workspace
+
+    def unreadable(config):
+        if config['name'] == 'Second':
+            raise PermissionError('Folder access denied')
+        return scan(config)
+
+    monkeypatch.setattr(library, '_scan_workspace', unreadable)
+    dashboard = library.dashboard()
+    assert len(dashboard['assets']) == 1 and dashboard['assets'][0]['workspaceId'] == 'first'
+    assert dashboard['workspaces'][1]['error'] == 'Folder access denied'
+    assert dashboard['warnings'] == ['Second: Folder access denied']
+
+
+def test_dashboard_refreshes_file_status_after_a_workspace_copy(tmp_path):
+    library, _ = configured_library(tmp_path)
+    with TestClient(create_app(library, dev=True), base_url='http://127.0.0.1') as client:
+        initial = client.get('/api/dashboard').json()
+        assert all(asset['status'] == 'new' for asset in initial['assets'])
+        headers = session_headers(client)
+        selected = client.put('/api/workspace', headers=headers, json={'id': 'second'}).json()
+        result = client.post('/api/sync', headers=headers, json={'ids': [selected['assets'][0]['id']]})
+        assert result.status_code == 200
+        dashboard = client.get('/api/dashboard').json()
+    assert {asset['workspaceId']: asset['status'] for asset in dashboard['assets']} == {'first': 'new', 'second': 'synced'}
+    assert len(dashboard['activity']) == 1 and dashboard['activity'][0]['files'] == ['second.txt']
+    assert library.config['defaultWorkspace'] == 'second'

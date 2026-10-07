@@ -23,6 +23,13 @@ export interface LibraryResponse {
   missingFolders: FolderKey[];
 }
 
+/** Dashboard files keep their owning workspace so matching paths in different games remain distinct. */
+export interface DashboardAsset extends Asset { workspaceId: string; workspaceName: string }
+export interface DashboardResponse {
+  assets: DashboardAsset[]; workspaces: (WorkspaceEntry & { missingFolders: FolderKey[]; error?: string })[];
+  activity: Activity[]; scannedAt: string; warnings: string[];
+}
+
 /** The GDA sync: a workspace's game resources compared with its GDA folder, in a background process. A file in the
  * game folder that no descriptor declares is "supplementary" and not compared; reports from earlier versions do not
  * count them. */

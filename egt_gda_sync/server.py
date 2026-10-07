@@ -225,6 +225,10 @@ def create_app(
     def library_view() -> dict:
         return library.scan()
 
+    @app.get("/api/dashboard")
+    def dashboard_view() -> dict:
+        return library.dashboard()
+
     @app.post("/api/scan")
     def rescan() -> dict:
         return library.rescan()

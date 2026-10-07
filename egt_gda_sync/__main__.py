@@ -49,7 +49,9 @@ def _open_browser(url: str) -> None:
 def run(argv: list[str]) -> int:
     data_home = os.path.abspath(application_data_home())
     dev = os.environ.get("EGT_GDA_SYNC_DEV") == "1"
-    should_open = "--no-open" not in argv and os.environ.get("EGT_GDA_SYNC_NO_OPEN") != "1"
+    # The packaged application opens the browser itself. Development mode only starts
+    # Vite and the backend; the developer opens the development UI (the Vite port) manually.
+    should_open = not dev and "--no-open" not in argv and os.environ.get("EGT_GDA_SYNC_NO_OPEN") != "1"
     library = Library(data_home, config_path=workspace_config_path(data_home))
     library.init()
     port = _port(library.config)

@@ -1,6 +1,6 @@
 // Workspace summaries for the dashboard charts. Everything is derived from the library scan and sync history.
 import { ASSET_TYPES, time, typeNames } from './format';
-import type { Activity, Asset, AssetStatus, AssetType } from './types';
+import type { Activity, Asset, AssetStatus, AssetType, DashboardAsset } from './types';
 
 export type Period = 'day' | 'week' | 'month' | 'all';
 export const PERIODS: { id: Period; label: string; description: string }[] = [
@@ -30,7 +30,7 @@ function buckets(period: Period, times: number[], now: number, count = 12): Buck
     const midnight = new Date(now).setHours(0, 0, 0, 0);
     return { start: midnight - (days - 1) * DAY, size: DAY, count: days, label: dayLabel };
   }
-  const start = Math.min(now, ...times);
+  const start = times.reduce((earliest, value) => Math.min(earliest, value), now);
   const span = Math.max(now - start, HOUR);
   return { start, size: span / count, count, label: span <= 2 * DAY ? hourLabel : dayLabel };
 }
@@ -97,7 +97,10 @@ export function formatMix(assets: Asset[], limit = 8): Mix {
 export type StorageMetric = 'size' | 'files';
 export interface Storage { labels: string[]; byStatus: Record<AssetStatus, number[]> }
 
-export const topFolder = (asset: Asset) => (asset.path.includes('/') ? asset.path.split('/')[0] : 'Root');
+export const topFolder = (asset: Asset | DashboardAsset) => {
+  const folder = asset.path.includes('/') ? asset.path.split('/')[0] : 'Root';
+  return 'workspaceName' in asset ? `${asset.workspaceName} / ${folder}` : folder;
+};
 
 /** Size (MB) or file count per top-level folder, split by sync status. */
 export function folderStorage(assets: Asset[], metric: StorageMetric, limit = 8): Storage {

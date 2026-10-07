@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { baseName, directoryOf, extensionOf, number, plural, previewFrames, rssBadges, sequenceName, size, splitPath, time } from '../format';
+import { baseName, directoryOf, extensionOf, fileType, number, plural, previewFrames, rssBadges, sequenceName, size, splitPath, time } from '../format';
 import type { RssFileDetails, RssResource } from '../types';
 import { busy, copy, openResourceFolder, requestResourceSync, resourceDetails, rssSync } from '../workspace';
 import AppModal from './AppModal.vue';
+import AudioPreview from './AudioPreview.vue';
 import ReportThumbnail from './ReportThumbnail.vue';
 import SequencePreview from './SequencePreview.vue';
 
@@ -11,6 +12,7 @@ import SequencePreview from './SequencePreview.vue';
 // details: a large preview, beside the GDA file's when the GDA has one, what the status means, the files' format, size,
 // resolution, pixel format, mip levels and time, for the game and the GDA side by side, and where the resource is
 // declared. An image sequence plays in the dialog, with how it plays, the totals of its files and each frame's status.
+// An audio file plays once when the dialog opens, and each audio preview has a play and stop button.
 // Escape closes the dialog.
 const props = defineProps<{ row: RssResource; revision: string }>();
 const emit = defineEmits<{ close: [] }>();
@@ -19,6 +21,7 @@ const sequence = computed(() => props.row.sequence);
 const name = computed(() => splitPath(props.row.resource).name);
 const running = computed(() => !!rssSync.value?.running);
 const unique = (paths: (string | null | undefined)[]) => [...new Set(paths.filter((path): path is string => !!path))];
+const isAudio = (path: string) => fileType(extensionOf(baseName(path))) === 'audio';
 
 // The files described: a sequence's game files and the GDA file of each of its frames, each once.
 const gameFiles = computed(() => (sequence.value
@@ -156,11 +159,13 @@ function sync() {
         <figure class="details-preview">
           <figcaption>{{ sequence ? 'Game frames' : 'Game file' }}<small v-if="sequence">Click to play again</small></figcaption>
           <SequencePreview v-if="sequence" :frames="gameFrames" :frame-time="sequence.frameTime" :loop-count="sequence.loopCount" :loop-to="sequence.loopTo" :name="sequence.id ?? name" :revision="revision" />
+          <AudioPreview v-else-if="isAudio(row.resourcePath) && row.category !== 'invalid'" :file="row.resourcePath" :name="name" :revision="revision" autoplay />
           <ReportThumbnail v-else :file="row.resourcePath" :name="name" :revision="revision" :preview="row.category !== 'invalid'" />
         </figure>
         <figure v-if="pairedPreview" class="details-preview">
           <figcaption>{{ gdaLabel }}</figcaption>
           <SequencePreview v-if="sequence" :frames="gdaFrames" :frame-time="sequence.frameTime" :loop-count="sequence.loopCount" :loop-to="sequence.loopTo" :name="`${sequence.id ?? name} from the GDA`" :revision="revision" />
+          <AudioPreview v-else-if="isAudio(row.gdaFiles[0].path)" :file="row.gdaFiles[0].absolutePath" :name="baseName(row.gdaFiles[0].path)" :revision="revision" />
           <ReportThumbnail v-else :file="row.gdaFiles[0].absolutePath" :name="baseName(row.gdaFiles[0].path)" :revision="revision" />
         </figure>
       </div>

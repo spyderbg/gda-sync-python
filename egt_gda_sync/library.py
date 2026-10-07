@@ -35,6 +35,8 @@ HISTORY_LIMIT = 100
 IMAGE_PREVIEWS = {
     "png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg", "webp": "image/webp", "svg": "image/svg+xml", "bmp": "image/bmp",
 }
+# The audio files of the GDA sync report that the browser plays as they are.
+AUDIO_PREVIEWS = {"wav": "audio/wav", "ogg": "audio/ogg", "mp3": "audio/mpeg", "flac": "audio/flac"}
 ASSET_TYPES = (
     ("texture", {"png", "jpg", "jpeg", "webp", "svg", "dds", "tga", "bmp", "exr", "tif", "tiff"}),
     ("model", {"obj", "fbx", "glb", "gltf", "blend"}),
@@ -360,6 +362,15 @@ class Library:
 
     def scan(self) -> dict:
         config = dict(self.config)
+        scanned = self._scan_workspace(config)
+        self._scanned_assets = scanned["assets"]
+        return {
+            **scanned, "config": config, "activity": self.activity, "scannedAt": iso_time(),
+            "backupPath": self.backup_path, "rssSync": self.rss_status(),
+        }
+
+    def _scan_workspace(self, config: dict) -> dict:
+        """Describe one workspace without changing the selected workspace or its preview cache."""
         assets: list[dict] = []
         warnings: list[str] = []
 
@@ -388,16 +399,34 @@ class Library:
                 except Exception as error:
                     warnings.append(f"{relative}: {error_message(error)}")
 
-        missing = self.missing_folders()
+        missing = [key for key in FOLDER_NAMES if not os.path.isdir(config[key])]
         if "source" not in missing:
             walk("")
         # Give the demo an intentional order; real workspaces are sorted by recent changes.
         assets.sort(key=lambda asset: asset["modifiedAt"], reverse=True)
-        self._scanned_assets = assets
-        return {
-            "assets": assets, "config": config, "activity": self.activity, "scannedAt": iso_time(),
-            "warnings": warnings, "missingFolders": missing, "backupPath": self.backup_path, "rssSync": self.rss_status(),
-        }
+        return {"assets": assets, "warnings": warnings, "missingFolders": missing}
+
+    def dashboard(self) -> dict:
+        """Read all configured workspaces together, leaving workspace selection and file operations untouched."""
+        config = dict(self.config)
+        entries = config.get("workspaces") or [{**config, "id": "current"}]
+        assets, workspaces, warnings = [], [], []
+        for entry in entries:
+            workspace = {key: entry[key] for key in ("id", "name", "source", "destination", "demo")}
+            workspace["missingFolders"] = [key for key in FOLDER_NAMES if not os.path.isdir(entry[key])]
+            try:
+                scanned = self._scan_workspace(entry)
+            except (AppError, OSError) as error:
+                workspace["error"] = error_message(error)
+                warnings.append(f"{entry['name']}: {workspace['error']}")
+            else:
+                assets.extend({**asset, "workspaceId": entry["id"], "workspaceName": entry["name"]} for asset in scanned["assets"])
+                warnings.extend(f"{entry['name']}: {warning}" for warning in scanned["warnings"])
+            for key in workspace["missingFolders"]:
+                warnings.append(f"{entry['name']}: {FOLDER_NAMES[key]} folder does not exist")
+            workspaces.append(workspace)
+        assets.sort(key=lambda asset: asset["modifiedAt"], reverse=True)
+        return {"assets": assets, "workspaces": workspaces, "activity": list(self.activity), "scannedAt": iso_time(), "warnings": warnings}
 
     def _active_workspace(self) -> tuple[str, dict]:
         """The selected workspace's id and entry; a single-workspace configuration is the entry itself."""
@@ -650,7 +679,7 @@ class Library:
         if asset["type"] == "model" and config["demo"]:
             with open(os.path.join(config["source"], ".previews", asset["id"] + ".svg"), "rb") as handle:
                 return handle.read(), "image/svg+xml"
-        return self._image(safe_path(config["source"], asset["path"]), asset["extension"])
+        return self._media(safe_path(config["source"], asset["path"]), asset["extension"])
 
     def _resource_path(self, file: str) -> str:
         """Resolve a report file inside the active workspace's game, GDA or common GDA folders."""
@@ -696,18 +725,19 @@ class Library:
         return {"files": details}
 
     def resource_preview(self, file: str) -> tuple[bytes, str]:
-        """Preview an image inside the active workspace's resources and GDA folders."""
+        """Preview an image, or an audio file to play, inside the active workspace's resources and GDA folders."""
         file = self._resource_path(file)
         extension = os.path.splitext(file)[1][1:].lower()
-        if extension != "dds" and extension not in IMAGE_PREVIEWS:
-            raise AppError("No image preview for this file", 415)
+        if extension != "dds" and extension not in IMAGE_PREVIEWS and extension not in AUDIO_PREVIEWS:
+            raise AppError("No preview for this file", 415)
         try:
-            return self._image(file, extension)
+            return self._media(file, extension)
         except FileNotFoundError as error:
             raise AppError("File not found", 404) from error
 
-    def _image(self, file: str, extension: str) -> tuple[bytes, str]:
-        """An image file as the browser can show it: decoded DDS textures are cached by file, time and size."""
+    def _media(self, file: str, extension: str) -> tuple[bytes, str]:
+        """An image file as the browser can show it, or an audio file as it plays it: decoded DDS textures are cached
+        by file, time and size."""
         info = os.stat(file)
         if info.st_size > MAX_PREVIEW_BYTES:
             raise AppError("Preview is limited to files smaller than 64 MB", 413)
@@ -727,4 +757,4 @@ class Library:
                     self._previews[key] = data
             return data, "image/png"
         with open(file, "rb") as handle:
-            return handle.read(), IMAGE_PREVIEWS.get(extension, "application/octet-stream")
+            return handle.read(), {**IMAGE_PREVIEWS, **AUDIO_PREVIEWS}.get(extension, "application/octet-stream")
