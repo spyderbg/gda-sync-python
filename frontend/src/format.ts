@@ -1,4 +1,4 @@
-import type { Asset, AssetStatus, AssetType, PreviewFrame, RssCategory, RssResource, RssSequence } from './types';
+import type { AssetCategory, AssetDeclaration, AssetSequence, AssetStatus, AssetType, PreviewFrame, ReportAsset, RssCategory, RssResource, RssSequence } from './types';
 
 export const ASSET_TYPES = ['texture', 'model', 'material', 'audio'] as const;
 export const typeIcons: Record<AssetType, string> = {
@@ -56,11 +56,14 @@ export function rowMatches(row: RssResource, needle: string) {
     !!row.sequence && (!!row.sequence.id?.toLowerCase().includes(needle) || row.sequence.paths.some(path => path.toLowerCase().includes(needle)));
 }
 
+/** What sequenceName and sequenceSummary read of a sequence of the GDA sync report or of the asset report. */
+type SequenceTiming = Pick<RssSequence, 'id' | 'frameTime' | 'loopCount'> & { frames: unknown[] };
+
 /** A sequence's id, or what a guessed one is. */
-export const sequenceName = (sequence: RssSequence) => sequence.id ?? 'Guessed sequence';
+export const sequenceName = (sequence: Pick<RssSequence, 'id'>) => sequence.id ?? 'Guessed sequence';
 
 /** How an image sequence plays, for example "71 frames · 42 ms · loops forever". */
-export function sequenceSummary(sequence: RssSequence) {
+export function sequenceSummary(sequence: SequenceTiming) {
   const count = sequence.frames.length;
   const loops = sequence.loopCount === 0 ? 'loops forever' : sequence.loopCount === 1 ? 'plays once' : `plays ${sequence.loopCount} times`;
   return `${number(count)} frame${plural(count)} · ${sequence.frameTime} ms · ${loops}`;
@@ -69,6 +72,23 @@ export function sequenceSummary(sequence: RssSequence) {
 export const rssBadges: Record<RssCategory, string> = {
   identical: 'badge-success', different: 'badge-danger', missing: 'badge-warning', invalid: 'badge-dark', supplementary: 'badge-info',
 };
+export const assetBadges: Record<AssetCategory, string> = {
+  available: 'badge-success', missing: 'badge-warning', invalid: 'badge-dark', supplementary: 'badge-info',
+};
+
+/** An asset report sequence's frames as SequencePreview plays them: each frame's file, when it exists. */
+export const assetFrames = (sequence: AssetSequence): PreviewFrame[] => sequence.frames.map(frame => ({
+  file: frame.category === 'available' || frame.category === 'supplementary' ? frame.resourcePath : null, source: frame.source,
+}));
+
+/** A descriptor entry that loads an asset, for example "Image LOGO · RssImagesData.json:12". */
+export const declarationLabel = (use: AssetDeclaration) => `${use.type}${use.id ? ` ${use.id}` : ''} · ${use.descriptor}:${use.line}`;
+
+/** Whether an asset matches a lowercase search: by its path, the sequence's id and paths, or a declaring entry's id. */
+export function assetMatches(row: ReportAsset, needle: string) {
+  return !needle || row.resource.toLowerCase().includes(needle) || row.requiredBy.some(use => !!use.id?.toLowerCase().includes(needle)) ||
+    !!row.sequence && row.sequence.paths.some(path => path.toLowerCase().includes(needle));
+}
 
 /** What applying a resource of the GDA sync report does: copy its GDA file over the game file, remove the descriptor
  * entries that declare it, or delete its game files. A missing resource, and an invalid one that only the workspace's
@@ -108,5 +128,3 @@ export function previewFrames(sequence: RssSequence, side: 'game' | 'gda'): Prev
 export const reportPreviewURL = (file: string, revision: string) =>
   `/api/rss-sync/preview?file=${encodeURIComponent(file)}&v=${encodeURIComponent(revision)}`;
 
-export const previewURL = (asset: Asset, revision: string) =>
-  `/api/assets/${asset.id}/preview?v=${encodeURIComponent(asset.modifiedAt)}&scan=${encodeURIComponent(revision)}`;

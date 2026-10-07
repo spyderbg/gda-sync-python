@@ -19,7 +19,7 @@ const position = ref(0);
 const duration = ref(0);
 const extension = computed(() => extensionOf(props.name));
 const progress = computed(() => (duration.value > 0 ? position.value / duration.value : 0));
-// The waveform of AssetThumbnail, which fills in as the file plays.
+// A waveform, which fills in as the file plays.
 const bars = Array.from({ length: 48 }, (_, i) => `${12 + Math.abs(Math.sin(i * 1.7)) * 52}px`);
 let frame = 0;
 

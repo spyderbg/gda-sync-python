@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { PREVIEW_EXTENSIONS, extensionOf, fileType, reportPreviewURL, typeIcons } from '../format';
 
-// The preview of a file the GDA sync report names, a game resource or a GDA file, in the look of AssetThumbnail.
+// The preview of a file that a report names, a game resource or a GDA file, with a badge of its format.
 const props = withDefaults(defineProps<{
   /** The file's absolute path, as the report stores it. */
   file: string;

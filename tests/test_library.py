@@ -1,3 +1,4 @@
+import json
 import os
 
 import pytest
@@ -13,17 +14,18 @@ def read(path: str) -> bytes:
         return handle.read()
 
 
-def test_demo_library_lists_the_game_folder_and_the_dashboard_compares_the_gda_folder_with_it(library):
-    data = library.scan()
-    # The game has the 13 demo assets that are not new, 3 of them in an older version; the library only lists them.
-    assert len(data["assets"]) == 13
-    assert data["warnings"] == []
-    assert not any("status" in asset for asset in data["assets"])
+def test_demo_dashboard_compares_the_gda_folder_and_the_asset_report_lists_the_game(library):
     statuses = [asset["status"] for asset in library.dashboard()["assets"]]
     assert (statuses.count("new"), statuses.count("modified"), statuses.count("synced")) == (5, 3, 10)
-    dds = next(asset for asset in data["assets"] if asset["name"] == "limestone_normal.dds")
+    # The asset library shows the newest asset report, and there is none yet.
+    assert library.scan()["assetReport"] == {"reportPath": None, "summary": None}
+    summary = library.generate_asset_report()["assetReport"]["summary"]
+    # The demo game has no descriptors, so its files with a compared extension, 4 PNG and 2 DDS, are supplementary.
+    assert (summary["assets"], summary["supplementary"], summary["available"]) == (6, 6, 0)
+    report = json.loads(library.asset_report())
+    dds = next(row for row in report["assets"] if row["resource"] == "textures/rocks/limestone_normal.dds")
     assert dds["dimensions"]["width"] == 512
-    preview, mime = library.preview(dds)
+    preview, mime = library.resource_preview(dds["resourcePath"])
     assert mime == "image/png"
     assert read_png(preview)[:2] == (512, 512)
 
@@ -38,7 +40,6 @@ def test_sync_copies_originals_keeps_folder_structure_and_backs_up_replaced_gda_
     result = library.sync([asset["id"] for asset in pending])
     assert result["failures"] == []
     assert len(result["copied"]) == 8
-    assert len(result["library"]["assets"]) == 18
     assert all(asset["status"] == "synced" for asset in library.dashboard()["assets"])
     assert read(os.path.join(library.config["source"], changed["path"])) == original
     assert read(destination) == original
@@ -62,11 +63,11 @@ def test_equal_sized_files_with_different_contents_are_modified(library):
     assert asset["status"] == "modified"
 
 
-def test_hidden_files_are_skipped_and_unknown_types_are_listed(library):
+def test_the_dashboard_skips_hidden_files_and_lists_unknown_types(library):
     for name in (".hidden.png", "notes.txt"):
-        with open(os.path.join(library.config["destination"], name), "w") as handle:
+        with open(os.path.join(library.config["source"], name), "w") as handle:
             handle.write("x")
-    names = {asset["name"]: asset for asset in library.scan()["assets"]}
+    names = {asset["name"]: asset for asset in library.dashboard()["assets"]}
     assert ".hidden.png" not in names
     assert (names["notes.txt"]["type"], names["notes.txt"]["folder"]) == ("other", "Root")
 
@@ -83,7 +84,7 @@ def test_path_traversal_and_symbolic_links_cannot_escape_source_or_destination(l
         pytest.skip("Creating symbolic links requires extra privileges on this system")
     with pytest.raises(AppError, match="Symbolic links"):
         safe_path(library.config["source"], "escape/secret")
-    assert any("Skipped symbolic link" in warning for warning in library.scan()["warnings"])
+    assert any("Skipped symbolic link" in warning for warning in library.dashboard()["warnings"])
     with pytest.raises(AppError, match="Symbolic links"):
         safe_path(library.config["destination"], "linked-folder/surprise.txt", create_parents=True)
 
@@ -107,9 +108,8 @@ def test_invalid_workspace_connections_are_rejected_and_valid_connections_persis
     real_source, real_destination = tmp_path / "real-source", tmp_path / "real-gda"
     real_source.mkdir()
     real_destination.mkdir()
-    (real_destination / "asset.txt").write_text("hello")
     data = library.update_config("Real project", str(real_source), str(real_destination))
-    assert len(data["assets"]) == 1
+    assert data["config"]["destination"] == str(real_destination) and data["missingFolders"] == []
     assert data["config"]["demo"] is False
     again = Library(library.home)
     again.init()
@@ -124,8 +124,9 @@ def test_missing_folders_are_reported_and_block_only_the_operations_that_need_th
 
     data = library.update_config("Absent GDA", str(real_source), str(absent))
     assert data["missingFolders"] == ["destination"]
-    # The library lists the game folder, which does not exist; the dashboard still compares the GDA folder.
-    assert data["assets"] == []
+    # The game folder does not exist, so it has no asset report; the dashboard still compares the GDA folder.
+    with pytest.raises(AppError, match="Game folder does not exist"):
+        library.generate_asset_report()
     [asset] = library.dashboard()["assets"]
     assert (asset["path"], asset["status"]) == ("asset.txt", "new")
     with pytest.raises(AppError, match="Game folder does not exist") as error:
@@ -135,10 +136,10 @@ def test_missing_folders_are_reported_and_block_only_the_operations_that_need_th
 
     data = library.update_config("Absent both", str(tmp_path / "absent-source"), str(absent))
     assert data["missingFolders"] == ["source", "destination"]
-    assert data["assets"] == [] and data["warnings"] == []
+    assert library.dashboard()["assets"] == []
     with pytest.raises(AppError, match="GDA and Game folders do not exist"):
         library.sync(["anything"])
-    assert library.rescan()["assets"] == []
+    assert library.rescan()["missingFolders"] == ["source", "destination"]
 
     again = Library(library.home)
     again.init()
@@ -172,11 +173,12 @@ def test_unsupported_dds_formats_remain_syncable_and_are_listed_with_a_preview_m
         handle.write(create_bc7_dds(4, 4, 95))
     gda = next(asset for asset in library.dashboard()["assets"] if asset["name"] == "bc6.dds")
     assert library.sync([gda["id"]])["copied"] == ["bc6.dds"]
-    asset = next(asset for asset in library.scan()["assets"] if asset["name"] == "bc6.dds")
+    library.generate_asset_report()
+    asset = next(row for row in json.loads(library.asset_report())["assets"] if row["resource"] == "bc6.dds")
     assert asset["preview"] is False
     assert asset["previewError"] == "Preview unavailable for DXGI 95. The original file is unchanged."
     with pytest.raises(AppError) as error:
-        library.preview(asset)
+        library.resource_preview(asset["resourcePath"])
     assert error.value.status_code == 415
 
 

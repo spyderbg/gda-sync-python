@@ -15,8 +15,6 @@ def configured_library(tmp_path, legacy=False):
         source.mkdir(parents=True)
         destination.mkdir()
         (source / f'{name}.txt').write_text(name)
-        # The asset library lists the game folder.
-        (destination / f'{name}-game.txt').write_text(name)
         entry = {'id': name, ('name' if legacy else 'game_name'): name.title()}
         # Files are copied from the GDA folder (the source) to the game folder (the destination).
         entry.update({('source' if legacy else 'gda_path'): str(source), ('destination' if legacy else 'game_path'): str(destination)})
@@ -37,13 +35,14 @@ def test_switch_persists_and_settings_update_only_selected_workspace(tmp_path, l
     with TestClient(create_app(library, dev=True), base_url='http://127.0.0.1') as client:
         headers = session_headers(client)
         first = client.get('/api/library').json()
-        assert [asset['name'] for asset in first['assets']] == ['first-game.txt']
+        assert first['config']['destination'] == str(tmp_path / 'first' / 'game')
+        assert first['assetReport'] == {'reportPath': None, 'summary': None}
         # No report file exists before a workspace's first GDA sync run.
         assert first['rssSync']['workspaceId'] == 'first' and first['rssSync']['reportPath'] is None
         assert client.put('/api/workspace', json={'id': 'second'}).status_code == 403
         result = client.put('/api/workspace', headers=headers, json={'id': 'second'})
         assert result.status_code == 200
-        assert [asset['name'] for asset in result.json()['assets']] == ['second-game.txt']
+        assert result.json()['config']['destination'] == str(tmp_path / 'second' / 'game')
         assert result.json()['config']['defaultWorkspace'] == 'second'
         assert result.json()['rssSync']['workspaceId'] == 'second' and result.json()['rssSync']['reportPath'] is None
         config = result.json()['config']
@@ -65,7 +64,7 @@ def test_switch_persists_and_settings_update_only_selected_workspace(tmp_path, l
     restored = Library(library.home, config_path=str(path))
     restored.init()
     assert restored.config['name'] == 'Renamed'
-    assert restored.scan()['assets'][0]['name'] == 'second-game.txt'
+    assert restored.scan()['config']['destination'] == str(tmp_path / 'second' / 'game')
 
 
 @pytest.mark.parametrize('change', ['empty', 'duplicate', 'unknown', 'invalid_path', 'invalid_config', 'missing_path'])
@@ -99,7 +98,6 @@ def test_sync_copies_from_the_gda_folder_to_the_game_folder(tmp_path):
     assert library.sync([asset['id']])['copied'] == ['first.txt']
     assert (game / 'first.txt').read_text() == 'first' and (gda / 'first.txt').read_text() == 'first'
     assert status()['status'] == 'synced'
-    assert sorted(asset['name'] for asset in library.scan()['assets']) == ['first-game.txt', 'first.txt']
 
     # Saving settings writes the GDA folder back as gda_path and the game folder as game_path.
     library.update_config('Renamed', str(gda), str(game))
@@ -120,7 +118,7 @@ def test_a_workspace_with_missing_folders_loads_and_can_be_selected(tmp_path):
     assert library.missing_folders() == []
     with TestClient(create_app(library, dev=True), base_url='http://127.0.0.1') as client:
         result = client.put('/api/workspace', headers=session_headers(client), json={'id': 'second'}).json()
-        assert result['assets'] == [] and result['missingFolders'] == ['source', 'destination']
+        assert result['missingFolders'] == ['source', 'destination']
         assert client.put('/api/workspace', headers=session_headers(client), json={'id': 'first'}).json()['missingFolders'] == []
 
 
@@ -134,14 +132,12 @@ def test_switch_refuses_while_operation_in_progress(tmp_path):
     assert path.read_text() == before
 
 
-def test_dashboard_combines_workspaces_without_changing_selection_or_cached_assets(tmp_path):
+def test_dashboard_combines_workspaces_without_changing_the_selection(tmp_path):
     library, path = configured_library(tmp_path)
     for name in ('first', 'second'):
         (tmp_path / name / 'gda' / 'shared.txt').write_text('same')
     (tmp_path / 'first' / 'game' / 'shared.txt').write_text('same')
     (tmp_path / 'second' / 'game' / 'shared.txt').write_text('else')
-    active = library.scan()
-    cached = library._scanned_assets
     config = dict(library.config)
     persisted = path.read_text()
     with TestClient(create_app(library, dev=True), base_url='http://127.0.0.1') as client:
@@ -157,7 +153,6 @@ def test_dashboard_combines_workspaces_without_changing_selection_or_cached_asse
     assert shared[0]['id'] == shared[1]['id']  # Workspace ownership distinguishes matching relative paths.
     assert sum(asset['size'] for asset in dashboard['assets']) == len('firstsecondsamesame')
     assert library.config == config and path.read_text() == persisted
-    assert library._scanned_assets is cached and library._scanned_assets == active['assets']
     assert library.activity == dashboard['activity'] == []
     assert not any(library.reports.status(name)['running'] for name in ('first', 'second'))
 

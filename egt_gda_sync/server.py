@@ -22,7 +22,7 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 from . import APP_ID, __version__
 from .desktop import open_on_desktop, platform_label
 from .errors import AppError
-from .library import Library, safe_path
+from .library import Library
 from .lifetime import PAGE_CLOSE_GRACE_SECONDS, PageLifetime
 from .ports import dev_ui_url
 
@@ -80,7 +80,6 @@ class WorkspaceBody(_Body):
 
 class OpenFolderBody(_Body):
     folder: Literal["source", "destination"]
-    assetId: Text4K | None = None
 
 
 class ResourceFileBody(_Body):
@@ -288,20 +287,19 @@ def create_app(
     def select_workspace(body: WorkspaceBody) -> dict:
         return library.select_workspace(body.id)
 
-    @app.get("/api/assets/{asset_id}/preview")
-    def preview(asset_id: str) -> Response:
-        data, mime = library.preview(library.get_asset(asset_id))
-        return Response(data, media_type=mime, headers={"Content-Security-Policy": PREVIEW_CSP})
-
     @app.post("/api/open-folder")
     def open_folder(body: OpenFolderBody) -> dict:
         library.require_folders(body.folder)
-        target = library.config["source"] if body.folder == "source" else library.config["destination"]
-        if body.assetId:
-            asset = library.get_asset(body.assetId)
-            target = os.path.dirname(safe_path(target, asset["path"]))
-        opener(target)
+        opener(library.config["source"] if body.folder == "source" else library.config["destination"])
         return {"opened": True}
+
+    @app.get("/api/asset-report")
+    def asset_report() -> Response:
+        return Response(library.asset_report(), media_type="application/json")
+
+    @app.post("/api/asset-report")
+    def generate_asset_report() -> dict:
+        return library.generate_asset_report()
 
     @app.get("/{path:path}", include_in_schema=False)
     async def frontend_file(path: str) -> Response:

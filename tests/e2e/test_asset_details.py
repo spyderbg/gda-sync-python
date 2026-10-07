@@ -1,4 +1,4 @@
-"""The asset library lists the files of the game path, and clicking one opens its details in a dialog."""
+"""The asset library shows the newest asset report, and clicking an asset opens its details in a dialog."""
 
 import json
 
@@ -13,50 +13,66 @@ pytestmark = pytest.mark.e2e
 
 @pytest.fixture
 def details_backend(tmp_path, browser):
-    source, destination = tmp_path / 'gda', tmp_path / 'game'
-    (source / 'art').mkdir(parents=True)
-    (destination / 'art').mkdir(parents=True)
-    # The game has its own version of the banner and a sound; the GDA has a texture that the game does not.
-    (source / 'art' / 'banner.dds').write_bytes(create_bc7_dds(16, 8))
-    (source / 'art' / 'gda_only.dds').write_bytes(create_bc7_dds(4, 4))
-    (destination / 'art' / 'banner.dds').write_bytes(create_bc7_dds(8, 4))
-    (destination / 'RssRawData.json').write_text('{"rawFiles": []}')
+    gda, game = tmp_path / 'gda', tmp_path / 'resources' / 'example'
+    gda.mkdir()
+    (game / 'anim').mkdir(parents=True)
+    (game / 'banner.dds').write_bytes(create_bc7_dds(8, 4))
+    for number in range(3):
+        (game / 'anim' / f'spin_{number}.dds').write_bytes(create_bc7_dds(4, 4))
+    (game / 'leftover.png').write_bytes(b'not declared')
+    (game / 'RssImagesData.json').write_text(json.dumps({'images': [
+        {'id': 'BANNER', 'path': 'banner.dds'}, {'id': 'GONE', 'path': 'gone.dds'}]}, indent=2))
+    (game / 'RssImagesSeqData.json').write_text(json.dumps({'imagesSeq': [
+        {'id': 'SPIN', 'frameTime': 40, 'loopCount': 0, 'frames': [{'path': 'anim/spin_{0-2}.dds'}]}]}, indent=2))
     home = tmp_path / 'app'
     home.mkdir()
-    entry = {'id': 'example', 'game_name': 'Example', 'gda_path': str(source), 'game_path': str(destination)}
+    entry = {'id': 'example', 'game_name': 'Example', 'gda_path': str(gda), 'game_path': str(game)}
     (home / 'workspace.json').write_text(json.dumps({'workspaces': [entry], 'defaultWorkspace': 'example'}))
     server = Backend(home)
-    yield server, destination
+    yield server, game
     server.stop()
 
 
-def test_library_lists_the_game_path_and_opens_a_file_in_a_dialog(new_context, details_backend):
-    backend, destination = details_backend
+def test_library_shows_the_generated_asset_report_and_opens_an_asset_in_a_dialog(new_context, details_backend):
+    backend, game = details_backend
     page = new_context().new_page()
     errors = []
     page.on('pageerror', lambda error: errors.append(str(error)))
     page.goto(backend.url)
     page.get_by_role('list', name='Workspaces').get_by_role('button', name='Example', exact=True).click()
     page.get_by_role('button', name='Asset library', exact=True).click()
-    # Only the game's files, without a status, a check box or a sync action.
-    expect(page.locator('.asset-card')).to_have_count(2)
-    expect(page.get_by_role('button', name='Inspect gda_only.dds', exact=True)).to_have_count(0)
-    expect(page.locator('.asset-card .status-badge')).to_have_count(0)
-    expect(page.get_by_role('checkbox')).to_have_count(0)
-    expect(page.locator('.workspace-metric').first).to_contain_text('2')
-    # No details are open until an asset is clicked.
-    expect(page.get_by_role('dialog')).to_have_count(0)
+    expect(page.get_by_role('heading', name='No asset report yet')).to_be_visible()
+    page.get_by_role('button', name='Generate report', exact=True).click()
+    expect(page.get_by_role('status')).to_contain_text('Asset report generated: 4 assets, 1 missing, 0 invalid, 1 supplementary.')
+    # The banner, the missing image, the sequence as one asset, and the file that nothing declares.
+    expect(page.locator('.asset-card')).to_have_count(4)
+    filters = page.get_by_role('group', name='Filter by status')
+    expect(filters.get_by_role('button')).to_have_text(['All 4', 'Available 2', 'Missing 1', 'Invalid 0', 'Supplementary 1'])
+    spin = page.locator('.asset-card').filter(has_text='SPIN')
+    expect(spin).to_contain_text('3 frames · 40 ms · loops forever')
+    expect(spin).to_contain_text('ImageSequence SPIN · RssImagesSeqData.json:9')
+    filters.get_by_role('button', name='Missing 1').click()
+    expect(page.locator('.asset-card')).to_have_count(1)
+    expect(page.locator('.asset-card')).to_contain_text('Image GONE · RssImagesData.json:9')
+    filters.get_by_role('button', name='All 4').click()
+    BUILD.mkdir(exist_ok=True)
+    page.screenshot(path=str(BUILD / 'asset-library-desktop.png'))
 
     page.get_by_role('button', name='Inspect banner.dds', exact=True).click()
     details = page.get_by_role('dialog', name='banner.dds')
-    expect(details.locator('figcaption')).to_have_text(['Game file'])
-    poll(lambda: details.get_by_role('img', name='banner.dds preview', exact=True).evaluate('image => image.naturalWidth'), 8)
+    expect(details.get_by_text('Loaded by the game.')).to_be_visible()
+    expect(details.locator('.details-declaration')).to_have_text(['RssImagesData.json:5ImageBANNER'])
     expect(details.get_by_role('row').filter(has_text='Resolution')).to_have_text('Resolution8 × 4')
-    expect(details.get_by_text(str(destination / 'art' / 'banner.dds'), exact=True)).to_be_visible()
-    expect(details.get_by_role('button', name='Sync this asset')).to_have_count(0)
-    BUILD.mkdir(exist_ok=True)
+    poll(lambda: details.get_by_role('img', name='banner.dds preview', exact=True).evaluate('image => image.naturalWidth'), 8)
+    expect(details.get_by_text(str(game / 'banner.dds'), exact=True)).to_be_visible()
     page.screenshot(path=str(BUILD / 'asset-details-desktop.png'))
     page.keyboard.press('Escape')
     expect(page.get_by_role('dialog')).to_have_count(0)
-    page.screenshot(path=str(BUILD / 'asset-library-desktop.png'))
+
+    # A sequence lists its frames in the dialog.
+    spin.get_by_role('button', name='Show details for spin_{0-2}.dds').click()
+    details = page.get_by_role('dialog', name='spin_{0-2}.dds')
+    expect(details.locator('.details-frames tbody tr')).to_have_count(3)
+    expect(details.get_by_role('row', name='Files 3 of 3 found')).to_be_visible()
+    page.keyboard.press('Escape')
     assert errors == []

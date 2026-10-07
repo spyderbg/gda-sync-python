@@ -42,31 +42,42 @@ def open_library(page):
     expect(page.get_by_role("region", name="Workspace summary")).to_be_visible()
 
 
+def generate_report(page):
+    page.get_by_role("button", name="Generate report", exact=True).click()
+    expect(page.get_by_role("status")).to_contain_text("Asset report generated")
+
+
 def test_renders_an_offline_asset_library_and_searches_and_filters_actual_files(page, backend):
     errors, requests = [], []
     page.on("pageerror", lambda error: errors.append(str(error)))
     page.on("request", lambda request: None if request.url.startswith(backend.url) else requests.append(request.url))
     open_library(page)
-    # The library lists the game folder: the demo game has 13 of the demo's 18 assets.
-    expect(page.locator(".asset-card")).to_have_count(13)
+    # The library shows the newest asset report, and there is none yet.
+    expect(page.get_by_role("heading", name="No asset report yet")).to_be_visible()
+    generate_report(page)
+    # The demo game has no descriptors: its 4 PNG and 2 DDS files are supplementary.
+    expect(page.locator(".asset-card")).to_have_count(6)
     page.evaluate("() => document.fonts.ready")
     expect(page.locator(".asset-card img").first).to_be_visible()
     BUILD.mkdir(exist_ok=True)
     page.screenshot(path=str(BUILD / "preview-desktop.png"), full_page=True)
     page.get_by_role("textbox", name="Search assets").fill("fern")
-    expect(page.locator(".asset-card")).to_have_count(2)
+    expect(page.locator(".asset-card")).to_have_count(1)
     page.get_by_role("button", name="Clear search").click()
     page.get_by_role("textbox", name="Search assets").fill(".dds")
     expect(page.locator(".asset-card")).to_have_count(2)
     page.get_by_role("button", name="Inspect limestone_normal.dds").click()
     details = page.get_by_role("dialog", name="limestone_normal.dds")
-    expect(details.get_by_text("DDS preview supported")).to_be_visible()
+    expect(details.get_by_role("row").filter(has_text="Resolution")).to_have_text("Resolution512 × 512")
     preview = details.get_by_role("img", name="limestone_normal.dds preview", exact=True)
     expect(preview).to_be_visible()
     poll(lambda: natural_size(preview)[0], 512)
     page.keyboard.press("Escape")
     page.get_by_role("button", name="Clear search").click()
-    expect(page.locator(".asset-card")).to_have_count(13)
+    page.get_by_role("group", name="Filter by status").get_by_role("button", name="Available").click()
+    expect(page.get_by_role("heading", name="No assets found")).to_be_visible()
+    page.get_by_role("button", name="Show all assets").click()
+    expect(page.locator(".asset-card")).to_have_count(6)
     assert errors == []
     assert requests == []
 
@@ -91,13 +102,14 @@ def test_dashboard_summarizes_the_workspace_with_the_template_charts(page):
     page.get_by_role("button", name="By files", exact=True).click()
     expect(page.get_by_text("Files per top-level folder, by sync status.")).to_be_visible()
     page.get_by_role("table").get_by_role("cell", name="wooden_crate.obj").click()
-    expect(page.get_by_role("dialog", name="wooden_crate.obj")).to_be_visible()
+    # The asset library opens with a search for the file.
+    expect(page.get_by_role("textbox", name="Search assets")).to_have_value("wooden_crate.obj")
     assert errors == []
 
 
 def test_supports_list_view_previews_keyboard_shortcuts_and_a_mobile_layout(page):
     open_library(page)
-    expect(page.locator(".asset-card")).to_have_count(13)
+    expect(page.locator(".asset-card")).to_have_count(6)
     page.get_by_role("button", name="List view", exact=True).click()
     expect(page.locator(".asset-list")).to_be_visible()
     page.get_by_role("button", name="Inspect oak_bark_albedo.png").click()
@@ -135,12 +147,12 @@ def test_loads_a_dx10_bc7_asset_in_the_catalog_inspector_and_enlarged_preview(pa
     with open(f"{game}/textures/forest/k_active_en.dds", "wb") as handle:
         handle.write(create_bc7_dds(136, 134))
     open_library(page)
+    generate_report(page)
     page.get_by_role("textbox", name="Search assets").fill("k_active_en.dds")
     expect(page.locator(".asset-card")).to_have_count(1)
     page.get_by_role("button", name="Inspect k_active_en.dds").click()
     details = page.get_by_role("dialog", name="k_active_en.dds")
-    expect(details.get_by_text("BC7_UNORM", exact=True).first).to_be_visible()
-    expect(details.get_by_text("DDS preview supported")).to_be_visible()
+    expect(details.get_by_text("BC7_UNORM", exact=True)).to_be_visible()
     image = details.get_by_role("img", name="k_active_en.dds preview", exact=True)
     poll(lambda: natural_size(image), [136, 134])
     expect(image).to_have_css("object-fit", "contain")
@@ -149,8 +161,10 @@ def test_loads_a_dx10_bc7_asset_in_the_catalog_inspector_and_enlarged_preview(pa
     expect(page.locator(".asset-card img")).to_have_css("object-fit", "contain")
 
 
-def test_rescan_recovers_a_failed_dds_thumbnail_without_changing_the_source_file(page, backend):
-    asset = next(asset for asset in backend.get("/api/library")["assets"] if asset["name"] == "k_active_en.dds")
+def test_a_new_report_recovers_a_failed_dds_thumbnail_without_changing_the_file(page, backend):
+    game = backend.get("/api/library")["config"]["destination"]
+    with open(f"{game}/textures/forest/k_active_en.dds", "rb") as handle:
+        original = handle.read()
     failing = {"active": True}
 
     def handle(route):
@@ -159,46 +173,43 @@ def test_rescan_recovers_a_failed_dds_thumbnail_without_changing_the_source_file
         else:
             route.continue_()
 
-    page.route(f"**/api/assets/{asset['id']}/preview?*", handle)
+    page.route("**/api/rss-sync/preview?file=*k_active_en.dds*", handle)
     open_library(page)
     page.get_by_role("textbox", name="Search assets").fill("k_active_en.dds")
-    page.get_by_role("button", name="Inspect k_active_en.dds", exact=True).click()
-    expect(page.get_by_role("dialog").get_by_text("No image preview available", exact=True)).to_be_visible()
-    page.keyboard.press("Escape")
-    expect(page.locator(".asset-card img")).to_have_count(0)
+    card = page.locator(".asset-card")
+    expect(card).to_have_count(1)
+    expect(card.locator(".generic-preview")).to_be_visible()
     failing["active"] = False
-    page.get_by_role("button", name="Rescan", exact=True).click()
-    expect(page.get_by_role("status")).to_contain_text("14 assets found")
-    poll(lambda: natural_size(page.locator(".asset-card img"))[0], 136)
-    page.get_by_role("button", name="Inspect k_active_en.dds", exact=True).click()
-    details = page.get_by_role("dialog", name="k_active_en.dds")
-    poll(lambda: natural_size(details.get_by_role("img", name="k_active_en.dds preview", exact=True))[0], 136)
-    expect(details.get_by_text("No image preview available", exact=True)).not_to_be_visible()
-    rescanned = next(item for item in backend.get("/api/library")["assets"] if item["name"] == "k_active_en.dds")
-    assert rescanned["modifiedAt"] == asset["modifiedAt"]
+    # A new report is a new revision of the previews, so the failed one loads again.
+    generate_report(page)
+    poll(lambda: natural_size(card.locator("img"))[0], 136)
+    with open(f"{game}/textures/forest/k_active_en.dds", "rb") as handle:
+        assert handle.read() == original
 
 
-def test_renews_an_expired_server_session_and_retries_the_rejected_rescan_once(page):
-    calls = {"scans": 0, "sessions": 0}
+def test_renews_an_expired_server_session_and_retries_the_rejected_request_once(page):
+    calls = {"reports": 0, "sessions": 0}
 
     def count_session(route):
         calls["sessions"] += 1
         route.continue_()
 
-    def reject_first_scan(route):
-        calls["scans"] += 1
-        if calls["scans"] == 1:
+    def reject_first_report(route):
+        if route.request.method != "POST":
+            return route.continue_()
+        calls["reports"] += 1
+        if calls["reports"] == 1:
             route.fulfill(status=403, content_type="application/json", body='{"error":"Invalid session. Reload the application."}')
         else:
             route.continue_()
 
     page.route("**/api/session", count_session)
-    page.route("**/api/scan", reject_first_scan)
+    page.route("**/api/asset-report", reject_first_report)
     open_library(page)
-    expect(page.locator(".asset-card")).to_have_count(14)
-    page.get_by_role("button", name="Rescan", exact=True).click()
-    expect(page.get_by_role("status")).to_contain_text("14 assets found")
-    assert calls["scans"] == 2
+    expect(page.locator(".asset-card")).to_have_count(7)
+    generate_report(page)
+    expect(page.get_by_role("status")).to_contain_text("Asset report generated: 7 assets")
+    assert calls["reports"] == 2
     assert calls["sessions"] > 1
 
 

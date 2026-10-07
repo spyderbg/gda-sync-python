@@ -263,7 +263,11 @@ See [PyInstaller's Linux compatibility guidance](https://pyinstaller.org/en/stab
    executable means starting the executable again; `multiprocessing.freeze_support()`
    in the launcher makes that copy run the comparison instead of the app. Each
    run saves a report in the data directory's `sync-reports/`.
-6. **Keep running while a page is open.** Each app page holds an event-stream
+6. **Report the game's assets.** **Generate report** in the Asset library reads
+   the active workspace's descriptors and game files, without the GDA folder,
+   and saves an asset report in the data directory's `asset-reports/`; the
+   library shows the newest one.
+7. **Keep running while a page is open.** Each app page holds an event-stream
    connection. Closing the last page schedules shutdown after a two-second
    grace period. Refreshing or another connected app page keeps the backend
    alive. Active file operations finish before shutdown completes.
@@ -283,7 +287,7 @@ Persistent data defaults to:
 - Linux: `${XDG_DATA_HOME:-~/.local/share}/egt-gda-sync/`
 - Windows: `%LOCALAPPDATA%\EGT GDA Sync\`
 
-These directories hold `activity.json`, `backups/`, `sync-reports/`, and any
+These directories hold `activity.json`, `backups/`, `sync-reports/`, `asset-reports/`, and any
 generated `demo/` files. `EGT_GDA_SYNC_HOME` overrides the data directory. For
 packaged executables, it does not move the active configuration away from beside
 the executable.

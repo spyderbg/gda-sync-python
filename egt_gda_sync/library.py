@@ -26,10 +26,11 @@ from typing import TypeVar
 from .dds import SUPPORTED_DDS_FORMATS, decode_dds, read_dds_info
 from .demo import seed_demo
 from .errors import AppError, error_message
+from .asset_report import AssetReports, inventory
 from .png import PNG_SIGNATURE
 from .rss_edit import remove_declarations
 from .rss_jobs import SyncJobs
-from .rss_sync import DEFAULT_EXTENSIONS, declared_files
+from .rss_sync import DEFAULT_EXTENSIONS, Config, declared_files
 
 MAX_ASSETS = 10_000
 MAX_PREVIEW_BYTES = 64 * 1024 * 1024
@@ -131,6 +132,37 @@ def image_dimensions(file: str, extension: str) -> dict | None:
     return None
 
 
+def file_facts(file: str, extension: str) -> dict:
+    """A file's size, time and image dimensions, and whether the browser can preview it."""
+    info = os.stat(file)
+    facts: dict = {"size": info.st_size, "modifiedAt": iso_time(info.st_mtime_ns), "preview": extension in IMAGE_PREVIEWS}
+    try:
+        dimensions = image_dimensions(file, extension)
+    except ValueError as error:
+        facts["preview"] = False
+        facts["previewError"] = str(error)
+    else:
+        if dimensions:
+            facts["dimensions"] = dimensions
+        if dimensions and extension == "dds":
+            facts["preview"] = dimensions["format"] in SUPPORTED_DDS_FORMATS
+            if not facts["preview"]:
+                facts["previewError"] = f"Preview unavailable for {dimensions['format']}. The original file is unchanged."
+    return facts
+
+
+def asset_facts(path: Path, readable: bool) -> dict:
+    """The facts of a file of the asset report: its type, and, when it is a readable file, its size, time and image facts."""
+    extension = path.suffix[1:].lower()
+    facts = {"type": type_for(extension)}
+    if readable:
+        try:
+            facts.update(file_facts(str(path), extension))
+        except OSError:
+            pass
+    return facts
+
+
 def _copy_exclusive(source: str, target: str) -> None:
     """Copy file bytes into a new file; fails if target already exists."""
     with open(source, "rb") as reader, open(target, "xb") as writer:
@@ -214,8 +246,8 @@ class Library:
         self._operation = threading.Lock()
         self._previews: OrderedDict[str, bytes] = OrderedDict()
         self._previews_lock = threading.Lock()
-        self._scanned_assets: list[dict] | None = None
         self.reports = SyncJobs(os.path.join(self.home, "sync-reports"))
+        self.asset_reports = AssetReports(os.path.join(self.home, "asset-reports"))
 
     @property
     def busy(self) -> bool:
@@ -382,34 +414,24 @@ class Library:
             pass
 
     def scan(self) -> dict:
-        """The asset library: the files of the selected workspace's game folder, with the workspace's settings,
-        activity and GDA sync status."""
+        """The selected workspace: its settings and folders, the activity, and the status of its GDA sync and of its
+        asset report, which the asset library shows."""
         config = dict(self.config)
-        scanned = self._scan_game(config)
-        self._scanned_assets = scanned["assets"]
         return {
-            **scanned, "config": config, "activity": self.activity, "scannedAt": iso_time(),
-            "backupPath": self.backup_path, "rssSync": self.rss_status(),
+            "config": config, "activity": self.activity, "scannedAt": iso_time(), "backupPath": self.backup_path,
+            "missingFolders": self.missing_folders(), "rssSync": self.rss_status(),
+            "assetReport": self.asset_reports.status(self._active_workspace()[0]),
         }
 
     def _scan_workspace(self, config: dict) -> dict:
-        """The GDA folder's files of one workspace, each with its status against the game file at the same relative
-        path, for the dashboard and the copy by relative path. It leaves the selected workspace and its preview cache
-        as they are."""
-        return self._walk(config, "source", lambda folder, relative, name: self._describe(config, folder, relative, name))
-
-    def _scan_game(self, config: dict) -> dict:
-        """The game folder's files of one workspace, which the asset library browses, without comparing them."""
-        return self._walk(config, "destination", lambda folder, relative, name: self._facts(config, "destination", folder, relative, name))
-
-    def _walk(self, config: dict, key: str, describe: Callable[[str, str, str], dict]) -> dict:
-        """Describe each file of a workspace folder, "source" or "destination", newest first, skipping hidden files and
-        links; a file that cannot be described is a warning."""
+        """The GDA folder's files of one workspace, newest first, each with its status against the game file at the
+        same relative path, for the dashboard and the copy by relative path. Hidden files and links are skipped, and a
+        file that cannot be described is a warning."""
         assets: list[dict] = []
         warnings: list[str] = []
 
         def walk(folder: str) -> None:
-            with os.scandir(os.path.join(config[key], folder)) as iterator:
+            with os.scandir(os.path.join(config["source"], folder)) as iterator:
                 entries = sorted(iterator, key=lambda entry: entry.name)
             for entry in entries:
                 if _is_hidden(entry):
@@ -429,12 +451,12 @@ class Library:
                 if len(assets) >= MAX_ASSETS:
                     raise AppError("This demo supports up to 10,000 files per workspace")
                 try:
-                    assets.append(describe(folder, relative, entry.name))
+                    assets.append(self._describe(config, folder, relative, entry.name))
                 except Exception as error:
                     warnings.append(f"{relative}: {error_message(error)}")
 
-        missing = [name for name in FOLDER_NAMES if not os.path.isdir(config[name])]
-        if key not in missing:
+        missing = [key for key in FOLDER_NAMES if not os.path.isdir(config[key])]
+        if "source" not in missing:
             walk("")
         # Give the demo an intentional order; real workspaces are sorted by recent changes.
         assets.sort(key=lambda asset: asset["modifiedAt"], reverse=True)
@@ -518,39 +540,12 @@ class Library:
     def close(self) -> None:
         self.reports.stop_all()
 
-    def _facts(self, config: dict, key: str, folder: str, relative: str, name: str) -> dict:
-        """What a file of the workspace's GDA ("source") or game ("destination") folder is: its type, size, time, image
-        dimensions, and whether the browser can preview it."""
-        file = safe_path(config[key], relative)
-        info = os.stat(file)
-        extension = os.path.splitext(relative)[1][1:].lower()
-        asset: dict = {
-            "id": asset_id(relative), "name": name, "path": _portable(relative), "folder": _portable(folder) or "Root",
-            "extension": extension, "type": type_for(extension), "size": info.st_size,
-            "modifiedAt": iso_time(info.st_mtime_ns), "preview": extension in IMAGE_PREVIEWS,
-        }
-        try:
-            dimensions = image_dimensions(file, extension)
-        except ValueError as error:
-            asset["preview"] = False
-            asset["previewError"] = str(error)
-        else:
-            if dimensions:
-                asset["dimensions"] = dimensions
-            if dimensions and extension == "dds":
-                asset["preview"] = dimensions["format"] in SUPPORTED_DDS_FORMATS
-                if not asset["preview"]:
-                    asset["previewError"] = f"Preview unavailable for {dimensions['format']}. The original file is unchanged."
-        # The demo's models have illustrations in its GDA folder, by asset id.
-        model_preview = os.path.join(config["source"], ".previews", asset["id"] + ".svg")
-        if config["demo"] and asset["type"] == "model" and os.path.isfile(model_preview):
-            asset["preview"] = True
-        return asset
-
     def _describe(self, config: dict, folder: str, relative: str, name: str) -> dict:
         """A GDA file with its status against the game file at the same relative path: new, modified or synced."""
-        asset = self._facts(config, "source", folder, relative, name)
         file, target = safe_path(config["source"], relative), safe_path(config["destination"], relative)
+        extension = os.path.splitext(relative)[1][1:].lower()
+        asset = {"id": asset_id(relative), "name": name, "path": _portable(relative), "folder": _portable(folder) or "Root",
+                 "extension": extension, "type": type_for(extension), **file_facts(file, extension)}
         status = "new"
         try:
             destination = os.stat(target)
@@ -565,13 +560,39 @@ class Library:
 
     def rescan(self) -> dict:
         def operation() -> dict:
-            result = self.scan()
-            self._record("scan", f"Scanned {len(result['assets'])} assets")
-            # The GDA sync compares thousands of files, so it runs in its own process after the scan.
+            self._record("scan", "Started a GDA sync")
+            # The GDA sync compares thousands of files, so it runs in its own process.
             self.start_comparison()
-            return {**result, "activity": self.activity, "rssSync": self.rss_status()}
+            return self.scan()
 
         return self._exclusive(operation)
+
+    def generate_asset_report(self) -> dict:
+        """Write a new asset report of the selected workspace's game, which the asset library then shows."""
+        def operation() -> dict:
+            self.require_folders("destination")
+            workspace_id, entry = self._active_workspace()
+            workspace, settings = self._comparison(workspace_id, entry)
+            started = iso_time()
+            try:
+                config = Config(resources_dir=Path(settings["resources_dir"]).resolve(), gda_dir=Path(settings["gda_dir"]),
+                                extensions=frozenset(extension.lower() for extension in settings["extensions"]),
+                                game=settings["game"], resource_paths=tuple(settings["resource_paths"]))
+                result = inventory(config, asset_facts)
+            except (OSError, ValueError, TypeError, AttributeError) as error:
+                raise AppError(f"The asset report could not be generated: {error_message(error)}") from error
+            self.asset_reports.save(workspace_id, workspace, started, result)
+            count = result["summary"]["assets"]
+            self._record("report", f"Generated an asset report of {count} asset{'' if count == 1 else 's'}")
+            return self.scan()
+
+        return self._exclusive(operation)
+
+    def asset_report(self) -> bytes:
+        report = self.asset_reports.report(self._active_workspace()[0])
+        if report is None:
+            raise AppError("This workspace has no asset report yet. Click Generate report to create one.", 404)
+        return report
 
     def update_config(self, name: str, source: str, destination: str) -> dict:
         def operation() -> dict:
@@ -591,7 +612,6 @@ class Library:
                 raise
             with self._previews_lock:
                 self._previews.clear()
-            self._scanned_assets = None
             self._record("settings", f"Connected {self.config['name']} workspace")
             return self.scan()
 
@@ -613,7 +633,6 @@ class Library:
                 raise
             with self._previews_lock:
                 self._previews.clear()
-            self._scanned_assets = None
             return self.scan()
 
         return self._exclusive(operation)
@@ -824,22 +843,6 @@ class Library:
             except Exception as error:
                 failures.append({"name": os.path.basename(row["resource"]), "message": error_message(error)})
         return {"files": deleted, "resources": count}
-
-    def get_asset(self, asset_id: str) -> dict:
-        assets = self._scanned_assets if self._scanned_assets is not None else self.scan()["assets"]
-        for asset in assets:
-            if asset["id"] == asset_id:
-                return asset
-        raise AppError("Asset not found", 404)
-
-    def preview(self, asset: dict) -> tuple[bytes, str]:
-        if not asset["preview"]:
-            raise AppError(asset.get("previewError") or "No image preview for this asset", 415)
-        config = self.config
-        if asset["type"] == "model" and config["demo"]:
-            with open(os.path.join(config["source"], ".previews", asset["id"] + ".svg"), "rb") as handle:
-                return handle.read(), "image/svg+xml"
-        return self._media(safe_path(config["destination"], asset["path"]), asset["extension"])
 
     def _resource_path(self, file: str) -> str:
         """Resolve a report file inside the active workspace's game, GDA or common GDA folders."""

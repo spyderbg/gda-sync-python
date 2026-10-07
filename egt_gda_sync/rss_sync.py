@@ -22,7 +22,7 @@ from dataclasses import asdict, dataclass, fields, is_dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-from .rss_schemas import DOCUMENT_TYPES, ImageSequence, parse_dataclass
+from .rss_schemas import DOCUMENT_TYPES, Frame, ImageSequence, parse_dataclass
 
 RANGE_PATTERN = re.compile(r"\{(\d+)-(\d+)\}")
 JSON_STRING_PATTERN = re.compile(r'"(?:\\.|[^"\\])*"')
@@ -103,8 +103,8 @@ def make_config(settings: dict) -> Config:
     return config
 
 
-def load_documents(game_dir: Path) -> dict[Path, Any]:
-    """Load every local *Data.json and any descriptor named by an include."""
+def load_documents(game_dir: Path, required: bool = True) -> dict[Path, Any]:
+    """Load every local *Data.json and any descriptor named by an include; a game without any is an error if required."""
     documents: dict[Path, Any] = {}
 
     def load(path: Path) -> None:
@@ -123,13 +123,14 @@ def load_documents(game_dir: Path) -> dict[Path, Any]:
 
     for descriptor in sorted(game_dir.rglob("*Data.json")):
         load(descriptor)
-    if not documents:
+    if required and not documents:
         raise ValueError(f"no *Data.json descriptors found in {game_dir}")
     return documents
 
 
-def declared_paths(value: Any, sequence: ImageSequence | None = None) -> Iterator[tuple[str, ImageSequence | None]]:
-    """Walk typed entries, with the image sequence a path is a frame of; include is a descriptor reference, not an asset."""
+def declared_paths(value: Any, sequence: ImageSequence | None = None) -> Iterator[tuple[str, ImageSequence | None, Any]]:
+    """Walk typed entries, with the image sequence a path is a frame of and the entry that declares it: the one with the
+    path, or the audio event of a sample. include is a descriptor reference, not an asset."""
     if not is_dataclass(value):
         return
     if isinstance(value, ImageSequence):
@@ -137,10 +138,10 @@ def declared_paths(value: Any, sequence: ImageSequence | None = None) -> Iterato
     for item in fields(value):
         field_value = getattr(value, item.name)
         if item.name == "path":
-            yield field_value, sequence
+            yield field_value, sequence, value
         elif item.name == "samples":
             for sample in field_value:
-                yield sample, sequence
+                yield sample, sequence, value
         elif item.name != "include" and isinstance(field_value, list):
             for child in field_value:
                 yield from declared_paths(child, sequence)
@@ -149,8 +150,14 @@ def declared_paths(value: Any, sequence: ImageSequence | None = None) -> Iterato
 def declared_path_lines(path: Path, document: Any) -> Iterator[tuple[str, int, ImageSequence | None]]:
     """Find the JSON string token for each typed path or sample declaration, in the order of the typed entries, with
     the image sequence it is a frame of. A value declared more than once takes its lines in order."""
+    for value, line, sequence, _entry in declared_entries(path, document):
+        yield value, line, sequence
+
+
+def declared_entries(path: Path, document: Any) -> Iterator[tuple[str, int, ImageSequence | None, Any]]:
+    """declared_path_lines, with the entry that declares each path."""
     declarations = list(declared_paths(document))
-    expected = Counter(value for value, _sequence in declarations)
+    expected = Counter(value for value, _sequence, _entry in declarations)
     if not expected:
         return
     raw = path.read_text(encoding="utf-8")
@@ -167,8 +174,8 @@ def declared_path_lines(path: Path, document: Any) -> Iterator[tuple[str, int, I
         if len(found[value]) != count:
             raise ValueError(f"{path}: cannot locate the exact JSON line for {value!r}")
     lines = {value: iter(value_lines) for value, value_lines in found.items()}
-    for value, sequence in declarations:
-        yield value, next(lines[value]), sequence
+    for value, sequence, entry in declarations:
+        yield value, next(lines[value]), sequence, entry
 
 
 def expand_path(path: str) -> Iterator[str]:
@@ -188,7 +195,7 @@ def expand_path(path: str) -> Iterator[str]:
 def declared_files(game_dir: Path, resource_paths: tuple[str, ...] = ()) -> set[Path]:
     """Every file that the game's descriptors, image sequence frames included, or resource_paths declare, resolved: the
     files that are not supplementary."""
-    templates = [*resource_paths, *(value for document in load_documents(game_dir).values() for value, _sequence in declared_paths(document))]
+    templates = [*resource_paths, *(value for document in load_documents(game_dir).values() for value, _sequence, _entry in declared_paths(document))]
     return {(game_dir / relative).resolve() for template in templates for relative in expand_path(template)}
 
 
@@ -280,50 +287,80 @@ def guess_sequences(files: list[Path]) -> tuple[list[list[Path]], list[Path]]:
     return sequences, sorted(single)
 
 
+def row_id(text: str) -> str:
+    """A report row's id: a short hash of what identifies it, such as its resource path."""
+    return hashlib.sha256(text.encode("utf-8", "surrogateescape")).hexdigest()[:16]
+
+
 def status_category(status: str) -> str:
     """The leading status word: identical, different, invalid, missing or supplementary."""
     return status.partition(" ")[0].removesuffix(":")
 
 
-def compare(config: Config, progress: Progress | None = None) -> dict:
-    """Classify every resource of the game; return the parsed descriptors, the summary, the differences and the identical files."""
-    report = progress or (lambda _phase, _done, _total: None)
+@dataclass
+class Declarations:
+    """What a game's descriptors declare, as the GDA sync and the asset report read them."""
+    game_dir: Path
+    # Every *Data.json parsed, with its declarations before and after {N-M} ranges are expanded.
+    descriptors: list[dict]
+    # The declared paths outside image sequences, and the workspace's resource_paths.
+    templates: set[str]
+    # Each file that an entry outside an image sequence declares, with the descriptor, the line, the entry's type and
+    # its id, if it has one, of each declaration.
+    uses: dict[Path, set[tuple[str, int, str, str | None]]]
+    # Each image sequence with its descriptor, the lines of its frames, and its frames in order, each frame of a {N-M}
+    # range once per file.
+    sequences: list[tuple[str, ImageSequence, list[int], list[tuple[Frame, Path]]]]
+    # The game files with a compared extension that nothing declares, outside the guessed image sequences.
+    supplementary: list[Path]
+    # Supplementary numbered images guessed to be image sequences, each in frame order.
+    guessed: list[list[Path]]
+
+
+def gather(config: Config, required: bool = True) -> Declarations:
+    """Read what the game's descriptors declare; a game without descriptors is an error if required."""
     game_dir = config.resources_dir / config.game
-    report("descriptors", 0, 0)
-    documents = load_documents(game_dir)
-    declared = set(config.resource_paths)
-    source_documents: dict[Path, set[tuple[str, int]]] = defaultdict(set)
+    documents = load_documents(game_dir, required)
+    templates = set(config.resource_paths)
+    uses: dict[Path, set[tuple[str, int, str, str | None]]] = defaultdict(set)
     # Each image sequence, by object, with the descriptor and the line of each of its frames.
     sequences: dict[int, tuple[str, ImageSequence, list[int]]] = {}
     descriptors: list[dict] = []
     for document_path, document in documents.items():
         document_name = os.path.relpath(document_path, game_dir)
         declarations = resources = 0
-        for template, line, sequence in declared_path_lines(document_path, document):
+        for template, line, sequence, entry in declared_entries(document_path, document):
             declarations += 1
             relatives = list(expand_path(template))
             resources += len(relatives)
             if sequence is not None:
                 sequences.setdefault(id(sequence), (document_name, sequence, []))[2].append(line)
                 continue
-            declared.add(template)
+            templates.add(template)
             for relative in relatives:
-                source_documents[(game_dir / relative).resolve()].add((document_name, line))
+                uses[(game_dir / relative).resolve()].add((document_name, line, type(entry).__name__, getattr(entry, "id", None)))
         descriptors.append({"name": document_name, "path": str(document_path), "type": type(document).__name__,
                             "declarations": declarations, "resources": resources})
     descriptors.sort(key=lambda item: item["name"])
-    # A sequence's frames in order, each frame of a {N-M} range once per file.
     sequence_frames = [(document_name, sequence, lines, [(frame, (game_dir / relative).resolve())
                                                          for frame in sequence.frames for relative in expand_path(frame.path)])
                        for document_name, sequence, lines in sequences.values()]
     frame_files = {source for *_, frames in sequence_frames for _, source in frames}
-    # The game files that nothing declares are supplementary: the game does not load them, so they are listed but not
-    # compared. Files with an extension that is not compared are left out. Descriptor paths additionally bring in
-    # shared assets outside the game folder.
-    declared_files = frame_files | {(game_dir / relative).resolve() for template in declared for relative in expand_path(template)}
+    # The game files that nothing declares are supplementary: the game does not load them. Files with an extension that
+    # is not compared are left out. Descriptor paths additionally bring in shared assets outside the game folder.
+    declared_files = frame_files | {(game_dir / relative).resolve() for template in templates for relative in expand_path(template)}
     supplementary = sorted({path.resolve() for path in game_dir.rglob("*") if path.is_file() and path.suffix.lower() in config.extensions}
                            - declared_files)
-    guessed_sequences, supplementary_files = guess_sequences(supplementary)
+    guessed, single = guess_sequences(supplementary)
+    return Declarations(game_dir, descriptors, templates, uses, sequence_frames, single, guessed)
+
+
+def compare(config: Config, progress: Progress | None = None) -> dict:
+    """Classify every resource of the game; return the parsed descriptors, the summary, the differences and the identical files."""
+    report = progress or (lambda _phase, _done, _total: None)
+    report("descriptors", 0, 0)
+    found = gather(config)
+    game_dir = found.game_dir
 
     # Shared assets live in their own GDA tree, but some are also kept in the game's tree, so they are searched in
     # both. Without common_gda_dir only gda_dir is used.
@@ -388,13 +425,11 @@ def compare(config: Config, progress: Progress | None = None) -> dict:
     def scope(source: Path) -> str:
         return "common" if source.is_relative_to(common_dir) else "game" if source.is_relative_to(game_dir) else "outside"
 
-    def row_id(text: str) -> str:
-        return hashlib.sha256(text.encode("utf-8", "surrogateescape")).hexdigest()[:16]
-
     def file_row(source: Path, result: dict) -> dict:
         entry = file_entry(source, result)
+        uses = sorted({(name, line) for name, line, _type, _id in found.uses.get(source, ())})
         return {"id": row_id(entry["resource"]), **entry, "scope": scope(source),
-                "requiredBy": [{"descriptor": name, "line": line} for name, line in sorted(source_documents.get(source, ()))]}
+                "requiredBy": [{"descriptor": name, "line": line} for name, line in uses]}
 
     def sequence_row(document_name: str, sequence: ImageSequence, lines: list[int], frames: list[tuple[Any, Path]]) -> dict | None:
         """One row for a sequence, with each of its frames; None when none of its files is compared."""
@@ -434,11 +469,11 @@ def compare(config: Config, progress: Progress | None = None) -> dict:
                          "loopTo": None, "paths": [display], "frames": [file_entry(source, SUPPLEMENTARY) for source in files]},
         }
 
-    rows: list[dict] = [file_row(source, SUPPLEMENTARY) for source in supplementary_files]
-    rows.extend(guessed_sequence_row(files) for files in guessed_sequences)
+    rows: list[dict] = [file_row(source, SUPPLEMENTARY) for source in found.supplementary]
+    rows.extend(guessed_sequence_row(files) for files in found.guessed)
     seen: set[Path] = set()
-    relatives = [relative for template in sorted(declared) for relative in expand_path(template)]
-    total = len(relatives) + sum(len(frames) for *_, frames in sequence_frames)
+    relatives = [relative for template in sorted(found.templates) for relative in expand_path(template)]
+    total = len(relatives) + sum(len(frames) for *_, frames in found.sequences)
     report("compare", 0, total)
     for done, relative in enumerate(relatives, 1):
         report("compare", done, total)
@@ -450,7 +485,7 @@ def compare(config: Config, progress: Progress | None = None) -> dict:
         if result is not None:
             rows.append(file_row(source, result))
     done = len(relatives)
-    for document_name, sequence, lines, frames in sequence_frames:
+    for document_name, sequence, lines, frames in found.sequences:
         for _frame, source in frames:
             check(source)
             done += 1
@@ -465,7 +500,7 @@ def compare(config: Config, progress: Progress | None = None) -> dict:
     # The settings are not repeated here: a saved report keeps them once, in its "workspace".
     return {
         # Every *Data.json parsed, with its declared resource paths before and after {N-M} ranges are expanded.
-        "descriptors": descriptors,
+        "descriptors": found.descriptors,
         "summary": {
             "compared": len(identical) + counts["missing"] + counts["different"], "identical": len(identical),
             "identicalMipOnly": sum(1 for row in identical if row["mipOnly"]),

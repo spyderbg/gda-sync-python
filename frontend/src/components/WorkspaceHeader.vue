@@ -1,16 +1,15 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { ago, number, plural, size, time } from '../format';
-import { assets, busy, config, copy, data, navigate, openFolder, rescan, rssSync, totalSize, ui } from '../workspace';
+import { number, size, time } from '../format';
+import type { AssetCategory } from '../types';
+import { assetReport, busy, config, copy, generateAssetReport, openFolder } from '../workspace';
 
-// The asset library browses the game folder: how many files it has, their size and formats, and the newest change.
-const formats = computed(() => {
-  const counts = new Map<string, number>();
-  for (const { extension } of assets.value) counts.set(extension, (counts.get(extension) ?? 0) + 1);
-  return [...counts].sort((a, b) => b[1] - a[1]).map(([extension]) => extension.toUpperCase() || 'No extension');
-});
-// The backend lists the newest files first.
-const newest = computed(() => assets.value[0] ?? null);
+// The asset library's header: the newest asset report with Rescan, the counts of its assets by status, which
+// filter the library when clicked, and the game path.
+defineProps<{ filter: 'all' | AssetCategory }>();
+const emit = defineEmits<{ 'update:filter': ['all' | AssetCategory] }>();
+const summary = computed(() => assetReport.value?.summary ?? null);
+const problems = computed(() => (summary.value ? summary.value.missing + summary.value.invalid : 0));
 </script>
 
 <template>
@@ -18,32 +17,30 @@ const newest = computed(() => assets.value[0] ?? null);
     <div class="workspace-header-top">
       <div class="workspace-header-intro">
         <p class="workspace-subtitle">
-          <span>Sync data:</span>
-          <span class="workspace-sync-data-path">{{ rssSync?.reportPath || 'Unavailable' }}</span>
-          <button v-if="rssSync?.reportPath" type="button" class="workspace-sync-data-copy" aria-label="Copy sync report path" title="Copy sync report path" @click="copy(rssSync.reportPath)"><i aria-hidden="true" class="mdi mdi-content-copy" /></button>
+          <span>Asset report:</span>
+          <span class="workspace-sync-data-path">{{ assetReport?.reportPath || 'None yet' }}</span>
+          <button v-if="assetReport?.reportPath" type="button" class="workspace-sync-data-copy" aria-label="Copy asset report path" title="Copy asset report path" @click="copy(assetReport.reportPath)"><i aria-hidden="true" class="mdi mdi-content-copy" /></button>
         </p>
       </div>
       <div class="workspace-header-actions">
-        <button type="button" class="btn btn-outline-primary" :disabled="!!busy" @click="rescan">
-          <i aria-hidden="true" :class="['mdi', busy === 'scan' ? 'mdi-loading mdi-spin' : 'mdi-refresh']" /><span>{{ busy === 'scan' ? 'Scanning…' : 'Rescan' }}</span>
+        <button type="button" class="btn btn-outline-primary" :disabled="!!busy" @click="generateAssetReport">
+          <i aria-hidden="true" :class="['mdi', busy === 'report' ? 'mdi-loading mdi-spin' : 'mdi-file-document-outline']" /><span>{{ busy === 'report' ? 'Generating…' : 'Rescan' }}</span>
         </button>
       </div>
     </div>
 
-    <div class="workspace-metrics">
-      <button type="button" class="workspace-metric" @click="navigate('library')">
+    <div v-if="summary" class="workspace-metrics">
+      <button type="button" :class="['workspace-metric', { active: filter === 'all' }]" @click="emit('update:filter', 'all')">
         <span class="workspace-metric-icon total" aria-hidden="true"><i class="mdi mdi-layers-outline" /></span>
-        <span class="workspace-metric-copy"><span class="workspace-metric-label">Total assets</span><span class="workspace-metric-value">{{ number(assets.length) }}<small>in the game path</small></span></span>
-        <i class="mdi mdi-arrow-top-right workspace-metric-arrow" aria-hidden="true" />
+        <span class="workspace-metric-copy"><span class="workspace-metric-label">Total assets</span><span class="workspace-metric-value">{{ number(summary.assets) }}<small>{{ number(summary.available) }} available · {{ size(summary.size) }}</small></span></span>
       </button>
-      <div class="workspace-metric is-static">
-        <span class="workspace-metric-icon size" aria-hidden="true"><i class="mdi mdi-harddisk" /></span>
-        <span class="workspace-metric-copy"><span class="workspace-metric-label">Total size</span><span class="workspace-metric-value">{{ size(totalSize) }}<small :title="formats.join(', ')">{{ number(formats.length) }} format{{ plural(formats.length) }}<template v-if="formats.length"> · {{ formats.slice(0, 3).join(' · ') }}</template></small></span></span>
-      </div>
-      <button type="button" class="workspace-metric" :disabled="!newest" @click="newest && (ui.inspecting = newest.id)">
-        <span class="workspace-metric-icon recent" aria-hidden="true"><i class="mdi mdi-clock-outline" /></span>
-        <span class="workspace-metric-copy"><span class="workspace-metric-label">Last changed</span><span class="workspace-metric-value">{{ newest ? ago(newest.modifiedAt) : '—' }}<small v-if="newest" :title="newest.path">{{ newest.name }}</small></span></span>
-        <i v-if="newest" class="mdi mdi-arrow-top-right workspace-metric-arrow" aria-hidden="true" />
+      <button type="button" :class="['workspace-metric', { active: filter === 'missing' || filter === 'invalid' }]" @click="emit('update:filter', summary.missing || !summary.invalid ? 'missing' : 'invalid')">
+        <span class="workspace-metric-icon problems" aria-hidden="true"><i class="mdi mdi-file-alert-outline" /></span>
+        <span class="workspace-metric-copy"><span class="workspace-metric-label">Cannot be loaded</span><span class="workspace-metric-value">{{ number(problems) }}<small>{{ number(summary.missing) }} missing · {{ number(summary.invalid) }} invalid</small></span></span>
+      </button>
+      <button type="button" :class="['workspace-metric', { active: filter === 'supplementary' }]" @click="emit('update:filter', 'supplementary')">
+        <span class="workspace-metric-icon supplementary" aria-hidden="true"><i class="mdi mdi-file-question-outline" /></span>
+        <span class="workspace-metric-copy"><span class="workspace-metric-label">Supplementary</span><span class="workspace-metric-value">{{ number(summary.supplementary) }}<small>in the game, in no descriptor</small></span></span>
       </button>
     </div>
 
@@ -55,7 +52,7 @@ const newest = computed(() => assets.value[0] ?? null);
         <i class="mdi mdi-open-in-new workspace-folder-open" aria-hidden="true" />
       </button>
     </div>
-    <p class="workspace-last-scan">Last scanned {{ time(data!.scannedAt) }}</p>
+    <p v-if="summary" class="workspace-last-scan">Generated {{ time(summary.finishedAt) }}</p>
   </section>
 </template>
 
@@ -72,20 +69,18 @@ const newest = computed(() => assets.value[0] ?? null);
 .workspace-header-actions .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; border-radius: 7px; white-space: nowrap; }
 .workspace-header-actions .btn i.mdi { display: inline-flex; flex-shrink: 0; margin: 0; font-size: 16px; line-height: 1; }
 .workspace-header-actions .btn-outline-primary { background: #fff; border-color: #dce2dc; color: #5d7063; }
-.workspace-header-actions .btn-outline-primary:hover { background: #f1f5f1; }
+.workspace-header-actions .btn-outline-primary:hover:not(:disabled) { background: #f1f5f1; }
 .workspace-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-bottom: 20px; }
 .workspace-metric { display: flex; position: relative; align-items: center; gap: 14px; min-width: 0; padding: 20px 18px; border: 1px solid #e0e5de; border-radius: 9px; background: #fff; color: #29383b; text-align: left; font-family: inherit; cursor: pointer; transition: border-color 0.15s; }
-.workspace-metric:hover:not(:disabled):not(.is-static) { border-color: #aebcac; }
-.workspace-metric.is-static, .workspace-metric:disabled { cursor: default; }
+.workspace-metric:hover, .workspace-metric.active { border-color: #aebcac; }
 .workspace-metric-icon { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 42px; height: 44px; border-radius: 10px; font-size: 24px; }
 .workspace-metric-icon.total { color: #828d70; background: #f0f2eb; }
-.workspace-metric-icon.size { color: #5b86b8; background: #e9f1fa; }
-.workspace-metric-icon.recent { color: #80a263; background: #edf4e6; }
+.workspace-metric-icon.problems { color: #cc8a43; background: #fdf1e5; }
+.workspace-metric-icon.supplementary { color: #8862e0; background: #f1ebfc; }
 .workspace-metric-copy { display: block; min-width: 0; }
 .workspace-metric-label { display: block; margin-bottom: 6px; color: #8a968d; font-size: 11px; }
 .workspace-metric-value { display: flex; align-items: baseline; flex-wrap: wrap; column-gap: 9px; row-gap: 2px; font-size: 28px; font-weight: 500; line-height: 1.15; letter-spacing: -0.7px; }
 .workspace-metric-value small { font-size: 10px; font-weight: 400; color: #97a098; letter-spacing: 0; line-height: 1.4; }
-.workspace-metric-arrow { position: absolute; right: 14px; top: 14px; color: #a5b199; font-size: 17px; }
 .workspace-folder-strip { position: relative; display: grid; gap: 16px; padding: 12px 16px; background: #f0f3ed; border: 1px solid #e0e5de; border-radius: 8px; }
 .workspace-folder { display: grid; grid-template-columns: 34px 90px minmax(0, 1fr) 18px; align-items: center; gap: 12px; min-width: 0; padding: 0; background: transparent; border: 0; color: #7e896f; text-align: left; cursor: pointer; }
 .workspace-folder-icon { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: 34px; height: 34px; border: 1px solid #dee5d5; border-radius: 7px; font-size: 21px; background: #e9eee1; }

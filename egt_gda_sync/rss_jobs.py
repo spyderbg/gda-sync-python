@@ -74,13 +74,14 @@ def _epoch(date_stamp: str) -> int:
     return int(datetime.strptime(date_stamp, DATE_STAMP).replace(tzinfo=timezone.utc).timestamp())
 
 
-class SyncJobs:
-    """At most one comparison per workspace runs at a time: in its own process for the app, in-process for the CLI."""
+class ReportFolder:
+    """A folder of timestamped JSON reports, one file per run: <workspace id>-<Unix time>.json."""
+
+    # The report fields that hold its rows, which reading a report's header leaves out.
+    rows: tuple[str, ...] = SKIPPED
 
     def __init__(self, folder: str):
         self.folder = folder
-        self._lock = threading.Lock()
-        self._running: dict[str, dict] = {}
         self._headers: dict[str, tuple[tuple[int, int], dict | None]] = {}
 
     def _files(self, workspace_id: str) -> list[str]:
@@ -104,6 +105,66 @@ class SyncJobs:
     def result_file(self, workspace_id: str) -> str | None:
         """The report of the workspace's last successful run."""
         return next((file for file in self._files(workspace_id) if _counts(self._header(file))), None)
+
+    def _new_file(self, workspace_id: str, finished_at: str) -> str:
+        file = os.path.join(self.folder, report_name(workspace_id, finished_at))
+        stem, number = file[:-len(".json")], 2
+        # Runs that finish within the same second get _2, _3…, which sort after the first by name too.
+        while os.path.exists(file):
+            file, number = f"{stem}_{number}.json", number + 1
+        return file
+
+    def _write(self, file: str, data: dict) -> None:
+        os.makedirs(self.folder, exist_ok=True)
+        temporary = os.path.join(self.folder, f".{os.path.basename(file)}-{uuid.uuid4()}")
+        try:
+            with open(temporary, "w", encoding="utf-8") as handle:
+                json.dump(data, handle, indent=2, ensure_ascii=False)
+            os.replace(temporary, file)
+        except BaseException:
+            if os.path.exists(temporary):
+                os.unlink(temporary)
+            raise
+
+    def _read(self, file: str) -> dict | None:
+        try:
+            with open(file, encoding="utf-8") as handle:
+                data = json.load(handle)
+        except (OSError, ValueError):
+            return None
+        return data if isinstance(data, dict) else None
+
+    def _header(self, file: str) -> dict | None:
+        """The report without its rows, cached until the file changes."""
+        try:
+            info = os.stat(file)
+        except OSError:
+            return None
+        key = (info.st_mtime_ns, info.st_size)
+        cached = self._headers.get(file)
+        if cached and cached[0] == key:
+            return cached[1]
+        data = self._read(file)
+        header = {name: value for name, value in data.items() if name not in self.rows} if data else None
+        self._headers[file] = (key, header)
+        return header
+
+    def report(self, workspace_id: str) -> bytes | None:
+        """The report of the last successful run as stored, or None before the first one."""
+        file = self.result_file(workspace_id)
+        if file is None:
+            return None
+        with open(file, "rb") as handle:
+            return handle.read()
+
+
+class SyncJobs(ReportFolder):
+    """At most one comparison per workspace runs at a time: in its own process for the app, in-process for the CLI."""
+
+    def __init__(self, folder: str):
+        super().__init__(folder)
+        self._lock = threading.Lock()
+        self._running: dict[str, dict] = {}
 
     def start(self, workspace_id: str, workspace: dict, settings: dict) -> None:
         # Spawn, not fork: the server runs threads, and a frozen executable can only spawn.
@@ -181,57 +242,6 @@ class SyncJobs:
                 self._running.pop(workspace_id, None)
             job["done"].set()
         return entry
-
-    def _new_file(self, workspace_id: str, finished_at: str) -> str:
-        file = os.path.join(self.folder, report_name(workspace_id, finished_at))
-        stem, number = file[:-len(".json")], 2
-        # Runs that finish within the same second get _2, _3…, which sort after the first by name too.
-        while os.path.exists(file):
-            file, number = f"{stem}_{number}.json", number + 1
-        return file
-
-    def _write(self, file: str, data: dict) -> None:
-        os.makedirs(self.folder, exist_ok=True)
-        temporary = os.path.join(self.folder, f".{os.path.basename(file)}-{uuid.uuid4()}")
-        try:
-            with open(temporary, "w", encoding="utf-8") as handle:
-                json.dump(data, handle, indent=2, ensure_ascii=False)
-            os.replace(temporary, file)
-        except BaseException:
-            if os.path.exists(temporary):
-                os.unlink(temporary)
-            raise
-
-    def _read(self, file: str) -> dict | None:
-        try:
-            with open(file, encoding="utf-8") as handle:
-                data = json.load(handle)
-        except (OSError, ValueError):
-            return None
-        return data if isinstance(data, dict) else None
-
-    def _header(self, file: str) -> dict | None:
-        """The report without its rows, cached until the file changes."""
-        try:
-            info = os.stat(file)
-        except OSError:
-            return None
-        key = (info.st_mtime_ns, info.st_size)
-        cached = self._headers.get(file)
-        if cached and cached[0] == key:
-            return cached[1]
-        data = self._read(file)
-        header = {name: value for name, value in data.items() if name not in SKIPPED} if data else None
-        self._headers[file] = (key, header)
-        return header
-
-    def report(self, workspace_id: str) -> bytes | None:
-        """The report of the last successful run as stored, or None before the first one."""
-        file = self.result_file(workspace_id)
-        if file is None:
-            return None
-        with open(file, "rb") as handle:
-            return handle.read()
 
     def history(self, workspace_id: str) -> list[dict]:
         """Every finished run of the workspace, newest first: one per report file, with the settings the run used and,

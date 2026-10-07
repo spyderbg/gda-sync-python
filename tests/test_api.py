@@ -26,22 +26,25 @@ def test_api_validates_payloads_rejects_foreign_requests_and_requires_a_session_
     assert api.post("/api/open-folder", headers=headers, json={"folder": "source"}).status_code == 200
     assert api.opened == [library.config["source"]]
 
-    # The library lists the game folder: the demo game has 13 of its 18 assets.
-    data = api.post("/api/scan", headers=headers).json()
-    assert len(data["assets"]) == 13
-    assert data["activity"][0]["message"] == "Scanned 13 assets"
-    dds = next(asset for asset in data["assets"] if asset["extension"] == "dds" and asset["preview"])
-    preview = api.get(f"/api/assets/{dds['id']}/preview")
+    assert api.post("/api/scan", headers=headers).json()["activity"][0]["message"] == "Started a GDA sync"
+    # The asset library shows the newest asset report; only a session can generate one.
+    assert api.get("/api/asset-report").status_code == 404
+    assert api.post("/api/asset-report").status_code == 403
+    data = api.post("/api/asset-report", headers=headers).json()
+    # The demo game has no descriptors: its 4 PNG and 2 DDS files are supplementary.
+    assert data["assetReport"]["summary"]["assets"] == 6
+    assert data["activity"][0]["message"] == "Generated an asset report of 6 assets"
+    report = api.get("/api/asset-report").json()
+    assert report["version"] == 1 and report["workspace"]["game_path"] == library.config["destination"]
+    assert data["assetReport"]["reportPath"].endswith(".json")
+    dds = next(row for row in report["assets"] if row["resource"].endswith(".dds") and row["preview"])
+    preview = api.get("/api/rss-sync/preview", params={"file": dds["resourcePath"]})
     assert preview.status_code == 200
     assert preview.headers["content-type"] == "image/png"
     assert preview.headers["content-security-policy"] == "default-src 'none'; sandbox"
-    assert api.get("/api/assets/missing/preview").status_code == 404
     assert api.post("/api/sync", headers=headers, json={"ids": ["missing"]}).status_code == 400
-
-    model = next(asset for asset in data["assets"] if asset["type"] == "model")
-    assert api.post("/api/open-folder", headers=headers, json={"folder": "destination", "assetId": model["id"]}).status_code == 200
-    assert api.opened[-1] == os.path.join(library.config["destination"], *model["path"].split("/")[:-1])
-    assert api.get(f"/api/assets/{model['id']}/preview").headers["content-type"] == "image/svg+xml"
+    assert api.post("/api/open-folder", headers=headers, json={"folder": "destination"}).status_code == 200
+    assert api.opened[-1] == library.config["destination"]
 
 
 def test_a_missing_folder_is_reported_and_cannot_be_opened(api, library, tmp_path):
@@ -77,7 +80,6 @@ def test_sync_endpoint_copies_selected_assets_and_records_activity(api, library)
     assert result["copied"] == [asset["path"]]
     assert result["bytes"] == asset["size"]
     assert result["library"]["activity"][0]["message"] == "Synced 1 asset to Game"
-    assert any(item["id"] == asset["id"] for item in result["library"]["assets"])
     assert next(item for item in library.dashboard()["assets"] if item["id"] == asset["id"])["status"] == "synced"
 
 
@@ -96,10 +98,11 @@ def test_scanner_reads_the_dx10_extension_and_the_api_serves_bc7_previews_withou
     file = os.path.join(library.config["destination"], "textures", "forest", "k_active_en.dds")
     with open(file, "wb") as handle:
         handle.write(data)
-    asset = next(asset for asset in api.get("/api/library").json()["assets"] if asset["name"] == "k_active_en.dds")
+    api.post("/api/asset-report", headers=session_headers(api))
+    asset = next(row for row in api.get("/api/asset-report").json()["assets"] if row["resource"] == "textures/forest/k_active_en.dds")
     assert asset["preview"] is True
     assert asset["dimensions"]["format"] == "BC7_UNORM"
-    preview = api.get(f"/api/assets/{asset['id']}/preview")
+    preview = api.get("/api/rss-sync/preview", params={"file": asset["resourcePath"]})
     assert preview.status_code == 200
     assert preview.headers["content-type"] == "image/png"
     width, height, pixels = read_png(preview.content)

@@ -2,7 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { ASSET_TYPES, number, typeIcons, typeNames } from '../format';
 import type { AssetType, View } from '../types';
-import { activeSyncCount, assets, busy, config, countType, navigate, rssSync, selectWorkspace, ui, workspaces } from '../workspace';
+import { activeSyncCount, assetCount, busy, config, countType, navigate, rssSync, selectWorkspace, ui, workspaces } from '../workspace';
 
 interface Entry { key: string; label: string; icon: string; count?: number; badge?: string; title?: string; active: boolean; onSelect: () => void }
 
@@ -68,7 +68,7 @@ const assetEntries = computed<Entry[]>(() => [...ASSET_CATEGORIES, ...(countType
   key: category,
   label: category === 'all' ? 'Asset library' : typeNames[category],
   icon: category === 'all' ? 'mdi-view-grid-outline' : typeIcons[category],
-  count: category === 'all' ? assets.value.length : countType(category),
+  count: category === 'all' ? assetCount.value : countType(category),
   badge: 'badge-light',
   active: ui.view === 'library' && ui.category === category,
   onSelect: () => navigate('library', category),

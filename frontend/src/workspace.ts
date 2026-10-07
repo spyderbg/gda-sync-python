@@ -26,7 +26,7 @@ export const reportState = computed<'unknown' | 'creating' | 'none' | 'failed' |
 export const session = reactive({ token: '', version: '', platform: '' });
 export const loadError = ref('');
 export const stopped = ref(false);
-export const busy = ref<'' | 'scan' | 'sync' | 'settings' | 'shutdown'>('');
+export const busy = ref<'' | 'scan' | 'sync' | 'report' | 'settings' | 'shutdown'>('');
 /** What the GDA sync report resources being applied do, while busy is "sync" for them. */
 export const applying = ref<ReturnType<typeof commonAction>>(null);
 export const toast = ref<{ text: string; error?: boolean } | null>(null);
@@ -47,18 +47,12 @@ export const ui = reactive({
 
 export const config = computed(() => data.value?.config as WorkspaceConfig);
 export const workspaces = computed(() => config.value?.workspaces || []);
-export const assets = computed(() => data.value?.assets || []);
-export const totalSize = computed(() => assets.value.reduce((sum, asset) => sum + asset.size, 0));
-export const countType = (type: AssetType) => assets.value.filter(asset => asset.type === type).length;
+/** The newest asset report of the active workspace, which the asset library shows, and its counts. */
+export const assetReport = computed(() => data.value?.assetReport ?? null);
+export const assetCount = computed(() => assetReport.value?.summary?.assets ?? 0);
+export const totalSize = computed(() => assetReport.value?.summary?.size ?? 0);
+export const countType = (type: AssetType) => assetReport.value?.summary?.types[type] ?? 0;
 export const isLibraryView = computed(() => LIBRARY_VIEWS.includes(ui.view));
-
-export const filtered = computed(() => {
-  const needle = ui.query.toLowerCase();
-  return assets.value.filter(asset =>
-    (ui.category === 'all' || asset.type === ui.category) && `${asset.name} ${asset.path}`.toLowerCase().includes(needle),
-  ).sort((a, b) => b.modifiedAt.localeCompare(a.modifiedAt));
-});
-export const inspected = computed(() => assets.value.find(asset => asset.id === ui.inspecting));
 
 // Searching from any page shows the matching assets.
 watch(() => ui.query, query => { if (query && !isLibraryView.value) ui.view = 'library'; });
@@ -82,8 +76,6 @@ function applySession(value: Session) {
 function applyLibrary(library: LibraryResponse) {
   data.value = library;
   rssSync.value = library.rssSync;
-  // The details of an asset that a new scan no longer lists close.
-  if (!library.assets.some(asset => asset.id === ui.inspecting)) ui.inspecting = null;
 }
 
 // The GDA sync runs in a background process after a rescan: follow it, then report how it ended.
@@ -152,12 +144,10 @@ export function navigate(view: View, category: AssetType | 'all' = 'all') {
   ui.sidebarOpen = false;
 }
 
-/** Show an asset of the dashboard, a GDA file, in the asset library: the game file at the same path, or, when the
- * game has none, the game files with its name. */
+/** Show an asset of the dashboard, a GDA file, in the asset library: the game's assets with its name. */
 export function inspect(asset: Asset) {
   if (!isLibraryView.value) navigate('library');
-  if (assets.value.some(item => item.id === asset.id)) ui.inspecting = asset.id;
-  else ui.query = asset.name;
+  ui.query = asset.name;
 }
 
 export async function rescan() {
@@ -165,7 +155,18 @@ export async function rescan() {
   try {
     const library = await api<LibraryResponse>('scan');
     applyLibrary(library);
-    notify(`Library refreshed. ${library.assets.length} assets found.`);
+    notify('GDA sync started. The Sync page shows its report when it ends.');
+  } catch (e) { notify((e as Error).message, true); } finally { busy.value = ''; }
+}
+
+/** Write a new asset report of the active workspace's game, which the asset library then shows. */
+export async function generateAssetReport() {
+  busy.value = 'report';
+  try {
+    const library = await api<LibraryResponse>('asset-report');
+    applyLibrary(library);
+    const summary = library.assetReport.summary;
+    if (summary) notify(`Asset report generated: ${summary.assets} assets, ${summary.missing} missing, ${summary.invalid} invalid, ${summary.supplementary} supplementary.`);
   } catch (e) { notify((e as Error).message, true); } finally { busy.value = ''; }
 }
 
@@ -206,9 +207,9 @@ export async function confirmResourceActions() {
   } catch (e) { notify((e as Error).message, true); } finally { busy.value = ''; applying.value = null; }
 }
 
-export async function openFolder(folder: 'source' | 'destination', assetId?: string) {
+export async function openFolder(folder: 'source' | 'destination') {
   try {
-    await api('open-folder', 'POST', { folder, assetId });
+    await api('open-folder', 'POST', { folder });
     notify(`Opened ${folder === 'source' ? 'GDA' : 'Game'} folder.`);
   } catch (e) { notify((e as Error).message, true); }
 }
@@ -232,10 +233,6 @@ export async function copy(text: string) {
   } catch { notify('Clipboard access is unavailable in this browser.', true); }
 }
 
-/** The full path of an asset in the game (destination) folder, with the separators of the backend's platform. */
-export function gamePath(asset: Asset) {
-  return [config.value.destination, ...asset.path.split('/')].join(session.platform === 'Windows' ? '\\' : '/');
-}
 
 export async function saveSettings(settings: Pick<WorkspaceConfig, 'name' | 'source' | 'destination'>) {
   busy.value = 'settings';

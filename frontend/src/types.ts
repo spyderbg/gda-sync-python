@@ -16,15 +16,45 @@ export interface ComparedAsset extends Asset { status: AssetStatus }
 export interface WorkspaceEntry { id: string; name: string; source: string; destination: string; demo?: boolean }
 export interface WorkspaceConfig { name: string; source: string; destination: string; demo: boolean; port?: number; defaultWorkspace?: string; workspaces?: WorkspaceEntry[] }
 export interface Activity {
-  /** cleanup removes the declarations of invalid resources, or deletes supplementary ones. */
-  id: string; date: string; action: 'sync' | 'scan' | 'settings' | 'cleanup';
+  /** cleanup removes the declarations of invalid resources, or deletes supplementary ones; report generates an asset report. */
+  id: string; date: string; action: 'sync' | 'scan' | 'settings' | 'cleanup' | 'report';
   message: string; files: string[]; bytes?: number;
 }
 export interface LibraryResponse {
-  assets: Asset[]; config: WorkspaceConfig; activity: Activity[];
-  scannedAt: string; warnings: string[]; backupPath: string; rssSync: RssSyncStatus;
+  config: WorkspaceConfig; activity: Activity[]; scannedAt: string; backupPath: string; rssSync: RssSyncStatus;
+  /** The newest asset report of the active workspace, which the asset library shows. */
+  assetReport: AssetReportStatus;
   /** The active workspace's folders that do not exist on disk. */
   missingFolders: FolderKey[];
+}
+
+/** The asset report: the game's assets, without a comparison with the GDA. A declared file is "available" when it
+ * exists, "missing" when it does not and "invalid" when its path leads outside the resources folder; a file of the game
+ * that nothing declares is "supplementary". An image sequence takes the status of its frames, like in the GDA sync. */
+export type AssetCategory = 'available' | 'missing' | 'invalid' | 'supplementary';
+/** A descriptor entry that loads an asset: where it is, the entry's type (Image, ImageSequence, AudioEvent…) and id. */
+export interface AssetDeclaration { descriptor: string; line: number; type: string; id?: string }
+/** What the report knows of a file that exists. */
+export interface FileFacts {
+  size?: number; modifiedAt?: string; dimensions?: { width: number; height: number; format: string; mipmaps?: number };
+  preview?: boolean; previewError?: string;
+}
+export interface AssetFrame extends FileFacts { category: AssetCategory; status: string; resource: string; resourcePath: string; source?: RssRectangle }
+export interface AssetSequence {
+  id: string | null; guessed?: boolean; frameTime: number; loopCount: number; loopTo: number | null; paths: string[]; frames: AssetFrame[];
+}
+/** One asset; a sequence's facts are the total size of its files and those of its first and newest frames. */
+export interface ReportAsset extends FileFacts {
+  id: string; category: AssetCategory; status: string; resource: string; resourcePath: string; type: AssetType;
+  scope: 'game' | 'common' | 'outside'; requiredBy: AssetDeclaration[]; sequence?: AssetSequence;
+}
+export interface AssetReportSummary extends RssSyncRun, Record<AssetCategory, number> {
+  assets: number; size: number; types: Partial<Record<AssetType, number>>;
+}
+export interface AssetReportStatus { reportPath: string | null; summary: AssetReportSummary | null }
+export interface AssetReport {
+  version: number; workspace: RssSyncWorkspace; summary: AssetReportSummary; assets: ReportAsset[];
+  descriptors: { name: string; path: string; type: string; declarations: number; resources: number }[];
 }
 
 /** Dashboard files keep their owning workspace so matching paths in different games remain distinct. */
