@@ -263,7 +263,7 @@ See [PyInstaller's Linux compatibility guidance](https://pyinstaller.org/en/stab
    executable means starting the executable again; `multiprocessing.freeze_support()`
    in the launcher makes that copy run the comparison instead of the app. Each
    run saves a report in the data directory's `sync-reports/`.
-6. **Report the game's assets.** **Generate report** in the Asset library reads
+6. **Report the game's assets.** **Rescan** in the Asset library reads
    the active workspace's descriptors and game files, without the GDA folder,
    and saves an asset report in the data directory's `asset-reports/`; the
    library shows the newest one.

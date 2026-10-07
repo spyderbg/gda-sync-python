@@ -17,10 +17,10 @@ import re
 import struct
 import time
 from collections import Counter, defaultdict
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from dataclasses import asdict, dataclass, fields, is_dataclass
 from pathlib import Path, PurePosixPath
-from typing import Any
+from typing import Any, NamedTuple
 
 from .rss_schemas import DOCUMENT_TYPES, Frame, ImageSequence, parse_dataclass
 
@@ -297,6 +297,23 @@ def status_category(status: str) -> str:
     return status.partition(" ")[0].removesuffix(":")
 
 
+class Use(NamedTuple):
+    """A descriptor entry that declares a file: where it is, its type and id, and a Font's characters and size."""
+    descriptor: str
+    line: int
+    type: str
+    id: str | None = None
+    chars: str | None = None
+    size: int | None = None
+
+
+def required_by(uses: Iterable[Use]) -> list[dict]:
+    """The entries that declare a file as a report lists them, by descriptor and line."""
+    return [{"descriptor": use.descriptor, "line": use.line, "type": use.type,
+             **{key: value for key, value in (("id", use.id), ("chars", use.chars), ("size", use.size)) if value is not None}}
+            for use in sorted(set(uses))]
+
+
 @dataclass
 class Declarations:
     """What a game's descriptors declare, as the GDA sync and the asset report read them."""
@@ -305,9 +322,8 @@ class Declarations:
     descriptors: list[dict]
     # The declared paths outside image sequences, and the workspace's resource_paths.
     templates: set[str]
-    # Each file that an entry outside an image sequence declares, with the descriptor, the line, the entry's type and
-    # its id, if it has one, of each declaration.
-    uses: dict[Path, set[tuple[str, int, str, str | None]]]
+    # Each file that an entry outside an image sequence declares, with each entry that declares it.
+    uses: dict[Path, set[Use]]
     # Each image sequence with its descriptor, the lines of its frames, and its frames in order, each frame of a {N-M}
     # range once per file.
     sequences: list[tuple[str, ImageSequence, list[int], list[tuple[Frame, Path]]]]
@@ -322,7 +338,7 @@ def gather(config: Config, required: bool = True) -> Declarations:
     game_dir = config.resources_dir / config.game
     documents = load_documents(game_dir, required)
     templates = set(config.resource_paths)
-    uses: dict[Path, set[tuple[str, int, str, str | None]]] = defaultdict(set)
+    uses: dict[Path, set[Use]] = defaultdict(set)
     # Each image sequence, by object, with the descriptor and the line of each of its frames.
     sequences: dict[int, tuple[str, ImageSequence, list[int]]] = {}
     descriptors: list[dict] = []
@@ -338,7 +354,8 @@ def gather(config: Config, required: bool = True) -> Declarations:
                 continue
             templates.add(template)
             for relative in relatives:
-                uses[(game_dir / relative).resolve()].add((document_name, line, type(entry).__name__, getattr(entry, "id", None)))
+                uses[(game_dir / relative).resolve()].add(Use(document_name, line, type(entry).__name__, getattr(entry, "id", None),
+                                                              getattr(entry, "chars", None), getattr(entry, "size", None)))
         descriptors.append({"name": document_name, "path": str(document_path), "type": type(document).__name__,
                             "declarations": declarations, "resources": resources})
     descriptors.sort(key=lambda item: item["name"])
@@ -427,9 +444,7 @@ def compare(config: Config, progress: Progress | None = None) -> dict:
 
     def file_row(source: Path, result: dict) -> dict:
         entry = file_entry(source, result)
-        uses = sorted({(name, line) for name, line, _type, _id in found.uses.get(source, ())})
-        return {"id": row_id(entry["resource"]), **entry, "scope": scope(source),
-                "requiredBy": [{"descriptor": name, "line": line} for name, line in uses]}
+        return {"id": row_id(entry["resource"]), **entry, "scope": scope(source), "requiredBy": required_by(found.uses.get(source, ()))}
 
     def sequence_row(document_name: str, sequence: ImageSequence, lines: list[int], frames: list[tuple[Any, Path]]) -> dict | None:
         """One row for a sequence, with each of its frames; None when none of its files is compared."""
@@ -452,7 +467,7 @@ def compare(config: Config, progress: Progress | None = None) -> dict:
             "resource": paths[0], "resourcePath": str((game_dir / sequence.frames[0].path).resolve()), "gdaFiles": gda_files,
             **({"mipOnly": any(entry.get("mipOnly") for entry in files.values())} if category == "identical" else {}),
             "scope": scope(frames[0][1]),
-            "requiredBy": [{"descriptor": document_name, "line": min(lines)}],
+            "requiredBy": required_by([Use(document_name, min(lines), "ImageSequence", sequence.id)]),
             "sequence": {"id": sequence.id, "frameTime": sequence.frameTime, "loopCount": sequence.loopCount,
                          "loopTo": sequence.loopTo, "paths": paths, "frames": entries},
         }

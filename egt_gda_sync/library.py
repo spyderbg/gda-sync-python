@@ -27,6 +27,7 @@ from .dds import SUPPORTED_DDS_FORMATS, decode_dds, read_dds_info
 from .demo import seed_demo
 from .errors import AppError, error_message
 from .asset_report import AssetReports, inventory
+from .fonts import FONT_EXTENSIONS, describe_font
 from .png import PNG_SIGNATURE
 from .rss_edit import remove_declarations
 from .rss_jobs import SyncJobs
@@ -46,6 +47,7 @@ ASSET_TYPES = (
     ("model", {"obj", "fbx", "glb", "gltf", "blend"}),
     ("material", {"mat", "mtl", "material"}),
     ("audio", {"wav", "ogg", "mp3", "flac"}),
+    ("font", set(FONT_EXTENSIONS)),
 )
 FOLDER_NAMES = {"source": "GDA", "destination": "Game"}
 # The GDA sync report statuses that have an action: copy the GDA file over a "different" resource, remove the
@@ -133,9 +135,10 @@ def image_dimensions(file: str, extension: str) -> dict | None:
 
 
 def file_facts(file: str, extension: str) -> dict:
-    """A file's size, time and image dimensions, and whether the browser can preview it."""
+    """A file's size, time and image dimensions, and whether the browser can preview it: an image, or a font it draws."""
     info = os.stat(file)
-    facts: dict = {"size": info.st_size, "modifiedAt": iso_time(info.st_mtime_ns), "preview": extension in IMAGE_PREVIEWS}
+    facts: dict = {"size": info.st_size, "modifiedAt": iso_time(info.st_mtime_ns),
+                   "preview": extension in IMAGE_PREVIEWS or extension in FONT_EXTENSIONS}
     try:
         dimensions = image_dimensions(file, extension)
     except ValueError as error:
@@ -591,7 +594,7 @@ class Library:
     def asset_report(self) -> bytes:
         report = self.asset_reports.report(self._active_workspace()[0])
         if report is None:
-            raise AppError("This workspace has no asset report yet. Click Generate report to create one.", 404)
+            raise AppError("This workspace has no asset report yet. Click Rescan in the Asset library to create one.", 404)
         return report
 
     def update_config(self, name: str, source: str, destination: str) -> dict:
@@ -861,10 +864,11 @@ class Library:
             raise AppError("Folder does not exist", 404)
         return folder
 
-    def resource_details(self, files: list[str]) -> dict:
-        """The size, modification time and image dimensions of files the GDA sync report names, by path. Only files
-        inside the active workspace's resources and GDA folders are read; any other path, or a file that does not
-        exist, has only an error."""
+    def resource_details(self, files: list[str], chars: list[str] = ()) -> dict:
+        """The size, modification time and image dimensions of files the GDA sync report names, by path, and a font's
+        names and glyph count, with its coverage of each of the given declared character lists. Only files inside the
+        active workspace's resources and GDA folders are read; any other path, or a file that does not exist, has only
+        an error."""
         details: dict[str, dict] = {}
         for file in dict.fromkeys(files):
             try:
@@ -877,8 +881,11 @@ class Library:
                 details[file] = {"error": "Not a file"}
                 continue
             entry: dict = {"size": info.st_size, "modifiedAt": iso_time(info.st_mtime_ns)}
+            extension = os.path.splitext(path)[1][1:].lower()
+            if extension in FONT_EXTENSIONS:
+                entry.update(describe_font(path, chars))
             try:
-                dimensions = image_dimensions(path, os.path.splitext(path)[1][1:].lower())
+                dimensions = image_dimensions(path, extension)
             except (OSError, ValueError) as error:
                 entry["dimensionsError"] = error_message(error)
             else:
@@ -888,10 +895,11 @@ class Library:
         return {"files": details}
 
     def resource_preview(self, file: str) -> tuple[bytes, str]:
-        """Preview an image, or an audio file to play, inside the active workspace's resources and GDA folders."""
+        """Preview an image, an audio file to play, or a font to draw text with, inside the active workspace's resources
+        and GDA folders."""
         file = self._resource_path(file)
         extension = os.path.splitext(file)[1][1:].lower()
-        if extension != "dds" and extension not in IMAGE_PREVIEWS and extension not in AUDIO_PREVIEWS:
+        if extension != "dds" and extension not in {**IMAGE_PREVIEWS, **AUDIO_PREVIEWS, **FONT_EXTENSIONS}:
             raise AppError("No preview for this file", 415)
         try:
             return self._media(file, extension)
@@ -899,7 +907,7 @@ class Library:
             raise AppError("File not found", 404) from error
 
     def _media(self, file: str, extension: str) -> tuple[bytes, str]:
-        """An image file as the browser can show it, or an audio file as it plays it: decoded DDS textures are cached
+        """An image file as the browser can show it, or an audio or font file as it is: decoded DDS textures are cached
         by file, time and size."""
         info = os.stat(file)
         if info.st_size > MAX_PREVIEW_BYTES:
@@ -920,4 +928,4 @@ class Library:
                     self._previews[key] = data
             return data, "image/png"
         with open(file, "rb") as handle:
-            return handle.read(), {**IMAGE_PREVIEWS, **AUDIO_PREVIEWS}.get(extension, "application/octet-stream")
+            return handle.read(), {**IMAGE_PREVIEWS, **AUDIO_PREVIEWS, **FONT_EXTENSIONS}.get(extension, "application/octet-stream")

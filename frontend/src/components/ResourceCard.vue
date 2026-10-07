@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { directoryOf, extensionOf, fileType, number, plural, previewFrames, resourceAction, rssBadges, sequenceName, sequenceSummary, splitPath, typeIcons } from '../format';
+import { declarationLabel, directoryOf, extensionOf, fileType, number, plural, previewFrames, resourceAction, rssBadges, sequenceName, sequenceSummary, splitPath, typeIcons } from '../format';
 import type { RssResource } from '../types';
 import { copy, openResourceFolder } from '../workspace';
 import CheckBox from './CheckBox.vue';
@@ -62,7 +62,7 @@ const gdaFolder = computed(() => gdaFiles.value[0]?.directory ?? '');
           <div class="asset-footer"><span :class="['badge', 'resource-status', rssBadges[row.category]]">{{ row.status }}</span></div>
           <div v-if="row.category !== 'different'" class="resource-declared">
             <small class="text-muted">{{ row.requiredBy.length ? 'Declared in' : 'No JSON descriptor' }}</small>
-            <span v-for="use in row.requiredBy" :key="`${use.descriptor}:${use.line}`">{{ use.descriptor }}:{{ use.line }}</span>
+            <span v-for="use in row.requiredBy" :key="`${use.descriptor}:${use.line}`">{{ declarationLabel(use) }}</span>
           </div>
         </div>
       </div>

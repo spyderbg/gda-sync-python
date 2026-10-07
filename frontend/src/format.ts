@@ -1,10 +1,13 @@
 import type { AssetCategory, AssetDeclaration, AssetSequence, AssetStatus, AssetType, PreviewFrame, ReportAsset, RssCategory, RssResource, RssSequence } from './types';
 
-export const ASSET_TYPES = ['texture', 'model', 'material', 'audio'] as const;
+export const ASSET_TYPES = ['texture', 'model', 'material', 'audio', 'font'] as const;
 export const typeIcons: Record<AssetType, string> = {
-  texture: 'mdi-image-outline', model: 'mdi-cube-outline', material: 'mdi-layers-outline', audio: 'mdi-waveform', other: 'mdi-file-outline',
+  texture: 'mdi-image-outline', model: 'mdi-cube-outline', material: 'mdi-layers-outline', audio: 'mdi-waveform', font: 'mdi-format-font',
+  other: 'mdi-file-outline',
 };
-export const typeNames: Record<AssetType, string> = { texture: 'Textures', model: 'Models', material: 'Materials', audio: 'Audio', other: 'Other files' };
+export const typeNames: Record<AssetType, string> = {
+  texture: 'Textures', model: 'Models', material: 'Materials', audio: 'Audio', font: 'Fonts', other: 'Other files',
+};
 export const statusNames: Record<AssetStatus, string> = { new: 'New asset', modified: 'Modified', synced: 'In sync' };
 export const statusBadges: Record<AssetStatus, string> = { new: 'badge-info', modified: 'badge-warning', synced: 'badge-success' };
 
@@ -37,6 +40,7 @@ const TYPE_EXTENSIONS: [AssetType, string[]][] = [
   ['model', ['obj', 'fbx', 'glb', 'gltf', 'blend']],
   ['material', ['mat', 'mtl', 'material']],
   ['audio', ['wav', 'ogg', 'mp3', 'flac']],
+  ['font', ['ttf', 'otf']],
 ];
 /** The image files the backend previews: DDS textures, which it decodes, and the formats a browser shows as they are. */
 export const PREVIEW_EXTENSIONS = ['dds', 'png', 'jpg', 'jpeg', 'webp', 'svg', 'bmp'];
@@ -81,8 +85,11 @@ export const assetFrames = (sequence: AssetSequence): PreviewFrame[] => sequence
   file: frame.category === 'available' || frame.category === 'supplementary' ? frame.resourcePath : null, source: frame.source,
 }));
 
-/** A descriptor entry that loads an asset, for example "Image LOGO · RssImagesData.json:12". */
-export const declarationLabel = (use: AssetDeclaration) => `${use.type}${use.id ? ` ${use.id}` : ''} · ${use.descriptor}:${use.line}`;
+/** A descriptor entry that loads a file, for example "Image LOGO · RssImagesData.json:12", or "Font FONT_MAIN 25 px · …";
+ * a GDA sync report from an earlier version knows only its descriptor and line. */
+export const declarationLabel = (use: AssetDeclaration) => (use.type
+  ? `${use.type}${use.id ? ` ${use.id}` : ''}${use.size ? ` ${use.size} px` : ''} · ${use.descriptor}:${use.line}`
+  : `${use.descriptor}:${use.line}`);
 
 /** Whether an asset matches a lowercase search: by its path, the sequence's id and paths, or a declaring entry's id. */
 export function assetMatches(row: ReportAsset, needle: string) {
@@ -128,3 +135,31 @@ export function previewFrames(sequence: RssSequence, side: 'game' | 'gda'): Prev
 export const reportPreviewURL = (file: string, revision: string) =>
   `/api/rss-sync/preview?file=${encodeURIComponent(file)}&v=${encodeURIComponent(revision)}`;
 
+
+/** A code point as Unicode writes it, for example "U+20AC". */
+export const codePoint = (point: number) => `U+${point.toString(16).toUpperCase().padStart(4, '0')}`;
+
+/** Whether a character is drawn: not a control character, a surrogate or an unassigned code point, as the backend checks
+ * a Font entry's characters. */
+const drawn = (point: number) => !/[\p{Cc}\p{Cs}\p{Cn}]/u.test(String.fromCodePoint(point));
+
+/** The characters a Font entry declares, such as "[U+0020-U+00FF][U+20AC]", by range: a label, its first characters
+ * that are drawn, up to limit, and how many it has in all. */
+export function characterRanges(chars: string, limit = 96) {
+  const ranges = [...chars.matchAll(/\[U\+([0-9A-Fa-f]{1,6})(?:-U\+([0-9A-Fa-f]{1,6}))?\]/g)].map(([, start, end]) => {
+    const first = parseInt(start, 16);
+    const last = parseInt(end ?? start, 16);
+    return [Math.min(first, last), Math.min(Math.max(first, last), 0x10ffff)];
+  });
+  return ranges.map(([first, last]) => {
+    const points: number[] = [];
+    let count = 0;
+    for (let point = first; point <= last; point++) {
+      // Spaces are drawn, but show nothing.
+      if (!drawn(point) || /\s/u.test(String.fromCodePoint(point))) continue;
+      count++;
+      if (points.length < limit) points.push(point);
+    }
+    return { label: first === last ? codePoint(first) : `${codePoint(first)}–${codePoint(last)}`, points, count };
+  }).filter(range => range.count);
+}

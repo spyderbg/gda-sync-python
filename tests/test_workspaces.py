@@ -36,7 +36,7 @@ def test_switch_persists_and_settings_update_only_selected_workspace(tmp_path, l
         headers = session_headers(client)
         first = client.get('/api/library').json()
         assert first['config']['destination'] == str(tmp_path / 'first' / 'game')
-        assert first['assetReport'] == {'reportPath': None, 'summary': None}
+        assert first['assetReport'] == {'reportPath': None, 'version': None, 'summary': None}
         # No report file exists before a workspace's first GDA sync run.
         assert first['rssSync']['workspaceId'] == 'first' and first['rssSync']['reportPath'] is None
         assert client.put('/api/workspace', json={'id': 'second'}).status_code == 403

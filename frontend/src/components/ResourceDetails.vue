@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { baseName, directoryOf, extensionOf, fileType, number, plural, previewFrames, rssBadges, sequenceName, size, splitPath, time } from '../format';
+import { baseName, declarationLabel, directoryOf, extensionOf, fileType, number, plural, previewFrames, rssBadges, sequenceName, size, splitPath, time } from '../format';
 import type { RssFileDetails, RssResource } from '../types';
 import { busy, copy, openResourceFolder, requestResourceSync, resourceDetails, rssSync } from '../workspace';
 import AppModal from './AppModal.vue';
 import AudioPreview from './AudioPreview.vue';
+import FontPreview from './FontPreview.vue';
 import ReportThumbnail from './ReportThumbnail.vue';
 import SequencePreview from './SequencePreview.vue';
 
@@ -12,9 +13,12 @@ import SequencePreview from './SequencePreview.vue';
 // a large preview, beside the GDA file's when the GDA has one, what the status means, the files' format, size,
 // resolution, pixel format, mip levels and time, for the game and the GDA side by side, and where the resource is
 // declared. An image sequence plays in the dialog, with how it plays, the totals of its files and each frame's status.
-// An audio file plays once when the dialog opens, and each audio preview has a play and stop button.
-// Escape closes the dialog.
-const props = defineProps<{ row: RssResource; revision: string }>();
+// An audio file plays once when the dialog opens, and each audio preview has a play and stop button. A font is drawn with
+// itself on both sides, with the same text, and with the characters and at the size of the Font entry chosen; the table
+// compares the fonts' names, glyph counts and how many of each Font entry's characters they have. Escape closes the
+// dialog.
+// reportVersion is the GDA sync report's version; one before FONT_REPORT_VERSION has no Font entry characters to check.
+const props = defineProps<{ row: RssResource; revision: string; reportVersion?: number }>();
 const emit = defineEmits<{ close: [] }>();
 
 const sequence = computed(() => props.row.sequence);
@@ -37,6 +41,17 @@ const gameFrames = computed(() => (sequence.value ? previewFrames(sequence.value
 const gdaFrames = computed(() => (sequence.value ? previewFrames(sequence.value, 'gda') : []));
 // The GDA preview shows beside the game's for a resource that the GDA has.
 const pairedPreview = computed(() => hasGda.value && (props.row.category === 'different' || props.row.category === 'identical'));
+// The Font entries that declare characters of a font, and the one whose characters the previews draw.
+const isFont = computed(() => !sequence.value && fileType(extensionOf(name.value)) === 'font');
+const fontUses = computed(() => props.row.requiredBy.filter(use => use.chars));
+const chosen = ref(0);
+watch(() => props.row.id, () => { chosen.value = 0; });
+const fontUse = computed(() => fontUses.value[chosen.value] ?? null);
+const fontText = ref('');
+// The GDA sync report version that lists the characters and size of Font entries: REPORT_VERSION in egt_gda_sync/rss_jobs.py.
+const FONT_REPORT_VERSION = 4;
+const fontsUnchecked = computed(() => isFont.value && (props.reportVersion ?? FONT_REPORT_VERSION) < FONT_REPORT_VERSION);
+const coverageOf = (file: string) => details.value[file]?.coverage?.[chosen.value];
 
 const details = ref<Record<string, RssFileDetails>>({});
 const loading = ref(false);
@@ -50,7 +65,7 @@ watch(() => [props.row, props.revision], async () => {
   if (!files.length) return;
   loading.value = true;
   try {
-    const result = await resourceDetails(files);
+    const result = await resourceDetails(files, fontUses.value.map(use => use.chars!));
     if (id === request) details.value = result;
   } catch (e) {
     if (id === request) loadError.value = (e as Error).message;
@@ -82,22 +97,56 @@ function describe(files: string[]) {
   };
 }
 
+/** What the table shows of a font: its format, names and glyph count, and how many of each Font entry's characters it has. */
+function describeFont(files: string[]) {
+  const entry = files.map(file => details.value[file]).find(item => item && !item.error);
+  const none = loading.value ? '…' : '—';
+  const font = entry?.font;
+  return {
+    format: font?.format ?? entry?.fontError ?? none, family: font?.family ?? none, style: font?.style ?? none,
+    version: font?.version ?? none, glyphs: font?.glyphs !== undefined ? number(font.glyphs) : none,
+    coverage: fontUses.value.map((_use, index) => {
+      const result = entry?.coverage?.[index];
+      return result ? `${number(result.covered)} of ${number(result.declared)}` : none;
+    }),
+  };
+}
+
 const table = computed(() => {
   const game = describe(gameFiles.value);
   const gda = describe(gdaFiles.value);
-  const rows: { label: string; key: keyof typeof game; compare: boolean }[] = [
-    { label: 'File format', key: 'format', compare: true },
-    ...(sequence.value ? [{ label: 'Files', key: 'files' as const, compare: false }] : []),
-    { label: sequence.value ? 'Total size' : 'File size', key: 'size', compare: true },
-    { label: 'Resolution', key: 'resolution', compare: true },
-    { label: 'Pixel format', key: 'pixelFormat', compare: true },
-    { label: 'Mip levels', key: 'mipmaps', compare: true },
-    { label: sequence.value ? 'Last modified, newest' : 'Last modified', key: 'modified', compare: false },
-  ];
-  return rows.map(({ label, key, compare }) => ({
-    label, game: game[key], gda: gda[key],
+  let rows: { label: string; game: string; gda: string; compare: boolean }[];
+  if (isFont.value) {
+    const gameFont = describeFont(gameFiles.value);
+    const gdaFont = describeFont(gdaFiles.value);
+    rows = [
+      { label: 'Font format', game: gameFont.format, gda: gdaFont.format, compare: true },
+      { label: 'Family', game: gameFont.family, gda: gdaFont.family, compare: true },
+      { label: 'Style', game: gameFont.style, gda: gdaFont.style, compare: true },
+      { label: 'Version', game: gameFont.version, gda: gdaFont.version, compare: true },
+      { label: 'Glyphs', game: gameFont.glyphs, gda: gdaFont.glyphs, compare: true },
+      ...fontUses.value.map((use, index) => ({
+        label: `Characters of ${use.id ?? `${use.descriptor}:${use.line}`}`, game: gameFont.coverage[index], gda: gdaFont.coverage[index], compare: true,
+      })),
+      { label: 'File size', game: game.size, gda: gda.size, compare: true },
+      { label: 'Last modified', game: game.modified, gda: gda.modified, compare: false },
+    ];
+  } else {
+    const keys: { label: string; key: keyof typeof game; compare: boolean }[] = [
+      { label: 'File format', key: 'format', compare: true },
+      ...(sequence.value ? [{ label: 'Files', key: 'files' as const, compare: false }] : []),
+      { label: sequence.value ? 'Total size' : 'File size', key: 'size', compare: true },
+      { label: 'Resolution', key: 'resolution', compare: true },
+      { label: 'Pixel format', key: 'pixelFormat', compare: true },
+      { label: 'Mip levels', key: 'mipmaps', compare: true },
+      { label: sequence.value ? 'Last modified, newest' : 'Last modified', key: 'modified', compare: false },
+    ];
+    rows = keys.map(({ label, key, compare }) => ({ label, game: game[key], gda: gda[key], compare }));
+  }
+  return rows.map(({ label, game: gameValue, gda: gdaValue, compare }) => ({
+    label, game: gameValue, gda: gdaValue,
     // A value that differs between the game and the GDA stands out.
-    differs: hasGda.value && compare && game[key] !== gda[key] && ![game[key], gda[key]].some(value => value === '—' || value === '…'),
+    differs: hasGda.value && compare && gameValue !== gdaValue && ![gameValue, gdaValue].some(value => value === '—' || value === '…'),
   }));
 });
 
@@ -157,15 +206,24 @@ function sync() {
     <div class="modal-body details-dialog">
       <div :class="['details-previews', { 'is-paired': pairedPreview }]">
         <figure class="details-preview">
-          <figcaption>{{ sequence ? 'Game frames' : 'Game file' }}<small v-if="sequence">Click to play again</small></figcaption>
+          <figcaption>
+            {{ sequence ? 'Game frames' : 'Game file' }}<small v-if="sequence">Click to play again</small>
+            <span v-if="isFont && fontUses.length > 1" class="btn-group btn-group-sm" role="group" aria-label="Characters of the Font entry">
+              <button v-for="(use, index) in fontUses" :key="`${use.descriptor}:${use.line}`" type="button" :class="['btn', 'btn-secondary', { active: index === chosen }]" :aria-pressed="index === chosen" @click="chosen = index">{{ use.id ?? `${use.descriptor}:${use.line}` }}</button>
+            </span>
+          </figcaption>
           <SequencePreview v-if="sequence" :frames="gameFrames" :frame-time="sequence.frameTime" :loop-count="sequence.loopCount" :loop-to="sequence.loopTo" :name="sequence.id ?? name" :revision="revision" />
           <AudioPreview v-else-if="isAudio(row.resourcePath) && row.category !== 'invalid'" :file="row.resourcePath" :name="name" :revision="revision" autoplay />
+          <FontPreview v-else-if="isFont && row.category !== 'invalid'" v-model:text="fontText" :file="row.resourcePath" :name="name" :revision="revision" large
+                       :chars="fontUse?.chars" :size="fontUse?.size" :missing="coverageOf(row.resourcePath)?.missing" />
           <ReportThumbnail v-else :file="row.resourcePath" :name="name" :revision="revision" :preview="row.category !== 'invalid'" />
         </figure>
         <figure v-if="pairedPreview" class="details-preview">
           <figcaption>{{ gdaLabel }}</figcaption>
           <SequencePreview v-if="sequence" :frames="gdaFrames" :frame-time="sequence.frameTime" :loop-count="sequence.loopCount" :loop-to="sequence.loopTo" :name="`${sequence.id ?? name} from the GDA`" :revision="revision" />
           <AudioPreview v-else-if="isAudio(row.gdaFiles[0].path)" :file="row.gdaFiles[0].absolutePath" :name="baseName(row.gdaFiles[0].path)" :revision="revision" />
+          <FontPreview v-else-if="isFont" v-model:text="fontText" :file="row.gdaFiles[0].absolutePath" :name="baseName(row.gdaFiles[0].path)" :revision="revision" large
+                       :chars="fontUse?.chars" :size="fontUse?.size" :missing="coverageOf(row.gdaFiles[0].absolutePath)?.missing" />
           <ReportThumbnail v-else :file="row.gdaFiles[0].absolutePath" :name="baseName(row.gdaFiles[0].path)" :revision="revision" />
         </figure>
       </div>
@@ -181,10 +239,13 @@ function sync() {
           </div>
           <p v-if="scope" class="details-scope text-muted"><i aria-hidden="true" class="mdi mdi-share-variant-outline" /> {{ scope }}</p>
 
+          <p v-if="fontsUnchecked" class="details-scope text-muted">
+            <i aria-hidden="true" class="mdi mdi-information-outline" /> This report was written by an earlier version, without the characters that Font entries declare. Rescan to check both fonts against them.
+          </p>
           <h6 class="details-heading">Declared in</h6>
           <p v-if="!row.requiredBy.length" class="text-muted details-small">No JSON descriptor</p>
           <ul v-else class="details-list">
-            <li v-for="use in row.requiredBy" :key="`${use.descriptor}:${use.line}`" class="details-code">{{ use.descriptor }}:{{ use.line }}</li>
+            <li v-for="use in row.requiredBy" :key="`${use.descriptor}:${use.line}`" class="details-code">{{ declarationLabel(use) }}</li>
           </ul>
 
           <h6 class="details-heading">Game path</h6>

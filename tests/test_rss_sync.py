@@ -80,8 +80,10 @@ def test_classifies_every_status_with_descriptor_lines_and_lists_identical_files
         ("missing (1 of 2 files)", "frame_{000-001}.dds"), ("missing", "required.dds"), ("supplementary", "unlisted.dds"),
     ]
     rows = {row["resource"]: row for row in result["differences"] + result["identical"]}
-    assert rows["required.dds"]["requiredBy"] == [{"descriptor": "AllRssData.json", "line": 3}, {"descriptor": "RssRawData.json", "line": 5}]
-    assert rows["frame_{000-001}.dds"]["requiredBy"] == [{"descriptor": "RssImagesSeqData.json", "line": 4}]
+    # Each entry that declares a resource, with its type and id.
+    assert rows["required.dds"]["requiredBy"] == [{"descriptor": "AllRssData.json", "line": 3, "type": "RawFile"},
+                                                  {"descriptor": "RssRawData.json", "line": 5, "type": "RawFile"}]
+    assert rows["frame_{000-001}.dds"]["requiredBy"] == [{"descriptor": "RssImagesSeqData.json", "line": 4, "type": "ImageSequence", "id": "seq"}]
     assert [(frame["resource"], frame["category"]) for frame in rows["frame_{000-001}.dds"]["sequence"]["frames"]] == [
         ("frame_000.dds", "identical"), ("frame_001.dds", "missing")]
     assert rows["unlisted.dds"]["requiredBy"] == [] and rows["unlisted.dds"]["gdaFiles"] == []
@@ -136,7 +138,8 @@ def test_an_image_sequence_is_one_resource_with_its_frames(tmp_path):
     anim = rows["ANIM"]
     assert (anim["category"], anim["status"], anim["resource"]) == ("different", "different SHA-256 (2 of 3 files)", "anim/a_{00-02}.dds")
     assert anim["resourcePath"] == str((game / "anim" / "a_{00-02}.dds").resolve())
-    assert anim["requiredBy"] == [{"descriptor": "RssImagesSeqData.json", "line": 10}] and anim["scope"] == "game"
+    assert anim["requiredBy"] == [{"descriptor": "RssImagesSeqData.json", "line": 10, "type": "ImageSequence", "id": "ANIM"}]
+    assert anim["scope"] == "game"
     sequence = anim["sequence"]
     assert (sequence["frameTime"], sequence["loopCount"], sequence["loopTo"], sequence["paths"]) == (42, 0, 1, ["anim/a_{00-02}.dds"])
     assert [(frame["resource"], frame["category"]) for frame in sequence["frames"]] == [
@@ -156,7 +159,7 @@ def test_an_image_sequence_is_one_resource_with_its_frames(tmp_path):
     assert (mixed["category"], mixed["status"], mixed["mipOnly"]) == ("identical", "identical", False)
     assert [(frame["category"], frame["status"]) for frame in mixed["sequence"]["frames"]] == [("skipped", "not compared"), ("identical", "identical")]
     assert mixed["sequence"]["paths"] == ["cover.png", "anim/a_00.dds"] and mixed["resource"] == "cover.png"
-    assert rows["anim/a_01.dds"]["requiredBy"] == [{"descriptor": "RssImagesData.json", "line": 5}]
+    assert rows["anim/a_01.dds"]["requiredBy"] == [{"descriptor": "RssImagesData.json", "line": 5, "type": "Image", "id": "FIRST"}]
     assert len({row["id"] for row in rows.values()}) == len(rows)
 
 
@@ -340,7 +343,7 @@ def test_each_run_saves_a_timestamped_report_and_a_failed_run_keeps_the_last_res
     assert report["summary"]["state"] == "succeeded" and report["summary"]["finishedAt"] == status["comparedAt"]
     assert not {"run", "lastRun", "startedAt", "finishedAt", "history"} & set(report)
     counts = {key: value for key, value in report["summary"].items() if key not in ("state", "startedAt", "finishedAt", "error")}
-    assert report["version"] == 3 and len(report["differences"]) == 4 and len(report["identical"]) == 1
+    assert report["version"] == 4 and len(report["differences"]) == 4 and len(report["identical"]) == 1
     [first] = report_files(tmp_path / "reports")
     assert REPORT_FILE.fullmatch(first) and status["reportPath"] == str(tmp_path / "reports" / first)
 

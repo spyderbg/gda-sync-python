@@ -412,6 +412,11 @@ button.nav-link {
       background: rgba($warning, 0.1);
       color: darken($warning, 5%);
     }
+
+    &.font {
+      background: rgba(#8862e0, 0.08);
+      color: #8862e0;
+    }
   }
 
   .waveform {

@@ -42,7 +42,7 @@ def test_library_shows_the_generated_asset_report_and_opens_an_asset_in_a_dialog
     page.get_by_role('list', name='Workspaces').get_by_role('button', name='Example', exact=True).click()
     page.get_by_role('button', name='Asset library', exact=True).click()
     expect(page.get_by_role('heading', name='No asset report yet')).to_be_visible()
-    page.get_by_role('button', name='Generate report', exact=True).click()
+    page.get_by_role('region', name='Workspace summary').get_by_role('button', name='Rescan', exact=True).click()
     expect(page.get_by_role('status')).to_contain_text('Asset report generated: 4 assets, 1 missing, 0 invalid, 1 supplementary.')
     # The banner, the missing image, the sequence as one asset, and the file that nothing declares.
     expect(page.locator('.asset-card')).to_have_count(4)

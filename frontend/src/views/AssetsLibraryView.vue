@@ -11,7 +11,7 @@ import type { AssetCategory, ReportAsset } from '../types';
 import { assetReport, busy, generateAssetReport, ui } from '../workspace';
 
 // The asset library shows the newest asset report of the workspace's game: every asset that its descriptors declare,
-// with the entries that load it, and the files of the game folder that nothing declares. Generate report writes a new
+// with the entries that load it, and the files of the game folder that nothing declares. Rescan writes a new
 // one. The sidebar's types, the status filters and the search narrow the assets down.
 type Filter = 'all' | AssetCategory;
 const FILTERS: { key: Filter; label: string; hint: string }[] = [
@@ -19,7 +19,7 @@ const FILTERS: { key: Filter; label: string; hint: string }[] = [
     key: 'all', label: 'All',
     hint: 'Every asset of the newest asset report: each file that the game\'s *Data.json descriptors (or the workspace\'s '
       + 'resource_paths) declare, and each file of the game folder with a compared extension that nothing declares.\n\n'
-      + 'An image sequence is one asset with its frames, as in the GDA sync. Generate report reads the game again.',
+      + 'An image sequence is one asset with its frames, as in the GDA sync. Rescan reads the game again.',
   },
   {
     key: 'available', label: 'Available',
@@ -44,12 +44,15 @@ const FILTERS: { key: Filter; label: string; hint: string }[] = [
   },
 ];
 const PAGE_SIZE = 200;
+// The asset report version this release writes, ASSET_REPORT_VERSION in egt_gda_sync/asset_report.py.
+const REPORT_VERSION = 2;
 
 const { report, loadError } = useAssetReport();
 const filter = ref<Filter>('all');
 const shown = ref(PAGE_SIZE);
 const state = computed(() => (!assetReport.value?.reportPath ? 'none' : loadError.value ? 'error' : report.value ? 'ready' : 'loading'));
 const revision = computed(() => report.value?.summary.finishedAt ?? '');
+const outdated = computed(() => !!assetReport.value?.reportPath && (assetReport.value.version ?? 1) < REPORT_VERSION);
 const assets = computed(() => report.value?.assets ?? []);
 // The sidebar's type narrows the assets that the status filters count.
 const typed = computed(() => assets.value.filter(row => ui.category === 'all' || row.type === ui.category));
@@ -85,11 +88,14 @@ function showAll() {
     <div class="card-body">
       <i aria-hidden="true" :class="['mdi', state === 'loading' ? 'mdi-loading mdi-spin text-muted' : state === 'error' ? 'mdi-alert-circle-outline text-danger' : 'mdi-file-document-outline text-muted']" />
       <h4>{{ state === 'loading' ? 'Loading the asset report…' : state === 'error' ? 'The asset report could not be loaded' : 'No asset report yet' }}</h4>
-      <p class="text-muted">{{ state === 'error' ? loadError : 'Generate report lists the game\'s assets: every file that its descriptors declare, with the entries that load it, and the files of the game folder that nothing declares.' }}</p>
+      <p class="text-muted">{{ state === 'error' ? loadError : 'Rescan lists the game\'s assets: every file that its descriptors declare, with the entries that load it, and the files of the game folder that nothing declares.' }}</p>
     </div>
   </div>
 
   <template v-else>
+    <div v-if="outdated" class="alert alert-info library-outdated" role="note">
+      <i aria-hidden="true" class="mdi mdi-information-outline" />This report was written by an earlier version, which counted fonts as other files and did not check them. Rescan to update it.
+    </div>
     <div class="library-controls">
       <div class="library-filter-toolbar" role="group" aria-label="Asset filters and layout">
         <div class="btn-group toolbar-item" role="group" aria-label="Layout">
@@ -175,5 +181,6 @@ function showAll() {
 .library-status-filter .btn { white-space: nowrap; }
 .library-filter-count { margin-left: 4px; opacity: 0.7; }
 .library-use { max-width: 320px; font-family: monospace; font-size: 11px; overflow-wrap: anywhere; }
+.library-outdated { display: flex; align-items: center; gap: 8px; }
 .library-more { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; }
 </style>

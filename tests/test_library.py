@@ -18,7 +18,7 @@ def test_demo_dashboard_compares_the_gda_folder_and_the_asset_report_lists_the_g
     statuses = [asset["status"] for asset in library.dashboard()["assets"]]
     assert (statuses.count("new"), statuses.count("modified"), statuses.count("synced")) == (5, 3, 10)
     # The asset library shows the newest asset report, and there is none yet.
-    assert library.scan()["assetReport"] == {"reportPath": None, "summary": None}
+    assert library.scan()["assetReport"] == {"reportPath": None, "version": None, "summary": None}
     summary = library.generate_asset_report()["assetReport"]["summary"]
     # The demo game has no descriptors, so its files with a compared extension, 4 PNG and 2 DDS, are supplementary.
     assert (summary["assets"], summary["supplementary"], summary["available"]) == (6, 6, 0)

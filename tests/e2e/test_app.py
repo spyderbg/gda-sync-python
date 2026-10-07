@@ -43,7 +43,7 @@ def open_library(page):
 
 
 def generate_report(page):
-    page.get_by_role("button", name="Generate report", exact=True).click()
+    page.get_by_role("region", name="Workspace summary").get_by_role("button", name="Rescan", exact=True).click()
     expect(page.get_by_role("status")).to_contain_text("Asset report generated")
 
 

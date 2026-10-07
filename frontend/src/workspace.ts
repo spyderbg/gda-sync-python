@@ -214,9 +214,10 @@ export async function openFolder(folder: 'source' | 'destination') {
   } catch (e) { notify((e as Error).message, true); }
 }
 
-/** The size, time and image dimensions of files the GDA sync report names, by their absolute paths. */
-export async function resourceDetails(files: string[]) {
-  return (await api<{ files: Record<string, RssFileDetails> }>('rss-sync/details', 'POST', { files })).files;
+/** The size, time and image dimensions of files the GDA sync report names, by their absolute paths, and a font's names,
+ * glyph count and coverage of each of the given declared character lists. */
+export async function resourceDetails(files: string[], chars: string[] = []) {
+  return (await api<{ files: Record<string, RssFileDetails> }>('rss-sync/details', 'POST', { files, chars })).files;
 }
 
 export async function openResourceFolder(file: string) {

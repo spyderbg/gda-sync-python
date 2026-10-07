@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import { assetBadges, assetFrames, baseName, extensionOf, fileType, number, plural, sequenceName, size, splitPath, time } from '../format';
+import { computed, ref, watch } from 'vue';
+import { assetBadges, assetFrames, baseName, codePoint, extensionOf, fileType, number, plural, sequenceName, size, splitPath, time } from '../format';
 import type { FileFacts, ReportAsset } from '../types';
 import { copy, openResourceFolder } from '../workspace';
 import AppModal from './AppModal.vue';
 import AudioPreview from './AudioPreview.vue';
+import FontPreview from './FontPreview.vue';
 import ReportThumbnail from './ReportThumbnail.vue';
 import SequencePreview from './SequencePreview.vue';
 
@@ -12,7 +13,9 @@ import SequencePreview from './SequencePreview.vue';
 // preview, what the status means, the descriptor entries that load the asset, its game path with buttons to copy it or
 // open its folder, and the format, size, resolution, pixel format, mip levels and time of its file. An image sequence
 // plays in the dialog, with how it plays, the totals of its files and each frame's status. An audio file plays once
-// when the dialog opens. Escape closes the dialog.
+// when the dialog opens. A font is drawn with itself, with the characters and at the size of the Font entry chosen, its
+// names and glyph count, and for each Font entry, which of its declared characters the font has. Escape closes the
+// dialog.
 const props = defineProps<{ row: ReportAsset; revision: string }>();
 const emit = defineEmits<{ close: [] }>();
 
@@ -21,6 +24,12 @@ const name = computed(() => splitPath(props.row.resource).name);
 const readable = computed(() => props.row.category === 'available' || props.row.category === 'supplementary');
 const isAudio = computed(() => fileType(extensionOf(baseName(props.row.resourcePath))) === 'audio');
 const frames = computed(() => (sequence.value ? assetFrames(sequence.value) : []));
+// The Font entries that declare characters of a font, and the one whose characters the preview draws.
+const isFont = computed(() => props.row.type === 'font');
+const fontUses = computed(() => props.row.requiredBy.filter(use => use.chars));
+const chosen = ref(0);
+watch(() => props.row.id, () => { chosen.value = 0; });
+const fontUse = computed(() => fontUses.value[chosen.value] ?? null);
 
 /** Up to three different values, then how many more there are. */
 function listed(values: string[]) {
@@ -37,6 +46,18 @@ const table = computed(() => {
   const found = files.filter(file => file.size !== undefined);
   const dimensions = found.flatMap(file => (file.dimensions ? [file.dimensions] : []));
   const newest = found.map(file => file.modifiedAt ?? '').sort().pop();
+  const font = props.row.font;
+  if (isFont.value) {
+    return [
+      { label: 'File format', value: font?.format ?? (extensionOf(name.value).toUpperCase() || '—') },
+      ...(font ? [
+        { label: 'Family', value: font.family ?? '—' }, { label: 'Style', value: font.style ?? '—' },
+        { label: 'Version', value: font.version ?? '—' }, { label: 'Glyphs', value: font.glyphs !== undefined ? number(font.glyphs) : '—' },
+      ] : [{ label: 'Font', value: props.row.fontError ?? '—' }]),
+      { label: 'File size', value: props.row.size !== undefined ? size(props.row.size) : '—' },
+      { label: 'Last modified', value: props.row.modifiedAt ? time(props.row.modifiedAt) : '—' },
+    ];
+  }
   return [
     { label: 'File format', value: listed(files.map(file => extensionOf(baseName(file.resourcePath)).toUpperCase()).filter(Boolean)) || '—' },
     ...(current ? [{ label: 'Files', value: `${number(found.length)} of ${number(files.length)} found` }] : []),
@@ -90,9 +111,16 @@ const scope = computed(() => ({ game: '', common: 'A common resource, shared wit
     <div class="modal-body details-dialog asset-details">
       <div class="details-previews">
         <figure class="details-preview">
-          <figcaption>{{ sequence ? 'Game frames' : 'Game file' }}<small v-if="sequence">Click to play again</small></figcaption>
+          <figcaption>
+            {{ sequence ? 'Game frames' : 'Game file' }}<small v-if="sequence">Click to play again</small>
+            <span v-if="isFont && fontUses.length > 1" class="btn-group btn-group-sm" role="group" aria-label="Characters of the Font entry">
+              <button v-for="(use, index) in fontUses" :key="`${use.descriptor}:${use.line}`" type="button" :class="['btn', 'btn-secondary', { active: index === chosen }]" :aria-pressed="index === chosen" @click="chosen = index">{{ use.id ?? `${use.descriptor}:${use.line}` }}</button>
+            </span>
+          </figcaption>
           <SequencePreview v-if="sequence" :frames="frames" :frame-time="sequence.frameTime" :loop-count="sequence.loopCount" :loop-to="sequence.loopTo" :name="sequence.id ?? name" :revision="revision" />
           <AudioPreview v-else-if="isAudio && readable" :file="row.resourcePath" :name="name" :revision="revision" autoplay />
+          <FontPreview v-else-if="isFont && readable" :file="row.resourcePath" :name="name" :revision="revision" large
+                       :chars="fontUse?.chars" :size="fontUse?.size" :missing="fontUse?.coverage?.missing" />
           <ReportThumbnail v-else :file="row.resourcePath" :name="name" :revision="revision" :preview="readable && row.preview !== false" />
         </figure>
       </div>
@@ -115,6 +143,14 @@ const scope = computed(() => ({ game: '', common: 'A common resource, shared wit
             <li v-for="use in row.requiredBy" :key="`${use.descriptor}:${use.line}`" class="details-declaration">
               <span class="details-code">{{ use.descriptor }}:{{ use.line }}</span>
               <span class="badge badge-light">{{ use.type }}</span><span v-if="use.id" class="details-code">{{ use.id }}</span>
+              <span v-if="use.size" class="text-muted">{{ use.size }} px</span>
+              <span v-if="use.coverage" :class="['details-coverage', use.coverage.missingCount ? 'text-danger' : 'text-success']">
+                <i aria-hidden="true" :class="['mdi', use.coverage.missingCount ? 'mdi-alert-outline' : 'mdi-check']" />{{ number(use.coverage.covered) }} of {{ number(use.coverage.declared) }} declared characters
+              </span>
+              <span v-if="use.coverage?.missingCount" class="details-missing">
+                <span v-for="point in use.coverage.missing" :key="point" class="badge badge-light" :title="codePoint(point)">{{ codePoint(point) }} {{ String.fromCodePoint(point) }}</span>
+                <span v-if="use.coverage.missingCount > use.coverage.missing.length" class="text-muted">+{{ number(use.coverage.missingCount - use.coverage.missing.length) }} more</span>
+              </span>
             </li>
           </ul>
 
@@ -169,5 +205,9 @@ const scope = computed(() => ({ game: '', common: 'A common resource, shared wit
 </template>
 
 <style scoped>
-.details-declaration { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; margin-bottom: 4px; }
+.details-declaration { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; margin-bottom: 8px; }
+.details-coverage { font-size: 12px; }
+.details-coverage i { margin-right: 3px; }
+.details-missing { display: flex; flex-wrap: wrap; gap: 4px; width: 100%; max-height: 96px; overflow-y: auto; }
+.details-missing .badge { font-family: monospace; font-weight: 400; }
 </style>

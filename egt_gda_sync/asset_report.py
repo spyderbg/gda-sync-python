@@ -17,10 +17,13 @@ from collections.abc import Callable
 from dataclasses import asdict
 from pathlib import Path
 
+from .fonts import FONT_EXTENSIONS, describe_font
 from .rss_jobs import ReportFolder, _now
-from .rss_sync import COMMON_DIR, GUESSED_FRAME_TIME, GUESSED_LOOP_COUNT, NUMBERED_NAME, Config, expand_path, gather, row_id
+from .rss_sync import COMMON_DIR, GUESSED_FRAME_TIME, GUESSED_LOOP_COUNT, NUMBERED_NAME, Config, Use, expand_path, gather, required_by, row_id
 
-ASSET_REPORT_VERSION = 1
+# Version 2 reports fonts as their own type, with their names, the samples they draw and their coverage of each Font
+# entry's characters.
+ASSET_REPORT_VERSION = 2
 CATEGORIES = ("available", "missing", "invalid", "supplementary")
 # The status a sequence takes from its frames: the first of these that any of its files has.
 SEQUENCE_PRECEDENCE = ("invalid", "missing", "available")
@@ -72,10 +75,15 @@ def inventory(config: Config, facts: Facts) -> dict:
 
     def file_row(source: Path, supplementary: bool = False) -> dict:
         entry = file_entry(source, supplementary)
-        uses = sorted(found.uses.get(source, ()), key=lambda use: (use[0], use[1]))
-        return {"id": row_id(entry["resource"]), **entry, "scope": scope(source),
-                "requiredBy": [{"descriptor": name, "line": line, "type": kind, **({"id": entry_id} if entry_id else {})}
-                               for name, line, kind, entry_id in uses]}
+        row = {"id": row_id(entry["resource"]), **entry, "scope": scope(source), "requiredBy": required_by(found.uses.get(source, ()))}
+        if source.suffix[1:].lower() in FONT_EXTENSIONS and entry["category"] in ("available", "supplementary"):
+            # A font's names and glyphs, and for each Font entry, which of its declared characters the font has.
+            fonts = [use for use in row["requiredBy"] if use.get("chars")]
+            described = describe_font(str(source), [use["chars"] for use in fonts])
+            for use, coverage in zip(fonts, described.pop("coverage", [])):
+                use["coverage"] = coverage
+            row.update(described)
+        return row
 
     def sequence_row(document_name: str, sequence, lines: list[int], frames: list) -> dict:
         entries = [file_entry(source) for _frame, source in frames]
@@ -92,7 +100,7 @@ def inventory(config: Config, facts: Facts) -> dict:
             "id": row_id(f"{paths[0] if paths else ''}\0{document_name}\0{sequence.id}"), "category": category, "status": status,
             "resource": paths[0] if paths else "", "resourcePath": str(first_path), **sequence_facts(entries),
             "scope": scope(frames[0][1] if frames else first_path),
-            "requiredBy": [{"descriptor": document_name, "line": min(lines), "type": "ImageSequence", "id": sequence.id}],
+            "requiredBy": required_by([Use(document_name, min(lines), "ImageSequence", sequence.id)]),
             "sequence": {"id": sequence.id, "frameTime": sequence.frameTime, "loopCount": sequence.loopCount, "loopTo": sequence.loopTo,
                          "paths": paths, "frames": [{**frame(entry), **({"source": asdict(item.source)} if item.source else {})}
                                                     for (item, _source), entry in zip(frames, entries)]},
@@ -150,7 +158,7 @@ class AssetReports(ReportFolder):
         return file
 
     def status(self, workspace_id: str) -> dict:
-        """The newest report of the workspace and its summary, or None for both before the first one."""
+        """The newest report of the workspace, its version and its summary, or None for all before the first one."""
         file = self.result_file(workspace_id)
         header = self._header(file) if file else None
-        return {"reportPath": file, "summary": (header or {}).get("summary")}
+        return {"reportPath": file, "version": (header or {}).get("version"), "summary": (header or {}).get("summary")}

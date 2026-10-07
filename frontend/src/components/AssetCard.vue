@@ -21,6 +21,8 @@ const unavailable = computed(() => [...new Map((sequence.value?.frames ?? [])
   .filter(frame => frame.category === 'missing' || frame.category === 'invalid')
   .map(frame => [frame.resourcePath, { ...frame, name: splitPath(frame.resource).name }])).values()]);
 const shownUses = computed(() => props.row.requiredBy.slice(0, 3));
+// The first Font entry whose declared characters the font does not all have.
+const fontGap = computed(() => props.row.requiredBy.find(use => use.coverage?.missingCount));
 </script>
 
 <template>
@@ -42,6 +44,9 @@ const shownUses = computed(() => props.row.requiredBy.slice(0, 3));
           <span v-for="use in shownUses" :key="`${use.descriptor}:${use.line}`">{{ declarationLabel(use) }}</span>
           <span v-if="row.requiredBy.length > shownUses.length" class="text-muted">+{{ number(row.requiredBy.length - shownUses.length) }} more</span>
         </div>
+        <p v-if="fontGap?.coverage" class="report-asset-warning">
+          <i aria-hidden="true" class="mdi mdi-alert-outline" />{{ number(fontGap.coverage.missingCount) }} declared character{{ plural(fontGap.coverage.missingCount) }} of {{ fontGap.id ?? 'a Font entry' }} not in the font
+        </p>
       </div>
     </div>
     <details v-if="unavailable.length" class="report-asset-frames">
@@ -71,4 +76,5 @@ const shownUses = computed(() => props.row.requiredBy.slice(0, 3));
 .report-asset-frames li { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; font-family: monospace; line-height: 1.4; overflow-wrap: anywhere; }
 .report-asset-frames small { flex-shrink: 0; color: #8a939c; font-family: inherit; }
 .report-asset :deep(.thumbnail img) { object-fit: contain; }
+.report-asset-warning { display: flex; gap: 4px; margin: 8px 0 0; color: #d2453c; font-size: 11px; }
 </style>

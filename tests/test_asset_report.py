@@ -91,7 +91,7 @@ def test_lists_each_asset_with_the_descriptor_entries_that_load_it(tmp_path):
                                                   tmp_path / "resources" / "common" / "shared.png",
                                                   *(game / "anim").iterdir(), *game.glob("loop*.png")])
     assert result["summary"] == {"assets": 9, "available": 4, "missing": 2, "invalid": 1, "supplementary": 2, "size": files,
-                                 "types": {"audio": 1, "other": 1, "texture": 7}}
+                                 "types": {"audio": 1, "font": 1, "texture": 7}}
     assert [descriptor["name"] for descriptor in result["descriptors"]] == [
         "RssAudioData.json", "RssImagesData.json", "RssImagesSeqData.json", "RssRawData.json"]
 
@@ -126,8 +126,8 @@ def client(tmp_path):
 
 def test_generating_a_report_saves_it_and_the_library_shows_the_newest(client):
     headers = session_headers(client)
-    assert client.get("/api/library").json()["assetReport"] == {"reportPath": None, "summary": None}
-    assert client.get("/api/asset-report").json()["error"] == "This workspace has no asset report yet. Click Generate report to create one."
+    assert client.get("/api/library").json()["assetReport"] == {"reportPath": None, "version": None, "summary": None}
+    assert client.get("/api/asset-report").json()["error"] == "This workspace has no asset report yet. Click Rescan in the Asset library to create one."
     first = client.post("/api/asset-report", headers=headers).json()
     status = first["assetReport"]
     assert status["summary"]["state"] == "succeeded" and status["summary"]["assets"] == 9
