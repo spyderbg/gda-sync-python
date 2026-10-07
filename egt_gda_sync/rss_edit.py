@@ -91,10 +91,11 @@ def declaration_keys(root: Node, row: dict, game_dir: Path) -> list[Key]:
     """The keys of the list members that declare a row of the GDA sync report in a descriptor. An image sequence row is
     its sequence: the one with its id and, like the report lists them, its frame paths. A file row is every entry outside
     an image sequence that declares its file, and every sample of an audio event that does; an event goes as a whole
-    when it would have no samples left. game_dir is the game folder as the GDA sync resolved it."""
+    when it would have no samples left. An RTF row is every entry that declares its .rtf file. game_dir is the game
+    folder as the GDA sync resolved it."""
     keys: list[Key] = []
     sequence = row.get("sequence")
-    file = Path(row["resourcePath"])
+    file = Path(row["directory"]["project"] if "directory" in row else row["resourcePath"])
     for key, node in walk(root):
         if sequence is not None:
             if node.kind != "object" or len(key) < 2 or key[-2] != "imagesSeq" or getattr(node.member("id"), "value", None) != sequence["id"]:

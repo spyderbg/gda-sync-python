@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { assetBadges, assetFrames, baseName, codePoint, extensionOf, fileType, number, plural, sequenceName, size, splitPath, time } from '../format';
+import { assetBadges, assetFrames, baseName, codePoint, extensionOf, fileType, firstRtfPage, number, plural, sequenceName, size, splitPath, time, typeIcons } from '../format';
 import type { FileFacts, ReportAsset } from '../types';
 import { copy, openResourceFolder } from '../workspace';
 import AppModal from './AppModal.vue';
 import AudioPreview from './AudioPreview.vue';
 import FontPreview from './FontPreview.vue';
 import ReportThumbnail from './ReportThumbnail.vue';
+import RtfPreview from './RtfPreview.vue';
 import SequencePreview from './SequencePreview.vue';
 
 // The details of one asset of the asset report in a dialog, like the details of a GDA sync report resource: a large
@@ -14,8 +15,10 @@ import SequencePreview from './SequencePreview.vue';
 // open its folder, and the format, size, resolution, pixel format, mip levels and time of its file. An image sequence
 // plays in the dialog, with how it plays, the totals of its files and each frame's status. An audio file plays once
 // when the dialog opens. A font is drawn with itself, with the characters and at the size of the Font entry chosen, its
-// names and glyph count, and for each Font entry, which of its declared characters the font has. Escape closes the
-// dialog.
+// names and glyph count, and for each Font entry, which of its declared characters the font has. An RTF is its folder,
+// named by it: it draws its pages, in each of its languages, with its tool version, its pages, each of which the table
+// shows on the preview, the images and videos its pages draw that are missing, and every file of the folder; its folder
+// button opens the RTF's folder itself. Escape closes the dialog.
 const props = defineProps<{ row: ReportAsset; revision: string }>();
 const emit = defineEmits<{ close: [] }>();
 
@@ -30,6 +33,12 @@ const fontUses = computed(() => props.row.requiredBy.filter(use => use.chars));
 const chosen = ref(0);
 watch(() => props.row.id, () => { chosen.value = 0; });
 const fontUse = computed(() => fontUses.value[chosen.value] ?? null);
+// An RTF's facts, its folder, its .rtf file, which the previews show, and the page its preview shows.
+const rtf = computed(() => (readable.value ? props.row.rtf : undefined));
+const directory = computed(() => props.row.directory);
+const file = computed(() => directory.value?.project ?? props.row.resourcePath);
+const rtfPage = ref(0);
+watch(() => props.row.id, () => { rtfPage.value = props.row.rtf ? firstRtfPage(props.row.rtf) : 0; }, { immediate: true });
 
 /** Up to three different values, then how many more there are. */
 function listed(values: string[]) {
@@ -47,6 +56,24 @@ const table = computed(() => {
   const dimensions = found.flatMap(file => (file.dimensions ? [file.dimensions] : []));
   const newest = found.map(file => file.modifiedAt ?? '').sort().pop();
   const font = props.row.font;
+  if (props.row.type === 'rtf') {
+    const facts = rtf.value;
+    const folder = directory.value;
+    return [
+      { label: folder ? 'Project file' : 'File format', value: [folder ? baseName(folder.project) : '', facts ? 'RTF Tool project (JSON)' : ''].filter(Boolean).join(', ') || 'RTF' },
+      ...(facts ? [
+        { label: 'Tool version', value: facts.version ?? '—' },
+        { label: 'Languages', value: facts.languages.join(', ') || '—' },
+        { label: 'Pages', value: `${number(facts.pages.length)}${facts.pages.length ? `, ${listed(facts.pages.map(page => `${page.width} × ${page.height}`))}` : ''}` },
+        { label: 'Images and videos', value: `${number(facts.images)} image${plural(facts.images)}, ${number(facts.videos)} video${plural(facts.videos)}` },
+        { label: 'Missing files', value: facts.missingCount ? number(facts.missingCount) : 'None', warn: !!facts.missingCount },
+        { label: 'Texts and styles', value: `${number(facts.texts)} text${plural(facts.texts)}, ${number(facts.styles)} style${plural(facts.styles)}` },
+      ] : [{ label: 'RTF', value: props.row.rtfError ?? (readable.value ? 'Rescan to read its pages' : '—') }]),
+      ...(folder ? [{ label: 'Files', value: `${number(folder.files.length)} file${plural(folder.files.length)}` }] : []),
+      { label: folder ? 'Total size' : 'File size', value: props.row.size !== undefined ? size(props.row.size) : '—' },
+      { label: folder ? 'Last modified, newest' : 'Last modified', value: props.row.modifiedAt ? time(props.row.modifiedAt) : '—' },
+    ];
+  }
   if (isFont.value) {
     return [
       { label: 'File format', value: font?.format ?? (extensionOf(name.value).toUpperCase() || '—') },
@@ -90,16 +117,21 @@ const frameRows = computed(() => (sequence.value?.frames ?? []).map((frame, inde
 
 const note = computed(() => {
   const many = !!sequence.value;
+  // An RTF is loaded by its .rtf file.
+  const project = directory.value ? `its project file, ${baseName(directory.value.project)}` : '';
   switch (props.row.category) {
-    case 'available': return { icon: 'mdi-check-all', tone: 'is-synced', title: 'Loaded by the game.', text: `The descriptor entries below load ${many ? 'these files' : 'this file'}, and ${many ? 'every one exists' : 'it exists'} in the game.` };
+    case 'available': return {
+      icon: 'mdi-check-all', tone: 'is-synced', title: 'Loaded by the game.',
+      text: `The descriptor entries below load ${project || (many ? 'these files' : 'this file')}, and ${many ? 'every one exists' : 'it exists'} in the game.`,
+    };
     case 'missing': return {
       icon: 'mdi-file-alert-outline', tone: 'is-pending', title: 'Not in the game folder.',
-      text: many ? 'A descriptor declares frames whose files do not exist, so the game cannot load them.' : 'A descriptor declares this file, but it does not exist, so the game cannot load it.',
+      text: many ? 'A descriptor declares frames whose files do not exist, so the game cannot load them.' : `A descriptor declares ${project || 'this file'}, but it does not exist, so the game cannot load it.`,
     };
     case 'invalid': return { icon: 'mdi-alert-circle-outline', tone: 'is-invalid', title: 'The declared path cannot be used.', text: props.row.status.replace(/^invalid: /, '') };
     default: return {
       icon: 'mdi-file-question-outline', tone: 'is-supplementary', title: 'Not declared.',
-      text: `No descriptor declares ${many ? 'these files' : 'this file'}, so the game does not load ${many ? 'them' : 'it'}.${sequence.value?.guessed ? ' The sequence is guessed from the file names.' : ''}`,
+      text: `No descriptor declares ${project || (many ? 'these files' : 'this file')}, so the game does not load ${many ? 'them' : 'it'}.${sequence.value?.guessed ? ' The sequence is guessed from the file names.' : ''}`,
     };
   }
 });
@@ -112,7 +144,7 @@ const scope = computed(() => ({ game: '', common: 'A common resource, shared wit
       <div class="details-previews">
         <figure class="details-preview">
           <figcaption>
-            {{ sequence ? 'Game frames' : 'Game file' }}<small v-if="sequence">Click to play again</small>
+            {{ sequence ? 'Game frames' : rtf ? 'Pages' : 'Game file' }}<small v-if="sequence">Click to play again</small>
             <span v-if="isFont && fontUses.length > 1" class="btn-group btn-group-sm" role="group" aria-label="Characters of the Font entry">
               <button v-for="(use, index) in fontUses" :key="`${use.descriptor}:${use.line}`" type="button" :class="['btn', 'btn-secondary', { active: index === chosen }]" :aria-pressed="index === chosen" @click="chosen = index">{{ use.id ?? `${use.descriptor}:${use.line}` }}</button>
             </span>
@@ -121,7 +153,8 @@ const scope = computed(() => ({ game: '', common: 'A common resource, shared wit
           <AudioPreview v-else-if="isAudio && readable" :file="row.resourcePath" :name="name" :revision="revision" autoplay />
           <FontPreview v-else-if="isFont && readable" :file="row.resourcePath" :name="name" :revision="revision" large
                        :chars="fontUse?.chars" :size="fontUse?.size" :missing="fontUse?.coverage?.missing" />
-          <ReportThumbnail v-else :file="row.resourcePath" :name="name" :revision="revision" :preview="readable && row.preview !== false" />
+          <RtfPreview v-else-if="rtf" v-model:page="rtfPage" :file="file" :name="name" :revision="revision" :facts="rtf" large />
+          <ReportThumbnail v-else :file="file" :name="baseName(file)" :revision="revision" :preview="readable && row.preview !== false" />
         </figure>
       </div>
 
@@ -136,6 +169,7 @@ const scope = computed(() => ({ game: '', common: 'A common resource, shared wit
           </div>
           <p v-if="scope" class="details-scope text-muted"><i aria-hidden="true" class="mdi mdi-share-variant-outline" /> {{ scope }}</p>
           <p v-if="row.previewError" class="details-scope text-muted"><i aria-hidden="true" class="mdi mdi-image-off-outline" /> {{ row.previewError }}</p>
+          <p v-if="row.rtfError" class="details-scope text-muted"><i aria-hidden="true" class="mdi mdi-book-alert-outline" /> {{ row.rtfError }}</p>
 
           <h6 class="details-heading">Loaded by</h6>
           <p v-if="!row.requiredBy.length" class="text-muted details-small">No JSON descriptor</p>
@@ -158,17 +192,63 @@ const scope = computed(() => ({ game: '', common: 'A common resource, shared wit
           <div class="details-path">
             <span class="details-code" :title="row.resourcePath">{{ row.resourcePath }}</span>
             <button type="button" class="details-icon" :aria-label="`Copy the game path ${row.resourcePath}`" title="Copy the game path" @click="copy(row.resourcePath)"><i aria-hidden="true" class="mdi mdi-content-copy" /></button>
-            <button type="button" class="details-icon" :aria-label="`Open the game folder of ${name}`" title="Open the game folder" @click="openResourceFolder(row.resourcePath)"><i aria-hidden="true" class="mdi mdi-folder-open-outline" /></button>
+            <button type="button" class="details-icon" :aria-label="`Open the game folder of ${name}`" title="Open the game folder" @click="openResourceFolder(file)"><i aria-hidden="true" class="mdi mdi-folder-open-outline" /></button>
           </div>
         </section>
 
         <section class="details-facts" aria-label="File details">
-          <h6 class="details-heading mt-0">{{ sequence ? 'Files' : 'File' }}</h6>
+          <h6 class="details-heading mt-0">{{ sequence ? 'Files' : directory ? 'Folder' : 'File' }}</h6>
           <table class="table details-table">
             <tbody>
-              <tr v-for="item in table" :key="item.label"><th scope="row">{{ item.label }}</th><td>{{ item.value }}</td></tr>
+              <tr v-for="item in table" :key="item.label"><th scope="row">{{ item.label }}</th><td :class="{ 'is-different': 'warn' in item && item.warn }">{{ item.value }}</td></tr>
             </tbody>
           </table>
+
+          <template v-if="rtf">
+            <h6 class="details-heading">Pages</h6>
+            <div class="details-frames">
+              <table class="table table-sm">
+                <thead><tr><th scope="col">Page</th><th scope="col">Resolution</th><th scope="col">Sections</th><th scope="col">Background</th></tr></thead>
+                <tbody>
+                  <tr v-for="(page, index) in rtf.pages" :key="page.id" :class="['details-page', { 'is-shown': index === rtfPage }]">
+                    <td><button type="button" class="details-page-button" :aria-label="`Show page ${page.id}`" :aria-pressed="index === rtfPage" @click="rtfPage = index">{{ page.id }}</button></td>
+                    <td class="text-nowrap">{{ page.width }} × {{ page.height }}</td>
+                    <td>{{ number(page.sections) }}</td>
+                    <td class="details-code" :title="page.background ?? undefined">
+                      <span v-if="page.found">{{ baseName(page.background ?? '') }}</span>
+                      <span v-else class="badge badge-warning">{{ page.background ? `${baseName(page.background)} missing` : 'not mapped' }}</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <template v-if="rtf.missingCount">
+              <h6 class="details-heading">Missing files</h6>
+              <ul class="details-list details-rtf-missing">
+                <li v-for="file in rtf.missing" :key="`${file.kind}:${file.id}`">
+                  <span class="badge badge-light">{{ file.kind }}</span><span class="details-code">{{ file.id }}</span>
+                  <span class="details-code text-muted">{{ file.path ?? 'not mapped to a file' }}</span>
+                </li>
+                <li v-if="rtf.missingCount > rtf.missing.length" class="text-muted">+{{ number(rtf.missingCount - rtf.missing.length) }} more</li>
+              </ul>
+            </template>
+          </template>
+
+          <template v-if="directory?.files.length">
+            <h6 class="details-heading">Files</h6>
+            <div class="details-frames">
+              <table class="table table-sm details-rtf-files">
+                <thead><tr><th scope="col">File</th><th scope="col">Resolution</th><th scope="col">Size</th></tr></thead>
+                <tbody>
+                  <tr v-for="item in directory.files" :key="item.path">
+                    <td class="details-code" :title="item.resourcePath"><i aria-hidden="true" :class="['mdi', typeIcons[item.type], 'text-muted']" /> {{ item.path }}</td>
+                    <td class="text-nowrap">{{ item.dimensions ? `${item.dimensions.width} × ${item.dimensions.height}` : '—' }}</td>
+                    <td class="text-nowrap">{{ size(item.size) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </template>
 
           <template v-if="sequence">
             <h6 class="details-heading">Animation</h6>
@@ -210,4 +290,8 @@ const scope = computed(() => ({ game: '', common: 'A common resource, shared wit
 .details-coverage i { margin-right: 3px; }
 .details-missing { display: flex; flex-wrap: wrap; gap: 4px; width: 100%; max-height: 96px; overflow-y: auto; }
 .details-missing .badge { font-family: monospace; font-weight: 400; }
+.details-page.is-shown td { background: #f2f2ff; }
+.details-page-button { padding: 0; border: 0; background: transparent; color: #4b49ac; font-family: monospace; font-size: 12px; text-align: left; overflow-wrap: anywhere; cursor: pointer; }
+.details-page-button:hover { text-decoration: underline; }
+.details-rtf-missing li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; margin-bottom: 4px; }
 </style>

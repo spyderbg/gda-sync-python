@@ -1,0 +1,15 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Development: stop services",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": ["${workspaceFolder}/scripts/dev.py", "stop"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    }
+  ]
+}

@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { baseName, declarationLabel, directoryOf, extensionOf, fileType, number, plural, previewFrames, rssBadges, sequenceName, size, splitPath, time } from '../format';
-import type { RssFileDetails, RssResource } from '../types';
+import { baseName, declarationLabel, directoryOf, extensionOf, fileType, number, plural, previewFrames, rssBadges, rtfChangeBadges, rtfChangeNames, rtfChangeSummary, sequenceName, size, splitPath, time } from '../format';
+import type { RssFileDetails, RssResource, RtfFacts } from '../types';
 import { busy, copy, openResourceFolder, requestResourceSync, resourceDetails, rssSync } from '../workspace';
 import AppModal from './AppModal.vue';
 import AudioPreview from './AudioPreview.vue';
 import FontPreview from './FontPreview.vue';
 import ReportThumbnail from './ReportThumbnail.vue';
+import RtfPreview from './RtfPreview.vue';
 import SequencePreview from './SequencePreview.vue';
 
 // The details of one resource of the GDA sync report in a dialog, like the asset library's asset details (AssetDetails):
@@ -15,8 +16,9 @@ import SequencePreview from './SequencePreview.vue';
 // declared. An image sequence plays in the dialog, with how it plays, the totals of its files and each frame's status.
 // An audio file plays once when the dialog opens, and each audio preview has a play and stop button. A font is drawn with
 // itself on both sides, with the same text, and with the characters and at the size of the Font entry chosen; the table
-// compares the fonts' names, glyph counts and how many of each Font entry's characters they have. Escape closes the
-// dialog.
+// compares the fonts' names, glyph counts and how many of each Font entry's characters they have. An RTF draws the
+// pages of the game's RTF and of the closest GDA one side by side, on the same page when both have it; the table compares
+// the two projects, and the files of the folders are listed with what Sync does to each. Escape closes the dialog.
 // reportVersion is the GDA sync report's version; one before FONT_REPORT_VERSION has no Font entry characters to check.
 const props = defineProps<{ row: RssResource; revision: string; reportVersion?: number }>();
 const emit = defineEmits<{ close: [] }>();
@@ -25,17 +27,28 @@ const sequence = computed(() => props.row.sequence);
 const name = computed(() => splitPath(props.row.resource).name);
 const running = computed(() => !!rssSync.value?.running);
 const unique = (paths: (string | null | undefined)[]) => [...new Set(paths.filter((path): path is string => !!path))];
+// An RTF's folder, and the page its previews show, by name: both RTFs show it when they have it.
+const directory = computed(() => props.row.directory);
+const rtfPage = ref<string | null>(null);
+watch(() => props.row.id, () => { rtfPage.value = null; });
+const pageIndex = (facts: RtfFacts) => { const index = facts.pages.findIndex(page => page.id === rtfPage.value); return index < 0 ? undefined : index; };
+const choosePage = (facts: RtfFacts, index: number | undefined) => { rtfPage.value = index === undefined ? null : facts.pages[index]?.id ?? null; };
+// An RTF's files that Sync copies or deletes first, then the identical ones.
+const rtfFiles = computed(() => [...(directory.value?.files ?? [])].sort((a, b) => Number(!a.change || a.change === 'identical') - Number(!b.change || b.change === 'identical')));
 const isAudio = (path: string) => fileType(extensionOf(baseName(path))) === 'audio';
 
-// The files described: a sequence's game files and the GDA file of each of its frames, each once.
-const gameFiles = computed(() => (sequence.value
+// The files described: a sequence's game files and the GDA file of each of its frames, each once. An RTF is described by
+// the report.
+const gameFiles = computed(() => (directory.value ? [] : sequence.value
   ? unique(sequence.value.frames.filter(frame => frame.category !== 'invalid').map(frame => frame.resourcePath))
   : props.row.category === 'invalid' ? [] : [props.row.resourcePath]));
-const gdaFiles = computed(() => (sequence.value
+const gdaFiles = computed(() => (directory.value ? [] : sequence.value
   ? unique(sequence.value.frames.map(frame => frame.gdaFiles[0]?.absolutePath))
   : props.row.gdaFiles.slice(0, 1).map(file => file.absolutePath)));
-const hasGda = computed(() => gdaFiles.value.length > 0);
-const gdaLabel = computed(() => (sequence.value ? 'GDA frames' : props.row.category === 'different' ? 'GDA file, copied on sync' : 'Matching GDA file'));
+const hasGda = computed(() => (directory.value ? !!directory.value.gdaProject : gdaFiles.value.length > 0));
+const gdaLabel = computed(() => (sequence.value ? 'GDA frames'
+  : directory.value ? (props.row.category === 'different' ? 'GDA folder, copied on sync' : 'Matching GDA folder')
+    : props.row.category === 'different' ? 'GDA file, copied on sync' : 'Matching GDA file'));
 // Computed once per row: SequencePreview loads its frames again whenever it gets other ones.
 const gameFrames = computed(() => (sequence.value ? previewFrames(sequence.value, 'game') : []));
 const gdaFrames = computed(() => (sequence.value ? previewFrames(sequence.value, 'gda') : []));
@@ -116,7 +129,28 @@ const table = computed(() => {
   const game = describe(gameFiles.value);
   const gda = describe(gdaFiles.value);
   let rows: { label: string; game: string; gda: string; compare: boolean }[];
-  if (isFont.value) {
+  if (directory.value) {
+    const folder = directory.value;
+    const project = (facts?: RtfFacts, error?: string) => ({
+      version: facts?.version ?? error ?? '—', languages: facts?.languages.join(', ') || '—',
+      pages: facts ? `${number(facts.pages.length)}${facts.pages.length ? `, ${listed(facts.pages.map(page => `${page.width} × ${page.height}`))}` : ''}` : '—',
+      media: facts ? `${number(facts.images)} image${plural(facts.images)}, ${number(facts.videos)} video${plural(facts.videos)}` : '—',
+      missing: facts ? (facts.missingCount ? number(facts.missingCount) : 'None') : '—',
+      texts: facts ? `${number(facts.texts)} text${plural(facts.texts)}, ${number(facts.styles)} style${plural(facts.styles)}` : '—',
+    });
+    const gameRtf = project(props.row.rtf, props.row.rtfError);
+    const gdaRtf = project(props.row.gdaRtf, props.row.gdaRtfError);
+    const files = (key: 'resourcePath' | 'gdaPath') => number(folder.files.filter(file => file[key]).length);
+    rows = [
+      { label: 'Tool version', game: gameRtf.version, gda: gdaRtf.version, compare: true },
+      { label: 'Languages', game: gameRtf.languages, gda: gdaRtf.languages, compare: true },
+      { label: 'Pages', game: gameRtf.pages, gda: gdaRtf.pages, compare: true },
+      { label: 'Images and videos', game: gameRtf.media, gda: gdaRtf.media, compare: true },
+      { label: 'Missing files', game: gameRtf.missing, gda: gdaRtf.missing, compare: true },
+      { label: 'Texts and styles', game: gameRtf.texts, gda: gdaRtf.texts, compare: true },
+      { label: 'Files', game: files('resourcePath'), gda: hasGda.value ? files('gdaPath') : '—', compare: true },
+    ];
+  } else if (isFont.value) {
     const gameFont = describeFont(gameFiles.value);
     const gdaFont = describeFont(gdaFiles.value);
     rows = [
@@ -174,6 +208,23 @@ const showFrameStatus = computed(() => !sequence.value?.guessed);
 
 const note = computed(() => {
   const many = !!sequence.value;
+  const folder = directory.value;
+  if (folder) {
+    const project = baseName(folder.project);
+    switch (props.row.category) {
+      case 'identical': return { icon: 'mdi-check-all', tone: 'is-synced', title: 'Everything looks good.', text: 'The GDA folder has an identical copy of every file of this RTF.' };
+      case 'different': return {
+        icon: 'mdi-sync', tone: 'is-pending', title: 'The GDA has another version.',
+        text: `Sync makes this RTF's folder a copy of the closest GDA folder (${rtfChangeSummary(folder)}), and keeps the replaced and deleted files in your backups. A file that a descriptor declares is never deleted.`,
+      };
+      case 'missing': return { icon: 'mdi-file-search-outline', tone: 'is-pending', title: 'Not in the GDA folder.', text: `No GDA folder holds a file named ${project}, so there is nothing to copy.` };
+      case 'invalid': return { icon: 'mdi-alert-circle-outline', tone: 'is-invalid', title: 'The declared path cannot be used.', text: props.row.status.replace(/^invalid: /, '') };
+      default: return {
+        icon: 'mdi-file-question-outline', tone: 'is-supplementary', title: 'Not declared.',
+        text: `No descriptor declares its ${project}, so the game does not load it, and it is not compared with the GDA folder.`,
+      };
+    }
+  }
   switch (props.row.category) {
     case 'identical': return { icon: 'mdi-check-all', tone: 'is-synced', title: 'Everything looks good.', text: `The GDA folder has an identical ${many ? 'file for every frame' : 'file'}.` };
     case 'different': return {
@@ -207,20 +258,23 @@ function sync() {
       <div :class="['details-previews', { 'is-paired': pairedPreview }]">
         <figure class="details-preview">
           <figcaption>
-            {{ sequence ? 'Game frames' : 'Game file' }}<small v-if="sequence">Click to play again</small>
+            {{ sequence ? 'Game frames' : directory ? 'Game folder' : 'Game file' }}<small v-if="sequence">Click to play again</small>
             <span v-if="isFont && fontUses.length > 1" class="btn-group btn-group-sm" role="group" aria-label="Characters of the Font entry">
               <button v-for="(use, index) in fontUses" :key="`${use.descriptor}:${use.line}`" type="button" :class="['btn', 'btn-secondary', { active: index === chosen }]" :aria-pressed="index === chosen" @click="chosen = index">{{ use.id ?? `${use.descriptor}:${use.line}` }}</button>
             </span>
           </figcaption>
           <SequencePreview v-if="sequence" :frames="gameFrames" :frame-time="sequence.frameTime" :loop-count="sequence.loopCount" :loop-to="sequence.loopTo" :name="sequence.id ?? name" :revision="revision" />
+          <RtfPreview v-else-if="directory && row.rtf" :page="pageIndex(row.rtf)" :file="directory.project" :name="name" :revision="revision" :facts="row.rtf" large @update:page="choosePage(row.rtf, $event)" />
           <AudioPreview v-else-if="isAudio(row.resourcePath) && row.category !== 'invalid'" :file="row.resourcePath" :name="name" :revision="revision" autoplay />
           <FontPreview v-else-if="isFont && row.category !== 'invalid'" v-model:text="fontText" :file="row.resourcePath" :name="name" :revision="revision" large
                        :chars="fontUse?.chars" :size="fontUse?.size" :missing="coverageOf(row.resourcePath)?.missing" />
-          <ReportThumbnail v-else :file="row.resourcePath" :name="name" :revision="revision" :preview="row.category !== 'invalid'" />
+          <ReportThumbnail v-else :file="directory?.project ?? row.resourcePath" :name="directory ? baseName(directory.project) : name" :revision="revision" :preview="row.category !== 'invalid'" />
         </figure>
         <figure v-if="pairedPreview" class="details-preview">
           <figcaption>{{ gdaLabel }}</figcaption>
           <SequencePreview v-if="sequence" :frames="gdaFrames" :frame-time="sequence.frameTime" :loop-count="sequence.loopCount" :loop-to="sequence.loopTo" :name="`${sequence.id ?? name} from the GDA`" :revision="revision" />
+          <RtfPreview v-else-if="directory?.gdaProject && row.gdaRtf" :page="pageIndex(row.gdaRtf)" :file="directory.gdaProject" :name="`${baseName(row.gdaFiles[0].path)} from the GDA`" :revision="revision" :facts="row.gdaRtf" large @update:page="choosePage(row.gdaRtf, $event)" />
+          <ReportThumbnail v-else-if="directory?.gdaProject" :file="directory.gdaProject" :name="baseName(directory.gdaProject)" :revision="revision" />
           <AudioPreview v-else-if="isAudio(row.gdaFiles[0].path)" :file="row.gdaFiles[0].absolutePath" :name="baseName(row.gdaFiles[0].path)" :revision="revision" />
           <FontPreview v-else-if="isFont" v-model:text="fontText" :file="row.gdaFiles[0].absolutePath" :name="baseName(row.gdaFiles[0].path)" :revision="revision" large
                        :chars="fontUse?.chars" :size="fontUse?.size" :missing="coverageOf(row.gdaFiles[0].absolutePath)?.missing" />
@@ -252,7 +306,7 @@ function sync() {
           <div class="details-path">
             <span class="details-code" :title="row.resourcePath">{{ row.resourcePath }}</span>
             <button type="button" class="details-icon" :aria-label="`Copy the game path ${row.resourcePath}`" title="Copy the game path" @click="copy(row.resourcePath)"><i aria-hidden="true" class="mdi mdi-content-copy" /></button>
-            <button type="button" class="details-icon" :aria-label="`Open the game folder of ${name}`" title="Open the game folder" @click="openResourceFolder(row.resourcePath)"><i aria-hidden="true" class="mdi mdi-folder-open-outline" /></button>
+            <button type="button" class="details-icon" :aria-label="`Open the game folder of ${name}`" title="Open the game folder" @click="openResourceFolder(directory?.project ?? row.resourcePath)"><i aria-hidden="true" class="mdi mdi-folder-open-outline" /></button>
           </div>
           <template v-if="sequence && gdaFolders.length">
             <h6 class="details-heading">GDA folder{{ plural(gdaFolders.length) }}</h6>
@@ -263,18 +317,18 @@ function sync() {
             </div>
           </template>
           <template v-else-if="row.gdaFiles.length">
-            <h6 class="details-heading">GDA file{{ plural(row.gdaFiles.length) }}{{ row.gdaFiles.length > 1 ? ', closest folder first' : '' }}</h6>
+            <h6 class="details-heading">GDA {{ directory ? 'folder' : 'file' }}{{ plural(row.gdaFiles.length) }}{{ row.gdaFiles.length > 1 ? (directory ? ', closest first' : ', closest folder first') : '' }}</h6>
             <div v-for="(file, index) in row.gdaFiles" :key="file.absolutePath" class="details-path">
               <span class="details-code" :title="file.absolutePath">{{ file.absolutePath }}</span>
               <span v-if="row.category === 'different'" :class="['badge', index ? 'badge-light' : 'badge-primary']">{{ index ? 'Other match' : 'Copied on sync' }}</span>
               <button type="button" class="details-icon" :aria-label="`Copy the GDA path ${file.path}`" title="Copy the GDA path" @click="copy(file.absolutePath)"><i aria-hidden="true" class="mdi mdi-content-copy" /></button>
-              <button type="button" class="details-icon" :aria-label="`Open the GDA folder of ${file.path}`" title="Open the GDA folder" @click="openResourceFolder(file.absolutePath)"><i aria-hidden="true" class="mdi mdi-folder-open-outline" /></button>
+              <button type="button" class="details-icon" :aria-label="`Open the GDA folder of ${file.path}`" title="Open the GDA folder" @click="openResourceFolder(directory ? `${file.absolutePath}/${baseName(directory.project)}` : file.absolutePath)"><i aria-hidden="true" class="mdi mdi-folder-open-outline" /></button>
             </div>
           </template>
         </section>
 
         <section class="details-facts" aria-label="File details">
-          <h6 class="details-heading mt-0">{{ sequence ? 'Files' : 'File' }}</h6>
+          <h6 class="details-heading mt-0">{{ sequence ? 'Files' : directory ? 'RTF' : 'File' }}</h6>
           <p v-if="loadError" class="text-danger details-small">{{ loadError }}</p>
           <table class="table details-table">
             <thead v-if="hasGda"><tr><th scope="col" /><th scope="col">Game</th><th scope="col">{{ gdaLabel }}</th></tr></thead>
@@ -286,6 +340,24 @@ function sync() {
               </tr>
             </tbody>
           </table>
+
+          <template v-if="directory">
+            <h6 class="details-heading">Files<small v-if="row.category === 'different'" class="text-muted"> · copied on sync: {{ rtfChangeSummary(directory) }}</small></h6>
+            <div class="details-frames">
+              <table class="table table-sm details-rtf-files">
+                <thead><tr><th scope="col">File</th><th v-if="hasGda" scope="col">On sync</th></tr></thead>
+                <tbody>
+                  <tr v-for="file in rtfFiles" :key="file.path">
+                    <td class="details-code" :title="file.resourcePath ?? file.gdaPath ?? undefined">{{ file.path }}</td>
+                    <td v-if="hasGda">
+                      <span v-if="file.change" :class="['badge', rtfChangeBadges[file.change]]">{{ rtfChangeNames[file.change] }}</span>
+                      <small v-if="file.mipOnly" class="text-muted ml-1">mip levels differ</small>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </template>
 
           <template v-if="sequence">
             <h6 class="details-heading">Animation</h6>

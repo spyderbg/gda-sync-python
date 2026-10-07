@@ -6,7 +6,7 @@ import ButtonTooltip from '../components/ButtonTooltip.vue';
 import ReportThumbnail from '../components/ReportThumbnail.vue';
 import WorkspaceHeader from '../components/WorkspaceHeader.vue';
 import { useAssetReport } from '../composables/useAssetReport';
-import { assetBadges, assetMatches, declarationLabel, number, size, splitPath } from '../format';
+import { assetBadges, assetMatches, baseName, declarationLabel, number, size, splitPath } from '../format';
 import type { AssetCategory, ReportAsset } from '../types';
 import { assetReport, busy, generateAssetReport, ui } from '../workspace';
 
@@ -45,7 +45,7 @@ const FILTERS: { key: Filter; label: string; hint: string }[] = [
 ];
 const PAGE_SIZE = 200;
 // The asset report version this release writes, ASSET_REPORT_VERSION in egt_gda_sync/asset_report.py.
-const REPORT_VERSION = 2;
+const REPORT_VERSION = 3;
 
 const { report, loadError } = useAssetReport();
 const filter = ref<Filter>('all');
@@ -53,6 +53,8 @@ const shown = ref(PAGE_SIZE);
 const state = computed(() => (!assetReport.value?.reportPath ? 'none' : loadError.value ? 'error' : report.value ? 'ready' : 'loading'));
 const revision = computed(() => report.value?.summary.finishedAt ?? '');
 const outdated = computed(() => !!assetReport.value?.reportPath && (assetReport.value.version ?? 1) < REPORT_VERSION);
+// What an earlier version did not report: fonts before version 2, and RTFs before version 3.
+const outdatedTypes = computed(() => ((assetReport.value?.version ?? 1) < 2 ? 'fonts and RTFs' : 'RTFs'));
 const assets = computed(() => report.value?.assets ?? []);
 // The sidebar's type narrows the assets that the status filters count.
 const typed = computed(() => assets.value.filter(row => ui.category === 'all' || row.type === ui.category));
@@ -70,8 +72,14 @@ watch([filter, () => ui.query, () => ui.category, report], () => { shown.value =
 
 // Clicking an asset shows its details; a new report that no longer lists it closes them.
 const detailsRow = computed(() => (ui.inspecting ? assets.value.find(row => row.id === ui.inspecting) ?? null : null));
-// A row of the list shows the file of the asset, or a sequence's first frame.
-const listFile = (row: ReportAsset) => row.sequence?.frames[0] ?? row;
+// A row of the list shows the file of the asset, a sequence's first frame, or the background of an RTF's first
+// page that has one, else its .rtf file.
+function listFile(row: ReportAsset) {
+  const page = readable(row) ? row.rtf?.pages.find(item => item.found && item.background) : undefined;
+  if (page?.background) return { resourcePath: page.background, resource: baseName(page.background), category: row.category };
+  if (row.directory) return { resourcePath: row.directory.project, resource: baseName(row.directory.project), category: row.category };
+  return row.sequence?.frames[0] ?? row;
+}
 const readable = (row: { category: AssetCategory }) => row.category === 'available' || row.category === 'supplementary';
 
 function showAll() {
@@ -94,7 +102,7 @@ function showAll() {
 
   <template v-else>
     <div v-if="outdated" class="alert alert-info library-outdated" role="note">
-      <i aria-hidden="true" class="mdi mdi-information-outline" />This report was written by an earlier version, which counted fonts as other files and did not check them. Rescan to update it.
+      <i aria-hidden="true" class="mdi mdi-information-outline" />This report was written by an earlier version, which counted {{ outdatedTypes }} as other files and did not read them. Rescan to update it.
     </div>
     <div class="library-controls">
       <div class="library-filter-toolbar" role="group" aria-label="Asset filters and layout">

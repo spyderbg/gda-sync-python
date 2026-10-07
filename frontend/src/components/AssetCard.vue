@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { assetBadges, assetFrames, declarationLabel, number, plural, sequenceName, sequenceSummary, size, splitPath, typeIcons } from '../format';
+import { assetBadges, assetFrames, baseName, declarationLabel, number, plural, sequenceName, sequenceSummary, size, splitPath, typeIcons } from '../format';
 import type { ReportAsset } from '../types';
 import ReportThumbnail from './ReportThumbnail.vue';
+import RtfPreview from './RtfPreview.vue';
 import SequencePreview from './SequencePreview.vue';
 
 // One asset of the asset report as a card, in the look of the Sync page's cards: its preview, name, folder, size and
 // image size, the report's status, and the descriptor entries that load it. An image sequence plays its frames, and
-// clicking its preview plays it again from the first frame. Clicking the card, or its details button, emits open.
+// clicking its preview plays it again from the first frame. An RTF is its folder, named by it: it shows its pages, its
+// languages, how many files the folder has, and how many of the files its pages draw are missing. Clicking the card, or its details button, emits open.
 const props = withDefaults(defineProps<{ row: ReportAsset; revision: string; inspected?: boolean }>(), { inspected: false });
 const emit = defineEmits<{ open: [] }>();
 
@@ -23,14 +25,18 @@ const unavailable = computed(() => [...new Map((sequence.value?.frames ?? [])
 const shownUses = computed(() => props.row.requiredBy.slice(0, 3));
 // The first Font entry whose declared characters the font does not all have.
 const fontGap = computed(() => props.row.requiredBy.find(use => use.coverage?.missingCount));
+const rtf = computed(() => (readable.value ? props.row.rtf : undefined));
+// The file a preview shows: an RTF's .rtf file, or the asset's own.
+const file = computed(() => props.row.directory?.project ?? props.row.resourcePath);
 </script>
 
 <template>
   <article :class="['card', 'asset-card', 'report-asset', `is-${row.category}`, { inspected }]">
     <SequencePreview v-if="sequence" :frames="frames" :frame-time="sequence.frameTime" :loop-count="sequence.loopCount" :loop-to="sequence.loopTo" :name="sequence.id ?? resource.name" :revision="revision" />
     <div class="asset-hit-target" @click="emit('open')">
-      <button v-if="!sequence" type="button" class="report-asset-preview" :aria-label="`Inspect ${resource.name}`">
-        <ReportThumbnail :file="row.resourcePath" :name="resource.name" :revision="revision" :preview="readable && row.preview !== false" />
+      <RtfPreview v-if="rtf" :file="file" :name="resource.name" :revision="revision" :facts="rtf" />
+      <button v-else-if="!sequence" type="button" class="report-asset-preview" :aria-label="`Inspect ${resource.name}`">
+        <ReportThumbnail :file="file" :name="baseName(file)" :revision="revision" :preview="readable && row.preview !== false" />
       </button>
       <div class="card-body">
         <p class="asset-name"><i aria-hidden="true" :class="['mdi', sequence ? 'mdi-animation-outline' : typeIcons[row.type]]" /><span :title="row.resourcePath">{{ resource.name }}</span></p>
@@ -38,12 +44,20 @@ const fontGap = computed(() => props.row.requiredBy.find(use => use.coverage?.mi
         <p v-if="sequence" class="report-asset-sequence" :title="sequence.paths.join('\n')">
           <span :class="['report-asset-sequence-id', { 'is-guessed': sequence.guessed }]">{{ sequenceName(sequence) }}</span>{{ sequenceSummary(sequence) }}
         </p>
+        <p v-if="rtf || row.directory" class="report-asset-sequence">
+          <template v-if="rtf">{{ number(rtf.pages.length) }} page{{ plural(rtf.pages.length) }}<template v-if="rtf.languages.length"> · {{ rtf.languages.join(', ') }}</template> · </template>
+          <template v-if="row.directory">{{ number(row.directory.files.length) }} file{{ plural(row.directory.files.length) }}</template>
+        </p>
         <div class="asset-footer"><span :class="['badge', 'report-asset-status', assetBadges[row.category]]">{{ row.status }}</span><small v-if="dimensions">{{ dimensions }}</small></div>
         <div class="report-asset-declared">
           <small class="text-muted">{{ row.requiredBy.length ? 'Loaded by' : 'No JSON descriptor' }}</small>
           <span v-for="use in shownUses" :key="`${use.descriptor}:${use.line}`">{{ declarationLabel(use) }}</span>
           <span v-if="row.requiredBy.length > shownUses.length" class="text-muted">+{{ number(row.requiredBy.length - shownUses.length) }} more</span>
         </div>
+        <p v-if="rtf?.missingCount" class="report-asset-warning">
+          <i aria-hidden="true" class="mdi mdi-alert-outline" />{{ number(rtf.missingCount) }} file{{ plural(rtf.missingCount) }} that its pages draw {{ rtf.missingCount === 1 ? 'is' : 'are' }} missing
+        </p>
+        <p v-else-if="row.rtfError" class="report-asset-warning"><i aria-hidden="true" class="mdi mdi-alert-outline" />{{ row.rtfError }}</p>
         <p v-if="fontGap?.coverage" class="report-asset-warning">
           <i aria-hidden="true" class="mdi mdi-alert-outline" />{{ number(fontGap.coverage.missingCount) }} declared character{{ plural(fontGap.coverage.missingCount) }} of {{ fontGap.id ?? 'a Font entry' }} not in the font
         </p>

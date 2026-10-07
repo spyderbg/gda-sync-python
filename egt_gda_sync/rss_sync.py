@@ -4,8 +4,9 @@ A port of docs/rss_sync/gda_sync.py (described in docs/rss_sync/sync.md). It cla
 except that only a file inside the game folder (game_path) is reported missing, and an image sequence is one resource:
 its frames, often a {N-M} range of files, are compared one by one, and the sequence takes the status of its frames.
 A game file that nothing declares is "supplementary" and not compared; numbered images among them are guessed to be
-image sequences. It returns JSON-ready data instead of a Markdown report, lists identical files too, and reports progress so it can run
-as a background job.
+image sequences. An RTF, a project of the RTF Tool, is one resource: its folder, compared file by file with the GDA folder
+that holds a .rtf file of the same name. It returns JSON-ready data instead of a Markdown report, lists identical files
+too, and reports progress so it can run as a background job.
 """
 
 from __future__ import annotations
@@ -23,6 +24,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any, NamedTuple
 
 from .rss_schemas import DOCUMENT_TYPES, Frame, ImageSequence, parse_dataclass
+from .rtf import describe_rtf
 
 RANGE_PATTERN = re.compile(r"\{(\d+)-(\d+)\}")
 JSON_STRING_PATTERN = re.compile(r'"(?:\\.|[^"\\])*"')
@@ -45,6 +47,8 @@ GUESSED_SEQUENCE_MIN = 5
 GUESSED_FRAME_TIME = 50
 GUESSED_LOOP_COUNT = 0
 SUPPLEMENTARY = {"status": "supplementary", "located": []}  # the result of a file that is listed but not compared
+RTF_SUFFIX = ".rtf"
+NAME_TOKENS = re.compile(r"[^0-9a-z]+")
 
 Progress = Callable[[str, int, int], None]
 
@@ -331,6 +335,41 @@ class Declarations:
     supplementary: list[Path]
     # Supplementary numbered images guessed to be image sequences, each in frame order.
     guessed: list[list[Path]]
+    # Every file that the descriptors or resource_paths declare, image sequence frames included.
+    declared: set[Path]
+    # The folder of each RTF, with its .rtf file and every file in it. The files in an RTF's folder are neither
+    # supplementary nor guessed image sequences.
+    rtfs: dict[Path, tuple[Path, list[Path]]]
+
+
+def rtf_folders(resources_dir: Path, game_dir: Path, projects: Iterable[Path], declared: set[Path]) -> dict[Path, Path]:
+    """The folder of each RTF, with its .rtf file: of the .rtf files in one folder, a declared one, then project.rtf,
+    then the first. A folder outside the resources folder, or one that holds the game folder, is not an RTF's."""
+    found: dict[Path, list[Path]] = defaultdict(list)
+    for project in projects:
+        folder = project.parent
+        if folder.is_relative_to(resources_dir) and not game_dir.is_relative_to(folder):
+            found[folder].append(project)
+    return {folder: min(files, key=lambda file: (file not in declared, file.name.lower() != "project.rtf", file.name))
+            for folder, files in found.items()}
+
+
+def folder_files(folders: Iterable[Path]) -> dict[Path, list[Path]]:
+    """Every file in each folder and its subfolders, sorted; a file in folders inside each other is the innermost one's."""
+    files: dict[Path, list[Path]] = {folder: [] for folder in folders}
+    for folder, owned in files.items():
+        if folder.is_dir():
+            owned.extend(path for path in sorted(folder.rglob("*"))
+                         if path.is_file() and next(parent for parent in path.parents if parent in files) == folder)
+    return files
+
+
+def rtf_match(game_project: str, gda_project: str) -> tuple[int, int]:
+    """How closely a GDA .rtf file's folder matches a game RTF's: the folder names their paths share, then the words
+    that the names of the RTFs' own folders share, such as "burning" and "crown" of 10_Burning_Crown."""
+    def words(path: str) -> set[str]:
+        return set(NAME_TOKENS.split(PurePosixPath(path).parent.name.lower())) - {""}
+    return path_overlap(game_project, gda_project), len(words(game_project) & words(gda_project))
 
 
 def gather(config: Config, required: bool = True) -> Declarations:
@@ -366,10 +405,16 @@ def gather(config: Config, required: bool = True) -> Declarations:
     # The game files that nothing declares are supplementary: the game does not load them. Files with an extension that
     # is not compared are left out. Descriptor paths additionally bring in shared assets outside the game folder.
     declared_files = frame_files | {(game_dir / relative).resolve() for template in templates for relative in expand_path(template)}
-    supplementary = sorted({path.resolve() for path in game_dir.rglob("*") if path.is_file() and path.suffix.lower() in config.extensions}
-                           - declared_files)
-    guessed, single = guess_sequences(supplementary)
-    return Declarations(game_dir, descriptors, templates, uses, sequence_frames, single, guessed)
+    unlisted = {path.resolve() for path in game_dir.rglob("*") if path.is_file() and path.suffix.lower() in config.extensions} - declared_files
+    # An RTF is its whole folder, when .rtf files are compared: the folder of a declared .rtf file, or of one that nothing
+    # declares.
+    projects = [path for path in declared_files | unlisted if path.suffix.lower() == RTF_SUFFIX] if RTF_SUFFIX in config.extensions else []
+    folders = rtf_folders(config.resources_dir, game_dir, projects, declared_files)
+    contents = folder_files(folders)
+    in_folders = {path for files in contents.values() for path in files}
+    guessed, single = guess_sequences(sorted(unlisted - in_folders))
+    rtfs = {folder: (project, contents[folder]) for folder, project in sorted(folders.items())}
+    return Declarations(game_dir, descriptors, templates, uses, sequence_frames, single, guessed, declared_files, rtfs)
 
 
 def compare(config: Config, progress: Progress | None = None) -> dict:
@@ -484,11 +529,87 @@ def compare(config: Config, progress: Progress | None = None) -> dict:
                          "loopTo": None, "paths": [display], "frames": [file_entry(source, SUPPLEMENTARY) for source in files]},
         }
 
+    def rtf_files(folder: Path, files: list[Path], gda_folder: Path) -> list[dict]:
+        """An RTF's files and a GDA folder's, by their paths in the folders, with what syncing the GDA folder does to
+        each: nothing to an identical one, copy a changed one or one that only the GDA has ("added"), and remove one that
+        only the game has ("removed")."""
+        game = {path.relative_to(folder).as_posix(): path for path in files}
+        gda = {path.relative_to(gda_folder).as_posix(): path for path in sorted(gda_folder.rglob("*")) if path.is_file()}
+        entries = []
+        for name in sorted(game.keys() | gda.keys()):
+            mine, theirs = game.get(name), gda.get(name)
+            entry: dict = {"path": name, "resourcePath": str(mine) if mine else None, "gdaPath": str(theirs) if theirs else None}
+            if mine is None or theirs is None:
+                entry["change"] = "added" if mine is None else "removed"
+            elif hash_of(mine, game_hashes) == hash_of(theirs, gda_hashes):
+                entry["change"] = "identical"
+            elif config.ignore_dds_mips and mine.suffix.lower() == ".dds" and mip_chain_only_differs(mine.read_bytes(), theirs.read_bytes()):
+                entry.update(change="identical", mipOnly=True)
+            else:
+                entry["change"] = "changed"
+            entries.append(entry)
+        return entries
+
+    def rtf_row(folder: Path, project: Path, files: list[Path]) -> dict | None:
+        """An RTF: its folder, with every file in it, compared with each GDA folder that holds a .rtf file named like its
+        own, closest first. It is identical when one of them has the same files with the same contents, and different
+        otherwise; syncing makes it a copy of the closest. A .rtf file that nothing declares makes it supplementary, and
+        one that does not exist invalid; a shared RTF outside the game folder without a GDA folder is left out, like a
+        file."""
+        resource = os.path.relpath(folder, game_dir)
+        uses = [use for source in {project, *(path for path in files if path.suffix.lower() == RTF_SUFFIX)} for use in found.uses.get(source, ())]
+        listed = [{"path": path.relative_to(folder).as_posix(), "resourcePath": str(path)} for path in files]
+        located: list[tuple[str, Path, Path]] = []
+        mip_only = False
+        if project not in found.declared:
+            status = "supplementary"
+        elif not project.is_file():
+            status = "invalid: source file does not exist"
+        else:
+            trees = (common_gda, game_gda) if common_gda and project.is_relative_to(common_dir) else (game_gda,)
+            # A .rtf file at the top of a GDA folder would make the whole GDA folder an RTF's.
+            located = [(tree, root, path) for tree, root, by_name in trees for path in by_name.get(project.name, []) if path.parent != root]
+            if not located and not project.is_relative_to(game_dir):
+                return None
+            display = os.path.relpath(project, game_dir)
+            located.sort(key=lambda item: tuple(-value for value in rtf_match(display, item[2].relative_to(item[1]).as_posix())))
+            status = "missing"
+            for index, candidate in enumerate(located):
+                entries = rtf_files(folder, files, candidate[2].parent)
+                if index == 0:
+                    listed = entries
+                if all(entry["change"] == "identical" for entry in entries):
+                    located, listed, status = [candidate], entries, "identical"
+                    mip_only = any(entry.get("mipOnly") for entry in entries)
+                    break
+            else:
+                if located:
+                    changes = Counter(entry["change"] for entry in listed)
+                    counts = [f"{changes[key]} {label}" for key, label in (("changed", "changed"), ("added", "only in the GDA"), ("removed", "only in the game")) if changes[key]]
+                    status = f"different SHA-256 ({', '.join(counts)})"
+        row = {
+            "id": row_id(f"{resource}\0rtf"), "category": status_category(status), "status": status, "resource": resource,
+            "resourcePath": str(folder),
+            "gdaFiles": [{"tree": tree, "path": path.parent.relative_to(root).as_posix(), "absolutePath": str(path.parent)} for tree, root, path in located],
+            **({"mipOnly": mip_only} if status == "identical" else {}), "scope": scope(project), "requiredBy": required_by(uses),
+            "directory": {"project": str(project), "gdaProject": str(located[0][2]) if located else None, "files": listed},
+        }
+        # The pages of the game's RTF and of the GDA's closest one.
+        if project.is_file():
+            row.update(describe_rtf(str(project)))
+        if located:
+            row.update({f"gda{key[0].upper()}{key[1:]}": value for key, value in describe_rtf(str(located[0][2])).items()})
+        return row
+
+    game_hashes: dict[Path, str] = {}
+
     rows: list[dict] = [file_row(source, SUPPLEMENTARY) for source in found.supplementary]
     rows.extend(guessed_sequence_row(files) for files in found.guessed)
     seen: set[Path] = set()
-    relatives = [relative for template in sorted(found.templates) for relative in expand_path(template)]
-    total = len(relatives) + sum(len(frames) for *_, frames in found.sequences)
+    # An RTF's .rtf files are its folder's.
+    relatives = [relative for template in sorted(found.templates) for relative in expand_path(template)
+                 if not ((path := (game_dir / relative).resolve()).parent in found.rtfs and path.suffix.lower() == RTF_SUFFIX)]
+    total = len(relatives) + sum(len(frames) for *_, frames in found.sequences) + sum(len(files) for _project, files in found.rtfs.values())
     report("compare", 0, total)
     for done, relative in enumerate(relatives, 1):
         report("compare", done, total)
@@ -507,6 +628,11 @@ def compare(config: Config, progress: Progress | None = None) -> dict:
             report("compare", done, total)
         if (row := sequence_row(document_name, sequence, lines, frames)) is not None:
             rows.append(row)
+    for folder, (project, files) in found.rtfs.items():
+        if (row := rtf_row(folder, project, files)) is not None:
+            rows.append(row)
+        done += len(files)
+        report("compare", done, total)
     # The script's order, by status and then resource; a sequence's file counts do not take part.
     differences = sorted((row for row in rows if row["category"] != "identical"),
                          key=lambda item: (item["status"].partition(" (")[0], item["resource"]))
@@ -525,6 +651,13 @@ def compare(config: Config, progress: Progress | None = None) -> dict:
         "differences": differences,
         "identical": identical,
     }
+
+
+def hash_of(path: Path, hashes: dict[Path, str]) -> str:
+    """A file's SHA-256, kept in hashes so each file is read once."""
+    if path not in hashes:
+        hashes[path] = file_hash(path)
+    return hashes[path]
 
 
 def throttled(progress: Progress, interval: float = PROGRESS_INTERVAL) -> Progress:

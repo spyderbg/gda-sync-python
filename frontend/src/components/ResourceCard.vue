@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { declarationLabel, directoryOf, extensionOf, fileType, number, plural, previewFrames, resourceAction, rssBadges, sequenceName, sequenceSummary, splitPath, typeIcons } from '../format';
+import { baseName, declarationLabel, directoryOf, extensionOf, fileType, number, plural, previewFrames, resourceAction, rssBadges, rtfChangeNames, rtfChangeSummary, sequenceName, sequenceSummary, splitPath, typeIcons } from '../format';
 import type { RssResource } from '../types';
 import { copy, openResourceFolder } from '../workspace';
 import CheckBox from './CheckBox.vue';
 import ReportThumbnail from './ReportThumbnail.vue';
+import RtfPreview from './RtfPreview.vue';
 import SequencePreview from './SequencePreview.vue';
 
 // One resource of the GDA sync report as a card in the look of AssetCard: the game file's preview, name, folder and the
@@ -16,10 +17,14 @@ import SequencePreview from './SequencePreview.vue';
 // It lists its files that are not in sync, and a "different" one plays the GDA files of its frames beside it.
 // A "supplementary" file is in the game folder, but no descriptor declares it; numbered images among them are played
 // as a guessed sequence.
+// An RTF is one card for its folder, which shows its pages and lists its files that are not in sync; a "different" one
+// shows the pages of the closest GDA folder beside it, which Sync makes the game's folder a copy of, and the other GDA
+// folders that hold a .rtf file of its name.
 const props = withDefaults(defineProps<{ row: RssResource; revision: string; selected?: boolean; syncDisabled?: boolean }>(), { selected: false, syncDisabled: false });
 const emit = defineEmits<{ toggle: []; open: []; sync: [] }>();
 
 const icon = (name: string) => typeIcons[fileType(extensionOf(name))];
+const directory = computed(() => props.row.directory);
 
 const resource = computed(() => splitPath(props.row.resource));
 const resourceDirectory = computed(() => directoryOf(props.row.resourcePath));
@@ -28,18 +33,23 @@ const syncable = computed(() => resourceAction(props.row) === 'sync');
 const gdaFiles = computed(() => props.row.gdaFiles.map(file => ({ ...file, ...splitPath(file.path), directory: directoryOf(file.absolutePath) })));
 
 const sequence = computed(() => props.row.sequence);
-const copyLabel = computed(() => sequence.value
+const copyLabel = computed(() => (sequence.value
   ? `Copy different GDA frames over game files for ${props.row.resource}`
-  : `Copy GDA file over game file for ${props.row.resource}`);
+  : directory.value ? `Make the RTF folder ${props.row.resource} a copy of its GDA folder` : `Copy GDA file over game file for ${props.row.resource}`));
 // The game side plays the game files, and the GDA side the GDA file of each frame: the one that matched, or the closest,
 // which sync copies. A frame without a file to show stays empty.
 const gameFrames = computed(() => (sequence.value ? previewFrames(sequence.value, 'game') : []));
 const gdaFrames = computed(() => (sequence.value ? previewFrames(sequence.value, 'gda') : []));
 // Each file once: an atlas repeats one file in many frames.
-const unsynced = computed(() => [...new Map((sequence.value?.frames ?? [])
-  .filter(frame => frame.category !== 'identical' && frame.category !== 'skipped' && frame.category !== 'supplementary')
-  .map(frame => [frame.resourcePath, { ...frame, name: splitPath(frame.resource).name }])).values()]);
-const copied = computed(() => unsynced.value.filter(frame => frame.category === 'different' && frame.gdaFiles.length).length);
+const unsynced = computed(() => (directory.value
+  // An RTF's files that Sync copies or deletes.
+  ? directory.value.files.filter(file => file.change && file.change !== 'identical')
+    .map(file => ({ resourcePath: file.resourcePath ?? file.gdaPath ?? file.path, name: file.path, status: rtfChangeNames[file.change!] }))
+  : [...new Map((sequence.value?.frames ?? [])
+    .filter(frame => frame.category !== 'identical' && frame.category !== 'skipped' && frame.category !== 'supplementary')
+    .map(frame => [frame.resourcePath, { ...frame, name: splitPath(frame.resource).name }])).values()]));
+// A sequence's different files that have a GDA file to copy, each once.
+const copied = computed(() => new Set((sequence.value?.frames ?? []).filter(frame => frame.category === 'different' && frame.gdaFiles.length).map(frame => frame.resourcePath)).size);
 const gdaFolders = computed(() => [...new Set(gdaFiles.value.map(file => file.directory))]);
 // The absolute folder of the first GDA file, whatever the separators of the backend's platform.
 const gdaFolder = computed(() => gdaFiles.value[0]?.directory ?? '');
@@ -50,14 +60,18 @@ const gdaFolder = computed(() => gdaFiles.value[0]?.directory ?? '');
     <article :class="['card', 'asset-card', 'resource-game', { selected }]">
       <SequencePreview v-if="sequence" :frames="gameFrames" :frame-time="sequence.frameTime" :loop-count="sequence.loopCount" :loop-to="sequence.loopTo" :name="sequence.id ?? resource.name" :revision="revision" />
       <div class="asset-hit-target" @click="emit('open')">
-        <button v-if="!sequence" type="button" class="resource-preview" :aria-label="`Show the details of ${row.resource}`">
-          <ReportThumbnail :file="row.resourcePath" :name="resource.name" :revision="revision" :preview="row.category !== 'invalid'" />
+        <RtfPreview v-if="directory && row.rtf" :file="directory.project" :name="resource.name" :revision="revision" :facts="row.rtf" />
+        <button v-else-if="!sequence" type="button" class="resource-preview" :aria-label="`Show the details of ${row.resource}`">
+          <ReportThumbnail :file="directory?.project ?? row.resourcePath" :name="directory ? baseName(directory.project) : resource.name" :revision="revision" :preview="row.category !== 'invalid'" />
         </button>
         <div class="card-body">
-          <p class="asset-name"><button type="button" class="resource-icon-button resource-file-copy" :aria-label="`Copy the game path of ${resource.name}`" title="Copy the game path" @click.stop="copy(row.resourcePath)"><i aria-hidden="true" :class="['mdi', sequence ? 'mdi-animation-outline' : icon(resource.name)]" /></button><span :title="row.resourcePath">{{ resource.name }}</span></p>
+          <p class="asset-name"><button type="button" class="resource-icon-button resource-file-copy" :aria-label="`Copy the game path of ${resource.name}`" title="Copy the game path" @click.stop="copy(row.resourcePath)"><i aria-hidden="true" :class="['mdi', sequence ? 'mdi-animation-outline' : directory ? typeIcons.rtf : icon(resource.name)]" /></button><span :title="row.resourcePath">{{ resource.name }}</span></p>
           <p class="asset-meta"><span class="resource-folder"><button type="button" class="resource-icon-button resource-folder-open" :aria-label="`Open game directory ${resourceDirectory}`" :title="`Open ${resourceDirectory}`" @click.stop="openResourceFolder(row.resourcePath)"><i aria-hidden="true" class="mdi mdi-folder-open-outline" /></button><span :title="resourceDirectory">{{ resourceDirectory }}</span></span><span v-if="row.scope !== 'game'">{{ row.scope }}</span></p>
           <p v-if="sequence" class="resource-sequence" :title="sequence.paths.join('\n')">
             <span :class="['resource-sequence-id', { 'is-guessed': sequence.guessed }]">{{ sequenceName(sequence) }}</span>{{ sequenceSummary(sequence) }}<template v-if="sequence.paths.length > 1"> · {{ sequence.paths.length }} paths</template>
+          </p>
+          <p v-if="directory" class="resource-sequence">
+            <template v-if="row.rtf">{{ number(row.rtf.pages.length) }} page{{ plural(row.rtf.pages.length) }} · </template>{{ number(directory.files.filter(file => file.resourcePath).length) }} files
           </p>
           <div class="asset-footer"><span :class="['badge', 'resource-status', rssBadges[row.category]]">{{ row.status }}</span></div>
           <div v-if="row.category !== 'different'" class="resource-declared">
@@ -93,6 +107,26 @@ const gdaFolder = computed(() => gdaFiles.value[0]?.directory ?? '');
             <p class="resource-sequence"><span class="resource-sequence-id">{{ sequence.id }}</span>{{ sequenceSummary(sequence) }}</p>
             <div class="asset-footer">
               <span class="badge badge-primary resource-status">{{ number(copied) }} file{{ plural(copied) }} copied on sync</span>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+    <section v-else-if="row.category === 'different' && directory" class="resource-gda" :aria-label="`GDA folders of ${resource.name}`">
+      <div class="resource-gda-files">
+        <article v-for="(folder, index) in gdaFiles" :key="folder.absolutePath" class="card asset-card gda-file-card">
+          <div class="asset-hit-target" @click="emit('open')">
+            <RtfPreview v-if="!index && row.gdaRtf && directory.gdaProject" :file="directory.gdaProject" :name="folder.name" :revision="revision" :facts="row.gdaRtf" />
+            <button v-else type="button" class="resource-preview" :aria-label="`Show the details of ${row.resource}`">
+              <div class="thumbnail"><div class="generic-preview rtf"><i aria-hidden="true" :class="['mdi', typeIcons.rtf]" /></div></div>
+            </button>
+          </div>
+          <div class="card-body">
+            <p class="asset-name"><button type="button" class="resource-icon-button resource-file-copy" :aria-label="`Copy the GDA folder ${folder.path}`" title="Copy the GDA folder" @click="copy(folder.absolutePath)"><i aria-hidden="true" :class="['mdi', typeIcons.rtf]" /></button><span :title="folder.absolutePath">{{ folder.name }}</span></p>
+            <p class="asset-meta"><span class="resource-folder"><button type="button" class="resource-icon-button resource-folder-open" :aria-label="`Open GDA directory ${folder.directory}`" :title="`Open ${folder.directory}`" @click="openResourceFolder(folder.absolutePath)"><i aria-hidden="true" class="mdi mdi-folder-open-outline" /></button><span :title="folder.directory">{{ folder.directory }}</span></span><span v-if="folder.tree === 'common'">common GDA</span></p>
+            <p v-if="!index && row.gdaRtf" class="resource-sequence">{{ number(row.gdaRtf.pages.length) }} page{{ plural(row.gdaRtf.pages.length) }} · {{ number(directory.files.filter(file => file.gdaPath).length) }} files</p>
+            <div class="asset-footer">
+              <span :class="['badge', 'resource-status', index ? 'badge-light' : 'badge-primary']">{{ index ? 'Other match' : `Copied on sync: ${rtfChangeSummary(directory)}` }}</span>
             </div>
           </div>
         </article>

@@ -417,6 +417,11 @@ button.nav-link {
       background: rgba(#8862e0, 0.08);
       color: #8862e0;
     }
+
+    &.rtf {
+      background: rgba(#0d9488, 0.08);
+      color: #0d9488;
+    }
   }
 
   .waveform {
@@ -546,6 +551,11 @@ button.nav-link {
       overflow: hidden;
       margin-right: 8px;
       text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    > span + span {
+      flex-shrink: 0;
       white-space: nowrap;
     }
   }

@@ -36,7 +36,11 @@ const FILTERS: { key: Filter; label: string; hint: string }[] = [
       + 'files is identical, the resource is different. By default, a DDS file that differs only in its mip levels counts '
       + 'as in sync. An image sequence is different when any of its files is.\n\n'
       + 'These are the only resources that Sync updates: it copies the GDA file from the closest folder over the game file, '
-      + 'and keeps the replaced file in your backups.',
+      + 'and keeps the replaced file in your backups.\n\n'
+      + 'An RTF is one resource, its folder. It is compared file by file with each GDA folder that holds a .rtf file of '
+      + 'the same name, the closest by path and folder name first, and is different when none is identical. Sync makes '
+      + 'the game\'s folder a copy of the closest: it copies the changed files and the ones only the GDA has, and deletes '
+      + 'the ones only the game has.',
   },
   {
     key: 'missing', label: 'Missing',
@@ -69,8 +73,10 @@ const FILTERS: { key: Filter; label: string; hint: string }[] = [
       + 'resource_paths entry of the workspace, declares. It is not compared with the GDA folder and does not count as '
       + 'not in sync. Numbered images in one folder with the same name and extension, at least five numbers in a row, '
       + 'such as name00.dds to name70.dds, are guessed to be one image sequence.\n\n'
+      + 'An RTF whose .rtf file no descriptor declares is one supplementary resource, its folder.\n\n'
       + 'It can be a leftover to remove, or a resource whose declaration is missing. Select it to delete it from the game '
-      + 'folder, a guessed sequence with all its files; each file is saved in your backups first.',
+      + 'folder, a guessed sequence with all its files and an RTF with its whole folder; each file is saved in your '
+      + 'backups first.',
   },
 ];
 const PAGE_SIZE = 200;

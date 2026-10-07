@@ -156,6 +156,7 @@ function gdaFolders(row: RssResource) {
                 <td>
                   <span class="rss-path" :title="row.resourcePath"><template v-for="(part, index) in segments(row.resource)" :key="index">{{ part }}<wbr></template></span>
                   <span v-if="row.scope === 'common'" class="badge badge-light ml-1">common</span>
+                  <small v-if="row.directory" class="d-block text-muted">RTF · {{ number(row.directory.files.filter(file => file.resourcePath).length) }} files</small>
                   <small v-if="row.sequence" class="d-block text-muted"><span :class="{ 'rss-path': !row.sequence.guessed }">{{ sequenceName(row.sequence) }}</span> · {{ sequenceSummary(row.sequence) }}</small>
                 </td>
                 <td>

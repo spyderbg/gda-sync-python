@@ -6,7 +6,9 @@ descriptor declares. Nothing is compared with the GDA folder. A declared file is
 when it does not, and "invalid" when its path leads outside the resources folder; a file that nothing declares is
 "supplementary". Image sequences follow the GDA sync (rss_sync): a sequence is one asset with its frames, and takes the
 status of its frames, the first of invalid, missing and available that any of its files has; supplementary numbered
-images are guessed to be sequences. Each report is saved like a GDA sync report, as <workspace id>-<Unix time>.json.
+images are guessed to be sequences. An RTF, a project of the RTF Tool, is one asset with every file of its folder, named
+by the folder: it takes the status of its .rtf file, and the files in its folder are not assets of their own unless a
+descriptor declares them. Each report is saved like a GDA sync report, as <workspace id>-<Unix time>.json.
 """
 
 from __future__ import annotations
@@ -20,16 +22,20 @@ from pathlib import Path
 from .fonts import FONT_EXTENSIONS, describe_font
 from .rss_jobs import ReportFolder, _now
 from .rss_sync import COMMON_DIR, GUESSED_FRAME_TIME, GUESSED_LOOP_COUNT, NUMBERED_NAME, Config, Use, expand_path, gather, required_by, row_id
+from .rtf import RTF_EXTENSION, describe_rtf
 
 # Version 2 reports fonts as their own type, with their names, the samples they draw and their coverage of each Font
-# entry's characters.
-ASSET_REPORT_VERSION = 2
+# entry's characters. Version 3 reports RTFs (RTF Tool projects) as their own type: an RTF's folder is one asset with
+# all of its files, with its pages, languages and the images and videos its pages draw that do not exist.
+ASSET_REPORT_VERSION = 3
 CATEGORIES = ("available", "missing", "invalid", "supplementary")
 # The status a sequence takes from its frames: the first of these that any of its files has.
 SEQUENCE_PRECEDENCE = ("invalid", "missing", "available")
 
 # The facts of a file: always its "type", and for an available file its size, time and image facts.
 Facts = Callable[[Path, bool], dict]
+# The facts that an RTF lists of each file in its folder.
+RTF_FILE_FACTS = ("resourcePath", "type", "size", "modifiedAt", "dimensions")
 
 
 def inventory(config: Config, facts: Facts) -> dict:
@@ -83,6 +89,9 @@ def inventory(config: Config, facts: Facts) -> dict:
             for use, coverage in zip(fonts, described.pop("coverage", [])):
                 use["coverage"] = coverage
             row.update(described)
+        elif source.suffix[1:].lower() == RTF_EXTENSION and entry["category"] in ("available", "supplementary"):
+            # An RTF's pages, with their backgrounds, and the files that its pages draw but that do not exist.
+            row.update(describe_rtf(str(source)))
         return row
 
     def sequence_row(document_name: str, sequence, lines: list[int], frames: list) -> dict:
@@ -119,13 +128,39 @@ def inventory(config: Config, facts: Facts) -> dict:
                          "loopTo": None, "paths": [display], "frames": [frame(entry) for entry in entries]},
         }
 
+    def rtf_row(folder: Path, project: Path, files: list[Path]) -> dict:
+        """An RTF: its folder, with every file in it, named by the folder. It takes the status of its .rtf file, the
+        entries that declare the .rtf files in the folder, and the facts of its pages."""
+        entry = file_entry(project, project not in declared)
+        entries = {source: file_entry(source, source not in declared) for source in files}
+        existing = [item for item in entries.values() if "size" in item]
+        resource = os.path.relpath(folder, game_dir)
+        uses = [use for source in {project, *(source for source in files if source.suffix[1:].lower() == RTF_EXTENSION)}
+                for use in found.uses.get(source, ())]
+        row = {
+            "id": row_id(f"{resource}\0rtf"), "category": entry["category"], "status": entry["status"], "resource": resource,
+            "resourcePath": str(folder), "type": "rtf",
+            **({"size": sum(item["size"] for item in existing), "modifiedAt": max(item["modifiedAt"] for item in existing)} if existing else {}),
+            "scope": scope(project), "requiredBy": required_by(uses),
+            "directory": {"project": str(project), "files": [
+                {"path": source.relative_to(folder).as_posix(), **{key: item[key] for key in RTF_FILE_FACTS if key in item}}
+                for source, item in entries.items()]},
+        }
+        if entry["category"] in ("available", "supplementary"):
+            row.update(describe_rtf(str(project)))
+        return row
+
+    # The files that a descriptor declares, as frames or not, are assets whatever folder they are in.
+    declared = found.declared
     rows = [file_row(source, supplementary=True) for source in found.supplementary]
     rows.extend(guessed_sequence_row(files) for files in found.guessed)
+    rows.extend(rtf_row(folder, project, files) for folder, (project, files) in found.rtfs.items())
     seen: set[Path] = set()
     for template in sorted(found.templates):
         for relative in expand_path(template):
             source = (game_dir / relative).resolve()
-            if source not in seen:
+            # An RTF's .rtf files are its folder's.
+            if source not in seen and not (source.parent in found.rtfs and source.suffix[1:].lower() == RTF_EXTENSION):
                 seen.add(source)
                 rows.append(file_row(source))
     rows.extend(sequence_row(*sequence) for sequence in found.sequences)

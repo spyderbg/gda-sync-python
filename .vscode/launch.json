@@ -1,0 +1,38 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Development: backend + frontend (Chrome)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/scripts/dev.py",
+      "args": ["start"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "redirectOutput": true,
+      "subProcess": true,
+      "justMyCode": true,
+      "postDebugTask": "Development: stop services",
+      "serverReadyAction": {
+        "pattern": "EGT GDA Sync is ready at (http://127\\.0\\.0\\.1:[0-9]+)",
+        "uriFormat": "%s",
+        "action": "debugWithChrome",
+        "webRoot": "${workspaceFolder}/frontend",
+        "killOnServerStop": true
+      }
+    },
+    {
+      "name": "Development: backend",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/scripts/dev.py",
+      "args": ["start"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "redirectOutput": true,
+      "subProcess": true,
+      "justMyCode": true,
+      "postDebugTask": "Development: stop services"
+    }
+  ]
+}

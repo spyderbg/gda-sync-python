@@ -1,12 +1,12 @@
-import type { AssetCategory, AssetDeclaration, AssetSequence, AssetStatus, AssetType, PreviewFrame, ReportAsset, RssCategory, RssResource, RssSequence } from './types';
+import type { AssetCategory, AssetDeclaration, AssetSequence, AssetStatus, AssetType, PreviewFrame, ReportAsset, RssCategory, RssResource, RssRtfDirectory, RssSequence, RtfChange, RtfFacts } from './types';
 
-export const ASSET_TYPES = ['texture', 'model', 'material', 'audio', 'font'] as const;
+export const ASSET_TYPES = ['texture', 'model', 'material', 'audio', 'font', 'rtf'] as const;
 export const typeIcons: Record<AssetType, string> = {
   texture: 'mdi-image-outline', model: 'mdi-cube-outline', material: 'mdi-layers-outline', audio: 'mdi-waveform', font: 'mdi-format-font',
-  other: 'mdi-file-outline',
+  rtf: 'mdi-book-open-page-variant-outline', other: 'mdi-file-outline',
 };
 export const typeNames: Record<AssetType, string> = {
-  texture: 'Textures', model: 'Models', material: 'Materials', audio: 'Audio', font: 'Fonts', other: 'Other files',
+  texture: 'Textures', model: 'Models', material: 'Materials', audio: 'Audio', font: 'Fonts', rtf: 'RTFs', other: 'Other files',
 };
 export const statusNames: Record<AssetStatus, string> = { new: 'New asset', modified: 'Modified', synced: 'In sync' };
 export const statusBadges: Record<AssetStatus, string> = { new: 'badge-info', modified: 'badge-warning', synced: 'badge-success' };
@@ -41,6 +41,7 @@ const TYPE_EXTENSIONS: [AssetType, string[]][] = [
   ['material', ['mat', 'mtl', 'material']],
   ['audio', ['wav', 'ogg', 'mp3', 'flac']],
   ['font', ['ttf', 'otf']],
+  ['rtf', ['rtf']],
 ];
 /** The image files the backend previews: DDS textures, which it decodes, and the formats a browser shows as they are. */
 export const PREVIEW_EXTENSIONS = ['dds', 'png', 'jpg', 'jpeg', 'webp', 'svg', 'bmp'];
@@ -53,11 +54,23 @@ export function splitPath(path: string) {
   return { name: path.slice(index + 1), folder: index < 0 ? 'Root' : path.slice(0, index) };
 }
 
-/** Whether a row of the GDA sync report matches a lowercase search: its path, a GDA path, or an image sequence's id or
- * frame paths. */
+/** Whether a row of the GDA sync report matches a lowercase search: its path, a GDA path, an image sequence's id or
+ * frame paths, or the path of a file in an RTF's folder. */
 export function rowMatches(row: RssResource, needle: string) {
   return !needle || row.resource.toLowerCase().includes(needle) || row.gdaFiles.some(file => file.path.toLowerCase().includes(needle)) ||
-    !!row.sequence && (!!row.sequence.id?.toLowerCase().includes(needle) || row.sequence.paths.some(path => path.toLowerCase().includes(needle)));
+    !!row.sequence && (!!row.sequence.id?.toLowerCase().includes(needle) || row.sequence.paths.some(path => path.toLowerCase().includes(needle))) ||
+    !!row.directory && row.directory.files.some(file => file.path.toLowerCase().includes(needle));
+}
+
+/** What syncing an RTF does to each of its files, by name and badge. */
+export const rtfChangeNames: Record<RtfChange, string> = { identical: 'identical', changed: 'changed', added: 'only in the GDA', removed: 'only in the game' };
+export const rtfChangeBadges: Record<RtfChange, string> = { identical: 'badge-success', changed: 'badge-danger', added: 'badge-info', removed: 'badge-warning' };
+/** How many of an RTF's files syncing copies because they changed or only the GDA has them, and deletes because only the
+ * game has them, for example "1 changed, 76 added, 12 deleted". */
+export function rtfChangeSummary(directory: RssRtfDirectory) {
+  const count = (change: RtfChange) => directory.files.filter(file => file.change === change).length;
+  return [[count('changed'), 'changed'], [count('added'), 'added'], [count('removed'), 'deleted']]
+    .filter(([value]) => value).map(([value, label]) => `${number(value as number)} ${label}`).join(', ');
 }
 
 /** What sequenceName and sequenceSummary read of a sequence of the GDA sync report or of the asset report. */
@@ -91,10 +104,12 @@ export const declarationLabel = (use: AssetDeclaration) => (use.type
   ? `${use.type}${use.id ? ` ${use.id}` : ''}${use.size ? ` ${use.size} px` : ''} · ${use.descriptor}:${use.line}`
   : `${use.descriptor}:${use.line}`);
 
-/** Whether an asset matches a lowercase search: by its path, the sequence's id and paths, or a declaring entry's id. */
+/** Whether an asset matches a lowercase search: by its path, the sequence's id and paths, a declaring entry's id, or
+ * the path of a file in an RTF's folder. */
 export function assetMatches(row: ReportAsset, needle: string) {
   return !needle || row.resource.toLowerCase().includes(needle) || row.requiredBy.some(use => !!use.id?.toLowerCase().includes(needle)) ||
-    !!row.sequence && row.sequence.paths.some(path => path.toLowerCase().includes(needle));
+    !!row.sequence && row.sequence.paths.some(path => path.toLowerCase().includes(needle)) ||
+    !!row.directory && row.directory.files.some(file => file.path.toLowerCase().includes(needle));
 }
 
 /** What applying a resource of the GDA sync report does: copy its GDA file over the game file, remove the descriptor
@@ -135,6 +150,9 @@ export function previewFrames(sequence: RssSequence, side: 'game' | 'gda'): Prev
 export const reportPreviewURL = (file: string, revision: string) =>
   `/api/rss-sync/preview?file=${encodeURIComponent(file)}&v=${encodeURIComponent(revision)}`;
 
+
+/** The page of an RTF that its preview shows first: the first page that has a background. */
+export const firstRtfPage = (facts: RtfFacts) => Math.max(0, facts.pages.findIndex(page => page.found));
 
 /** A code point as Unicode writes it, for example "U+20AC". */
 export const codePoint = (point: number) => `U+${point.toString(16).toUpperCase().padStart(4, '0')}`;

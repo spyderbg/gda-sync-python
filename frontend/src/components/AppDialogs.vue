@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { commonAction, plural, resourceAction, resourceActionIcons } from '../format';
+import { commonAction, plural, resourceAction, resourceActionIcons, rtfChangeSummary, typeIcons } from '../format';
 import type { RssResource } from '../types';
 import { config, confirmResourceActions, stopApplication, ui } from '../workspace';
 import AppModal from './AppModal.vue';
@@ -30,8 +30,11 @@ const sharedDescriptor = (row: RssResource) => row.requiredBy.some(use => use.de
       <section v-for="group in resourceGroups" :key="group.action" class="resource-action-group">
         <h6 v-if="resourceGroups.length > 1"><i aria-hidden="true" :class="['mdi', resourceActionIcons[group.action]]" />{{ group.heading }}</h6>
         <p v-if="group.action === 'sync'">Copy {{ group.rows.length }} resource{{ plural(group.rows.length) }} of the GDA sync report from the GDA folder to the game, each from its closest GDA file; an image sequence copies each of its different frames. Existing game files will be replaced, with their previous versions saved in your backups.</p>
+        <p v-if="group.action === 'sync' && group.rows.some(row => row.directory)" class="text-warning">
+          An RTF's folder becomes a copy of its closest GDA folder: its files that the GDA folder does not have are deleted, unless a descriptor declares them, and saved in your backups first.
+        </p>
         <p v-else-if="group.action === 'remove'">Remove the entries that declare {{ group.rows.length === 1 ? 'this invalid resource' : `these ${group.rows.length} invalid resources` }} from the *Data.json descriptors: each entry, image sequence or audio sample that names {{ group.rows.length === 1 ? 'it' : 'them' }}. The rest of each descriptor stays as it is, and its previous version is saved in your backups.</p>
-        <p v-else>Delete {{ group.rows.length === 1 ? 'this supplementary resource' : `these ${group.rows.length} supplementary resources` }} from the game folder; no descriptor declares {{ group.rows.length === 1 ? 'it' : 'them' }}, and a guessed sequence goes with all its files. Each file is saved in your backups first.</p>
+        <p v-else>Delete {{ group.rows.length === 1 ? 'this supplementary resource' : `these ${group.rows.length} supplementary resources` }} from the game folder; no descriptor declares {{ group.rows.length === 1 ? 'it' : 'them' }}, a guessed sequence goes with all its files, and an RTF with its whole folder. Each file is saved in your backups first.</p>
         <p v-if="group.action === 'sync' && group.rows.some(row => row.scope === 'common')" class="text-warning">
           {{ group.rows.filter(row => row.scope === 'common').length }} of them are common resources, shared with other games.
         </p>
@@ -40,7 +43,7 @@ const sharedDescriptor = (row: RssResource) => row.requiredBy.some(use => use.de
         </p>
         <ul class="list-group sync-file-list">
           <li v-for="row in group.rows" :key="row.id" class="list-group-item">
-            <i aria-hidden="true" :class="['mdi', row.sequence ? 'mdi-animation-outline' : 'mdi-file-outline', 'text-muted']" /><span :title="group.action === 'sync' ? `${row.gdaFiles[0].path} → ${row.resource}` : row.resourcePath">{{ row.resource }}</span><small v-if="row.sequence" class="text-muted ml-2">{{ row.sequence.id ?? `${row.sequence.frames.length} files` }}</small><small v-if="group.action === 'remove'" class="text-muted ml-2">{{ row.requiredBy.map(use => `${use.descriptor}:${use.line}`).join(', ') }}</small><span v-if="row.scope === 'common'" class="badge badge-light">common</span>
+            <i aria-hidden="true" :class="['mdi', row.sequence ? 'mdi-animation-outline' : row.directory ? typeIcons.rtf : 'mdi-file-outline', 'text-muted']" /><span :title="group.action === 'sync' ? `${row.gdaFiles[0].path} → ${row.resource}` : row.resourcePath">{{ row.resource }}</span><small v-if="row.sequence" class="text-muted ml-2">{{ row.sequence.id ?? `${row.sequence.frames.length} files` }}</small><small v-if="row.directory" class="text-muted ml-2">{{ group.action === 'sync' ? rtfChangeSummary(row.directory) : `${row.directory.files.length} file${plural(row.directory.files.length)}` }}</small><small v-if="group.action === 'remove'" class="text-muted ml-2">{{ row.requiredBy.map(use => `${use.descriptor}:${use.line}`).join(', ') }}</small><span v-if="row.scope === 'common'" class="badge badge-light">common</span>
           </li>
         </ul>
       </section>

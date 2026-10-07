@@ -32,6 +32,7 @@ from .png import PNG_SIGNATURE
 from .rss_edit import remove_declarations
 from .rss_jobs import SyncJobs
 from .rss_sync import DEFAULT_EXTENSIONS, Config, declared_files
+from .rtf import RTF_EXTENSION, rtf_layout
 
 MAX_ASSETS = 10_000
 MAX_PREVIEW_BYTES = 64 * 1024 * 1024
@@ -48,6 +49,7 @@ ASSET_TYPES = (
     ("material", {"mat", "mtl", "material"}),
     ("audio", {"wav", "ogg", "mp3", "flac"}),
     ("font", set(FONT_EXTENSIONS)),
+    ("rtf", {RTF_EXTENSION}),
 )
 FOLDER_NAMES = {"source": "GDA", "destination": "Game"}
 # The GDA sync report statuses that have an action: copy the GDA file over a "different" resource, remove the
@@ -198,6 +200,76 @@ def _replace_file(source: str, target_root: str, relative: str, backup: str, cre
         if temporary:
             with contextlib.suppress(OSError):
                 os.unlink(temporary)
+
+
+def _delete_with_backup(target: str, backup: str) -> None:
+    """Delete a game file after saving it in the backups; it is kept when the backup does not match it."""
+    os.makedirs(os.path.dirname(backup), exist_ok=True)
+    _copy_exclusive(target, backup)
+    if file_hash(backup) != file_hash(target):
+        raise AppError("The backup does not match the game file, so it was kept")
+    os.unlink(target)
+
+
+def _remove_empty_folders(folder: str, top: str) -> None:
+    """Remove folder, then each of its parents below top, while they are empty; top stays."""
+    while contained(top, folder) and os.path.normpath(folder) != os.path.normpath(top):
+        try:
+            os.rmdir(folder)
+        except OSError:
+            return
+        folder = os.path.dirname(folder)
+
+
+def _mirror_rtf(row: dict, folders: dict, declared: set[Path], failures: list[dict]) -> tuple[list[str], int]:
+    """Make a "different" RTF's game folder a copy of its closest GDA folder, as the report compared them: copy each
+    changed file and each one that only the GDA has, and delete each one that only the game has, unless a descriptor
+    declares it now; each replaced or deleted file is saved in the backups first. A file that fails is a failure of its
+    own. Return the files changed, by their game paths, and the bytes copied."""
+    resources, game = folders["resources"], str(folders["game"])
+    folder, gda_folder = row["resourcePath"], row["gdaFiles"][0]["absolutePath"]
+    root = next((root for root in folders["gda"] if contained(root, gda_folder)), None)
+    if root is None or not contained(game, folder) or os.path.normpath(folder) == os.path.normpath(game):
+        raise AppError("The folders are outside the workspace folders")
+    changed: list[str] = []
+    total = 0
+    for file in row["directory"]["files"]:
+        change = file.get("change")
+        if change not in ("changed", "added", "removed"):
+            continue
+        name = f"{row['resource']}/{file['path']}"
+        try:
+            target = os.path.normpath(os.path.join(folder, *file["path"].split("/")))
+            if not contained(folder, target) or target == os.path.normpath(folder):
+                raise AppError("The file is outside the RTF's folder")
+            relative = os.path.relpath(target, resources)
+            if change == "removed":
+                if Path(target) in declared:
+                    raise AppError("A descriptor declares it, so it was kept")
+                target = safe_path(resources, relative)
+                try:
+                    info = os.lstat(target)
+                except FileNotFoundError:
+                    continue
+                if not stat.S_ISREG(info.st_mode):
+                    raise AppError("The game file is not a regular file")
+                _delete_with_backup(target, os.path.join(folders["backups"], relative))
+                _remove_empty_folders(os.path.dirname(target), folder)
+                changed.append(f"{name} (removed)")
+                continue
+            source = os.path.normpath(os.path.join(gda_folder, *file["path"].split("/")))
+            if not contained(gda_folder, source):
+                raise AppError("The file is outside the GDA folder")
+            source = safe_path(root, os.path.relpath(source, root))
+            if os.path.isfile(target) and file_hash(source) == file_hash(target):
+                continue
+            size = os.path.getsize(source)
+            _replace_file(source, resources, relative, os.path.join(folders["backups"], relative), create_parents=True)
+            changed.append(name)
+            total += size
+        except Exception as error:
+            failures.append({"name": name, "message": error_message(error)})
+    return changed, total
 
 
 def _write_file(target: str, data: bytes) -> None:
@@ -709,7 +781,7 @@ class Library:
                 "backups": os.path.join(self.backup_path, str(uuid.uuid4())),
             }
             failures: list[dict] = []
-            synced = self._copy_resources(chosen["different"], folders, failures)
+            synced = self._copy_resources(chosen["different"], folders, settings["resource_paths"], failures)
             removed = self._remove_declarations(chosen["invalid"], folders, failures)
             deleted = self._delete_resources(chosen["supplementary"], folders, settings["resource_paths"], failures)
             if synced["files"]:
@@ -730,13 +802,15 @@ class Library:
 
         return self._exclusive(operation)
 
-    def _copy_resources(self, rows: list[dict], folders: dict, failures: list[dict]) -> dict:
-        """Copy the closest GDA file of each "different" row, or of each different frame of a sequence, over the game file."""
+    def _copy_resources(self, rows: list[dict], folders: dict, resource_paths: list[str], failures: list[dict]) -> dict:
+        """Copy the closest GDA file of each "different" row, or of each different frame of a sequence, over the game file,
+        and make each different RTF's folder a copy of its closest GDA folder."""
         resources = folders["resources"]
+        rtfs = [row for row in rows if "directory" in row]
         # The game files to replace, each once with the resource it belongs to: the frames of a sequence can repeat a file.
         files = {
             file["resourcePath"]: (row["id"], file)
-            for row in rows
+            for row in rows if "directory" not in row
             for file in (row["sequence"]["frames"] if "sequence" in row else [row])
             if file["category"] == "different" and file["gdaFiles"]
         }
@@ -763,7 +837,24 @@ class Library:
             except Exception as error:
                 failed += 1
                 failures.append({"name": os.path.basename(file["resource"]), "message": error_message(error)})
-        return {"files": copied, "resources": len(synced), "bytes": total, "outdated": failed < len(files)}
+        try:
+            # A file that only the game's RTF has is deleted, unless a descriptor declares it.
+            declared = declared_files(folders["game"], tuple(resource_paths)) if rtfs else set()
+        except (OSError, ValueError) as error:
+            failures.extend({"name": os.path.basename(row["resource"]), "message": f"The descriptors cannot be read: {error_message(error)}"} for row in rtfs)
+            return {"files": copied, "resources": len(synced), "bytes": total, "outdated": failed < len(files)}
+        for row in rtfs:
+            try:
+                changed, size = _mirror_rtf(row, folders, declared, failures)
+            except Exception as error:
+                failed += 1
+                failures.append({"name": os.path.basename(row["resource"]), "message": error_message(error)})
+                continue
+            copied.extend(changed)
+            total += size
+            if changed:
+                synced.add(row["id"])
+        return {"files": copied, "resources": len(synced), "bytes": total, "outdated": failed < len(files) + len(rtfs)}
 
     def _remove_declarations(self, rows: list[dict], folders: dict, failures: list[dict]) -> dict:
         """Remove the entries that declare each "invalid" row from the descriptors that the report says declare it.
@@ -773,7 +864,7 @@ class Library:
         problems: dict[str, str] = {}
         for row in rows:
             files = [frame["resourcePath"] for frame in row["sequence"]["frames"] if frame["category"] == "invalid"] \
-                if "sequence" in row else [row["resourcePath"]]
+                if "sequence" in row else [row["directory"]["project"]] if "directory" in row else [row["resourcePath"]]
             if not row["requiredBy"]:
                 problems[row["id"]] = "No descriptor declares it, only the workspace's resource_paths"
             elif all(contained(resources, file) and os.path.isfile(file) for file in files):
@@ -809,8 +900,9 @@ class Library:
         return {"files": changed, "resources": sum(1 for row in rows if row["id"] not in problems)}
 
     def _delete_resources(self, rows: list[dict], folders: dict, resource_paths: list[str], failures: list[dict]) -> dict:
-        """Delete the files of each "supplementary" row, each saved in the backups first. A file that a descriptor
-        declares now is left alone, since the report is out of date."""
+        """Delete the files of each "supplementary" row, each saved in the backups first: an RTF's are every file of its
+        folder, which goes with them when it is left empty. A file that a descriptor declares now is left alone, since the
+        report is out of date."""
         resources, game = folders["resources"], folders["game"]
         deleted: list[str] = []
         count = 0
@@ -820,7 +912,8 @@ class Library:
             failures.extend({"name": os.path.basename(row["resource"]), "message": f"The descriptors cannot be read: {error_message(error)}"} for row in rows)
             return {"files": [], "resources": 0}
         for row in rows:
-            files = [frame["resourcePath"] for frame in row["sequence"]["frames"]] if "sequence" in row else [row["resourcePath"]]
+            files = [frame["resourcePath"] for frame in row["sequence"]["frames"]] if "sequence" in row \
+                else [file["resourcePath"] for file in row["directory"]["files"]] if "directory" in row else [row["resourcePath"]]
             try:
                 if not all(contained(str(game), file) for file in files):
                     raise AppError("The files are outside the game folder")
@@ -835,13 +928,10 @@ class Library:
                     if not stat.S_ISREG(info.st_mode):
                         raise AppError("The game file is not a regular file")
                 for relative, target in targets:
-                    backup = os.path.join(folders["backups"], relative)
-                    os.makedirs(os.path.dirname(backup), exist_ok=True)
-                    _copy_exclusive(target, backup)
-                    if file_hash(backup) != file_hash(target):
-                        raise AppError("The backup does not match the game file, so it was kept")
-                    os.unlink(target)
+                    _delete_with_backup(target, os.path.join(folders["backups"], relative))
                     deleted.append(os.path.relpath(target, game))
+                    if "directory" in row:
+                        _remove_empty_folders(os.path.dirname(target), os.path.dirname(row["resourcePath"]))
                 count += 1
             except Exception as error:
                 failures.append({"name": os.path.basename(row["resource"]), "message": error_message(error)})
@@ -895,11 +985,11 @@ class Library:
         return {"files": details}
 
     def resource_preview(self, file: str) -> tuple[bytes, str]:
-        """Preview an image, an audio file to play, or a font to draw text with, inside the active workspace's resources
-        and GDA folders."""
+        """Preview an image, an audio file to play, a font to draw text with, or the pages of an RTF to draw,
+        inside the active workspace's resources and GDA folders."""
         file = self._resource_path(file)
         extension = os.path.splitext(file)[1][1:].lower()
-        if extension != "dds" and extension not in {**IMAGE_PREVIEWS, **AUDIO_PREVIEWS, **FONT_EXTENSIONS}:
+        if extension != "dds" and extension != RTF_EXTENSION and extension not in {**IMAGE_PREVIEWS, **AUDIO_PREVIEWS, **FONT_EXTENSIONS}:
             raise AppError("No preview for this file", 415)
         try:
             return self._media(file, extension)
@@ -907,11 +997,17 @@ class Library:
             raise AppError("File not found", 404) from error
 
     def _media(self, file: str, extension: str) -> tuple[bytes, str]:
-        """An image file as the browser can show it, or an audio or font file as it is: decoded DDS textures are cached
-        by file, time and size."""
+        """An image file as the browser can show it, an audio or font file as it is, or an RTF's pages as JSON:
+        decoded DDS textures are cached by file, time and size."""
         info = os.stat(file)
         if info.st_size > MAX_PREVIEW_BYTES:
             raise AppError("Preview is limited to files smaller than 64 MB", 413)
+        if extension == RTF_EXTENSION:
+            try:
+                layout = rtf_layout(file)
+            except (ValueError, RecursionError) as error:
+                raise AppError(error_message(error), 415) from error
+            return json.dumps(layout, ensure_ascii=False, separators=(",", ":")).encode("utf-8"), "application/json"
         if extension == "dds":
             key = f"{file}:{info.st_mtime_ns}:{info.st_size}"
             with self._previews_lock:
