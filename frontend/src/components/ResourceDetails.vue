@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { baseName, declarationLabel, directoryOf, extensionOf, fileType, number, plural, previewFrames, rssBadges, rtfChangeBadges, rtfChangeNames, rtfChangeSummary, sequenceName, size, splitPath, time } from '../format';
+import { algorithmValues, baseName, declarationLabel, directoryOf, extensionOf, fileType, matchBadge, matchText, number, plural, previewFrames, rssBadges, rtfChangeBadges, rtfChangeNames, rtfChangeSummary, sequenceName, size, splitPath, time } from '../format';
 import type { RssFileDetails, RssResource, RtfFacts } from '../types';
 import { busy, copy, openResourceFolder, requestResourceSync, resourceDetails, rssSync } from '../workspace';
 import AppModal from './AppModal.vue';
@@ -18,7 +18,9 @@ import SequencePreview from './SequencePreview.vue';
 // itself on both sides, with the same text, and with the characters and at the size of the Font entry chosen; the table
 // compares the fonts' names, glyph counts and how many of each Font entry's characters they have. An RTF draws the
 // pages of the game's RTF and of the closest GDA one side by side, on the same page when both have it; the table compares
-// the two projects, and the files of the folders are listed with what Sync does to each. Escape closes the dialog.
+// the two projects, and the files of the folders are listed with what Sync does to each. An image lists how the image
+// matching judged each GDA file of its name and each possible match of another name, with every algorithm's value.
+// Escape closes the dialog.
 // reportVersion is the GDA sync report's version; one before FONT_REPORT_VERSION has no Font entry characters to check.
 const props = defineProps<{ row: RssResource; revision: string; reportVersion?: number }>();
 const emit = defineEmits<{ close: [] }>();
@@ -36,6 +38,12 @@ const choosePage = (facts: RtfFacts, index: number | undefined) => { rtfPage.val
 // An RTF's files that Sync copies or deletes first, then the identical ones.
 const rtfFiles = computed(() => [...(directory.value?.files ?? [])].sort((a, b) => Number(!a.change || a.change === 'identical') - Number(!b.change || b.change === 'identical')));
 const isAudio = (path: string) => fileType(extensionOf(baseName(path))) === 'audio';
+// The GDA images the image matching judged: the GDA files of the image's name, then its possible matches of other names.
+const evaluated = computed(() => (sequence.value || directory.value || !props.row.imageMatch ? [] : [
+  ...props.row.gdaFiles.filter(file => file.match).map(file => ({ path: file.path, absolutePath: file.absolutePath, sameName: true, evaluation: file.match! })),
+  ...props.row.imageMatch.matches.filter(match => !match.sameName)
+    .map(match => ({ path: match.path, absolutePath: match.absolutePath, sameName: false, evaluation: match })),
+]));
 
 // The files described: a sequence's game files and the GDA file of each of its frames, each once. An RTF is described by
 // the report.
@@ -340,6 +348,27 @@ function sync() {
               </tr>
             </tbody>
           </table>
+
+          <template v-if="evaluated.length || row.imageMatch?.error">
+            <h6 class="details-heading">Image matching</h6>
+            <p v-if="row.imageMatch?.error" class="text-muted details-small">This image could not be decoded: {{ row.imageMatch.error }}</p>
+            <div v-for="item in evaluated" :key="item.absolutePath" class="details-match">
+              <p class="details-match-title">
+                <span class="details-code" :title="item.absolutePath">{{ item.path }}</span>
+                <span :class="['badge', matchBadge(item.evaluation)]">{{ matchText(item.evaluation) }}</span>
+                <small class="text-muted">{{ item.sameName ? 'same name' : 'other name' }}</small>
+              </p>
+              <table class="table table-sm details-table">
+                <tbody>
+                  <tr v-for="value in algorithmValues(item.evaluation.algorithms)" :key="value.name">
+                    <th scope="row">{{ value.name }}</th><td>{{ value.value }}</td>
+                    <td class="text-muted">{{ value.probability === undefined ? '' : `${value.probability.toFixed(1)} %` }}</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p v-if="item.evaluation.stoppedBy === 'ssim'" class="text-muted details-small">SIFT did not run: SSIM already shows a near duplicate.</p>
+            </div>
+          </template>
 
           <template v-if="directory">
             <h6 class="details-heading">Files<small v-if="row.category === 'different'" class="text-muted"> · copied on sync: {{ rtfChangeSummary(directory) }}</small></h6>

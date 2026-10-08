@@ -6,7 +6,9 @@ its frames, often a {N-M} range of files, are compared one by one, and the seque
 A game file that nothing declares is "supplementary" and not compared; numbered images among them are guessed to be
 image sequences. An RTF, a project of the RTF Tool, is one resource: its folder, compared file by file with the GDA folder
 that holds a .rtf file of the same name. It returns JSON-ready data instead of a Markdown report, lists identical files
-too, and reports progress so it can run as a background job.
+too, and reports progress so it can run as a background job. Images are also matched with the GDA's images by their
+contents, as egt_gda_sync.image_compare describes: each compared image has the probability that each GDA image is the same
+picture, and its possible matches.
 """
 
 from __future__ import annotations
@@ -19,10 +21,13 @@ import struct
 import time
 from collections import Counter, defaultdict
 from collections.abc import Callable, Iterable, Iterator
+from contextlib import closing
 from dataclasses import asdict, dataclass, fields, is_dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any, NamedTuple
 
+from .image_cache import CompareCache, FileHashes
+from .image_compare import IMAGE_EXTENSIONS, ImageMatcher, Query, Settings, Target, workers
 from .rss_schemas import DOCUMENT_TYPES, Frame, ImageSequence, parse_dataclass
 from .rtf import describe_rtf
 
@@ -37,6 +42,8 @@ DDS_MAGIC = b"DDS "
 DDS_HEADER_END = 128
 DDS_DX10_END = 148
 PROGRESS_INTERVAL = 0.2
+HASH_CHUNK = 256  # files hashed between progress reports
+DEFAULT_MATCH_THRESHOLD = 50.0
 # The status a sequence takes from its frames: the first of these that any of its files has.
 SEQUENCE_PRECEDENCE = ("different", "invalid", "missing", "identical")
 # Supplementary images in one folder named <name><number>.<ext>, with the same name and extension and at least
@@ -62,6 +69,12 @@ class Config:
     resource_paths: tuple[str, ...] = ()
     common_gda_dir: Path | None = None
     ignore_dds_mips: bool = True
+    # The image matching: whether it runs on several threads, whether it adds the GPU algorithms (CLIP and DINOv2), the
+    # probability from which a GDA image is a possible match, and the cache file; without one the cache is in memory.
+    multithreading: bool = True
+    use_gpu: bool = False
+    image_match_threshold: float = DEFAULT_MATCH_THRESHOLD
+    cache_path: Path | None = None
 
 
 def make_config(settings: dict) -> Config:
@@ -86,6 +99,15 @@ def make_config(settings: dict) -> Config:
     ignore_dds_mips = settings.get("ignore_dds_mips", True)
     if not isinstance(ignore_dds_mips, bool):
         raise ValueError("ignore_dds_mips must be true or false")
+    for key in ("multithreading", "use_gpu"):
+        if not isinstance(settings.get(key, False), bool):
+            raise ValueError(f"{key} must be true or false")
+    threshold = settings.get("image_match_threshold", DEFAULT_MATCH_THRESHOLD)
+    if isinstance(threshold, bool) or not isinstance(threshold, (int, float)) or not 0 <= threshold <= 100:
+        raise ValueError("image_match_threshold must be a percentage from 0.0 to 100.0")
+    cache_path = settings.get("cache_path")
+    if cache_path is not None and (not isinstance(cache_path, str) or not cache_path):
+        raise ValueError("cache_path must be a nonempty path")
 
     config = Config(
         resources_dir=path_value("resources_dir"),
@@ -95,6 +117,10 @@ def make_config(settings: dict) -> Config:
         resource_paths=tuple(resource_paths),
         common_gda_dir=path_value("common_gda_dir") if settings.get("common_gda_dir") is not None else None,
         ignore_dds_mips=ignore_dds_mips,
+        multithreading=settings.get("multithreading", True),
+        use_gpu=settings.get("use_gpu", False),
+        image_match_threshold=float(threshold),
+        cache_path=Path(cache_path) if cache_path else None,
     )
     if not config.resources_dir.is_dir():
         raise ValueError(f"resources_dir does not exist: {config.resources_dir}")
@@ -418,7 +444,14 @@ def gather(config: Config, required: bool = True) -> Declarations:
 
 
 def compare(config: Config, progress: Progress | None = None) -> dict:
-    """Classify every resource of the game; return the parsed descriptors, the summary, the differences and the identical files."""
+    """Classify every resource of the game; return the parsed descriptors, the summary, the image matching, the
+    differences and the identical files."""
+    with closing(CompareCache(config.cache_path)) as cache, workers(config.multithreading) as map_function:
+        return classify_resources(config, progress, FileHashes(cache, file_hash, map_function), map_function)
+
+
+def classify_resources(config: Config, progress: Progress | None, hashes: FileHashes, map_function: Callable) -> dict:
+    """compare, with the run's hashes and the map function of its threads."""
     report = progress or (lambda _phase, _done, _total: None)
     report("descriptors", 0, 0)
     found = gather(config)
@@ -431,8 +464,19 @@ def compare(config: Config, progress: Progress | None = None) -> dict:
     common_gda = ("common", config.common_gda_dir, index_gda(config.common_gda_dir, config.extensions)) \
         if config.common_gda_dir is not None else None
     common_dir = config.resources_dir / COMMON_DIR
-    gda_hashes: dict[Path, str] = {}
     checked: dict[Path, dict | None] = {}
+    # The image matching of each compared image: its imageMatch, and the evaluation of each same-named GDA file.
+    images: dict[Path, dict] = {}
+
+    def trees_of(source: Path) -> tuple:
+        return (common_gda, game_gda) if common_gda and source.is_relative_to(common_dir) else (game_gda,)
+
+    def compared(source: Path) -> bool:
+        return source.is_relative_to(config.resources_dir) and source.suffix.lower() in config.extensions and source.is_file()
+
+    def locate(source: Path) -> list[tuple[str, Path, Path]]:
+        """The GDA files named like a game file, in the trees it is searched in."""
+        return [(tree, root, path) for tree, root, by_name in trees_of(source) for path in by_name.get(source.name, [])]
 
     def classify(source: Path) -> dict | None:
         """A game file's status, the GDA files that go with it and whether only DDS mip levels differ, or None when
@@ -442,8 +486,7 @@ def compare(config: Config, progress: Progress | None = None) -> dict:
             return {"status": f"invalid: {reason}", "located": []}
         if source.suffix.lower() not in config.extensions:
             return None
-        trees = (common_gda, game_gda) if common_gda and source.is_relative_to(common_dir) else (game_gda,)
-        located = [(tree, root, path) for tree, root, by_name in trees for path in by_name.get(source.name, [])]
+        located = locate(source)
         # Only the game's own files are reported missing. A shared file outside game_path without a GDA copy is left
         # out, and not compared, since its GDA files can be kept elsewhere.
         if not located and not source.is_relative_to(game_dir):
@@ -453,12 +496,9 @@ def compare(config: Config, progress: Progress | None = None) -> dict:
         # Same-named candidates in other folders are listed after the closest folder match.
         display = os.path.relpath(source, game_dir)
         located.sort(key=lambda item: -path_overlap(display, item[2].relative_to(item[1]).as_posix()))
-        source_hash = file_hash(source)
+        source_hash = hashes(source)
         for candidate in located:
-            path = candidate[2]
-            if path not in gda_hashes:
-                gda_hashes[path] = file_hash(path)
-            if gda_hashes[path] == source_hash:
+            if hashes(candidate[2]) == source_hash:
                 return {"status": "identical", "located": [candidate], "mipOnly": False}
         if config.ignore_dds_mips and source.suffix.lower() == ".dds":
             source_data = source.read_bytes()
@@ -474,14 +514,19 @@ def compare(config: Config, progress: Progress | None = None) -> dict:
         return checked[source]
 
     def file_entry(source: Path, result: dict | None) -> dict:
-        """A game file as a row or a sequence frame shows it; a frame that is not compared is "skipped"."""
+        """A game file as a row or a sequence frame shows it; a frame that is not compared is "skipped". A compared image
+        has its imageMatch, and the evaluation of each same-named GDA file as its match."""
         status = result["status"] if result else "not compared"
+        matched = images.get(source) if result else None
+        named = matched["named"] if matched else {}
         return {
             "category": status_category(status) if result else "skipped", "status": status,
             "resource": os.path.relpath(source, game_dir), "resourcePath": str(source),
-            "gdaFiles": [{"tree": tree, "path": path.relative_to(root).as_posix(), "absolutePath": str(path)}
+            "gdaFiles": [{"tree": tree, "path": path.relative_to(root).as_posix(), "absolutePath": str(path),
+                          **({"match": named[path]} if path in named else {})}
                          for tree, root, path in (result["located"] if result else ())],
             **({"mipOnly": result["mipOnly"]} if result and "mipOnly" in result else {}),
+            **({"imageMatch": matched["imageMatch"]} if matched else {}),
         }
 
     def scope(source: Path) -> str:
@@ -541,7 +586,7 @@ def compare(config: Config, progress: Progress | None = None) -> dict:
             entry: dict = {"path": name, "resourcePath": str(mine) if mine else None, "gdaPath": str(theirs) if theirs else None}
             if mine is None or theirs is None:
                 entry["change"] = "added" if mine is None else "removed"
-            elif hash_of(mine, game_hashes) == hash_of(theirs, gda_hashes):
+            elif hashes(mine) == hashes(theirs):
                 entry["change"] = "identical"
             elif config.ignore_dds_mips and mine.suffix.lower() == ".dds" and mip_chain_only_differs(mine.read_bytes(), theirs.read_bytes()):
                 entry.update(change="identical", mipOnly=True)
@@ -601,7 +646,34 @@ def compare(config: Config, progress: Progress | None = None) -> dict:
             row.update({f"gda{key[0].upper()}{key[1:]}": value for key, value in describe_rtf(str(located[0][2])).items()})
         return row
 
-    game_hashes: dict[Path, str] = {}
+    def match_images() -> dict:
+        """Match every compared game image with the GDA images, and order the same-named GDA files of a different one by
+        folder and then by probability, so Sync copies the closest and most similar. Return the run's imageCompare; an
+        error leaves the rows without image matches."""
+        queries = []
+        for source, result in checked.items():
+            if result is None or source.suffix.lower() not in IMAGE_EXTENSIONS or status_category(result["status"]) not in ("identical", "different", "missing"):
+                continue
+            named = [path for _tree, _root, path in result["located"]]
+            trees = tuple(tree for tree, _root, _index in trees_of(source))
+            identical = result["status"] == "identical"
+            queries.append(Query(source, trees, named, named[0] if identical else None, identical and result["mipOnly"]))
+        targets = [Target(path, tree, root) for tree, root, by_name in filter(None, (game_gda, common_gda))
+                   for paths in by_name.values() for path in paths if path.suffix.lower() in IMAGE_EXTENSIONS]
+        matcher = ImageMatcher(Settings(config.multithreading, config.use_gpu, config.image_match_threshold), hashes.cache, hashes,
+                               map_function, report)
+        try:
+            images.update(matcher.run(queries, targets))
+        except Exception as error:  # The status of every resource stands without the image matching.
+            images.clear()
+            return {**matcher.report(), "error": f"{type(error).__name__}: {error}"}
+        for source, matched in images.items():
+            result = checked[source]
+            if status_category(result["status"]) == "different":
+                display = os.path.relpath(source, game_dir)
+                result["located"].sort(key=lambda item: (-path_overlap(display, item[2].relative_to(item[1]).as_posix()),
+                                                         -((matched["named"].get(item[2]) or {}).get("probability") or -1)))
+        return matcher.report()
 
     rows: list[dict] = [file_row(source, SUPPLEMENTARY) for source in found.supplementary]
     rows.extend(guessed_sequence_row(files) for files in found.guessed)
@@ -609,10 +681,32 @@ def compare(config: Config, progress: Progress | None = None) -> dict:
     # An RTF's .rtf files are its folder's.
     relatives = [relative for template in sorted(found.templates) for relative in expand_path(template)
                  if not ((path := (game_dir / relative).resolve()).parent in found.rtfs and path.suffix.lower() == RTF_SUFFIX)]
-    total = len(relatives) + sum(len(frames) for *_, frames in found.sequences) + sum(len(files) for _project, files in found.rtfs.values())
+    sources = list(dict.fromkeys([(game_dir / relative).resolve() for relative in relatives]
+                                 + [source for *_, frames in found.sequences for _frame, source in frames]))
+    # The files that classify hashes, hashed together on the run's threads: each compared file with GDA files of its
+    # name, and those GDA files.
+    hashed = list(dict.fromkeys(path for source in sources if compared(source) and (located := locate(source))
+                                for path in (source, *(path for _tree, _root, path in located))))
+    for start in range(0, len(hashed), HASH_CHUNK):
+        report("hashing", start, len(hashed))
+        hashes.prefetch(hashed[start:start + HASH_CHUNK])
+    report("hashing", len(hashed), len(hashed))
+    # Every file is classified first, and the RTFs compared, so the image matching sees every image's status before the
+    # rows are made.
+    total = len(sources) + sum(len(files) for _project, files in found.rtfs.values())
     report("compare", 0, total)
-    for done, relative in enumerate(relatives, 1):
+    for done, source in enumerate(sources, 1):
+        check(source)
         report("compare", done, total)
+    done = len(sources)
+    rtf_rows = []
+    for folder, (project, files) in found.rtfs.items():
+        if (row := rtf_row(folder, project, files)) is not None:
+            rtf_rows.append(row)
+        done += len(files)
+        report("compare", done, total)
+    image_compare = match_images()
+    for relative in relatives:
         source = (game_dir / relative).resolve()
         if source in seen:
             continue
@@ -620,19 +714,10 @@ def compare(config: Config, progress: Progress | None = None) -> dict:
         result = check(source)
         if result is not None:
             rows.append(file_row(source, result))
-    done = len(relatives)
     for document_name, sequence, lines, frames in found.sequences:
-        for _frame, source in frames:
-            check(source)
-            done += 1
-            report("compare", done, total)
         if (row := sequence_row(document_name, sequence, lines, frames)) is not None:
             rows.append(row)
-    for folder, (project, files) in found.rtfs.items():
-        if (row := rtf_row(folder, project, files)) is not None:
-            rows.append(row)
-        done += len(files)
-        report("compare", done, total)
+    rows.extend(rtf_rows)
     # The script's order, by status and then resource; a sequence's file counts do not take part.
     differences = sorted((row for row in rows if row["category"] != "identical"),
                          key=lambda item: (item["status"].partition(" (")[0], item["resource"]))
@@ -648,16 +733,11 @@ def compare(config: Config, progress: Progress | None = None) -> dict:
             "missing": counts["missing"], "different": counts["different"], "invalid": counts["invalid"],
             "supplementary": counts["supplementary"],
         },
+        # The image matching's settings, algorithms, counts, cache and times.
+        "imageCompare": image_compare,
         "differences": differences,
         "identical": identical,
     }
-
-
-def hash_of(path: Path, hashes: dict[Path, str]) -> str:
-    """A file's SHA-256, kept in hashes so each file is read once."""
-    if path not in hashes:
-        hashes[path] = file_hash(path)
-    return hashes[path]
 
 
 def throttled(progress: Progress, interval: float = PROGRESS_INTERVAL) -> Progress:

@@ -86,14 +86,18 @@ from, and `game_path`, the game folder they are copied to.
 
 For Windows, paths can use forward slashes, such as `C:/Users/you/assets/gda`.
 Neither folder may contain the other. The optional fields of the GDA sync
-(`common_gda_path`, `extensions`, `resource_paths`, and `ignore_dds_mips`) are
-described in [README.md](README.md). Packaging requires the configuration file to
+(`common_gda_path`, `extensions`, `resource_paths`, `ignore_dds_mips`,
+`multithreading`, `use_gpu`, and `image_match_threshold`) are described in
+[README.md](README.md). Packaging requires the configuration file to
 exist. Its contents are validated when the application starts: invalid JSON or
 invalid settings stop startup with an explanation, while a folder that does not
 exist only produces a warning in the app.
 
 [pyproject.toml](pyproject.toml) declares the runtime dependencies: FastAPI,
-uvicorn, and NumPy. The `dev` extra installs PyInstaller and the testing tools.
+uvicorn, NumPy, and OpenCV (`opencv-python-headless`, which decodes images and
+runs the image matching's CPU algorithms). The `dev` extra installs PyInstaller
+and the testing tools. The `gpu` extra installs torch and transformers for the
+image matching's GPU algorithms; the executables never include them.
 
 ### 2. Build the interface
 
@@ -148,7 +152,8 @@ The spec defines:
 - **Python archive:** `PYZ(analysis.pure)` holds the collected Python modules.
 - **Single executable:** `EXE(...)` receives the scripts, archive, binaries, and
   data directly, producing a one-file bundle. UPX compression is disabled,
-  `tkinter` is excluded, and console output is enabled.
+  `tkinter` and the GPU algorithms' packages (torch, transformers and the
+  Hugging Face libraries) are excluded, and console output is enabled.
 - **Windows metadata:** the generated icon and the product name "EGT GDA Sync"
   with the file version from `egt_gda_sync/__init__.py` are embedded in
   `egt-gda-sync.exe`.

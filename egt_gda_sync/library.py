@@ -31,7 +31,8 @@ from .fonts import FONT_EXTENSIONS, describe_font
 from .png import PNG_SIGNATURE
 from .rss_edit import remove_declarations
 from .rss_jobs import SyncJobs
-from .rss_sync import DEFAULT_EXTENSIONS, Config, declared_files
+from .image_cache import CACHE_FILE
+from .rss_sync import DEFAULT_EXTENSIONS, DEFAULT_MATCH_THRESHOLD, Config, declared_files
 from .rtf import RTF_EXTENSION, rtf_layout
 
 MAX_ASSETS = 10_000
@@ -565,9 +566,11 @@ class Library:
         entry = next((entry for entry in self.config.get("workspaces", []) if entry["id"] == workspace_id), self.config)
         return workspace_id, entry
 
-    def _comparison(self, workspace_id: str, entry: dict) -> tuple[dict, dict]:
-        """The workspace settings a run uses, named as in workspace.json with defaults filled in, and the GDA sync
-        settings made from them: game_path is <resources_dir>/<game>, and gda_path is gda_dir."""
+    def _comparison(self, workspace_id: str, entry: dict, overrides: dict | None = None) -> tuple[dict, dict]:
+        """The workspace settings a run uses, named as in workspace.json with defaults filled in and the run's overrides
+        applied, and the GDA sync settings made from them: game_path is <resources_dir>/<game>, and gda_path is gda_dir.
+        Every run shares the compare cache in the app data folder."""
+        entry = {**entry, **(overrides or {})}
         common = entry.get("common_gda_path")
         if isinstance(common, str) and common and not os.path.isabs(common):
             common = os.path.join(os.path.dirname(self.config_path), common)
@@ -575,11 +578,15 @@ class Library:
             "id": workspace_id, "game_name": entry["name"], "game_path": entry["destination"], "gda_path": entry["source"],
             "common_gda_path": common, "extensions": entry.get("extensions", list(DEFAULT_EXTENSIONS)),
             "resource_paths": entry.get("resource_paths", []), "ignore_dds_mips": entry.get("ignore_dds_mips", True),
+            "multithreading": entry.get("multithreading", True), "use_gpu": entry.get("use_gpu", False),
+            "image_match_threshold": entry.get("image_match_threshold", DEFAULT_MATCH_THRESHOLD),
         }
         settings = {
             "resources_dir": os.path.dirname(workspace["game_path"]), "game": os.path.basename(workspace["game_path"]),
             "gda_dir": workspace["gda_path"], "common_gda_dir": common, "extensions": workspace["extensions"],
             "resource_paths": workspace["resource_paths"], "ignore_dds_mips": workspace["ignore_dds_mips"],
+            "multithreading": workspace["multithreading"], "use_gpu": workspace["use_gpu"],
+            "image_match_threshold": workspace["image_match_threshold"], "cache_path": os.path.join(self.home, CACHE_FILE),
         }
         return workspace, settings
 
@@ -605,12 +612,14 @@ class Library:
         workspaces = self.config.get("workspaces")
         return [(entry["id"], entry) for entry in workspaces] if workspaces else [("current", self.config)]
 
-    def compare_workspace(self, workspace_id: str, progress: Callable[[str, int, int], None] | None = None) -> dict:
-        """Run a workspace's GDA sync in this process and save its report, without the app; return the run."""
+    def compare_workspace(self, workspace_id: str, progress: Callable[[str, int, int], None] | None = None,
+                          overrides: dict | None = None) -> dict:
+        """Run a workspace's GDA sync in this process and save its report, without the app; return the run. overrides
+        replace workspace.json fields, such as use_gpu, for this run."""
         entry = dict(self.workspace_entries()).get(workspace_id)
         if entry is None:
             raise AppError(f"Workspace not found: {workspace_id}", 404)
-        return self.reports.run(workspace_id, *self._comparison(workspace_id, entry), progress)
+        return self.reports.run(workspace_id, *self._comparison(workspace_id, entry, overrides), progress)
 
     def close(self) -> None:
         self.reports.stop_all()

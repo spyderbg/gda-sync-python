@@ -3,7 +3,9 @@
 import json
 from pathlib import Path
 
+import pytest
 
+from egt_gda_sync import image_gpu
 from egt_gda_sync.__main__ import main
 from egt_gda_sync.library import Library
 from tests.test_rss_sync import write_example
@@ -64,6 +66,7 @@ def test_reports_every_workspace_and_records_a_failed_one(tmp_path, monkeypatch,
         "id": "empty", "game_name": "Empty", "game_path": str((tmp_path / "resources" / "empty").resolve()),
         "gda_path": str((tmp_path / "empty-gda").resolve()), "common_gda_path": None,
         "extensions": [".csv", ".dds", ".ini", ".mov", ".png", ".rtf", ".ttf", ".wav"], "resource_paths": [], "ignore_dds_mips": True,
+        "multithreading": True, "use_gpu": False, "image_match_threshold": 50.0,
     }
     # The app reads what the command saved: one report file per run.
     library = Library(str(home), config_path=str(home / "workspace.json"))
@@ -77,3 +80,29 @@ def test_rejects_unknown_workspaces_before_running_any(tmp_path, monkeypatch, ca
     assert main(["report", "same", "missing"]) == 2
     assert "unknown workspace missing. Workspaces: example, same, empty" in capsys.readouterr().err
     assert not (home / "sync-reports").exists()
+
+
+def test_image_matching_options_replace_the_workspace_settings_for_one_run(tmp_path, monkeypatch, capsys):
+    home = configure(tmp_path, monkeypatch)
+    monkeypatch.setattr(image_gpu, "load_embedder", lambda: (None, "no GPU in this test"))
+    assert main(["report", "example", "--no-multithreading", "--gpu", "--match-threshold", "72.5"]) == 1
+    output = capsys.readouterr().out
+    # Two of the example's five .dds files are in sync. Of the three searched for, the missing frame_001.dds has the
+    # contents of the GDA's a/frame_000.dds, an exact file whatever its name, though no .dds file of it is an image.
+    assert "  Images: 5 compared, 2 exact, 3 searched; possible matches: 1; GPU algorithms not used: no GPU in this test" in output
+    report = json.loads(newest(home, "example").read_text())
+    assert {key: report["workspace"][key] for key in ("multithreading", "use_gpu", "image_match_threshold")} == {
+        "multithreading": False, "use_gpu": True, "image_match_threshold": 72.5}
+    assert report["imageCompare"]["settings"] == {"multithreading": False, "workers": 1, "useGpu": True, "matchThreshold": 72.5}
+    assert report["imageCompare"]["gpu"] == {"requested": True, "available": False, "reason": "no GPU in this test"}
+    # workspace.json is unchanged, so the next run uses its settings again.
+    assert main(["report", "example"]) == 1
+    assert json.loads(newest(home, "example").read_text())["workspace"]["image_match_threshold"] == 50.0
+
+
+@pytest.mark.parametrize("threshold", ["101", "-1", "half"])
+def test_rejects_a_threshold_that_is_not_a_percentage(tmp_path, monkeypatch, capsys, threshold):
+    configure(tmp_path, monkeypatch)
+    with pytest.raises(SystemExit) as exit_info:
+        main(["report", "--match-threshold", threshold])
+    assert exit_info.value.code == 2 and "not a percentage from 0.0 to 100.0" in capsys.readouterr().err

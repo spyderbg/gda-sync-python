@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { baseName, declarationLabel, directoryOf, extensionOf, fileType, number, plural, previewFrames, resourceAction, rssBadges, rtfChangeNames, rtfChangeSummary, sequenceName, sequenceSummary, splitPath, typeIcons } from '../format';
+import { algorithmTitle, baseName, declarationLabel, directoryOf, extensionOf, fileType, matchText, number, plural, previewFrames, resourceAction, rssBadges, rtfChangeNames, rtfChangeSummary, sequenceName, sequenceSummary, splitPath, typeIcons } from '../format';
 import type { RssResource } from '../types';
 import { copy, openResourceFolder } from '../workspace';
 import CheckBox from './CheckBox.vue';
@@ -20,6 +20,8 @@ import SequencePreview from './SequencePreview.vue';
 // An RTF is one card for its folder, which shows its pages and lists its files that are not in sync; a "different" one
 // shows the pages of the closest GDA folder beside it, which Sync makes the game's folder a copy of, and the other GDA
 // folders that hold a .rtf file of its name.
+// An image shows how likely each GDA file of its name is the same picture, and lists the GDA images of other names that
+// may be (its possible matches), from the report's image matching.
 const props = withDefaults(defineProps<{ row: RssResource; revision: string; selected?: boolean; syncDisabled?: boolean }>(), { selected: false, syncDisabled: false });
 const emit = defineEmits<{ toggle: []; open: []; sync: [] }>();
 
@@ -51,6 +53,8 @@ const unsynced = computed(() => (directory.value
 // A sequence's different files that have a GDA file to copy, each once.
 const copied = computed(() => new Set((sequence.value?.frames ?? []).filter(frame => frame.category === 'different' && frame.gdaFiles.length).map(frame => frame.resourcePath)).size);
 const gdaFolders = computed(() => [...new Set(gdaFiles.value.map(file => file.directory))]);
+// The GDA images of other names that may show the same picture, most likely first.
+const possible = computed(() => (props.row.imageMatch?.matches ?? []).filter(match => !match.sameName));
 // The absolute folder of the first GDA file, whatever the separators of the backend's platform.
 const gdaFolder = computed(() => gdaFiles.value[0]?.directory ?? '');
 </script>
@@ -84,6 +88,12 @@ const gdaFolder = computed(() => gdaFiles.value[0]?.directory ?? '');
         <summary>{{ number(unsynced.length) }} file{{ plural(unsynced.length) }} not in sync</summary>
         <ul>
           <li v-for="frame in unsynced" :key="frame.resourcePath"><span :title="frame.resourcePath">{{ frame.name }}</span><small>{{ frame.status }}</small></li>
+        </ul>
+      </details>
+      <details v-if="possible.length" class="resource-frames resource-matches">
+        <summary>{{ number(possible.length) }} possible match{{ possible.length === 1 ? '' : 'es' }} by content</summary>
+        <ul>
+          <li v-for="match in possible" :key="match.absolutePath" :title="`${match.absolutePath}\n${algorithmTitle(match)}`"><span>{{ match.path }}</span><small>{{ matchText(match) }}</small></li>
         </ul>
       </details>
       <CheckBox v-if="selectable" class="asset-check" :checked="selected" :label="`Select ${row.resource}`" @change="emit('toggle')" />
@@ -141,6 +151,7 @@ const gdaFolder = computed(() => gdaFiles.value[0]?.directory ?? '');
           <div class="card-body">
             <p class="asset-name"><button type="button" class="resource-icon-button resource-file-copy" :aria-label="`Copy the GDA path ${file.path}`" title="Copy the GDA path" @click="copy(file.absolutePath)"><i aria-hidden="true" :class="['mdi', icon(file.name)]" /></button><span :title="file.absolutePath">{{ file.name }}</span></p>
             <p class="asset-meta"><span class="resource-folder"><button type="button" class="resource-icon-button resource-folder-open" :aria-label="`Open GDA directory ${file.directory}`" :title="`Open ${file.directory}`" @click="openResourceFolder(file.absolutePath)"><i aria-hidden="true" class="mdi mdi-folder-open-outline" /></button><span :title="file.directory">{{ file.directory }}</span></span><span v-if="file.tree === 'common'">common GDA</span></p>
+            <p v-if="file.match" class="resource-sequence resource-match" :title="algorithmTitle(file.match)">{{ matchText(file.match) }}</p>
             <div class="asset-footer">
               <span :class="['badge', 'resource-status', index ? 'badge-light' : 'badge-primary']">{{ index ? 'Other match' : 'Copied on sync' }}</span>
             </div>

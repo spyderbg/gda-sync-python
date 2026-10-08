@@ -18,12 +18,14 @@ from datetime import datetime, timezone
 
 from .rss_sync import Progress, compare_settings, run_in_process
 
-# Version 5 reports an RTF as one row, its folder, with every file in it compared with the closest GDA folder that holds
+# Version 6 matches images by their contents (docs/image_compare/implementation.md): each compared image has an imageMatch
+# with its best probability and possible matches, each same-named GDA file of an image its match, and the report the
+# imageCompare of the run. Version 5 reports an RTF as one row, its folder, with every file in it compared with the closest GDA folder that holds
 # its .rtf file, and the pages of both. Version 4 lists each entry that declares a resource with its type and id, and a
 # Font entry's characters and size, which the Sync page checks fonts against. Version 3 reports an image sequence as one row with its frames, where version 2
 # had a row per frame file. Version 2 keeps the run's settings only in "workspace"; version 1 also repeated them at the
 # top level.
-REPORT_VERSION = 5
+REPORT_VERSION = 6
 SAFE_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,99}")
 # Reports saved by an earlier version are named with this UTC date and time instead of epoch seconds.
 DATE_STAMP = "%Y%m%dT%H%M%SZ"
@@ -237,7 +239,7 @@ class SyncJobs(ReportFolder):
         # The run's state and times lead its summary; a successful run's counts follow them, in the result's place.
         report = {"version": REPORT_VERSION, "workspace": workspace}
         report.update({**result, "summary": {**run, **result["summary"]}} if result is not None else {"summary": run})
-        entry = {**run, **({"summary": result["summary"]} if result else {})}
+        entry = {**run, **({"summary": result["summary"], "imageCompare": result["imageCompare"]} if result else {})}
         try:
             self._write(self._new_file(workspace_id, run["finishedAt"]), report)
         finally:

@@ -6,7 +6,7 @@ import ChartCanvas from '../components/ChartCanvas.vue';
 import ChartLegend from '../components/ChartLegend.vue';
 import PageHeader from '../components/PageHeader.vue';
 import ReportNotice from '../components/ReportNotice.vue';
-import { ago, number, plural, size, time } from '../format';
+import { ago, imageSettings, number, plural, size, time } from '../format';
 import type { RssSyncCount, RssSyncHistory, RssSyncHistoryEntry, RssSyncSummary, RssSyncWorkspace } from '../types';
 import { busy, data, navigate, rescan, rssSync } from '../workspace';
 
@@ -61,11 +61,14 @@ const rows = computed(() => {
 const signed = (delta: number) => (delta > 0 ? `+${number(delta)}` : `−${number(-delta)}`);
 const changeClass = (delta: number, riseIsBetter: boolean) => ((delta > 0) === riseIsBetter ? 'text-success' : 'text-danger');
 
-const SETTINGS: (keyof RssSyncWorkspace)[] = ['game_path', 'gda_path', 'common_gda_path', 'extensions', 'resource_paths', 'ignore_dds_mips'];
-/** Whether the settings a run used differ from the workspace's settings now. */
+const SETTINGS: (keyof RssSyncWorkspace)[] = ['game_path', 'gda_path', 'common_gda_path', 'extensions', 'resource_paths', 'ignore_dds_mips',
+  'multithreading', 'use_gpu', 'image_match_threshold'];
+/** Whether the settings a run used differ from the workspace's settings now. A report from before a setting existed
+ * does not have it, which is no change. */
 function settingsChanged(run: RssSyncHistoryEntry) {
   const now = workspace.value;
-  return !!run.workspace && !!now && SETTINGS.some(key => JSON.stringify(run.workspace![key]) !== JSON.stringify(now[key]));
+  return !!run.workspace && !!now
+    && SETTINGS.some(key => key in run.workspace! && JSON.stringify(run.workspace![key]) !== JSON.stringify(now[key]));
 }
 
 /** The share of the compared resources in each result, as the widths of the card's bar. */
@@ -122,6 +125,7 @@ const legend = computed(() => [
               <dt>Resource paths</dt><dd class="history-path"><span v-for="path in workspace.resource_paths" :key="path" class="d-block">{{ path }}</span></dd>
             </template>
             <dt>DDS mip levels</dt><dd>{{ workspace.ignore_dds_mips ? 'Ignored when comparing' : 'Compared' }}</dd>
+            <template v-if="imageSettings(workspace)"><dt>Image matching</dt><dd>{{ imageSettings(workspace) }}</dd></template>
             <dt>Last run</dt><dd>{{ runs.length ? `${time(runs[0].finishedAt)} (${ago(runs[0].finishedAt)})` : 'Never' }}</dd>
           </dl>
         </div>

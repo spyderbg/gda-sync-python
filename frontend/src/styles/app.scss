@@ -717,6 +717,10 @@ button.nav-link {
 .details-table th, .details-table td { padding: 6px 8px 6px 0; border-top: 1px solid #f0f1f4; font-size: 0.8125rem; vertical-align: top; }
 .details-table thead th { border-top: 0; color: #6c757d; font-size: 12px; font-weight: 500; }
 .details-table tbody th { width: 34%; color: #6c757d; font-weight: 400; }
+.details-match { margin-bottom: 14px; }
+.details-match-title { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 4px; font-size: 0.8125rem; overflow-wrap: anywhere; }
+.details-match .details-table tbody th { width: 22%; }
+.details-match .details-table td:last-child { width: 64px; padding-right: 0; text-align: right; font-weight: 400; }
 .details-table td { font-weight: 500; overflow-wrap: anywhere; }
 .details-table td.is-different { color: #d2453c; }
 .details-frames { max-height: 260px; overflow-y: auto; border: 1px solid #ebedf2; border-radius: 4px; }

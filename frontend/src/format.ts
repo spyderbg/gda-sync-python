@@ -1,4 +1,4 @@
-import type { AssetCategory, AssetDeclaration, AssetSequence, AssetStatus, AssetType, PreviewFrame, ReportAsset, RssCategory, RssResource, RssRtfDirectory, RssSequence, RtfChange, RtfFacts } from './types';
+import type { AssetCategory, AssetDeclaration, AssetSequence, AssetStatus, AssetType, ImageAlgorithms, ImageEvaluation, ImageMatchType, PreviewFrame, ReportAsset, RssCategory, RssResource, RssRtfDirectory, RssSequence, RssSyncWorkspace, RtfChange, RtfFacts } from './types';
 
 export const ASSET_TYPES = ['texture', 'model', 'material', 'audio', 'font', 'rtf'] as const;
 export const typeIcons: Record<AssetType, string> = {
@@ -181,3 +181,40 @@ export function characterRanges(chars: string, limit = 96) {
     return { label: first === last ? codePoint(first) : `${codePoint(first)}–${codePoint(last)}`, points, count };
   }).filter(range => range.count);
 }
+
+// The image matching of the GDA sync report (docs/image_compare/implementation.md).
+export const matchTypeNames: Record<ImageMatchType, string> = {
+  exact_file: 'exact file', exact_pixels: 'same pixels', near_duplicate: 'near duplicate', transformed_duplicate: 'transformed copy',
+  visually_similar: 'visually similar', semantically_similar: 'semantically similar', different: 'another picture', uncertain: 'uncertain',
+};
+/** A pair's probability and type, such as "97.8 % · near duplicate"; a probability is unknown when an image cannot be decoded. */
+export const matchText = (evaluation: Pick<ImageEvaluation, 'probability' | 'matchType'>) =>
+  `${evaluation.probability === null ? 'unknown' : `${evaluation.probability.toFixed(1)} %`} · ${matchTypeNames[evaluation.matchType]}`;
+/** Each algorithm that ran on a pair, with its value and the probability it gives alone. */
+export function algorithmValues(algorithms: ImageAlgorithms): { name: string; value: string; probability?: number }[] {
+  const values: { name: string; value: string; probability?: number }[] = [{ name: 'SHA-256', value: algorithms.sha256.equal ? 'equal' : 'different' }];
+  const { pixels, phash, dhash, ssim, sift, clip, dinov2 } = algorithms;
+  if (pixels) values.push({ name: 'Pixels', value: pixels.ddsMipsOnly ? 'equal (DDS mip levels differ)' : pixels.equal ? 'equal' : pixels.size && pixels.gdaSize && pixels.size.join() !== pixels.gdaSize.join() ? `different, ${pixels.size.join(' × ')} and ${pixels.gdaSize.join(' × ')}` : 'different' });
+  if (phash) values.push({ name: 'pHash', value: `Hamming ${phash.hamming}`, probability: phash.probability });
+  if (dhash) values.push({ name: 'dHash', value: `Hamming ${dhash.hamming}`, probability: dhash.probability });
+  if (ssim) values.push({ name: 'SSIM', value: ssim.value.toFixed(4), probability: ssim.probability });
+  if (sift) {
+    values.push(sift.applicable === false
+      ? { name: 'SIFT', value: `too few keypoints (${sift.keypoints.join(' and ')})` }
+      : { name: 'SIFT', value: `${sift.inliers} inliers of ${sift.goodMatches} matches, ${((sift.coverage ?? 0) * 100).toFixed(1)} % of the image`, probability: sift.probability });
+  }
+  if (clip) values.push({ name: 'CLIP', value: `cosine ${clip.cosine.toFixed(4)}`, probability: clip.probability });
+  if (dinov2) values.push({ name: 'DINOv2', value: `cosine ${dinov2.cosine.toFixed(4)}`, probability: dinov2.probability });
+  return values;
+}
+/** The algorithms of a pair on one line each, for a tooltip. */
+export const algorithmTitle = (evaluation: ImageEvaluation) => algorithmValues(evaluation.algorithms)
+  .map(item => `${item.name}: ${item.value}${item.probability === undefined ? '' : ` (${item.probability.toFixed(1)} %)`}`).join('\n');
+/** A run's image matching settings, such as "possible matches from 50.0 % · multithreading · GPU algorithms"; reports
+ * from before version 6 have none. */
+export const imageSettings = (workspace: RssSyncWorkspace) => (workspace.image_match_threshold === undefined ? null
+  : [`possible matches from ${workspace.image_match_threshold.toFixed(1)} %`, workspace.multithreading ? 'multithreading' : 'one thread',
+    workspace.use_gpu ? 'GPU algorithms' : 'CPU algorithms only'].join(' · '));
+/** A pair's badge: likely matches stand out. */
+export const matchBadge = (evaluation: Pick<ImageEvaluation, 'probability'>) => (evaluation.probability === null ? 'badge-light'
+  : evaluation.probability >= 80 ? 'badge-success' : evaluation.probability >= 50 ? 'badge-info' : 'badge-light');
