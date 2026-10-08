@@ -175,6 +175,24 @@ def _copy_exclusive(source: str, target: str) -> None:
         shutil.copyfileobj(reader, writer, 1024 * 1024)
 
 
+def image_candidates(row: dict) -> list[dict]:
+    """The GDA images that may show the same picture as a different or missing image of the GDA sync report: its possible
+    matches by content, and its same-named GDA files whatever their probability, most likely first, on a tie a same-named
+    one first. Each is syncable unless it has the game file's contents, since copying it would change nothing. Sequences,
+    RTFs, other files and reports from before version 6 have none. The same rule as imageCandidates in
+    frontend/src/format.ts."""
+    match = row.get("imageMatch")
+    if not match or "sequence" in row or "directory" in row or row["category"] not in ("different", "missing"):
+        return []
+    found = {candidate["absolutePath"]: candidate for candidate in match["matches"]}
+    for file in row["gdaFiles"]:
+        if "match" in file and file["absolutePath"] not in found:
+            found[file["absolutePath"]] = {**file, **file["match"], "sameName": True, "foundBy": ["name"]}
+    ordered = sorted(found.values(), key=lambda candidate: (-(candidate["probability"] if candidate["probability"] is not None else -1),
+                                                             not candidate["sameName"]))
+    return [{**candidate, "syncable": candidate["matchType"] != "exact_file"} for candidate in ordered]
+
+
 def _replace_file(source: str, target_root: str, relative: str, backup: str, create_parents: bool = False) -> None:
     """Copy source over target_root/relative through a verified temporary file; an existing target is saved to backup first."""
     target = safe_path(target_root, relative, create_parents)
@@ -750,20 +768,24 @@ class Library:
 
         return self._exclusive(operation)
 
-    def sync_resources(self, ids: list[str]) -> dict:
-        """Copy the closest GDA file of each chosen "different" resource of the GDA sync report over the game resource,
-        or of each different frame of an image sequence, then compare again, since the report lists a copied resource
-        as different until the next run."""
-        return self._apply_resources(dict.fromkeys(ids, "different"), "Only a resource that differs from its GDA file can be synced")
+    def sync_resources(self, ids: list[str], gda_files: dict[str, str] | None = None) -> dict:
+        """Copy a GDA file of each chosen "different" resource of the GDA sync report over the game resource, then compare
+        again, since the report lists a copied resource as different until the next run. An image is copied from the GDA
+        image chosen for it in gda_files, by row id, which must be one of its candidates (image_candidates) and can sync
+        a "missing" image too; without a choice from its most likely candidate. Any other file is copied from its
+        closest GDA file, and each different frame of an image sequence from the closest GDA file of the frame."""
+        return self._apply_resources(dict.fromkeys(ids, "different"), "Only a resource that differs from its GDA file can be synced",
+                                     gda_files or {})
 
-    def apply_resources(self, resources: dict[str, str]) -> dict:
+    def apply_resources(self, resources: dict[str, str], gda_files: dict[str, str] | None = None) -> dict:
         """Apply the action of each chosen resource of the GDA sync report, by row id, for the status the caller saw,
-        which must still be its status in the report: sync a "different" resource as sync_resources does, remove the
-        declarations of an "invalid" one from the descriptors, and delete the files of a "supplementary" one. Every
-        changed or deleted file is saved in the backups first. Then compare again."""
-        return self._apply_resources(resources, "A resource has another status in the GDA sync report now. Review it and try again.")
+        which must still be its status in the report: sync a "different" resource as sync_resources does, from its chosen
+        GDA image in gda_files, remove the declarations of an "invalid" one from the descriptors, and delete the files of
+        a "supplementary" one. Every changed or deleted file is saved in the backups first. Then compare again."""
+        return self._apply_resources(resources, "A resource has another status in the GDA sync report now. Review it and try again.",
+                                     gda_files or {})
 
-    def _apply_resources(self, wanted: dict[str, str], other_status: str) -> dict:
+    def _apply_resources(self, wanted: dict[str, str], other_status: str, gda_files: dict[str, str]) -> dict:
         def operation() -> dict:
             workspace_id, entry = self._active_workspace()
             if self.reports.status(workspace_id)["running"]:
@@ -774,9 +796,23 @@ class Library:
             rows = {row["id"]: row for row in json.loads(report).get("differences", [])}
             if any(row_id not in rows for row_id in wanted):
                 raise AppError("A resource is no longer in the GDA sync report. Rescan and try again.")
-            if any(rows[row_id]["category"] != category or category not in RESOURCE_ACTIONS
-                   or (category == "different" and not rows[row_id]["gdaFiles"]) for row_id, category in wanted.items()):
+            # A missing image is synced only from a GDA image chosen for it.
+            if any(category not in RESOURCE_ACTIONS or not (
+                    rows[row_id]["category"] == category or (category == "different" and rows[row_id]["category"] == "missing" and row_id in gda_files))
+                   or (category == "different" and not rows[row_id]["gdaFiles"] and row_id not in gda_files) for row_id, category in wanted.items()):
                 raise AppError(other_status)
+            # The GDA file of each synced image: the chosen one, which must still be a candidate that changes the game
+            # file, or else the most likely candidate.
+            sources: dict[str, str] = {}
+            for row_id in (row_id for row_id, category in wanted.items() if category == "different"):
+                candidates = [candidate["absolutePath"] for candidate in image_candidates(rows[row_id]) if candidate["syncable"]]
+                if row_id in gda_files and gda_files[row_id] not in candidates:
+                    raise AppError(f"{rows[row_id]['resource']}: the chosen GDA image is not one it can be synced from in the GDA sync "
+                                   "report now. Rescan and try again.")
+                if row_id in gda_files or candidates:
+                    sources[row_id] = gda_files.get(row_id) or candidates[0]
+            if any(row_id not in wanted or wanted[row_id] != "different" for row_id in gda_files):
+                raise AppError("A GDA image can only be chosen for a resource that is synced")
             chosen = {category: [rows[row_id] for row_id, wanted_category in wanted.items() if wanted_category == category]
                       for category in RESOURCE_ACTIONS}
             settings = self._comparison(workspace_id, entry)[1]
@@ -790,7 +826,7 @@ class Library:
                 "backups": os.path.join(self.backup_path, str(uuid.uuid4())),
             }
             failures: list[dict] = []
-            synced = self._copy_resources(chosen["different"], folders, settings["resource_paths"], failures)
+            synced = self._copy_resources(chosen["different"], folders, settings["resource_paths"], failures, sources)
             removed = self._remove_declarations(chosen["invalid"], folders, failures)
             deleted = self._delete_resources(chosen["supplementary"], folders, settings["resource_paths"], failures)
             if synced["files"]:
@@ -811,25 +847,28 @@ class Library:
 
         return self._exclusive(operation)
 
-    def _copy_resources(self, rows: list[dict], folders: dict, resource_paths: list[str], failures: list[dict]) -> dict:
-        """Copy the closest GDA file of each "different" row, or of each different frame of a sequence, over the game file,
-        and make each different RTF's folder a copy of its closest GDA folder."""
+    def _copy_resources(self, rows: list[dict], folders: dict, resource_paths: list[str], failures: list[dict],
+                        sources: dict[str, str]) -> dict:
+        """Copy the GDA file of each row in sources, by row id, or else its closest GDA file, or of each different frame of
+        a sequence its closest GDA file, over the game file, and make each different RTF's folder a copy of its closest
+        GDA folder."""
         resources = folders["resources"]
         rtfs = [row for row in rows if "directory" in row]
-        # The game files to replace, each once with the resource it belongs to: the frames of a sequence can repeat a file.
+        # The game files to replace, each once with the resource it belongs to and the GDA file to copy: the frames of a
+        # sequence can repeat a file.
         files = {
-            file["resourcePath"]: (row["id"], file)
+            file["resourcePath"]: (row["id"], file, sources.get(row["id"]) if file is row else None)
             for row in rows if "directory" not in row
             for file in (row["sequence"]["frames"] if "sequence" in row else [row])
-            if file["category"] == "different" and file["gdaFiles"]
+            if (file is row and row["id"] in sources) or (file["category"] == "different" and file["gdaFiles"])
         }
         copied: list[str] = []
         synced: set[str] = set()
         total = 0
         failed = 0
-        for row_id, file in files.values():
+        for row_id, file, chosen_source in files.values():
             try:
-                source, target = file["gdaFiles"][0]["absolutePath"], file["resourcePath"]
+                source, target = chosen_source or file["gdaFiles"][0]["absolutePath"], file["resourcePath"]
                 root = next((root for root in folders["gda"] if contained(root, source)), None)
                 if root is None or not contained(resources, target):
                     raise AppError("The files are outside the workspace folders")

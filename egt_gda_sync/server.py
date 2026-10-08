@@ -58,11 +58,14 @@ class _Body(BaseModel):
 
 class SyncBody(_Body):
     ids: Annotated[list[Text4K], Field(min_length=1, max_length=10_000)]
+    # The GDA image to copy over each image, by row id: one of the image's candidates in the report.
+    gdaFiles: Annotated[dict[Text4K, Text4K], Field(max_length=10_000)] = {}
 
 
 class ResourceAction(_Body):
     id: Text4K
     category: Literal["different", "invalid", "supplementary"]
+    gdaFile: Text4K | None = None
 
 
 class ResourceActionsBody(_Body):
@@ -271,11 +274,12 @@ def create_app(
 
     @app.post("/api/rss-sync/copy")
     def rss_sync_copy(body: SyncBody) -> dict:
-        return library.sync_resources(body.ids)
+        return library.sync_resources(body.ids, body.gdaFiles)
 
     @app.post("/api/rss-sync/apply")
     def rss_sync_apply(body: ResourceActionsBody) -> dict:
-        return library.apply_resources({resource.id: resource.category for resource in body.resources})
+        return library.apply_resources({resource.id: resource.category for resource in body.resources},
+                                       {resource.id: resource.gdaFile for resource in body.resources if resource.gdaFile})
 
     @app.post("/api/rss-sync/details")
     def rss_sync_details(body: ResourceFilesBody) -> dict:

@@ -1,4 +1,4 @@
-import type { AssetCategory, AssetDeclaration, AssetSequence, AssetStatus, AssetType, ImageAlgorithms, ImageEvaluation, ImageMatchType, PreviewFrame, ReportAsset, RssCategory, RssResource, RssRtfDirectory, RssSequence, RssSyncWorkspace, RtfChange, RtfFacts } from './types';
+import type { AssetCategory, AssetDeclaration, AssetSequence, AssetStatus, AssetType, ImageAlgorithms, ImageCandidate, ImageEvaluation, ImageMatchType, PreviewFrame, ReportAsset, RssCategory, RssResource, RssRtfDirectory, RssSequence, RssSyncWorkspace, RtfChange, RtfFacts } from './types';
 
 export const ASSET_TYPES = ['texture', 'model', 'material', 'audio', 'font', 'rtf'] as const;
 export const typeIcons: Record<AssetType, string> = {
@@ -218,3 +218,24 @@ export const imageSettings = (workspace: RssSyncWorkspace) => (workspace.image_m
 /** A pair's badge: likely matches stand out. */
 export const matchBadge = (evaluation: Pick<ImageEvaluation, 'probability'>) => (evaluation.probability === null ? 'badge-light'
   : evaluation.probability >= 80 ? 'badge-success' : evaluation.probability >= 50 ? 'badge-info' : 'badge-light');
+
+/** A GDA image that an image resource can be synced from. One with the game file's contents (an exact file) changes
+ * nothing when it is copied, so it cannot be chosen. */
+export interface GdaCandidate extends ImageCandidate { syncable: boolean }
+/** The GDA images that may show the same picture as a different or missing image: its possible matches by content, and
+ * its same-named GDA files whatever their probability, most likely first; on a tie, a same-named one first. Sequences,
+ * RTFs, other files and reports from before version 6 have none. The same rule as image_candidates in
+ * egt_gda_sync/library.py. */
+export function imageCandidates(row: RssResource): GdaCandidate[] {
+  const match = row.imageMatch;
+  if (!match || row.sequence || row.directory || (row.category !== 'different' && row.category !== 'missing')) return [];
+  const found = new Map<string, ImageCandidate>(match.matches.map(candidate => [candidate.absolutePath, candidate]));
+  for (const file of row.gdaFiles) {
+    if (file.match && !found.has(file.absolutePath)) found.set(file.absolutePath, { ...file, ...file.match, sameName: true, foundBy: ['name'] });
+  }
+  return [...found.values()]
+    .map(candidate => ({ ...candidate, syncable: candidate.matchType !== 'exact_file' }))
+    .sort((a, b) => (b.probability ?? -1) - (a.probability ?? -1) || Number(b.sameName) - Number(a.sameName));
+}
+/** The GDA image to sync when none is chosen: the most likely one that changes the game file. */
+export const defaultCandidate = (candidates: GdaCandidate[]) => candidates.find(candidate => candidate.syncable) ?? null;

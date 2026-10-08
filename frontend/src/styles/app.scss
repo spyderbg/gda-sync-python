@@ -496,6 +496,11 @@ button.nav-link {
     box-shadow: 0 0 0 2px $primary, $card-dropshadow;
   }
 
+  // A GDA image chosen to sync from.
+  &.chosen {
+    box-shadow: 0 0 0 2px $primary, $card-dropshadow;
+  }
+
   &.selected .thumbnail:after {
     content: "";
     position: absolute;

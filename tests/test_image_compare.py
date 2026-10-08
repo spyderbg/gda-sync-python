@@ -392,3 +392,95 @@ def test_the_real_gpu_algorithms(tmp_path, monkeypatch):
     assert result["imageCompare"]["gpu"]["available"] is True, result["imageCompare"]["gpu"]
     [match] = rows(result)["ui/logo.png"]["imageMatch"]["matches"]
     assert match["matchType"] == "transformed_duplicate" and {"clip", "dinov2"} <= set(match["algorithms"])
+
+
+# Syncing an image from a chosen GDA image
+
+
+def sync_api(tmp_path: Path):
+    """A library of one workspace with images to sync, compared, and a client of its API."""
+    from fastapi.testclient import TestClient
+    from egt_gda_sync.library import Library
+    from egt_gda_sync.server import create_app
+    from tests.conftest import session_headers
+
+    play, logo, coins = drawing(110), drawing(111), drawing(112)
+    game, gda = write_game(tmp_path, {"ui/play.png": play, "ui/logo.png": logo, "ui/coins.png": coins}, {
+        # play.png: the same-named file is redrawn, an edited copy of another name is the most likely.
+        "ui/play.png": drawing(113), "other/play_v2.png": edited(play),
+        # logo.png is missing by name; the GDA has an edited copy of another name.
+        "art/logo_new.png": edited(logo),
+        # coins.png: an identical copy of another name changes nothing, so the same-named file is synced.
+        "ui/coins.png": edited(coins), "backup/coins_copy.png": coins,
+    })
+    entry = {"id": "images", "game_name": "Images", "game_path": str(game), "gda_path": str(gda), "extensions": [".png"]}
+    (tmp_path / "workspace.json").write_text(json.dumps({"defaultWorkspace": "images", "workspaces": [entry]}))
+    library = Library(str(tmp_path / "app"), config_path=str(tmp_path / "workspace.json"))
+    library.init()
+    client = TestClient(create_app(library, dev=True), base_url="http://127.0.0.1")
+    client.__enter__()
+    headers = session_headers(client)
+    client.post("/api/scan", headers=headers)
+    library.reports.wait("images", 120)
+
+    def rows() -> dict[str, dict]:
+        return {row["resource"]: row for row in client.get("/api/rss-sync/report").json()["differences"]}
+
+    def copy(ids: list[str], gda_files: dict | None = None) -> dict:
+        result = client.post("/api/rss-sync/copy", headers=headers, json={"ids": ids, **({"gdaFiles": gda_files} if gda_files else {})}).json()
+        library.reports.wait("images", 120)
+        return result
+
+    def apply(resources: list[dict]) -> dict:
+        result = client.post("/api/rss-sync/apply", headers=headers, json={"resources": resources}).json()
+        library.reports.wait("images", 120)
+        return result
+
+    client.apply = apply
+    return game, gda, client, rows, copy
+
+
+def test_an_image_is_synced_from_its_most_likely_gda_image_without_a_choice(tmp_path):
+    game, gda, client, rows, copy = sync_api(tmp_path)
+    try:
+        found = rows()
+        assert [row["category"] for row in (found["ui/play.png"], found["ui/logo.png"], found["ui/coins.png"])] == ["different", "missing", "different"]
+        result = copy([found["ui/play.png"]["id"], found["ui/coins.png"]["id"]])
+        assert result["failures"] == [] and sorted(result["copied"]) == ["ui/coins.png", "ui/play.png"]
+        assert (game / "ui" / "play.png").read_bytes() == (gda / "other" / "play_v2.png").read_bytes()
+        # The identical copy would change nothing, so the most likely image that changes the game file is copied.
+        assert (game / "ui" / "coins.png").read_bytes() == (gda / "ui" / "coins.png").read_bytes()
+        # A missing image is only synced from a GDA image chosen for it.
+        assert copy([found["ui/logo.png"]["id"]])["error"] == "Only a resource that differs from its GDA file can be synced"
+    finally:
+        client.__exit__(None, None, None)
+
+
+def test_an_image_is_synced_from_the_gda_image_chosen_for_it(tmp_path):
+    game, gda, client, rows, copy = sync_api(tmp_path)
+    try:
+        found = rows()
+        play, logo, coins = found["ui/play.png"], found["ui/logo.png"], found["ui/coins.png"]
+        same_name = str((gda / "ui" / "play.png").resolve())
+        result = copy([play["id"]], {play["id"]: same_name})
+        assert result["copied"] == ["ui/play.png"] and (game / "ui" / "play.png").read_bytes() == (gda / "ui" / "play.png").read_bytes()
+        # A missing image is synced from the GDA image chosen for it.
+        renamed = str((gda / "art" / "logo_new.png").resolve())
+        result = copy([logo["id"]], {logo["id"]: renamed})
+        assert result["copied"] == ["ui/logo.png"] and (game / "ui" / "logo.png").read_bytes() == (gda / "art" / "logo_new.png").read_bytes()
+
+        def refused(ids: list[str], gda_files: dict) -> str:
+            return copy(ids, gda_files)["error"]
+
+        # An image with the game file's contents, a file that is not a candidate, and a resource that is not synced
+        # cannot be chosen.
+        assert "the chosen GDA image is not one it can be synced from" in refused([coins["id"]], {coins["id"]: str((gda / "backup" / "coins_copy.png").resolve())})
+        assert "the chosen GDA image is not one it can be synced from" in refused([coins["id"]], {coins["id"]: str(tmp_path / "elsewhere.png")})
+        assert refused([coins["id"]], {logo["id"]: renamed}) == "A GDA image can only be chosen for a resource that is synced"
+        assert (game / "ui" / "coins.png").read_bytes() != (gda / "ui" / "coins.png").read_bytes()
+        # Applying several actions passes each image's chosen GDA image too.
+        chosen = str((gda / "ui" / "coins.png").resolve())
+        result = client.apply([{"id": rows()["ui/coins.png"]["id"], "category": "different", "gdaFile": chosen}])
+        assert result["copied"] == ["ui/coins.png"] and (game / "ui" / "coins.png").read_bytes() == (gda / "ui" / "coins.png").read_bytes()
+    finally:
+        client.__exit__(None, None, None)

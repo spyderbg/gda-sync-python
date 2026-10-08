@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { algorithmValues, baseName, declarationLabel, directoryOf, extensionOf, fileType, matchBadge, matchText, number, plural, previewFrames, rssBadges, rtfChangeBadges, rtfChangeNames, rtfChangeSummary, sequenceName, size, splitPath, time } from '../format';
+import { algorithmValues, baseName, type GdaCandidate, declarationLabel, directoryOf, extensionOf, fileType, matchBadge, matchText, number, plural, previewFrames, rssBadges, rtfChangeBadges, rtfChangeNames, rtfChangeSummary, sequenceName, size, splitPath, time } from '../format';
 import type { RssFileDetails, RssResource, RtfFacts } from '../types';
 import { busy, copy, openResourceFolder, requestResourceSync, resourceDetails, rssSync } from '../workspace';
 import AppModal from './AppModal.vue';
@@ -19,10 +19,11 @@ import SequencePreview from './SequencePreview.vue';
 // compares the fonts' names, glyph counts and how many of each Font entry's characters they have. An RTF draws the
 // pages of the game's RTF and of the closest GDA one side by side, on the same page when both have it; the table compares
 // the two projects, and the files of the folders are listed with what Sync does to each. An image lists how the image
-// matching judged each GDA file of its name and each possible match of another name, with every algorithm's value.
-// Escape closes the dialog.
+// matching judged the GDA image it is compared with, with every algorithm's value. An image with GDA images to choose
+// from (candidate) is shown only with the one given: the image chosen on its card, or else the most likely one, which
+// Sync this resource copies. Escape closes the dialog.
 // reportVersion is the GDA sync report's version; one before FONT_REPORT_VERSION has no Font entry characters to check.
-const props = defineProps<{ row: RssResource; revision: string; reportVersion?: number }>();
+const props = defineProps<{ row: RssResource; revision: string; reportVersion?: number; candidate?: GdaCandidate | null }>();
 const emit = defineEmits<{ close: [] }>();
 
 const sequence = computed(() => props.row.sequence);
@@ -38,12 +39,15 @@ const choosePage = (facts: RtfFacts, index: number | undefined) => { rtfPage.val
 // An RTF's files that Sync copies or deletes first, then the identical ones.
 const rtfFiles = computed(() => [...(directory.value?.files ?? [])].sort((a, b) => Number(!a.change || a.change === 'identical') - Number(!b.change || b.change === 'identical')));
 const isAudio = (path: string) => fileType(extensionOf(baseName(path))) === 'audio';
-// The GDA images the image matching judged: the GDA files of the image's name, then its possible matches of other names.
-const evaluated = computed(() => (sequence.value || directory.value || !props.row.imageMatch ? [] : [
-  ...props.row.gdaFiles.filter(file => file.match).map(file => ({ path: file.path, absolutePath: file.absolutePath, sameName: true, evaluation: file.match! })),
-  ...props.row.imageMatch.matches.filter(match => !match.sameName)
-    .map(match => ({ path: match.path, absolutePath: match.absolutePath, sameName: false, evaluation: match })),
-]));
+// The GDA image an image is compared with: the given candidate, or else, in a report without candidates on the card, its
+// closest same-named GDA file. Its evaluation by the image matching is listed, when it has one.
+const gdaShown = computed(() => props.candidate ?? props.row.gdaFiles[0] ?? null);
+const evaluated = computed(() => {
+  const candidate = props.candidate;
+  if (candidate) return [{ path: candidate.path, absolutePath: candidate.absolutePath, sameName: candidate.sameName, evaluation: candidate }];
+  const file = sequence.value || directory.value ? null : props.row.gdaFiles[0];
+  return file?.match ? [{ path: file.path, absolutePath: file.absolutePath, sameName: true, evaluation: file.match }] : [];
+});
 
 // The files described: a sequence's game files and the GDA file of each of its frames, each once. An RTF is described by
 // the report.
@@ -52,16 +56,17 @@ const gameFiles = computed(() => (directory.value ? [] : sequence.value
   : props.row.category === 'invalid' ? [] : [props.row.resourcePath]));
 const gdaFiles = computed(() => (directory.value ? [] : sequence.value
   ? unique(sequence.value.frames.map(frame => frame.gdaFiles[0]?.absolutePath))
-  : props.row.gdaFiles.slice(0, 1).map(file => file.absolutePath)));
+  : gdaShown.value ? [gdaShown.value.absolutePath] : []));
 const hasGda = computed(() => (directory.value ? !!directory.value.gdaProject : gdaFiles.value.length > 0));
 const gdaLabel = computed(() => (sequence.value ? 'GDA frames'
   : directory.value ? (props.row.category === 'different' ? 'GDA folder, copied on sync' : 'Matching GDA folder')
-    : props.row.category === 'different' ? 'GDA file, copied on sync' : 'Matching GDA file'));
+    : props.candidate ? (props.candidate.syncable ? 'GDA image, copied on sync' : 'GDA image, the same file')
+      : props.row.category === 'different' ? 'GDA file, copied on sync' : 'Matching GDA file'));
 // Computed once per row: SequencePreview loads its frames again whenever it gets other ones.
 const gameFrames = computed(() => (sequence.value ? previewFrames(sequence.value, 'game') : []));
 const gdaFrames = computed(() => (sequence.value ? previewFrames(sequence.value, 'gda') : []));
 // The GDA preview shows beside the game's for a resource that the GDA has.
-const pairedPreview = computed(() => hasGda.value && (props.row.category === 'different' || props.row.category === 'identical'));
+const pairedPreview = computed(() => hasGda.value && (props.row.category === 'different' || props.row.category === 'identical' || !!props.candidate));
 // The Font entries that declare characters of a font, and the one whose characters the previews draw.
 const isFont = computed(() => !sequence.value && fileType(extensionOf(name.value)) === 'font');
 const fontUses = computed(() => props.row.requiredBy.filter(use => use.chars));
@@ -240,7 +245,9 @@ const note = computed(() => {
       text: many ? 'Sync copies the GDA file of each different frame over the game file, and keeps the replaced files in your backups.'
         : 'Sync copies the GDA file over the game file, and keeps the replaced file in your backups.',
     };
-    case 'missing': return { icon: 'mdi-file-search-outline', tone: 'is-pending', title: 'Not in the GDA folder.', text: `No GDA file has ${many ? 'the name of these files' : 'this name'}, so there is nothing to copy.` };
+    case 'missing': return props.candidate
+      ? { icon: 'mdi-file-search-outline', tone: 'is-pending', title: 'Not in the GDA folder by name.', text: 'No GDA file has this name, but GDA images may show the same picture. Sync copies the one shown over the game file, and keeps the replaced file in your backups.' }
+      : { icon: 'mdi-file-search-outline', tone: 'is-pending', title: 'Not in the GDA folder.', text: `No GDA file has ${many ? 'the name of these files' : 'this name'}, so there is nothing to copy.` };
     case 'invalid': return { icon: 'mdi-alert-circle-outline', tone: 'is-invalid', title: 'The declared path cannot be used.', text: props.row.status.replace(/^invalid: /, '') };
     default: return {
       icon: 'mdi-file-question-outline', tone: 'is-supplementary', title: 'Not declared.',
@@ -252,11 +259,12 @@ const scope = computed(() => ({ game: '', common: 'A common resource, shared wit
 // Each folder of a sequence's GDA files, with one of its files to open it by.
 const gdaFolders = computed(() => [...new Map(gdaFiles.value.map(file => [directoryOf(file), file])).entries()]
   .map(([folder, file]) => ({ folder, file })));
-const syncable = computed(() => props.row.category === 'different' && props.row.gdaFiles.length > 0);
+const syncable = computed(() => (props.candidate ? props.candidate.syncable
+  : props.row.category === 'different' && props.row.gdaFiles.length > 0));
 
 function sync() {
   emit('close');
-  requestResourceSync([props.row]);
+  requestResourceSync([props.row], props.candidate ? { [props.row.id]: props.candidate } : {});
 }
 </script>
 
@@ -283,10 +291,10 @@ function sync() {
           <SequencePreview v-if="sequence" :frames="gdaFrames" :frame-time="sequence.frameTime" :loop-count="sequence.loopCount" :loop-to="sequence.loopTo" :name="`${sequence.id ?? name} from the GDA`" :revision="revision" />
           <RtfPreview v-else-if="directory?.gdaProject && row.gdaRtf" :page="pageIndex(row.gdaRtf)" :file="directory.gdaProject" :name="`${baseName(row.gdaFiles[0].path)} from the GDA`" :revision="revision" :facts="row.gdaRtf" large @update:page="choosePage(row.gdaRtf, $event)" />
           <ReportThumbnail v-else-if="directory?.gdaProject" :file="directory.gdaProject" :name="baseName(directory.gdaProject)" :revision="revision" />
-          <AudioPreview v-else-if="isAudio(row.gdaFiles[0].path)" :file="row.gdaFiles[0].absolutePath" :name="baseName(row.gdaFiles[0].path)" :revision="revision" />
-          <FontPreview v-else-if="isFont" v-model:text="fontText" :file="row.gdaFiles[0].absolutePath" :name="baseName(row.gdaFiles[0].path)" :revision="revision" large
-                       :chars="fontUse?.chars" :size="fontUse?.size" :missing="coverageOf(row.gdaFiles[0].absolutePath)?.missing" />
-          <ReportThumbnail v-else :file="row.gdaFiles[0].absolutePath" :name="baseName(row.gdaFiles[0].path)" :revision="revision" />
+          <AudioPreview v-else-if="isAudio(gdaShown!.path)" :file="gdaShown!.absolutePath" :name="baseName(gdaShown!.path)" :revision="revision" />
+          <FontPreview v-else-if="isFont" v-model:text="fontText" :file="gdaShown!.absolutePath" :name="baseName(gdaShown!.path)" :revision="revision" large
+                       :chars="fontUse?.chars" :size="fontUse?.size" :missing="coverageOf(gdaShown!.absolutePath)?.missing" />
+          <ReportThumbnail v-else :file="gdaShown!.absolutePath" :name="baseName(gdaShown!.path)" :revision="revision" />
         </figure>
       </div>
 
@@ -322,6 +330,15 @@ function sync() {
               <span class="details-code" :title="item.folder">{{ item.folder }}</span>
               <button type="button" class="details-icon" :aria-label="`Copy the GDA folder ${item.folder}`" title="Copy the GDA folder" @click="copy(item.folder)"><i aria-hidden="true" class="mdi mdi-content-copy" /></button>
               <button type="button" class="details-icon" :aria-label="`Open the GDA folder ${item.folder}`" title="Open the GDA folder" @click="openResourceFolder(item.file)"><i aria-hidden="true" class="mdi mdi-folder-open-outline" /></button>
+            </div>
+          </template>
+          <template v-else-if="candidate">
+            <h6 class="details-heading">GDA image</h6>
+            <div class="details-path">
+              <span class="details-code" :title="candidate.absolutePath">{{ candidate.absolutePath }}</span>
+              <span :class="['badge', candidate.syncable ? 'badge-primary' : 'badge-light']">{{ candidate.syncable ? 'Copied on sync' : 'Same file as the game' }}</span>
+              <button type="button" class="details-icon" :aria-label="`Copy the GDA path ${candidate.path}`" title="Copy the GDA path" @click="copy(candidate.absolutePath)"><i aria-hidden="true" class="mdi mdi-content-copy" /></button>
+              <button type="button" class="details-icon" :aria-label="`Open the GDA folder of ${candidate.path}`" title="Open the GDA folder" @click="openResourceFolder(candidate.absolutePath)"><i aria-hidden="true" class="mdi mdi-folder-open-outline" /></button>
             </div>
           </template>
           <template v-else-if="row.gdaFiles.length">

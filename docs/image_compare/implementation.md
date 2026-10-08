@@ -17,8 +17,9 @@ implementation differs from the proposal. The code is in:
 | `egt_gda_sync/rss_sync.py` | The GDA sync, which runs the image matching after it classifies every file |
 
 The matching adds information to the report. It does not change any resource's status: a resource is still
-**identical**, **different** or **missing** by its file name and SHA-256, as before. It changes one decision of Sync:
-which same-named GDA file is copied when several are equally close (see [Effect on Sync](#effect-on-sync)).
+**identical**, **different** or **missing** by its file name and SHA-256, as before. What it changes is the GDA file
+that Sync copies over an image: the GDA image chosen on the image's card, or else the most likely one (see
+[Effect on Sync](#effect-on-sync)).
 
 ## Parameters
 
@@ -268,10 +269,27 @@ The `report` command prints a line about it for each workspace, for example
 
 ## Effect on Sync
 
-Statuses do not change: a different image is synced from its same-named GDA file, as before. When several same-named
-GDA files share as many folder names with the game file, they are now ordered by their probability. Sync copies the
-first, so it copies the closest and most similar picture. The Sync page shows each GDA file's probability and match
-type, and lists the possible matches of other names under a card. The details dialog lists every algorithm's value.
+Statuses do not change: an image is still different or missing by its file name. When several same-named GDA files
+share as many folder names with the game file, they are ordered by their probability.
+
+On the Sync page, the card of a different or missing image shows its **candidates** on one line: its possible matches
+and its same-named GDA files, whatever their probability, most likely first (a same-named one first on a tie). Each
+shows its probability and match type.
+
+- Clicking a candidate chooses it, and clicking it again clears the choice. A candidate with the game file's contents
+  (`exact_file`) cannot be chosen, since copying it changes nothing.
+- The copy arrow between the game image and its candidates is disabled until a candidate is chosen. It then copies the
+  chosen image over the game file. This also syncs a **missing** image, which has no same-named GDA file to copy.
+- The details dialog shows only the game image and one candidate, with the algorithms' values for the pair: the chosen
+  one, or else the most likely one that differs from the game file. **Sync this resource** copies it.
+- **Sync all pending** and **Sync selected** copy the chosen candidate of each different image, or else its most likely
+  candidate that differs from the game file. They do not sync missing images, which need a choice.
+
+The copy request sends each image's chosen candidate (`gdaFiles` of `POST /api/rss-sync/copy`, `gdaFile` of each
+resource of `POST /api/rss-sync/apply`). The backend refuses a candidate that the image does not have in the current
+report, or one with the game file's contents. Without a choice, it copies the most likely candidate that differs from
+the game file, by the same rule as the page (`image_candidates` in `egt_gda_sync/library.py`). Sequences, RTFs, other
+files and reports from before version 6 are copied from their closest same-named GDA file, as before.
 
 ## Caching
 

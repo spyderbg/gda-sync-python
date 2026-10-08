@@ -1,15 +1,20 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { commonAction, plural, resourceAction, resourceActionIcons, rtfChangeSummary, typeIcons } from '../format';
+import { matchText, plural, resourceActionIcons, rtfChangeSummary, typeIcons } from '../format';
 import type { RssResource } from '../types';
-import { config, confirmResourceActions, stopApplication, ui } from '../workspace';
+import { config, confirmResourceActions, pendingAction, stopApplication, ui } from '../workspace';
 import AppModal from './AppModal.vue';
 
-// The GDA sync report resources waiting for confirmation, by what applying them does.
-const resourceKind = computed(() => commonAction(ui.resourceActions ?? []));
+// The GDA sync report resources waiting for confirmation, by what applying them does. An image is synced from its chosen
+// GDA image, which the list names.
+const resourceKind = computed(() => {
+  const actions = new Set((ui.resourceActions ?? []).map(pendingAction));
+  return actions.size > 1 ? 'mixed' : [...actions][0] ?? null;
+});
+const syncSource = (row: RssResource) => ui.resourceChoices[row.id]?.path ?? row.gdaFiles[0]?.path ?? '';
 const HEADINGS = { sync: 'Sync {} resource', remove: 'Remove the declarations of {} invalid resource', delete: 'Delete {} supplementary resource' };
 const resourceGroups = computed(() => (['sync', 'remove', 'delete'] as const)
-  .map(action => ({ action, rows: (ui.resourceActions ?? []).filter(row => resourceAction(row) === action) }))
+  .map(action => ({ action, rows: (ui.resourceActions ?? []).filter(row => pendingAction(row) === action) }))
   .filter(group => group.rows.length)
   .map(group => ({ ...group, heading: HEADINGS[group.action].replace('{}', String(group.rows.length)) + plural(group.rows.length) })));
 const resourceTitle = computed(() => ({
@@ -29,7 +34,7 @@ const sharedDescriptor = (row: RssResource) => row.requiredBy.some(use => use.de
     <div class="modal-body">
       <section v-for="group in resourceGroups" :key="group.action" class="resource-action-group">
         <h6 v-if="resourceGroups.length > 1"><i aria-hidden="true" :class="['mdi', resourceActionIcons[group.action]]" />{{ group.heading }}</h6>
-        <p v-if="group.action === 'sync'">Copy {{ group.rows.length }} resource{{ plural(group.rows.length) }} of the GDA sync report from the GDA folder to the game, each from its closest GDA file; an image sequence copies each of its different frames. Existing game files will be replaced, with their previous versions saved in your backups.</p>
+        <p v-if="group.action === 'sync'">Copy {{ group.rows.length }} resource{{ plural(group.rows.length) }} of the GDA sync report from the GDA folder to the game: an image from the GDA image chosen on its card, or else the one most likely to show the same picture, any other file from its closest GDA file; an image sequence copies each of its different frames. Existing game files will be replaced, with their previous versions saved in your backups.</p>
         <p v-if="group.action === 'sync' && group.rows.some(row => row.directory)" class="text-warning">
           An RTF's folder becomes a copy of its closest GDA folder: its files that the GDA folder does not have are deleted, unless a descriptor declares them, and saved in your backups first.
         </p>
@@ -43,7 +48,7 @@ const sharedDescriptor = (row: RssResource) => row.requiredBy.some(use => use.de
         </p>
         <ul class="list-group sync-file-list">
           <li v-for="row in group.rows" :key="row.id" class="list-group-item">
-            <i aria-hidden="true" :class="['mdi', row.sequence ? 'mdi-animation-outline' : row.directory ? typeIcons.rtf : 'mdi-file-outline', 'text-muted']" /><span :title="group.action === 'sync' ? `${row.gdaFiles[0].path} → ${row.resource}` : row.resourcePath">{{ row.resource }}</span><small v-if="row.sequence" class="text-muted ml-2">{{ row.sequence.id ?? `${row.sequence.frames.length} files` }}</small><small v-if="row.directory" class="text-muted ml-2">{{ group.action === 'sync' ? rtfChangeSummary(row.directory) : `${row.directory.files.length} file${plural(row.directory.files.length)}` }}</small><small v-if="group.action === 'remove'" class="text-muted ml-2">{{ row.requiredBy.map(use => `${use.descriptor}:${use.line}`).join(', ') }}</small><span v-if="row.scope === 'common'" class="badge badge-light">common</span>
+            <i aria-hidden="true" :class="['mdi', row.sequence ? 'mdi-animation-outline' : row.directory ? typeIcons.rtf : 'mdi-file-outline', 'text-muted']" /><span :title="group.action === 'sync' ? `${syncSource(row)} → ${row.resource}` : row.resourcePath">{{ row.resource }}</span><small v-if="group.action === 'sync' && ui.resourceChoices[row.id]" class="text-muted ml-2 resource-action-source">from {{ ui.resourceChoices[row.id].path }} · {{ matchText(ui.resourceChoices[row.id]) }}</small><small v-if="row.sequence" class="text-muted ml-2">{{ row.sequence.id ?? `${row.sequence.frames.length} files` }}</small><small v-if="row.directory" class="text-muted ml-2">{{ group.action === 'sync' ? rtfChangeSummary(row.directory) : `${row.directory.files.length} file${plural(row.directory.files.length)}` }}</small><small v-if="group.action === 'remove'" class="text-muted ml-2">{{ row.requiredBy.map(use => `${use.descriptor}:${use.line}`).join(', ') }}</small><span v-if="row.scope === 'common'" class="badge badge-light">common</span>
           </li>
         </ul>
       </section>
