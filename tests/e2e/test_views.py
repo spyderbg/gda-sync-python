@@ -31,7 +31,19 @@ def view_backend(tmp_path, browser):
 
 
 def drawn(image) -> bool:
-    return image.evaluate("image => image.complete && image.naturalWidth > 0")
+    """Whether a view is drawn: its image loaded, or for a view with an Anim that plays, every segment of its render."""
+    return image.evaluate("""image => image.tagName.toLowerCase() === 'img' ? image.complete && image.naturalWidth > 0
+        : Promise.all([...image.querySelectorAll(':scope > image')].map(part => fetch(part.href.baseVal).then(response => response.ok)))
+            .then(results => results.length > 0 && results.every(Boolean))""")
+
+
+def frames_shown(anim, milliseconds: int = 600) -> list[str]:
+    """The frames an Anim of a view's details shows in a while."""
+    return anim.evaluate("""(element, milliseconds) => new Promise(resolve => {
+        const seen = new Set([element.getAttribute('data-frame')]);
+        const timer = setInterval(() => seen.add(element.getAttribute('data-frame')), 5);
+        setTimeout(() => { clearInterval(timer); resolve([...seen].sort()); }, milliseconds);
+    })""", milliseconds)
 
 
 def test_views_are_drawn_in_the_asset_library_and_on_the_sync_page(new_context, view_backend):
@@ -58,6 +70,19 @@ def test_views_are_drawn_in_the_asset_library_and_on_the_sync_page(new_context, 
     main.locator(".asset-hit-target").click()
     dialog = page.get_by_role("dialog")
     poll(lambda: drawn(dialog.locator(".view-stage-image")), True)
+    # The Anim plays its three frames, repeating forever, between the still elements drawn before and after it.
+    stage = dialog.locator(".view-stage-image")
+    expect(stage).to_have_attribute("data-anims", "1")
+    expect(stage.locator(":scope > image")).to_have_count(2)
+    anim = stage.locator('.view-anim[data-element="anim_glow"]')
+    poll(lambda: frames_shown(anim), ["0", "1", "2"])
+    expect(dialog.locator(".view-elements tbody tr").filter(has_text="anim_glow")).to_contain_text("3 frames every 40 ms, repeats forever")
+    animations = dialog.get_by_role("group", name="Animations")
+    animations.get_by_role("button", name="Pause").click()
+    assert len(frames_shown(anim, 300)) == 1
+    animations.get_by_role("button", name="Replay").click()
+    expect(animations.get_by_role("button", name="Pause")).to_be_visible()
+    poll(lambda: frames_shown(anim), ["0", "1", "2"])
     expect(dialog.locator(".view-element.is-text")).to_have_count(1)
     expect(dialog.locator(".view-element.is-text text")).to_have_text("text_win")
     # Hide text names keeps a text's area outlined, without its name; picking it in the list shows its name.
@@ -86,9 +111,10 @@ def test_views_are_drawn_in_the_asset_library_and_on_the_sync_page(new_context, 
     dialog.get_by_role("checkbox", name="Outline every element").check()
     expect(dialog.locator(".view-element.is-missing")).to_have_count(2)
     expect(dialog.locator(".view-element.is-drawn").first).to_be_visible()
-    hidden_source = dialog.locator(".view-stage-image").get_attribute("src")
+    segment = dialog.locator(".view-stage-image > image").first
+    hidden_source = segment.get_attribute("href")
     dialog.get_by_role("checkbox", name="Draw the hidden elements").check()
-    expect(dialog.locator(".view-stage-image")).not_to_have_attribute("src", hidden_source)
+    expect(segment).not_to_have_attribute("href", hidden_source)
     expect(dialog.locator(".details-table")).to_contain_text("Missing resources")
     dialog.screenshot(path=str(BUILD / "view-details.png"))
     page.keyboard.press("Escape")

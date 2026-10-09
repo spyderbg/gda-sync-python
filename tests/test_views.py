@@ -162,6 +162,27 @@ def test_a_view_is_drawn_as_an_image_of_its_screen(tmp_path):
     assert not outside["drawn"] and outside["reason"] == "the image is outside the workspace folders"
 
 
+def test_an_anim_lists_how_its_frames_play_and_its_view_is_drawn_in_segments_around_it(tmp_path):
+    game = write_game(tmp_path)
+    main = game / "v" / "1920x1080" / "MainView.json"
+    anim = next(element for element in view_layout(main)["elements"] if element["id"] == "anim_glow")
+    # Every frame, how they play, and the matrix that places them (SVG's matrix(a b c d e f)).
+    assert [Path(frame["file"]).name for frame in anim["sequence"]] == ["frame_00.png", "frame_01.png", "frame_02.png"]
+    assert (anim["frameTime"], anim["loopCount"], anim["loopTo"]) == (40, 0, None)
+    assert anim["placement"] == {"matrix": [1.0, 0.0, 0.0, 1.0, 900.0, 100.0], "alignment": [0.0, 0.0]}
+    # The element's own loopCount replaces the sequence's.
+    data = json.loads(main.read_text())
+    data["elements"][4]["loopCount"] = 2
+    main.write_text(json.dumps(data))
+    assert next(element for element in view_layout(main)["elements"] if element["id"] == "anim_glow")["loopCount"] == 2
+    # The whole view draws the Anim's first frame; segment 0 draws the elements before it, segment 1 those after it.
+    whole, before, after = (decode(render_view(main, 1920, segment=segment)) for segment in (None, 0, 1))
+    assert tuple(whole[104, 904]) == GREEN and before[104, 904, 3] == 0 and after[104, 904, 3] == 0
+    assert tuple(whole[50, 100]) == RED and tuple(before[50, 100]) == RED and after[50, 100, 3] == 0
+    with pytest.raises(ValueError, match="the view has 2 segments"):
+        render_view(main, 1920, segment=2)
+
+
 def test_the_gda_sync_compares_views_and_the_asset_report_lists_them_as_their_own_type(tmp_path):
     game = write_game(tmp_path)
     gda = tmp_path / "gda"
@@ -212,6 +233,9 @@ def test_the_api_draws_a_view_and_lists_its_elements(client):
     assert card.status_code == 200 and card.headers["content-type"] == "image/png" and decode(card.content).shape == (360, 640, 4)
     large = api.get("/api/rss-sync/preview", params={"file": main, "width": 1920, "hidden": "true"})
     assert decode(large.content).shape == (1080, 1920, 4) and tuple(decode(large.content)[705, 705]) == RED
+    # A segment of the still elements, around the Anim that plays, and only the segments the view has.
+    assert api.get("/api/rss-sync/preview", params={"file": main, "width": 1920, "segment": 1}).status_code == 200
+    assert api.get("/api/rss-sync/preview", params={"file": main, "width": 1920, "segment": 2}).status_code == 415
     layout = api.get("/api/rss-sync/view", params={"file": main}).json()
     assert layout["name"] == "MainView" and len(layout["elements"]) == 10
     # Only views, and only inside the workspace's folders.

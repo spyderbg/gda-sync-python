@@ -1092,12 +1092,12 @@ class Library:
         game = root if any(root.glob("*Data.json")) and not included else destination
         return path, game, tuple(Path(folder) for folder in self._resource_roots())
 
-    def view_preview(self, file: str, width: int | None = None, hidden: bool = False, crop: bool = False) -> bytes:
+    def view_preview(self, file: str, width: int | None = None, hidden: bool = False, crop: bool = False, segment: int | None = None) -> bytes:
         """A view composed as a PNG image, as wide as width (a card's width by default), with its hidden elements on
-        request, and cropped to what it draws on request."""
+        request, cropped to what it draws on request, or only one segment of its still elements."""
         path, game, roots = self._view(file)
         try:
-            return render_view(path, width or THUMBNAIL_WIDTH, hidden, game, roots, crop)
+            return render_view(path, width or THUMBNAIL_WIDTH, hidden, game, roots, crop, segment)
         except FileNotFoundError as error:
             raise AppError("File not found", 404) from error
         except (OSError, ValueError, RecursionError) as error:

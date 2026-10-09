@@ -281,10 +281,12 @@ def create_app(
 
     @app.get("/api/rss-sync/preview")
     def rss_sync_preview(file: Annotated[str, Query(max_length=4096)], width: Annotated[int | None, Query(ge=16, le=8192)] = None,
-                         hidden: bool = False, crop: bool = False) -> Response:
-        # A view is composed as an image as wide as width, with its hidden elements and cropped to what it draws on request.
-        if width is not None or hidden or crop:
-            return Response(library.view_preview(file, width, hidden, crop), media_type="image/png", headers={"Content-Security-Policy": PREVIEW_CSP})
+                         hidden: bool = False, crop: bool = False, segment: Annotated[int | None, Query(ge=0, le=100000)] = None) -> Response:
+        # A view is composed as an image as wide as width, with its hidden elements, cropped to what it draws, or only the
+        # segment of its still elements between two Anims that play, on request.
+        if width is not None or hidden or crop or segment is not None:
+            return Response(library.view_preview(file, width, hidden, crop, segment), media_type="image/png",
+                            headers={"Content-Security-Policy": PREVIEW_CSP})
         data, mime = library.resource_preview(file)
         headers = {"Content-Security-Policy": PREVIEW_CSP}
         # A font comes with its names and the samples it can draw, for the page that draws text with it.

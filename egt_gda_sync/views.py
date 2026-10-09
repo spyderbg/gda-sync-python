@@ -5,7 +5,10 @@ A view is a list of elements, drawn in order on a screen of the resolution its f
 - Image: an image (rssKey, or the first of rssKeys);
 - Button and ToggleButton: an image for each state (rssKeys), the first the idle one, and the area that takes touches
   (touchArea); a button without images, or with only DUMMY_AREA, is a touch area alone;
-- Anim: an image sequence, drawn here with its first frame, or a movie, which is not drawn;
+- Anim: an image sequence, which render_view draws with its first frame, or a movie, which is not drawn; its layout
+  lists the frames and how they play, a frame every frameTime milliseconds, loopCount times (the element's own, or else
+  the sequence's; 0 repeats from frame loopTo), each frame placed by its own size, for the details to play them over
+  render_view's segments: the still elements drawn before and after each Anim that plays;
 - Text: a text filled in at runtime, in a text style (rssStyleId) and within a fit box (fitBox);
 - Rtf: a page of an RTF project, drawn here with the background of its first page that has one;
 - Dummy: a hidden point that other elements are placed by.
@@ -17,7 +20,7 @@ alignment and its size, scaled and rotated around its pivot, at its position; an
 is drawn only on request. *Data.json files in the v folder are descriptors, not views.
 
 describe_view gives the facts a report keeps, view_layout the place of every element, and render_view the view composed
-as a PNG image.
+as a PNG image, or one segment of it.
 """
 
 from __future__ import annotations
@@ -276,7 +279,12 @@ def resolve(element: dict, resources: Resources, resolution: tuple[int, int]) ->
             # A frame can be a {N-M} range of files.
             frames = [(path, frame.get("source")) for frame in sequence["frames"] for path in expand_path(frame["path"])]
             drawing = _image(Path(frames[0][0]), frames[0][1])
-            drawing.detail = {"frames": len(frames), "frameTime": sequence.get("frameTime")}
+            # The element's loopCount, when it has one, replaces the sequence's (AnimElement::SetElementData).
+            loops = element.get("loopCount")
+            loops = loops if isinstance(loops, int) and not isinstance(loops, bool) else sequence.get("loopCount")
+            drawing.detail = {"frames": len(frames), "frameTime": sequence.get("frameTime"), "loopCount": loops, "loopTo": sequence.get("loopTo"),
+                              "sequence": [{"file": str(path), **({"source": [int(source[key]) for key in ("x", "y", "w", "h")]} if source else {})}
+                                           for path, source in frames]}
             return drawing
         if resources.choose("movies", keys[0], resolution) is not None:
             return Drawing(reason="a movie, which is not drawn", detail={"movie": True})
@@ -334,6 +342,20 @@ def transform(element: dict, size: tuple[float, float]) -> np.ndarray:
     return np.hstack([linear, translation[:, None]])
 
 
+def animated(element: dict) -> bool:
+    """Whether a laid out element plays: an Anim that draws an image sequence of more than one frame."""
+    return element["type"] == "Anim" and element["drawn"] and element.get("frames", 0) > 1
+
+
+def placement(element: dict, size: tuple[float, float]) -> dict:
+    """An element's matrix for a frame of the given size, as SVG's matrix(a b c d e f), and its alignment: the share of a
+    frame's size it is moved by, so a frame of another size is placed by moving it by that share of the difference."""
+    matrix = transform(element, size)
+    share = ALIGNMENT.get(str(element.get("alignment") or "None"), (0.0, 0.0))
+    return {"matrix": [round(float(value), 6) for value in (matrix[0, 0], matrix[1, 0], matrix[0, 1], matrix[1, 1], matrix[0, 2], matrix[1, 2])],
+            "alignment": [share[0], share[1]]}
+
+
 def corners(matrix: np.ndarray, size: tuple[float, float]) -> list[list[float]]:
     points = np.array([[0, 0], [size[0], 0], [size[0], size[1]], [0, size[1]]], float)
     return [[round(float(x), 2), round(float(y), 2)] for x, y in points @ matrix[:, :2].T + matrix[:, 2]]
@@ -371,6 +393,7 @@ def view_layout(path: Path, game_dir: Path | None = None, roots: tuple[Path, ...
             **({"file": str(drawing.file)} if drawing.file else {}), **({"source": list(drawing.source)} if drawing.source else {}),
             **({"reason": drawing.reason} if drawing.reason else {}), **drawing.detail,
             **({"alpha": _color(element.get("color"))[3]} if "color" in element else {}),
+            **({"placement": placement(element, drawing.size)} if kind == "Anim" and "sequence" in drawing.detail else {}),
             **({"touchArea": corners(matrix @ np.vstack([np.hstack([np.eye(2), [[touch[0]], [touch[1]]]]), [0, 0, 1]]), touch[2:])}
                if touch else {}),
         })
@@ -438,15 +461,23 @@ def _scaled_image(file: Path, source: tuple[int, int, int, int] | None, scale: f
 
 
 def render_view(path: Path, width: int | None = None, hidden: bool = False, game_dir: Path | None = None,
-                roots: tuple[Path, ...] = (), crop: bool = False) -> bytes:
+                roots: tuple[Path, ...] = (), crop: bool = False, segment: int | None = None) -> bytes:
     """The view composed as a PNG image with a transparent background, as wide as width (at most the view's own width):
-    every element that draws an image, in order, hidden ones too on request. Cropped, it shows only the part of the
-    screen that the view draws on, with a margin, so a small view fills a card. Renders are kept until the view or an
-    image it draws changes."""
+    every element that draws an image, in order, hidden ones too on request, an Anim with its first frame. Cropped, it
+    shows only the part of the screen that the view draws on, with a margin, so a small view fills a card. A segment
+    draws only the still elements between two Anims that play: segment 0 the ones before the first, segment n the ones
+    after the nth, so that the frames of each can be drawn between them. Renders are kept until the view or an image it
+    draws changes."""
     layout = view_layout(path, game_dir, roots)
     resolution = layout["resolution"]
     elements = [element for element in layout["elements"]
                 if element["drawn"] and (hidden or not element["hidden"]) and element["type"] != "Dummy"]
+    shown = elements
+    if segment is not None:
+        cuts = [position for position, element in enumerate(elements) if animated(element)]
+        if segment > len(cuts):
+            raise ValueError(f"the view has {len(cuts) + 1} segments")
+        shown = elements[cuts[segment - 1] + 1 if segment else 0:cuts[segment] if segment < len(cuts) else len(elements)]
     # The part of the screen drawn: all of it, or what the elements cover, with a margin.
     left, top, right, bottom = 0.0, 0.0, float(resolution["width"]), float(resolution["height"])
     if crop and elements:
@@ -459,8 +490,8 @@ def render_view(path: Path, width: int | None = None, hidden: bool = False, game
     # A cropped render may be drawn up to twice as large, so a small view stays sharp in a card.
     scale = min(CROP_ZOOM if crop else 1.0, (width or resolution["width"]) / (right - left))
     view = path.stat()
-    signature = (str(path), view.st_mtime_ns, view.st_size, round(scale, 6), hidden, (left, top, right, bottom),
-                 tuple((element["file"], os.stat(element["file"]).st_mtime_ns) for element in elements))
+    signature = (str(path), view.st_mtime_ns, view.st_size, round(scale, 6), hidden, (left, top, right, bottom), segment,
+                 tuple((element["file"], os.stat(element["file"]).st_mtime_ns) for element in shown))
     with _render_lock:
         if signature in _renders:
             _renders.move_to_end(signature)
@@ -468,7 +499,7 @@ def render_view(path: Path, width: int | None = None, hidden: bool = False, game
     canvas_width, canvas_height = max(1, round((right - left) * scale)), max(1, round((bottom - top) * scale))
     canvas = np.zeros((canvas_height, canvas_width, 4), np.float32)
     source_elements = read_view(path)["elements"]
-    for element in elements:
+    for element in shown:
         try:
             image = _scaled_image(Path(element["file"]), tuple(element["source"]) if "source" in element else None, scale)
         except (OSError, ValueError, cv2.error):

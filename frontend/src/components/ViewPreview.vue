@@ -11,6 +11,7 @@ import { number, plural, viewRenderURL, viewSummary } from '../format';
 import type { ViewElement, ViewFacts, ViewLayer, ViewLayout } from '../types';
 import { openViewElement } from '../workspace';
 import CheckBox from './CheckBox.vue';
+import ViewRender from './ViewRender.vue';
 
 // A view, a .json file of a game's v folder, as the game's view elements draw it: the backend composes its elements
 // into an image of the view's screen (GET /api/rss-sync/preview with a width), over a checkerboard where the view is
@@ -21,7 +22,8 @@ import CheckBox from './CheckBox.vue';
 // keeps its name), and the list of elements, which outlines the one clicked. The elements come from GET
 // /api/rss-sync/view. With layers, a large preview draws several views on one screen, as the game shows them together:
 // each view's render over the one before, the first at the bottom. Each view can be hidden or moved up and down, and
-// has its own list of elements; an element's tooltip names its view.
+// has its own list of elements; an element's tooltip names its view. A large preview plays the Anims whose image sequence
+// has more than one frame, with ViewRender, which Pause stops and Replay plays again from their first frames.
 const props = withDefaults(defineProps<{
   /** The view's absolute path, as the report stores it. */
   file: string;
@@ -58,7 +60,8 @@ const resolution = computed(() => ({
 }));
 const mixed = computed(() => new Set(stack.value.map(layer => `${layer.facts.resolution.width}x${layer.facts.resolution.height}`)).size > 1);
 const cardSource = computed(() => viewRenderURL(props.file, props.revision, CARD_WIDTH, false, true));
-const sourceOf = (layer: ViewLayer) => viewRenderURL(layer.file, props.revision, layer.facts.resolution.width, hidden.value);
+const playing = ref(true);
+const restart = ref(0);
 const placed = (layer: ViewLayer) => ({
   width: `${100 * layer.facts.resolution.width / resolution.value.width}%`,
   height: `${100 * layer.facts.resolution.height / resolution.value.height}%`,
@@ -102,6 +105,9 @@ watch(() => [props.large, stack.value, props.revision], () => {
 }, { immediate: true });
 
 const elementsOf = (index: number) => layouts.value[index]?.elements ?? [];
+/** How many Anims of the views shown play: those with an image sequence of more than one frame. */
+const animations = computed(() => shown.value.reduce((sum, { index }) => sum + elementsOf(index)
+  .filter(element => element.type === 'Anim' && element.drawn && (element.frames ?? 0) > 1 && (hidden.value || !element.hidden)).length, 0));
 const totals = computed(() => ({
   elements: stack.value.reduce((sum, layer) => sum + layer.facts.elements, 0),
   hidden: stack.value.reduce((sum, layer) => sum + layer.facts.hidden, 0),
@@ -129,7 +135,11 @@ function describe(element: ViewElement) {
   if (element.touchOnly) return 'a touch area';
   if (element.type === 'Text') return [element.style, element.fontSize ? `${element.fontSize} px` : '', 'a text the game fills in'].filter(Boolean).join(' · ');
   if (element.type === 'Dummy') return 'a hidden point';
-  if (element.frames) return `${number(element.frames)} frames${element.frameTime ? ` every ${element.frameTime} ms` : ''}, the first drawn`;
+  if (element.frames) {
+    const loops = element.loopCount ?? 1;
+    const plays = element.frames < 2 ? 'one frame' : loops === 0 ? 'repeats forever' : loops === 1 ? 'plays once' : `plays ${number(loops)} times`;
+    return `${number(element.frames)} frame${plural(element.frames)}${element.frameTime ? ` every ${element.frameTime} ms` : ''}, ${plays}`;
+  }
   if (element.page) return `RTF page ${element.page}`;
   return element.drawn ? `${Math.round(element.size[0])} × ${Math.round(element.size[1])}` : '—';
 }
@@ -158,6 +168,15 @@ const labelSize = computed(() => Math.max(14, resolution.value.width / 90));
       <CheckBox :checked="outlines" label="Outline every element" @change="outlines = $event">Elements</CheckBox>
       <CheckBox v-if="totals.texts" :checked="hideTextNames" label="Hide the names of text elements" @change="hideTextNames = $event">Hide text names</CheckBox>
       <CheckBox :checked="hidden" label="Draw the hidden elements" @change="hidden = $event">Hidden elements<small v-if="totals.hidden" class="text-muted"> ({{ number(totals.hidden) }})</small></CheckBox>
+      <span v-if="animations" class="view-viewer-play" role="group" aria-label="Animations">
+        <button type="button" class="btn btn-outline-secondary btn-sm" :aria-pressed="!playing" @click="playing = !playing">
+          <i aria-hidden="true" :class="['mdi', playing ? 'mdi-pause' : 'mdi-play']" />{{ playing ? 'Pause' : 'Play' }}
+        </button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" title="Play every animation again from its first frame" @click="restart++; playing = true">
+          <i aria-hidden="true" class="mdi mdi-replay" />Replay
+        </button>
+        <small class="text-muted">{{ number(animations) }} animation{{ plural(animations) }}</small>
+      </span>
       <span class="view-viewer-summary text-muted">{{ many ? `${number(stack.length)} views · ${number(totals.elements)} elements` : viewSummary(facts) }}</span>
       <span v-if="totals.missing" class="view-viewer-missing"><i aria-hidden="true" class="mdi mdi-alert-outline" />{{ number(totals.missing) }} element{{ plural(totals.missing) }} without {{ totals.missing === 1 ? 'its resource' : 'their resources' }}</span>
     </div>
@@ -175,8 +194,9 @@ const labelSize = computed(() => Math.max(14, resolution.value.width / 90));
     </ol>
     <p v-if="many && mixed" class="view-viewer-note text-muted">The views have different resolutions: each is drawn from the top left corner of the screen.</p>
     <div class="view-stage" :style="{ aspectRatio: `${resolution.width} / ${resolution.height}`, maxWidth: `calc(58vh * ${resolution.width} / ${resolution.height})` }">
-      <template v-for="{ layer } in shown" :key="layer.file">
-        <img v-if="!failed.has(layer.file)" class="view-stage-image" :src="sourceOf(layer)" :style="placed(layer)" :alt="`${layer.name} as the game draws it`" :data-view="layer.name" @error="failed.add(layer.file)">
+      <template v-for="{ index, layer } in shown" :key="layer.file">
+        <ViewRender v-if="!failed.has(layer.file)" :style="placed(layer)" :file="layer.file" :name="layer.name" :revision="revision" :resolution="layer.facts.resolution"
+                    :hidden="hidden" :layout="layouts[index] ?? null" :playing="playing" :restart="restart" @error="failed.add(layer.file)" />
         <p v-else class="view-stage-state text-danger"><i aria-hidden="true" class="mdi mdi-alert-circle-outline" />{{ many ? `${layer.name} cannot be drawn` : 'The view cannot be drawn' }}</p>
       </template>
       <svg v-if="state === 'ready'" class="view-stage-overlay" :viewBox="`0 0 ${resolution.width} ${resolution.height}`" preserveAspectRatio="none"
@@ -230,6 +250,8 @@ const labelSize = computed(() => Math.max(14, resolution.value.width / 90));
 .generic-preview.view { color: #c9ced6; }
 .view-viewer-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; margin-bottom: 10px; font-size: 13px; }
 .view-viewer-summary { font-size: 12px; }
+.view-viewer-play { display: inline-flex; align-items: center; gap: 6px; }
+.view-viewer-play .btn { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; font-size: 12px; }
 .view-viewer-missing { color: #c77700; font-size: 12px; }
 .view-viewer-missing i { margin-right: 4px; }
 .view-viewer-note { margin: 0 0 8px; font-size: 12px; }
