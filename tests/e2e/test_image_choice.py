@@ -73,6 +73,8 @@ def test_the_gda_image_to_sync_is_chosen_on_the_card(new_context, image_backend)
     # facts are read.
     same_name, renamed = (str((gda / name).resolve()) for name in ("ui/play.png", "other/play_v2.png"))
     gda_preview = dialog.locator(".details-preview").nth(1).locator("img")
+    # Once the files' details are read; while they load, their values show "…".
+    expect(dialog.get_by_role("region", name="File details")).not_to_contain_text("…")
     page.keyboard.press("ArrowRight")
     expect(dialog).to_be_visible()
     expect(dialog.locator(".details-candidate-position")).to_have_text("2 of 2 · Left and Right change it")
