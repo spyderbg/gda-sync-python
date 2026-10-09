@@ -3,19 +3,51 @@
     "port": 3457,
     "vite_port": 5174
   },
-  "defaultWorkspace": "burning_crown_tetra_spins_10",
+  "defaultWorkspace": "super_hot_coins_20",
+  "games_root_path": "/media/plamen/data/Egt/games",
+  "gda_root_path": "/media/plamen/data1/Egt/gda_new",
   "workspaces": [
     {
       "id": "burning_crown_tetra_spins_10",
+      "demo": false,
       "game_name": "Burning Crown Tetra Spins 10",
-      "game_path": "/absolute/path/to/assets/source",
-      "gda_path": "/absolute/path/to/assets/gda"
+      "game_path": "{games_root_path}/resources/burning_crown_tetra_spins_10",
+      "gda_path": "{gda_root_path}/10_burning_crown_tetra_spins_italy/10_burning_crown_tetra_spins_italy/DEV"
+    },
+    {
+      "id": "burning_hot_coins",
+      "demo": false,
+      "game_name": "Burning Hot Coins",
+      "game_path": "{games_root_path}/resources/burning_hot_coins",
+      "gda_path": "{gda_root_path}/burning_hot_coins_italy/burning_hot_coins_italy/DEV"
     },
     {
       "id": "joker_reels_coins_10",
+      "demo": false,
       "game_name": "Joker Reels Coins 10",
-      "game_path": "/absolute/path/to/another/game",
-      "gda_path": "/absolute/path/to/another/gda"
+      "game_path": "{games_root_path}/resources/joker_reels_coins_10",
+      "gda_path": "{gda_root_path}/10_joker_reels_coins_italy/10_joker_reels_coins_italy/DEV"
+    },
+    {
+      "id": "nordic_rush",
+      "demo": false,
+      "game_name": "Nordic Rush",
+      "game_path": "{games_root_path}/resources/nordic_rush",
+      "gda_path": "{gda_root_path}/nordic_rush_flash_spins/nordic_rush_flash_spins/DEV"
+    },
+    {
+      "id": "super_hot_coins_20",
+      "demo": false,
+      "game_name": "Super Hot Coins 20",
+      "game_path": "{games_root_path}/resources/super_hot_coins_20",
+      "gda_path": "{gda_root_path}/20_super_hot_coins_italy/20_super_hot_coins_italy/DEV"
+    },
+    {
+      "id": "zodiac_wheel_coins_italy",
+      "demo": false,
+      "game_name": "Zodiac Wheel Coins Italy",
+      "game_path": "{games_root_path}/resources/zodiac_wheel_coins_italy",
+      "gda_path": "{gda_root_path}/zodiac_wheel_coins_italy/zodiac_wheel_coins_italy/DEV"
     }
   ]
 }
