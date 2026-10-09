@@ -12,6 +12,7 @@ import sys
 import tempfile
 import threading
 import time
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -66,6 +67,7 @@ def main() -> None:
     shutil.copy2(packaged_binary, binary)
     asset_home = root / "assets"
     config = seed_demo(str(asset_home))
+    source_root, destination_root = Path(config["source"]), Path(config["destination"])
     config["name"] = "Packaged workspace verification"
     if use_wine:
         for key in ("source", "destination"):
@@ -112,43 +114,32 @@ def main() -> None:
 
         initial = get_json(f"{url}/api/library")
         assert initial["config"] == config, "The executable must load the configuration beside it"
-        assert len(initial["assets"]) == 18 and initial["warnings"] == [], initial["warnings"]
-        assert len([asset for asset in initial["assets"] if asset["type"] == "model" and asset["preview"]]) == 5
+        dashboard = get_json(f"{url}/api/dashboard")
+        assert len(dashboard["assets"]) == 18 and dashboard["warnings"] == [], dashboard
+        assert len([asset for asset in dashboard["assets"] if asset["type"] == "model"]) == 5
         if use_wine:
             # Wine supplies its own LocalAppData inside the isolated C: drive.
             windows_home = initial["backupPath"].rsplit("\\", 1)[0]
-            assert windows_home.lower().endswith("\\appdata\\local\\gda sync"), windows_home
+            assert windows_home.lower().endswith("\\appdata\\local\\egt gda sync"), windows_home
             data_home = Path(subprocess.run(["winepath", "-u", windows_home], env=wine_env,
                                             capture_output=True, text=True, check=True).stdout.strip())
             assert data_home.is_relative_to(root), "Wine data stays inside the test directory"
         saved = json.loads(config_path.read_text(encoding="utf-8"))
         assert saved == initial["config"]
         assert not (data_home / "workspace.json").exists(), "Settings are saved beside the executable"
-        changed = next(asset for asset in initial["assets"] if asset["status"] == "modified")
-        previous = (asset_home / "demo" / "gda" / changed["path"]).read_bytes()
+        changed = next(asset for asset in dashboard["assets"] if asset["status"] == "modified")
+        previous = (destination_root / changed["path"]).read_bytes()
 
         bc7 = create_bc7_dds(136, 134)
         relative = "textures/forest/k_active_en.dds"
-        (asset_home / "demo" / "source" / relative).write_bytes(bc7)
-        library = get_json(f"{url}/api/library")
+        (source_root / relative).write_bytes(bc7)
+        library = get_json(f"{url}/api/dashboard")
         asset = next(asset for asset in library["assets"] if asset["name"] == "k_active_en.dds")
         assert asset["preview"] and asset["dimensions"]["format"] == "BC7_UNORM"
-        status, preview = request(f"{url}/api/assets/{asset['id']}/preview")
+        preview_query = urllib.parse.urlencode({"file": initial["config"]["source"] + "/" + relative})
+        status, preview = request(f"{url}/api/rss-sync/preview?{preview_query}")
         width, height, pixels = read_png(preview)
         assert (status, width, height, list(pixels[:4])) == (200, 136, 134, [255, 0, 0, 255])
-        model = next(asset for asset in library["assets"] if asset["type"] == "model")
-        assert request(f"{url}/api/assets/{model['id']}/preview")[0] == 200
-
-        playwright = sync_playwright().start()
-        browser = playwright.chromium.launch(headless=True)
-        page = browser.new_page()
-        page.goto(url)
-        page.get_by_role("button", name="Asset library", exact=True).click()
-        expect(page.locator(".asset-card")).to_have_count(19)
-        poll(lambda: get_json(f"{url}/api/health")["openPages"], 1)
-        page.get_by_role("textbox", name="Search assets").fill("k_active_en.dds")
-        page.get_by_role("button", name="Inspect k_active_en.dds", exact=True).click()
-        poll(lambda: page.locator(".inspector img").evaluate("img => img.naturalWidth"), 136)
 
         token = get_json(f"{url}/api/session")["token"]
         settings = {key: initial["config"][key] for key in ("name", "source", "destination")}
@@ -161,15 +152,40 @@ def main() -> None:
         status, body = request(f"{url}/api/sync", {"ids": pending}, {"x-gda-token": token})
         result = json.loads(body)
         assert status == 200 and len(result["copied"]) == 9 and result["failures"] == [], result
-        assert all(asset["status"] == "synced" for asset in result["library"]["assets"])
-        assert (asset_home / "demo" / "source" / relative).read_bytes() == bc7
-        assert (asset_home / "demo" / "gda" / relative).read_bytes() == bc7
+        synced = get_json(f"{url}/api/dashboard")
+        assert len(synced["assets"]) == 19 and all(asset["status"] == "synced" for asset in synced["assets"]), synced
+        assert (source_root / relative).read_bytes() == bc7
+        assert (destination_root / relative).read_bytes() == bc7
         [operation] = os.listdir(data_home / "backups")
         assert (data_home / "backups" / operation / changed["path"]).read_bytes() == previous
         assert json.loads((data_home / "activity.json").read_text(encoding="utf-8"))[0]["action"] == "sync"
 
+        playwright = sync_playwright().start()
+        browser = playwright.chromium.launch(headless=True)
+        page = browser.new_page()
+        page.goto(url)
+        page.get_by_role("list", name="Workspaces").get_by_role("button", name=settings["name"], exact=True).click()
+        page.get_by_role("button", name="Asset library", exact=True).click()
+        expect(page.get_by_role("heading", name="No asset report yet")).to_be_visible()
+        page.get_by_role("region", name="Workspace summary").get_by_role("button", name="Rescan", exact=True).click()
+        # The inventory includes the demo's PNG, DDS and WAV files; models and materials are outside its extensions.
+        expect(page.locator(".asset-card")).to_have_count(11)
+        report = get_json(f"{url}/api/asset-report")
+        assert report["summary"]["assets"] == 11, report["summary"]
+        report_asset = next(row for row in report["assets"] if row["resource"].replace("\\", "/") == relative)
+        assert report_asset["dimensions"]["format"] == "BC7_UNORM"
+        preview_query = urllib.parse.urlencode({"file": report_asset["resourcePath"]})
+        assert request(f"{url}/api/rss-sync/preview?{preview_query}")[1] == preview
+        poll(lambda: get_json(f"{url}/api/health")["openPages"], 1)
+        page.get_by_role("textbox", name="Search assets").fill("k_active_en.dds")
+        expect(page.locator(".asset-card")).to_have_count(1)
+        page.locator(".asset-card").get_by_role("button", name="Inspect").click()
+        details = page.get_by_role("dialog")
+        expect(details).to_be_visible()
+        poll(lambda: details.get_by_role("img", name="k_active_en.dds preview").evaluate("img => img.naturalWidth"), 136)
+
         page.reload()
-        expect(page.get_by_role("heading", name="Dashboard")).to_be_visible()
+        expect(page.get_by_role("heading", name="Keep game resources in sync with the GDA")).to_be_visible()
         time.sleep(2.2)
         assert get_json(f"{url}/api/health")["openPages"] == 1
         start = time.monotonic()
@@ -178,7 +194,7 @@ def main() -> None:
         assert exit_code == 0, f"Exit code {exit_code}:\n{log_path.read_text(errors='replace')}"
         print(json.dumps({
             "target": target, "runtime": "Wine" if use_wine else "native", "version": __version__, "assets": 19,
-            "synced": 9, "modelPreviews": True, "bc7Preview": True, "savedSettings": True, "backups": True,
+            "synced": 9, "assetReportAssets": 11, "bc7Preview": True, "savedSettings": True, "backups": True,
             "loadedPackagedConfig": True,
             "survivedRefresh": True, "exitCode": exit_code, "shutdownAfterPageCloseMs": round((time.monotonic() - start) * 1000),
         }))

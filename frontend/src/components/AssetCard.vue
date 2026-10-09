@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { assetBadges, assetFrames, baseName, declarationLabel, number, plural, sequenceName, sequenceSummary, size, splitPath, typeIcons, viewSummary } from '../format';
 import type { ReportAsset } from '../types';
+import CheckBox from './CheckBox.vue';
 import ReportThumbnail from './ReportThumbnail.vue';
 import RtfPreview from './RtfPreview.vue';
 import SequencePreview from './SequencePreview.vue';
@@ -12,9 +13,13 @@ import ViewPreview from './ViewPreview.vue';
 // clicking its preview plays it again from the first frame. An RTF is its folder, named by it: it shows its pages, its
 // languages, how many files the folder has, and how many of the files its pages draw are missing. A view, a .json file of
 // the game's v folder, shows itself as the game draws it, its name, its elements by type, and how many of them name
-// resources that cannot be found. Clicking the card, or its details button, emits open.
-const props = withDefaults(defineProps<{ row: ReportAsset; revision: string; inspected?: boolean }>(), { inspected: false });
-const emit = defineEmits<{ open: [] }>();
+// resources that cannot be found. Clicking the card, or its details button, emits open. A view can also be selected with
+// its check box, which emits toggle, to show it with other views in one dialog; a selected view shows its place in the
+// drawing order (layer).
+const props = withDefaults(defineProps<{
+  row: ReportAsset; revision: string; inspected?: boolean; selectable?: boolean; selected?: boolean; layer?: number | null;
+}>(), { inspected: false, selectable: false, selected: false, layer: null });
+const emit = defineEmits<{ open: []; toggle: [] }>();
 
 const resource = computed(() => splitPath(props.row.resource));
 const sequence = computed(() => props.row.sequence);
@@ -35,7 +40,7 @@ const file = computed(() => props.row.directory?.project ?? props.row.resourcePa
 </script>
 
 <template>
-  <article :class="['card', 'asset-card', 'report-asset', `is-${row.category}`, { inspected }]">
+  <article :class="['card', 'asset-card', 'report-asset', `is-${row.category}`, { inspected, selected }]">
     <SequencePreview v-if="sequence" :frames="frames" :frame-time="sequence.frameTime" :loop-count="sequence.loopCount" :loop-to="sequence.loopTo" :name="sequence.id ?? resource.name" :revision="revision" />
     <div class="asset-hit-target" @click="emit('open')">
       <RtfPreview v-if="rtf" :file="file" :name="resource.name" :revision="revision" :facts="rtf" />
@@ -79,12 +84,15 @@ const file = computed(() => props.row.directory?.project ?? props.row.resourcePa
         <li v-for="frame in unavailable" :key="frame.resourcePath"><span :title="frame.resourcePath">{{ frame.name }}</span><small>{{ frame.category }}</small></li>
       </ul>
     </details>
+    <CheckBox v-if="selectable" class="asset-check" :checked="selected" :label="`Select ${resource.name} to show with other views`" @change="emit('toggle')" />
+    <span v-if="selected && layer" class="badge badge-primary report-asset-layer" :title="`Drawn as layer ${layer}, over the views selected before it`">{{ layer }}</span>
     <button type="button" class="asset-menu" :aria-label="`Show details for ${resource.name}`" title="Show details" @click="emit('open')"><i aria-hidden="true" class="mdi mdi-dots-horizontal" /></button>
   </article>
 </template>
 
 <style scoped>
 .report-asset { position: relative; display: flex; flex-direction: column; min-width: 0; width: 100%; }
+.report-asset-layer { position: absolute; top: 12px; left: 38px; z-index: 2; }
 .report-asset-preview { display: block; width: 100%; padding: 0; border: 0; background: transparent; text-align: left; cursor: pointer; }
 .report-asset-preview:focus-visible { outline-offset: -2px; }
 .asset-hit-target { cursor: pointer; }

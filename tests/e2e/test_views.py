@@ -104,3 +104,59 @@ def test_views_are_drawn_in_the_asset_library_and_on_the_sync_page(new_context, 
     expect(dialog.locator(".view-viewer")).to_have_count(2)
     expect(dialog.locator(".details-table")).to_contain_text("ButtonView")
     assert errors == []
+
+
+def test_selected_views_are_shown_together_in_one_dialog(new_context, view_backend):
+    page = new_context().new_page()
+    errors = []
+    page.on("pageerror", lambda error: errors.append(str(error)))
+    page.goto(view_backend.url)
+    page.get_by_role("list", name="Workspaces").get_by_role("button", name="View game", exact=True).click()
+    navigation = page.get_by_role("navigation", name="Main navigation")
+    navigation.get_by_role("button", name="Asset library", exact=True).click()
+    page.get_by_role("button", name="Rescan").first.click()
+
+    # Only views can be selected; other assets open one at a time.
+    expect(page.locator(".report-asset").first).to_be_visible()
+    images = page.locator(".report-asset").filter(has_text="red.png")
+    expect(images.get_by_role("checkbox")).to_have_count(0)
+    navigation.get_by_role("button", name="Views", exact=True).click()
+    main = page.locator(".report-asset").filter(has_text="1920 × 1080 · 10 elements")
+    buttons = page.locator(".report-asset").filter(has_text="ButtonView.json")
+    # A view that cannot be read cannot be drawn with others.
+    expect(page.locator(".report-asset").filter(has_text="Broken.json").get_by_role("checkbox")).to_have_count(0)
+    main.get_by_role("checkbox").check()
+    show = page.get_by_role("button", name="Show together")
+    expect(show).to_be_disabled()
+    buttons.get_by_role("checkbox").check()
+    expect(page.get_by_role("group", name="Selected views")).to_contain_text("2 views selected")
+    expect(buttons.locator(".report-asset-layer")).to_have_text("2")
+
+    # The dialog draws both on one screen, the first selected at the bottom, with their elements.
+    show.click()
+    dialog = page.get_by_role("dialog", name="2 views")
+    stage = dialog.locator(".view-stage-image")
+    expect(stage).to_have_count(2)
+    expect(stage.nth(0)).to_have_attribute("data-view", "MainView")
+    expect(stage.nth(1)).to_have_attribute("data-view", "ButtonView")
+    poll(lambda: all(drawn(image) for image in stage.all()), True)
+    expect(dialog.locator(".view-stage-overlay > g")).to_have_count(2)
+    expect(dialog.locator(".view-elements summary")).to_have_text(["MainView: 10 elements, drawn in this order", "ButtonView: 2 elements, drawn in this order"])
+    # A view can be drawn lower, or hidden.
+    dialog.get_by_role("button", name="Draw ButtonView lower").click()
+    expect(stage.nth(0)).to_have_attribute("data-view", "ButtonView")
+    dialog.get_by_role("checkbox", name="Show MainView").uncheck()
+    expect(stage).to_have_count(1)
+    dialog.get_by_role("checkbox", name="Show MainView").check()
+    expect(dialog.locator(".views-details-table tbody tr")).to_have_count(2)
+    BUILD.mkdir(exist_ok=True)
+    dialog.screenshot(path=str(BUILD / "views-together.png"))
+    page.keyboard.press("Escape")
+
+    # A card still opens its own view, and Clear ends the selection.
+    main.locator(".asset-hit-target").click()
+    expect(page.get_by_role("dialog", name="MainView.json")).to_be_visible()
+    page.keyboard.press("Escape")
+    page.get_by_role("button", name="Clear").click()
+    expect(page.get_by_role("group", name="Selected views")).to_have_count(0)
+    assert errors == []

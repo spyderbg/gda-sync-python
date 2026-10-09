@@ -2,11 +2,13 @@
 import { computed, ref, watch } from 'vue';
 import AssetCard from '../components/AssetCard.vue';
 import AssetDetails from '../components/AssetDetails.vue';
+import CheckBox from '../components/CheckBox.vue';
+import ViewsDetails from '../components/ViewsDetails.vue';
 import ButtonTooltip from '../components/ButtonTooltip.vue';
 import ReportThumbnail from '../components/ReportThumbnail.vue';
 import WorkspaceHeader from '../components/WorkspaceHeader.vue';
 import { useAssetReport } from '../composables/useAssetReport';
-import { assetBadges, assetMatches, baseName, declarationLabel, number, size, splitPath } from '../format';
+import { assetBadges, assetMatches, baseName, declarationLabel, number, plural, size, splitPath } from '../format';
 import type { AssetCategory, ReportAsset } from '../types';
 import { assetReport, busy, generateAssetReport, ui } from '../workspace';
 
@@ -75,6 +77,22 @@ watch([filter, () => ui.query, () => ui.category, report], () => { shown.value =
 
 // Clicking an asset shows its details; a new report that no longer lists it closes them.
 const detailsRow = computed(() => (ui.inspecting ? assets.value.find(row => row.id === ui.inspecting) ?? null : null));
+
+// Views can be selected to show them together in one dialog, as the game draws several at once, in the order they were
+// selected, the first at the bottom. Any other asset opens on its own. A new report that no longer lists a selected view
+// drops it.
+const stacked = ref<string[]>([]);
+const stackable = (row: ReportAsset) => row.type === 'view' && !!row.view;
+const stackRows = computed(() => stacked.value.flatMap(id => assets.value.filter(row => row.id === id && stackable(row))));
+const viewsOpen = ref(false);
+function toggleView(row: ReportAsset) {
+  stacked.value = stacked.value.includes(row.id) ? stacked.value.filter(id => id !== row.id) : [...stacked.value, row.id];
+}
+const layerOf = (row: ReportAsset) => stacked.value.indexOf(row.id) + 1 || null;
+watch(assets, () => {
+  const kept = stackRows.value.map(row => row.id);
+  if (kept.length !== stacked.value.length) stacked.value = kept;
+});
 // A row of the list shows the file of the asset, a sequence's first frame, or the background of an RTF's first
 // page that has one, else its .rtf file.
 function listFile(row: ReportAsset) {
@@ -133,21 +151,30 @@ function showAll() {
 
     <div class="results-heading">
       <span>{{ number(rows.length) }} of {{ number(counts.all) }} assets<small v-if="ui.query" class="text-muted"> matching “{{ ui.query }}”</small></span>
+      <span v-if="stacked.length" class="library-views-selection" role="group" aria-label="Selected views">
+        <i aria-hidden="true" class="mdi mdi-layers-outline" />{{ number(stacked.length) }} view{{ plural(stacked.length) }} selected<small v-if="stacked.length < 2" class="text-muted"> · select another to show them together</small>
+        <button type="button" class="btn btn-primary btn-sm" :disabled="stacked.length < 2" @click="viewsOpen = true">Show together</button>
+        <button type="button" class="btn btn-link btn-sm" @click="stacked = []">Clear</button>
+      </span>
     </div>
 
     <div v-if="rows.length && ui.layout === 'grid'" class="row asset-grid">
       <div v-for="row in visible" :key="row.id" class="col-sm-6 col-xl-4 grid-margin stretch-card">
-        <AssetCard :row="row" :revision="revision" :inspected="ui.inspecting === row.id" @open="ui.inspecting = row.id" />
+        <AssetCard :row="row" :revision="revision" :inspected="ui.inspecting === row.id" :selectable="stackable(row)" :selected="stacked.includes(row.id)"
+                   :layer="layerOf(row)" @open="ui.inspecting = row.id" @toggle="toggleView(row)" />
       </div>
     </div>
     <div v-else-if="rows.length" class="card asset-list grid-margin">
       <div class="table-responsive">
         <table class="table table-hover mb-0">
           <thead>
-            <tr><th>Asset</th><th class="d-none d-md-table-cell">Folder</th><th>Status</th><th class="d-none d-lg-table-cell">Loaded by</th><th class="text-right">Size</th></tr>
+            <tr><th class="library-check"><span class="sr-only">Select views</span></th><th>Asset</th><th class="d-none d-md-table-cell">Folder</th><th>Status</th><th class="d-none d-lg-table-cell">Loaded by</th><th class="text-right">Size</th></tr>
           </thead>
           <tbody>
             <tr v-for="row in visible" :key="row.id" :class="['asset-card', 'asset-row', { inspected: ui.inspecting === row.id }]">
+              <td class="library-check">
+                <CheckBox v-if="stackable(row)" :checked="stacked.includes(row.id)" :label="`Select ${splitPath(row.resource).name} to show with other views`" @change="toggleView(row)" />
+              </td>
               <td>
                 <button type="button" class="asset-hit-target" :aria-label="`Inspect ${splitPath(row.resource).name}`" @click="ui.inspecting = row.id">
                   <ReportThumbnail :file="listFile(row).resourcePath" :name="splitPath(listFile(row).resource).name" :revision="revision" :preview="readable(listFile(row))" />
@@ -180,6 +207,7 @@ function showAll() {
   </template>
 
   <AssetDetails v-if="detailsRow" :row="detailsRow" :revision="revision" @close="ui.inspecting = null" />
+  <ViewsDetails v-if="viewsOpen && stackRows.length > 1" :rows="stackRows" :revision="revision" @close="viewsOpen = false" />
 </template>
 
 <style scoped>
@@ -193,5 +221,9 @@ function showAll() {
 .library-filter-count { margin-left: 4px; opacity: 0.7; }
 .library-use { max-width: 320px; font-family: monospace; font-size: 11px; overflow-wrap: anywhere; }
 .library-outdated { display: flex; align-items: center; gap: 8px; }
+.library-views-selection { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-left: auto; font-size: 13px; }
+.library-views-selection .mdi { color: #2196f3; }
+.library-check { width: 36px; }
+.library-check :deep(.form-check) { margin: 0; }
 .library-more { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; }
 </style>

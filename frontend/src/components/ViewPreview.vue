@@ -6,19 +6,22 @@ const hideTextNames = ref(false);
 </script>
 
 <script setup lang="ts">
-import { computed, watch } from 'vue';
+import { computed, reactive, watch } from 'vue';
 import { number, plural, viewRenderURL, viewSummary } from '../format';
-import type { ViewElement, ViewFacts, ViewLayout } from '../types';
+import type { ViewElement, ViewFacts, ViewLayer, ViewLayout } from '../types';
 import { openViewElement } from '../workspace';
 import CheckBox from './CheckBox.vue';
 
 // A view, a .json file of a game's v folder, as the game's view elements draw it: the backend composes its elements
 // into an image of the view's screen (GET /api/rss-sync/preview with a width), over a checkerboard where the view is
-// transparent. A card shows a small render of the part of the screen the view draws on. A large preview shows the view at its own width, with the areas of the
-// texts that the game fills in outlined with their ids, Elements to outline every element (dummies as crosses, the
-// touch areas of buttons dashed, elements that draw nothing in red), Hidden elements to draw the hidden ones too, Hide text
-// names to outline the texts' areas without their names (one picked in the list keeps its name), and
-// the list of elements, which outlines the one clicked. The elements come from GET /api/rss-sync/view.
+// transparent. A card shows a small render of the part of the screen the view draws on. A large preview shows the view
+// at its own width, with the areas of the texts that the game fills in outlined with their ids, Elements to outline every
+// element (dummies as crosses, the touch areas of buttons dashed, elements that draw nothing in red), Hidden elements to
+// draw the hidden ones too, Hide text names to outline the texts' areas without their names (one picked in the list
+// keeps its name), and the list of elements, which outlines the one clicked. The elements come from GET
+// /api/rss-sync/view. With layers, a large preview draws several views on one screen, as the game shows them together:
+// each view's render over the one before, the first at the bottom. Each view can be hidden or moved up and down, and
+// has its own list of elements; an element's tooltip names its view.
 const props = withDefaults(defineProps<{
   /** The view's absolute path, as the report stores it. */
   file: string;
@@ -26,50 +29,90 @@ const props = withDefaults(defineProps<{
   revision: string;
   facts: ViewFacts;
   large?: boolean;
-}>(), { large: false });
+  /** Several views to draw on one screen, the first at the bottom; a large preview draws them instead of the view. */
+  layers?: ViewLayer[];
+}>(), { large: false, layers: undefined });
 
 const CARD_WIDTH = 640;
-const failed = ref(false);
+const failed = reactive(new Set<string>());
 const hidden = ref(false);
 const outlines = ref(false);
-const picked = ref<number | null>(null);
-const resolution = computed(() => props.facts.resolution);
-const source = computed(() => (props.large
-  ? viewRenderURL(props.file, props.revision, resolution.value.width, hidden.value)
-  : viewRenderURL(props.file, props.revision, CARD_WIDTH, false, true)));
-watch(source, () => { failed.value = false; });
+/** The element picked in a list or on the screen, by its view and index. */
+const picked = ref<string | null>(null);
+const keyOf = (layer: number, element: ViewElement) => `${layer}:${element.index}`;
 
-const layout = ref<ViewLayout | null>(null);
+// The views drawn, in drawing order, and those hidden.
+const stack = computed<ViewLayer[]>(() => props.layers ?? [{ file: props.file, name: props.name, facts: props.facts }]);
+const many = computed(() => stack.value.length > 1);
+const order = ref<number[]>([]);
+const off = reactive(new Set<number>());
+watch(stack, layers => {
+  order.value = layers.map((_layer, index) => index);
+  off.clear();
+}, { immediate: true });
+const shown = computed(() => order.value.filter(index => !off.has(index)).map(index => ({ index, layer: stack.value[index] })));
+// The screen fits every view, each drawn from its top left corner at its own resolution.
+const resolution = computed(() => ({
+  width: Math.max(...stack.value.map(layer => layer.facts.resolution.width)),
+  height: Math.max(...stack.value.map(layer => layer.facts.resolution.height)),
+}));
+const mixed = computed(() => new Set(stack.value.map(layer => `${layer.facts.resolution.width}x${layer.facts.resolution.height}`)).size > 1);
+const cardSource = computed(() => viewRenderURL(props.file, props.revision, CARD_WIDTH, false, true));
+const sourceOf = (layer: ViewLayer) => viewRenderURL(layer.file, props.revision, layer.facts.resolution.width, hidden.value);
+const placed = (layer: ViewLayer) => ({
+  width: `${100 * layer.facts.resolution.width / resolution.value.width}%`,
+  height: `${100 * layer.facts.resolution.height / resolution.value.height}%`,
+});
+watch(() => [props.file, props.revision, hidden.value], () => { failed.clear(); });
+
+// The layer list shows the view drawn on top first: each with its place in the drawing order.
+const layerRows = computed(() => order.value.map((index, position) => ({ index, position, layer: stack.value[index] })).reverse());
+/** Move a view one place up (later, over the others) or down in the drawing order. */
+function move(position: number, step: -1 | 1) {
+  const next = [...order.value];
+  [next[position], next[position + step]] = [next[position + step], next[position]];
+  order.value = next;
+}
+
+const layouts = ref<(ViewLayout | null)[]>([]);
+const errors = ref<string[]>([]);
 const state = ref<'loading' | 'ready' | 'failed'>('loading');
-const error = ref('');
 let request = 0;
 async function load() {
   const id = ++request;
   state.value = 'loading';
-  try {
-    const response = await fetch(`/api/rss-sync/view?file=${encodeURIComponent(props.file)}&v=${encodeURIComponent(props.revision)}`);
-    const body = await response.json().catch(() => null);
-    if (id !== request) return;
-    if (!response.ok || !body) throw new Error(body?.error || 'The elements could not be loaded');
-    layout.value = body as ViewLayout;
-    state.value = 'ready';
-  } catch (e) {
-    if (id !== request) return;
-    error.value = (e as Error).message;
-    state.value = 'failed';
-  }
+  const results = await Promise.all(stack.value.map(async layer => {
+    try {
+      const response = await fetch(`/api/rss-sync/view?file=${encodeURIComponent(layer.file)}&v=${encodeURIComponent(props.revision)}`);
+      const body = await response.json().catch(() => null);
+      if (!response.ok || !body) throw new Error(body?.error || 'The elements could not be loaded');
+      return { layout: body as ViewLayout, error: '' };
+    } catch (e) {
+      return { layout: null, error: `${many.value ? `${layer.name}: ` : ''}${(e as Error).message}` };
+    }
+  }));
+  if (id !== request) return;
+  layouts.value = results.map(result => result.layout);
+  errors.value = results.map(result => result.error).filter(Boolean);
+  state.value = results.some(result => result.layout) ? 'ready' : 'failed';
 }
-watch(() => [props.large, props.file, props.revision], () => {
+watch(() => [props.large, stack.value, props.revision], () => {
   picked.value = null;
   if (props.large) void load();
 }, { immediate: true });
 
-const elements = computed(() => layout.value?.elements ?? []);
+const elementsOf = (index: number) => layouts.value[index]?.elements ?? [];
+const totals = computed(() => ({
+  elements: stack.value.reduce((sum, layer) => sum + layer.facts.elements, 0),
+  hidden: stack.value.reduce((sum, layer) => sum + layer.facts.hidden, 0),
+  missing: stack.value.reduce((sum, layer) => sum + layer.facts.missingCount, 0),
+  texts: stack.value.some(layer => layer.facts.types.Text),
+}));
 const points = (corners: [number, number][]) => corners.map(([x, y]) => `${x},${y}`).join(' ');
 const hasArea = (element: ViewElement) => element.size[0] > 0 && element.size[1] > 0;
-/** Whether an element is outlined: a text's area always, every element with Elements, and the one picked in the list. */
-function outlined(element: ViewElement) {
-  if (element.index === picked.value) return true;
+/** Whether an element is outlined: a text's area always, every element with Elements, and the one picked. */
+function outlined(layer: number, element: ViewElement) {
+  if (keyOf(layer, element) === picked.value) return true;
   if (element.hidden && !hidden.value && element.type !== 'Dummy') return false;
   return outlines.value || element.type === 'Text';
 }
@@ -90,18 +133,21 @@ function describe(element: ViewElement) {
   if (element.page) return `RTF page ${element.page}`;
   return element.drawn ? `${Math.round(element.size[0])} × ${Math.round(element.size[1])}` : '—';
 }
-const titleOf = (element: ViewElement) => [element.id || `#${element.index}`, element.type, element.keys.join(', '), describe(element)].filter(Boolean).join(' · ');
+const titleOf = (layer: ViewLayer, element: ViewElement) => [many.value ? layer.name : '', element.id || `#${element.index}`, element.type, element.keys.join(', '), describe(element)]
+  .filter(Boolean).join(' · ');
 const labelAt = (element: ViewElement) => element.corners[0];
 /** Whether an element's name is drawn: a text's unless text names are hidden, any with Elements, and the one picked. */
-const labelled = (element: ViewElement) => element.index === picked.value || (element.type === 'Text' ? !hideTextNames.value : outlines.value);
-// Labels are drawn at a size that stays readable when the view is scaled down to fit.
+const labelled = (layer: number, element: ViewElement) => keyOf(layer, element) === picked.value
+  || (element.type === 'Text' ? !hideTextNames.value : outlines.value);
+const pick = (layer: number, element: ViewElement) => { picked.value = keyOf(layer, element) === picked.value ? null : keyOf(layer, element); };
+// Labels are drawn at a size that stays readable when the screen is scaled down to fit.
 const labelSize = computed(() => Math.max(14, resolution.value.width / 90));
 </script>
 
 <template>
   <div v-if="!large" class="view-preview">
     <div class="thumbnail view-preview-screen">
-      <img v-if="!failed" :src="source" :alt="`${name}, a view of ${facts.resolution.width} × ${facts.resolution.height}`" loading="lazy" @error="failed = true">
+      <img v-if="!failed.has(file)" :src="cardSource" :alt="`${name}, a view of ${facts.resolution.width} × ${facts.resolution.height}`" loading="lazy" @error="failed.add(file)">
       <div v-else class="generic-preview view"><i aria-hidden="true" class="mdi mdi-view-dashboard-outline" /><small>The view cannot be drawn</small></div>
       <span class="badge file-format">VIEW</span>
       <span class="view-preview-caption">{{ facts.resolution.width }} × {{ facts.resolution.height }} · {{ number(facts.elements) }} element{{ plural(facts.elements) }}</span>
@@ -110,45 +156,64 @@ const labelSize = computed(() => Math.max(14, resolution.value.width / 90));
   <div v-else class="view-viewer">
     <div class="view-viewer-toolbar">
       <CheckBox :checked="outlines" label="Outline every element" @change="outlines = $event">Elements</CheckBox>
-      <CheckBox v-if="facts.types.Text" :checked="hideTextNames" label="Hide the names of text elements" @change="hideTextNames = $event">Hide text names</CheckBox>
-      <CheckBox :checked="hidden" label="Draw the hidden elements" @change="hidden = $event">Hidden elements<small v-if="facts.hidden" class="text-muted"> ({{ number(facts.hidden) }})</small></CheckBox>
-      <span class="view-viewer-summary text-muted">{{ viewSummary(facts) }}</span>
-      <span v-if="facts.missingCount" class="view-viewer-missing"><i aria-hidden="true" class="mdi mdi-alert-outline" />{{ number(facts.missingCount) }} element{{ plural(facts.missingCount) }} without {{ facts.missingCount === 1 ? 'its resource' : 'their resources' }}</span>
+      <CheckBox v-if="totals.texts" :checked="hideTextNames" label="Hide the names of text elements" @change="hideTextNames = $event">Hide text names</CheckBox>
+      <CheckBox :checked="hidden" label="Draw the hidden elements" @change="hidden = $event">Hidden elements<small v-if="totals.hidden" class="text-muted"> ({{ number(totals.hidden) }})</small></CheckBox>
+      <span class="view-viewer-summary text-muted">{{ many ? `${number(stack.length)} views · ${number(totals.elements)} elements` : viewSummary(facts) }}</span>
+      <span v-if="totals.missing" class="view-viewer-missing"><i aria-hidden="true" class="mdi mdi-alert-outline" />{{ number(totals.missing) }} element{{ plural(totals.missing) }} without {{ totals.missing === 1 ? 'its resource' : 'their resources' }}</span>
     </div>
+    <ol v-if="many" class="view-layers" aria-label="Views, the one drawn on top first">
+      <li v-for="row in layerRows" :key="row.layer.file" :class="{ 'is-off': off.has(row.index) }"
+          :title="`${row.layer.name}: layer ${row.position + 1}, ${row.layer.facts.resolution.width} × ${row.layer.facts.resolution.height}, ${number(row.layer.facts.elements)} element${plural(row.layer.facts.elements)}`">
+        <CheckBox :checked="!off.has(row.index)" :label="`Show ${row.layer.name}`" @change="$event ? off.delete(row.index) : off.add(row.index)">
+          <span class="details-code">{{ row.layer.name }}</span>
+        </CheckBox>
+        <span class="view-layer-moves">
+          <button type="button" class="details-icon" :disabled="row.position === order.length - 1" :aria-label="`Draw ${row.layer.name} higher`" title="Draw higher" @click="move(row.position, 1)"><i aria-hidden="true" class="mdi mdi-arrow-up" /></button>
+          <button type="button" class="details-icon" :disabled="row.position === 0" :aria-label="`Draw ${row.layer.name} lower`" title="Draw lower" @click="move(row.position, -1)"><i aria-hidden="true" class="mdi mdi-arrow-down" /></button>
+        </span>
+      </li>
+    </ol>
+    <p v-if="many && mixed" class="view-viewer-note text-muted">The views have different resolutions: each is drawn from the top left corner of the screen.</p>
     <div class="view-stage" :style="{ aspectRatio: `${resolution.width} / ${resolution.height}`, maxWidth: `calc(58vh * ${resolution.width} / ${resolution.height})` }">
-      <img v-if="!failed" class="view-stage-image" :src="source" :alt="`${name} as the game draws it`" @error="failed = true">
-      <p v-else class="view-stage-state text-danger"><i aria-hidden="true" class="mdi mdi-alert-circle-outline" />The view cannot be drawn</p>
+      <template v-for="{ layer } in shown" :key="layer.file">
+        <img v-if="!failed.has(layer.file)" class="view-stage-image" :src="sourceOf(layer)" :style="placed(layer)" :alt="`${layer.name} as the game draws it`" :data-view="layer.name" @error="failed.add(layer.file)">
+        <p v-else class="view-stage-state text-danger"><i aria-hidden="true" class="mdi mdi-alert-circle-outline" />{{ many ? `${layer.name} cannot be drawn` : 'The view cannot be drawn' }}</p>
+      </template>
       <svg v-if="state === 'ready'" class="view-stage-overlay" :viewBox="`0 0 ${resolution.width} ${resolution.height}`" preserveAspectRatio="none"
-           role="group" :aria-label="`Elements of ${name}`" :style="{ '--view-label': `${labelSize}px` }">
-        <g v-for="element in elements" v-show="outlined(element)" :key="element.index" :class="['view-element', kindOf(element), { 'is-picked': element.index === picked }]"
-           :data-element="element.id" @click="picked = element.index === picked ? null : element.index">
-          <title>{{ titleOf(element) }}</title>
-          <polygon v-if="hasArea(element)" :points="points(element.corners)" />
-          <polygon v-if="element.touchArea && (outlines || element.index === picked)" class="view-touch" :points="points(element.touchArea)" />
-          <path v-if="!hasArea(element)" :d="`M${element.position[0] - 12},${element.position[1]}h24M${element.position[0]},${element.position[1] - 12}v24`" class="view-point" />
-          <text v-if="labelled(element)" :x="labelAt(element)[0] + 4" :y="labelAt(element)[1] + labelSize + 2">{{ element.id || element.type }}</text>
+           role="group" :aria-label="`Elements of ${many ? `${stack.length} views` : name}`" :style="{ '--view-label': `${labelSize}px` }">
+        <g v-for="{ index, layer } in shown" :key="layer.file" :data-view="layer.name">
+          <g v-for="element in elementsOf(index)" v-show="outlined(index, element)" :key="element.index" :class="['view-element', kindOf(element), { 'is-picked': keyOf(index, element) === picked }]"
+             :data-element="element.id" @click="pick(index, element)">
+            <title>{{ titleOf(layer, element) }}</title>
+            <polygon v-if="hasArea(element)" :points="points(element.corners)" />
+            <polygon v-if="element.touchArea && (outlines || keyOf(index, element) === picked)" class="view-touch" :points="points(element.touchArea)" />
+            <path v-if="!hasArea(element)" :d="`M${element.position[0] - 12},${element.position[1]}h24M${element.position[0]},${element.position[1] - 12}v24`" class="view-point" />
+            <text v-if="labelled(index, element)" :x="labelAt(element)[0] + 4" :y="labelAt(element)[1] + labelSize + 2">{{ element.id || element.type }}</text>
+          </g>
         </g>
       </svg>
       <p v-else-if="state === 'loading'" class="view-stage-state text-muted"><i aria-hidden="true" class="mdi mdi-loading mdi-spin" />Loading the elements…</p>
     </div>
-    <p v-if="state === 'failed'" class="text-danger view-viewer-error">{{ error }}</p>
-    <details v-if="elements.length" class="view-elements">
-      <summary>{{ number(elements.length) }} element{{ plural(elements.length) }}, drawn in this order</summary>
-      <table class="table table-sm">
-        <thead><tr><th scope="col">#</th><th scope="col">Id</th><th scope="col">Type</th><th scope="col">Resource</th><th scope="col">Position</th><th scope="col">Draws</th></tr></thead>
-        <tbody>
-          <tr v-for="element in elements" :key="element.index" :class="{ 'is-picked': element.index === picked, 'is-missing': element.reason && !element.movie }"
-              @click="picked = element.index === picked ? null : element.index">
-            <td><button type="button" class="details-icon view-element-open" :aria-label="`Open ${element.id || `element ${element.index + 1}`} in VS Code`" :title="`Open in VS Code: ${name}, ${element.id || `element ${element.index + 1}`}`" @click.stop="openViewElement(file, element.index)">{{ '{' + (element.index + 1) + '}' }}</button></td>
-            <td class="details-code">{{ element.id }}<small v-if="element.hidden && element.type !== 'Dummy'" class="text-muted"> hidden</small></td>
-            <td>{{ element.type }}</td>
-            <td class="details-code" :title="element.file">{{ element.keys.join(', ') || '—' }}</td>
-            <td class="text-muted">{{ Math.round(element.position[0]) }}, {{ Math.round(element.position[1]) }}</td>
-            <td>{{ describe(element) }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </details>
+    <p v-for="message in errors" :key="message" class="text-danger view-viewer-error">{{ message }}</p>
+    <template v-for="(layer, index) in stack" :key="layer.file">
+      <details v-if="elementsOf(index).length" class="view-elements">
+        <summary>{{ many ? `${layer.name}: ` : '' }}{{ number(elementsOf(index).length) }} element{{ plural(elementsOf(index).length) }}, drawn in this order</summary>
+        <table class="table table-sm">
+          <thead><tr><th scope="col">#</th><th scope="col">Id</th><th scope="col">Type</th><th scope="col">Resource</th><th scope="col">Position</th><th scope="col">Draws</th></tr></thead>
+          <tbody>
+            <tr v-for="element in elementsOf(index)" :key="element.index" :class="{ 'is-picked': keyOf(index, element) === picked, 'is-missing': element.reason && !element.movie }"
+                @click="pick(index, element)">
+              <td><button type="button" class="details-icon view-element-open" :aria-label="`Open ${element.id || `element ${element.index + 1}`} in VS Code`" :title="`Open in VS Code: ${layer.name}, ${element.id || `element ${element.index + 1}`}`" @click.stop="openViewElement(layer.file, element.index)">{{ '{' + (element.index + 1) + '}' }}</button></td>
+              <td class="details-code">{{ element.id }}<small v-if="element.hidden && element.type !== 'Dummy'" class="text-muted"> hidden</small></td>
+              <td>{{ element.type }}</td>
+              <td class="details-code" :title="element.file">{{ element.keys.join(', ') || '—' }}</td>
+              <td class="text-muted">{{ Math.round(element.position[0]) }}, {{ Math.round(element.position[1]) }}</td>
+              <td>{{ describe(element) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </details>
+    </template>
   </div>
 </template>
 
@@ -167,9 +232,17 @@ const labelSize = computed(() => Math.max(14, resolution.value.width / 90));
 .view-viewer-summary { font-size: 12px; }
 .view-viewer-missing { color: #c77700; font-size: 12px; }
 .view-viewer-missing i { margin-right: 4px; }
+.view-viewer-note { margin: 0 0 8px; font-size: 12px; }
+/* The views as chips, the one drawn on top first. */
+.view-layers { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; padding: 0; list-style: none; font-size: 12px; }
+.view-layers li { display: inline-flex; align-items: center; gap: 2px; padding: 0 2px 0 8px; border: 1px solid #e3e6ea; border-radius: 14px; background: #f6f7f9; }
+.view-layers li.is-off { opacity: 0.55; }
+.view-layers li :deep(.form-check) { margin: 0; }
+.view-layer-moves { display: inline-flex; }
+.view-layer-moves .details-icon { width: 24px; height: 24px; }
 .view-stage { position: relative; width: 100%; margin: 0 auto; overflow: hidden; border-radius: 4px; }
-.view-stage-image, .view-stage-overlay { position: absolute; inset: 0; width: 100%; height: 100%; }
-.view-stage-overlay { overflow: visible; }
+.view-stage-image { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+.view-stage-overlay { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .view-stage-state { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 6px; margin: 0; font-size: 13px; }
 .view-element { cursor: pointer; fill: transparent; stroke: #4fc3f7; stroke-width: 2; vector-effect: non-scaling-stroke; }
 .view-element polygon, .view-element path { vector-effect: non-scaling-stroke; }

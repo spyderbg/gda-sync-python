@@ -268,3 +268,5 @@ export interface ViewElement {
   touchOnly?: boolean; style?: string; fontSize?: number; page?: string; alpha?: number;
 }
 export interface ViewLayout { name: string; resolution: { width: number; height: number }; elements: ViewElement[]; resourcesError?: string }
+/** A view drawn with others on one screen: its file, name and facts. */
+export interface ViewLayer { file: string; name: string; facts: ViewFacts }
