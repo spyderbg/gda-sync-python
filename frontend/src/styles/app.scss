@@ -716,6 +716,7 @@ button.nav-link {
 .details-path { display: flex; align-items: center; gap: 4px; margin-bottom: 4px; }
 .details-path > .details-code { flex: 1 1 auto; min-width: 0; }
 .details-path .badge { flex-shrink: 0; }
+.details-path-entry { margin-bottom: 8px; }
 .details-icon { display: flex; flex-shrink: 0; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: #6b7280; font-size: 15px; cursor: pointer; }
 .details-icon:hover { background: #ebedf2; color: #4b49ac; }
 .details-table { margin: 0; }
@@ -914,8 +915,20 @@ button.nav-link {
 }
 
 /* Dialogs */
+.modal-header {
+  align-items: center;
+}
+
 .modal-header .modal-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
   font-weight: 500;
+}
+
+.modal-header .close {
+  flex-shrink: 0;
+  margin: 0 0 0 1rem;
+  padding: 0.5rem;
 }
 
 .sync-summary {

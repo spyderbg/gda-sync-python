@@ -190,7 +190,7 @@ const scope = computed(() => ({ game: '', common: 'A common resource, shared wit
 
           <h6 class="details-heading">Game path</h6>
           <div class="details-path">
-            <span class="details-code" :title="row.resourcePath">{{ row.resourcePath }}</span>
+            <span class="details-code" :title="row.resourcePath">{{ row.resource }}</span>
             <button type="button" class="details-icon" :aria-label="`Copy the game path ${row.resourcePath}`" title="Copy the game path" @click="copy(row.resourcePath)"><i aria-hidden="true" class="mdi mdi-content-copy" /></button>
             <button type="button" class="details-icon" :aria-label="`Open the game folder of ${name}`" title="Open the game folder" @click="openResourceFolder(file)"><i aria-hidden="true" class="mdi mdi-folder-open-outline" /></button>
           </div>

@@ -20,7 +20,7 @@ from starlette.exceptions import HTTPException
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from . import APP_ID, __version__
-from .desktop import open_on_desktop, platform_label
+from .desktop import open_in_code, open_on_desktop, platform_label
 from .errors import AppError
 from .fonts import FONT_EXTENSIONS, facts_header
 from .library import Library
@@ -88,6 +88,11 @@ class OpenFolderBody(_Body):
 
 class ResourceFileBody(_Body):
     file: Text4K
+
+
+class OpenDeclarationBody(_Body):
+    descriptor: Text4K
+    line: Annotated[int, Field(strict=True, ge=1, le=2_147_483_647)]
 
 
 class ResourceFilesBody(_Body):
@@ -160,6 +165,7 @@ def create_app(
     *,
     dev: bool = False,
     opener: Callable[[str], None] = open_on_desktop,
+    code_opener: Callable[[str, int], None] = open_in_code,
     on_shutdown: Callable[[], None] | None = None,
     page_close_grace: float = PAGE_CLOSE_GRACE_SECONDS,
     frontend: dict[str, tuple[bytes, str]] | None = None,
@@ -288,6 +294,11 @@ def create_app(
     @app.post("/api/rss-sync/open-folder")
     def open_resource_folder(body: ResourceFileBody) -> dict:
         opener(library.resource_folder(body.file))
+        return {"opened": True}
+
+    @app.post("/api/rss-sync/open-declaration")
+    def open_declaration(body: OpenDeclarationBody) -> dict:
+        code_opener(library.descriptor_path(body.descriptor), body.line)
         return {"opened": True}
 
     @app.put("/api/settings")

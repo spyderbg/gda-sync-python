@@ -46,7 +46,7 @@ onBeforeUnmount(() => {
 
 <template>
   <StartupState v-if="stopped" kind="closed" />
-  <StartupState v-else-if="loadError" kind="error" :message="loadError" />
+  <StartupState v-else-if="loadError" kind="error" />
   <StartupState v-else-if="!data" kind="loading" />
   <div v-else class="container-scroller">
     <AppHeader />

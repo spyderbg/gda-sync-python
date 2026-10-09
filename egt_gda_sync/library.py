@@ -995,6 +995,17 @@ class Library:
             raise AppError("File not found", 404)
         return safe_path(root, os.path.relpath(file, root))
 
+    def descriptor_path(self, descriptor: str) -> str:
+        """Resolve a declaration's JSON descriptor relative to the game, within its resources root."""
+        workspace_id, entry = self._active_workspace()
+        workspace, settings = self._comparison(workspace_id, entry)
+        root = os.path.realpath(settings["resources_dir"])
+        file = os.path.normpath(os.path.join(workspace["game_path"], descriptor))
+        path = safe_path(root, os.path.relpath(file, root))
+        if not path.lower().endswith(".json") or not os.path.isfile(path):
+            raise AppError("Descriptor not found", 404)
+        return path
+
     def resource_folder(self, file: str) -> str:
         """The existing parent directory of a report file, including a missing file or sequence pattern."""
         folder = os.path.dirname(self._resource_path(file))

@@ -3,6 +3,7 @@
 import ntpath
 import os
 import posixpath
+import shutil
 import subprocess
 import sys
 from collections.abc import Mapping
@@ -77,3 +78,27 @@ def open_on_desktop(target: str, wait_seconds: float = 10.0) -> None:
         return  # Some openers stay attached to the program they launched.
     if code != 0:
         raise AppError(OPEN_FAILED, 503)
+
+
+def open_in_code(file: str, line: int) -> None:
+    """Find the VS Code CLI on PATH and open an absolute file path at its declaration line.
+
+    On Windows, shutil.which uses PATHEXT to find code.cmd. The explicit fallback also
+    handles environments where PATHEXT does not include .CMD.
+    """
+    command = shutil.which("code")
+    if not command and sys.platform == "win32":
+        command = shutil.which("code.cmd")
+    if not command:
+        raise AppError("VS Code's code command is not available on PATH.", 503)
+    try:
+        process = subprocess.Popen(
+            [command, "--reuse-window", "--goto", f"{file}:{line}"], env=child_environment(),
+            stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True,
+        )
+        if process.wait(10) != 0:
+            raise AppError("Could not open the declaration in VS Code.", 503)
+    except subprocess.TimeoutExpired:
+        return
+    except OSError as error:
+        raise AppError("Could not open the declaration in VS Code.", 503) from error

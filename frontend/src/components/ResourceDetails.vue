@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { algorithmValues, baseName, type GdaCandidate, declarationLabel, directoryOf, extensionOf, fileType, matchBadge, matchText, number, plural, previewFrames, rssBadges, rtfChangeBadges, rtfChangeNames, rtfChangeSummary, sequenceName, size, splitPath, time } from '../format';
 import type { RssFileDetails, RssResource, RtfFacts } from '../types';
-import { busy, copy, openResourceFolder, requestResourceSync, resourceDetails, rssSync } from '../workspace';
+import { busy, copy, data, openDeclaration, openResourceFolder, requestResourceSync, resourceDetails, rssSync } from '../workspace';
 import AppModal from './AppModal.vue';
 import AudioPreview from './AudioPreview.vue';
 import FontPreview from './FontPreview.vue';
@@ -21,15 +21,32 @@ import SequencePreview from './SequencePreview.vue';
 // the two projects, and the files of the folders are listed with what Sync does to each. An image lists how the image
 // matching judged the GDA image it is compared with, with every algorithm's value. An image with GDA images to choose
 // from (candidate) is shown only with the one given: the image chosen on its card, or else the most likely one, which
-// Sync this resource copies. Escape closes the dialog.
+// Sync this resource copies. Left and Right choose the previous and next of its GDA images (candidates), which emits
+// choose; the dialog stays open and compares the game image with the new one. Escape closes the dialog.
 // reportVersion is the GDA sync report's version; one before FONT_REPORT_VERSION has no Font entry characters to check.
-const props = defineProps<{ row: RssResource; revision: string; reportVersion?: number; candidate?: GdaCandidate | null }>();
-const emit = defineEmits<{ close: [] }>();
+const props = withDefaults(defineProps<{
+  row: RssResource; revision: string; reportVersion?: number; candidate?: GdaCandidate | null; candidates?: GdaCandidate[];
+}>(), { reportVersion: undefined, candidate: null, candidates: () => [] });
+const emit = defineEmits<{ close: []; choose: [file: string] }>();
 
 const sequence = computed(() => props.row.sequence);
 const name = computed(() => splitPath(props.row.resource).name);
 const running = computed(() => !!rssSync.value?.running);
 const unique = (paths: (string | null | undefined)[]) => [...new Set(paths.filter((path): path is string => !!path))];
+/** Display workspace-relative paths; keep absolute paths for desktop and clipboard actions. */
+function relativePath(path: string, root?: string) {
+  if (!root) return path;
+  const parts = (value: string) => value.replace(/\\/g, '/').replace(/\/$/, '').split('/');
+  const file = parts(path), base = parts(root);
+  const windows = /^[A-Za-z]:/.test(root) || root.startsWith('\\\\');
+  const same = (a: string, b: string) => windows ? a.toLowerCase() === b.toLowerCase() : a === b;
+  if (!same(file[0], base[0])) return path;
+  let shared = 0;
+  while (shared < file.length && shared < base.length && same(file[shared], base[shared])) shared++;
+  return [...base.slice(shared).map(() => '..'), ...file.slice(shared)].join('/') || '.';
+}
+const gamePath = (path: string) => relativePath(path, data.value?.config.destination);
+const gdaPath = (path: string) => relativePath(path, data.value?.config.source);
 // An RTF's folder, and the page its previews show, by name: both RTFs show it when they have it.
 const directory = computed(() => props.row.directory);
 const rtfPage = ref<string | null>(null);
@@ -42,6 +59,22 @@ const isAudio = (path: string) => fileType(extensionOf(baseName(path))) === 'aud
 // The GDA image an image is compared with: the given candidate, or else, in a report without candidates on the card, its
 // closest same-named GDA file. Its evaluation by the image matching is listed, when it has one.
 const gdaShown = computed(() => props.candidate ?? props.row.gdaFiles[0] ?? null);
+// Where the GDA image shown is among the image's GDA images, as the card lists them.
+const candidateIndex = computed(() => props.candidates.findIndex(candidate => candidate.absolutePath === props.candidate?.absolutePath));
+/** Left and Right choose the previous and next GDA image that can be chosen, from the one shown; the first and last stay.
+ * Keys typed into a text field, or with a modifier, are left alone. */
+function onKeydown(event: KeyboardEvent) {
+  const direction = { ArrowLeft: -1, ArrowRight: 1 }[event.key];
+  const target = event.target as HTMLElement | null;
+  if (!direction || props.candidates.length < 2 || event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey
+      || target?.closest('input, textarea, select, [contenteditable="true"]')) return;
+  event.preventDefault();
+  let index = candidateIndex.value + direction;
+  while (index >= 0 && index < props.candidates.length && !props.candidates[index].syncable) index += direction;
+  if (index >= 0 && index < props.candidates.length) emit('choose', props.candidates[index].absolutePath);
+}
+onMounted(() => document.addEventListener('keydown', onKeydown));
+onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown));
 const evaluated = computed(() => {
   const candidate = props.candidate;
   if (candidate) return [{ path: candidate.path, absolutePath: candidate.absolutePath, sameName: candidate.sameName, evaluation: candidate }];
@@ -83,16 +116,24 @@ const details = ref<Record<string, RssFileDetails>>({});
 const loading = ref(false);
 const loadError = ref('');
 let request = 0;
-watch(() => [props.row, props.revision], async () => {
+let described: [RssResource, string] | null = null;
+// The files' details, read again for another resource or report. Another GDA image of the same resource only reads its
+// own, so the game file's stay shown.
+watch(() => [props.row, props.revision, gdaFiles.value.join('\n')] as const, async ([row, revision]) => {
   const id = ++request;
-  const files = unique([...gameFiles.value, ...gdaFiles.value]).slice(0, 1000);
-  details.value = {};
+  const kept = described?.[0] === row && described[1] === revision ? details.value : {};
+  described = [row, revision];
+  const files = unique([...gameFiles.value, ...gdaFiles.value]).filter(file => !(file in kept)).slice(0, 1000);
+  details.value = kept;
   loadError.value = '';
-  if (!files.length) return;
+  if (!files.length) {
+    loading.value = false;
+    return;
+  }
   loading.value = true;
   try {
     const result = await resourceDetails(files, fontUses.value.map(use => use.chars!));
-    if (id === request) details.value = result;
+    if (id === request) details.value = { ...kept, ...result };
   } catch (e) {
     if (id === request) loadError.value = (e as Error).message;
   } finally {
@@ -287,7 +328,9 @@ function sync() {
           <ReportThumbnail v-else :file="directory?.project ?? row.resourcePath" :name="directory ? baseName(directory.project) : name" :revision="revision" :preview="row.category !== 'invalid'" />
         </figure>
         <figure v-if="pairedPreview" class="details-preview">
-          <figcaption>{{ gdaLabel }}</figcaption>
+          <figcaption>
+            {{ gdaLabel }}<small v-if="candidate && candidates.length > 1 && candidateIndex >= 0" class="details-candidate-position">{{ candidateIndex + 1 }} of {{ candidates.length }} · Left and Right change it</small>
+          </figcaption>
           <SequencePreview v-if="sequence" :frames="gdaFrames" :frame-time="sequence.frameTime" :loop-count="sequence.loopCount" :loop-to="sequence.loopTo" :name="`${sequence.id ?? name} from the GDA`" :revision="revision" />
           <RtfPreview v-else-if="directory?.gdaProject && row.gdaRtf" :page="pageIndex(row.gdaRtf)" :file="directory.gdaProject" :name="`${baseName(row.gdaFiles[0].path)} from the GDA`" :revision="revision" :facts="row.gdaRtf" large @update:page="choosePage(row.gdaRtf, $event)" />
           <ReportThumbnail v-else-if="directory?.gdaProject" :file="directory.gdaProject" :name="baseName(directory.gdaProject)" :revision="revision" />
@@ -300,7 +343,7 @@ function sync() {
 
       <div class="details-columns">
         <section class="details-summary" aria-label="Status">
-          <span :class="['badge', 'details-status', rssBadges[row.category]]">{{ row.status }}</span>
+          <span :class="['badge', 'details-status', rssBadges[row.category]]">{{ row.category === 'missing' ? 'missing: no GDA file' : row.status }}</span>
           <h5 class="details-name" :title="row.resourcePath">{{ name }}</h5>
           <p class="details-folder text-muted"><i aria-hidden="true" class="mdi mdi-folder-outline" /> {{ splitPath(row.resource).folder }}</p>
           <div :class="['details-note', note.tone]">
@@ -315,19 +358,22 @@ function sync() {
           <h6 class="details-heading">Declared in</h6>
           <p v-if="!row.requiredBy.length" class="text-muted details-small">No JSON descriptor</p>
           <ul v-else class="details-list">
-            <li v-for="use in row.requiredBy" :key="`${use.descriptor}:${use.line}`" class="details-code">{{ declarationLabel(use) }}</li>
+            <li v-for="use in row.requiredBy" :key="`${use.descriptor}:${use.line}`" class="details-path">
+              <span class="details-code">{{ declarationLabel(use) }}</span>
+              <button type="button" class="details-icon" :aria-label="`Open ${use.descriptor} at line ${use.line} in VS Code`" :title="`Open in VS Code: ${use.descriptor}:${use.line}`" @click="openDeclaration(use.descriptor, use.line)"><i aria-hidden="true" class="mdi mdi-code-braces" /></button>
+            </li>
           </ul>
 
           <h6 class="details-heading">Game path</h6>
           <div class="details-path">
-            <span class="details-code" :title="row.resourcePath">{{ row.resourcePath }}</span>
+            <span class="details-code" :title="row.resourcePath">{{ gamePath(row.resourcePath) }}</span>
             <button type="button" class="details-icon" :aria-label="`Copy the game path ${row.resourcePath}`" title="Copy the game path" @click="copy(row.resourcePath)"><i aria-hidden="true" class="mdi mdi-content-copy" /></button>
             <button type="button" class="details-icon" :aria-label="`Open the game folder of ${name}`" title="Open the game folder" @click="openResourceFolder(directory?.project ?? row.resourcePath)"><i aria-hidden="true" class="mdi mdi-folder-open-outline" /></button>
           </div>
           <template v-if="sequence && gdaFolders.length">
             <h6 class="details-heading">GDA folder{{ plural(gdaFolders.length) }}</h6>
             <div v-for="item in gdaFolders" :key="item.folder" class="details-path">
-              <span class="details-code" :title="item.folder">{{ item.folder }}</span>
+              <span class="details-code" :title="item.folder">{{ gdaPath(item.folder) }}</span>
               <button type="button" class="details-icon" :aria-label="`Copy the GDA folder ${item.folder}`" title="Copy the GDA folder" @click="copy(item.folder)"><i aria-hidden="true" class="mdi mdi-content-copy" /></button>
               <button type="button" class="details-icon" :aria-label="`Open the GDA folder ${item.folder}`" title="Open the GDA folder" @click="openResourceFolder(item.file)"><i aria-hidden="true" class="mdi mdi-folder-open-outline" /></button>
             </div>
@@ -335,19 +381,21 @@ function sync() {
           <template v-else-if="candidate">
             <h6 class="details-heading">GDA image</h6>
             <div class="details-path">
-              <span class="details-code" :title="candidate.absolutePath">{{ candidate.absolutePath }}</span>
-              <span :class="['badge', candidate.syncable ? 'badge-primary' : 'badge-light']">{{ candidate.syncable ? 'Copied on sync' : 'Same file as the game' }}</span>
+              <span class="details-code" :title="candidate.absolutePath">{{ gdaPath(candidate.absolutePath) }}</span>
               <button type="button" class="details-icon" :aria-label="`Copy the GDA path ${candidate.path}`" title="Copy the GDA path" @click="copy(candidate.absolutePath)"><i aria-hidden="true" class="mdi mdi-content-copy" /></button>
               <button type="button" class="details-icon" :aria-label="`Open the GDA folder of ${candidate.path}`" title="Open the GDA folder" @click="openResourceFolder(candidate.absolutePath)"><i aria-hidden="true" class="mdi mdi-folder-open-outline" /></button>
             </div>
+            <span :class="['badge', candidate.syncable ? 'badge-primary' : 'badge-light']">{{ candidate.syncable ? 'Copied on sync' : 'Same file as the game' }}</span>
           </template>
           <template v-else-if="row.gdaFiles.length">
             <h6 class="details-heading">GDA {{ directory ? 'folder' : 'file' }}{{ plural(row.gdaFiles.length) }}{{ row.gdaFiles.length > 1 ? (directory ? ', closest first' : ', closest folder first') : '' }}</h6>
-            <div v-for="(file, index) in row.gdaFiles" :key="file.absolutePath" class="details-path">
-              <span class="details-code" :title="file.absolutePath">{{ file.absolutePath }}</span>
+            <div v-for="(file, index) in row.gdaFiles" :key="file.absolutePath" class="details-path-entry">
+              <div class="details-path">
+                <span class="details-code" :title="file.absolutePath">{{ gdaPath(file.absolutePath) }}</span>
+                <button type="button" class="details-icon" :aria-label="`Copy the GDA path ${file.path}`" title="Copy the GDA path" @click="copy(file.absolutePath)"><i aria-hidden="true" class="mdi mdi-content-copy" /></button>
+                <button type="button" class="details-icon" :aria-label="`Open the GDA folder of ${file.path}`" title="Open the GDA folder" @click="openResourceFolder(directory ? `${file.absolutePath}/${baseName(directory.project)}` : file.absolutePath)"><i aria-hidden="true" class="mdi mdi-folder-open-outline" /></button>
+              </div>
               <span v-if="row.category === 'different'" :class="['badge', index ? 'badge-light' : 'badge-primary']">{{ index ? 'Other match' : 'Copied on sync' }}</span>
-              <button type="button" class="details-icon" :aria-label="`Copy the GDA path ${file.path}`" title="Copy the GDA path" @click="copy(file.absolutePath)"><i aria-hidden="true" class="mdi mdi-content-copy" /></button>
-              <button type="button" class="details-icon" :aria-label="`Open the GDA folder of ${file.path}`" title="Open the GDA folder" @click="openResourceFolder(directory ? `${file.absolutePath}/${baseName(directory.project)}` : file.absolutePath)"><i aria-hidden="true" class="mdi mdi-folder-open-outline" /></button>
             </div>
           </template>
         </section>
@@ -441,4 +489,3 @@ function sync() {
     </div>
   </AppModal>
 </template>
-

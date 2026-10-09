@@ -304,7 +304,8 @@ function toggleAll(select: boolean) {
     </template>
   </template>
 
-  <ResourceDetails v-if="detailsRow" :row="detailsRow" :revision="finishedAt ?? ''" :report-version="report?.version ?? 0" :candidate="detailsCandidate" @close="detailsId = null" />
+  <ResourceDetails v-if="detailsRow" :row="detailsRow" :revision="finishedAt ?? ''" :report-version="report?.version ?? 0"
+                   :candidate="detailsCandidate" :candidates="candidatesOf(detailsRow)" @choose="choose(detailsRow, $event)" @close="detailsId = null" />
 </template>
 
 <style scoped>

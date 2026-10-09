@@ -240,6 +240,13 @@ export async function openResourceFolder(file: string) {
   } catch (e) { notify((e as Error).message, true); }
 }
 
+export async function openDeclaration(descriptor: string, line: number) {
+  try {
+    await api('rss-sync/open-declaration', 'POST', { descriptor, line });
+    notify('Opened declaration in VS Code.');
+  } catch (e) { notify((e as Error).message, true); }
+}
+
 export async function copy(text: string) {
   try {
     await navigator.clipboard.writeText(text);

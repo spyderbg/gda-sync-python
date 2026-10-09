@@ -1,5 +1,5 @@
 <script setup lang="ts">
-defineProps<{ kind: 'loading' | 'error' | 'closed'; message?: string }>();
+defineProps<{ kind: 'loading' | 'error' | 'closed' }>();
 const reload = () => window.location.reload();
 </script>
 
@@ -16,7 +16,6 @@ const reload = () => window.location.reload();
             </template>
             <template v-else-if="kind === 'error'">
               <h1>Couldn’t connect to your workspace</h1>
-              <p>{{ message }}</p>
               <button type="button" class="btn btn-light btn-lg" @click="reload"><i aria-hidden="true" class="mdi mdi-refresh" />Try again</button>
             </template>
             <template v-else>

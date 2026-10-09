@@ -281,7 +281,8 @@ shows its probability and match type.
 - The copy arrow between the game image and its candidates is disabled until a candidate is chosen. It then copies the
   chosen image over the game file. This also syncs a **missing** image, which has no same-named GDA file to copy.
 - The details dialog shows only the game image and one candidate, with the algorithms' values for the pair: the chosen
-  one, or else the most likely one that differs from the game file. **Sync this resource** copies it.
+  one, or else the most likely one that differs from the game file. **Sync this resource** copies it. Left and Right
+  choose the previous and next candidate, as on the card, and the dialog stays open and compares the game image with it.
 - **Sync all pending** and **Sync selected** copy the chosen candidate of each different image, or else its most likely
   candidate that differs from the game file. They do not sync missing images, which need a choice.
 

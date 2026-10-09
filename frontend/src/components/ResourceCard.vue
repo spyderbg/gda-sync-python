@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue';
-import { algorithmTitle, baseName, declarationLabel, directoryOf, extensionOf, fileType, matchText, number, plural, previewFrames, resourceAction, rssBadges, rtfChangeNames, rtfChangeSummary, sequenceName, sequenceSummary, splitPath, typeIcons, type GdaCandidate } from '../format';
+import { algorithmTitle, baseName, declarationLabel, directoryOf, extensionOf, fileType, matchText, number, plural, previewFrames, resourceAction, rssBadges, rssStatusNames, rtfChangeNames, rtfChangeSummary, sequenceName, sequenceSummary, splitPath, typeIcons, type GdaCandidate } from '../format';
 import type { RssResource } from '../types';
-import { copy, openResourceFolder } from '../workspace';
+import { copy, openDeclaration, openResourceFolder } from '../workspace';
 import CheckBox from './CheckBox.vue';
 import ReportThumbnail from './ReportThumbnail.vue';
 import RtfPreview from './RtfPreview.vue';
@@ -52,6 +52,19 @@ watch(strip, (element, _previous, onCleanup) => {
   measure();
   onCleanup(() => observer.disconnect());
 });
+const STRIP_PADDING = 3;  // .resource-candidates' padding, so the chosen card's ring shows
+/** Scroll the GDA images sideways, and only sideways, so the chosen one's card is in view: a choice made in the details
+ * dialog shows when it closes, without moving the page behind the dialog. */
+function reveal() {
+  const element = strip.value;
+  const index = props.candidates.findIndex(candidate => candidate.absolutePath === props.chosen);
+  const card = index >= 0 ? element?.querySelector<HTMLElement>(`[data-index="${index}"]`) : null;
+  if (!element || !card) return;
+  const area = element.getBoundingClientRect(), box = card.getBoundingClientRect();
+  if (box.left < area.left) element.scrollLeft -= area.left - box.left + STRIP_PADDING;
+  else if (box.right > area.right) element.scrollLeft += box.right - area.right + STRIP_PADDING;
+}
+watch(() => props.chosen, () => nextTick(reveal));
 /** Left and Right choose the previous and next GDA image that can be chosen: from the chosen one, or else from the
  * focused one, or else the first or last. The new choice gets the focus and scrolls into view. */
 function onKeydown(event: KeyboardEvent) {
@@ -65,11 +78,7 @@ function onKeydown(event: KeyboardEvent) {
   while (index >= 0 && index < list.length && !list[index].syncable) index += direction;
   if (index < 0 || index >= list.length) return;
   emit('choose', list[index].absolutePath);
-  nextTick(() => {
-    const button = strip.value?.querySelector<HTMLButtonElement>(`[data-index="${index}"] .resource-candidate-select`);
-    button?.focus({ preventScroll: true });
-    button?.closest('article')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-  });
+  nextTick(() => strip.value?.querySelector<HTMLButtonElement>(`[data-index="${index}"] .resource-candidate-select`)?.focus({ preventScroll: true }));
 }
 function candidateLabel(candidate: GdaCandidate) {
   if (candidate.absolutePath === props.chosen) return 'Copied on sync';
@@ -120,10 +129,13 @@ const gdaFolder = computed(() => gdaFiles.value[0]?.directory ?? '');
           <p v-if="directory" class="resource-sequence">
             <template v-if="row.rtf">{{ number(row.rtf.pages.length) }} page{{ plural(row.rtf.pages.length) }} · </template>{{ number(directory.files.filter(file => file.resourcePath).length) }} files
           </p>
-          <div class="asset-footer"><span :class="['badge', 'resource-status', rssBadges[row.category]]">{{ row.status }}</span></div>
+          <div class="asset-footer"><span :class="['badge', 'resource-status', rssBadges[row.category]]">{{ rssStatusNames[row.category] }}</span></div>
           <div v-if="row.category !== 'different' && !matching" class="resource-declared">
             <small class="text-muted">{{ row.requiredBy.length ? 'Declared in' : 'No JSON descriptor' }}</small>
-            <span v-for="use in row.requiredBy" :key="`${use.descriptor}:${use.line}`">{{ declarationLabel(use) }}</span>
+            <div v-for="use in row.requiredBy" :key="`${use.descriptor}:${use.line}`" class="resource-declaration">
+              <button type="button" class="resource-icon-button resource-declaration-open" :aria-label="`Open ${use.descriptor} at line ${use.line} in VS Code`" :title="`Open in VS Code: ${use.descriptor}:${use.line}`" @click.stop="openDeclaration(use.descriptor, use.line)"><i aria-hidden="true" class="mdi mdi-code-braces" /></button>
+              <span>{{ declarationLabel(use) }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -234,6 +246,9 @@ const gdaFolder = computed(() => gdaFiles.value[0]?.directory ?? '');
 .resource-status { max-width: 100%; white-space: normal; text-align: left; line-height: 1.3; overflow-wrap: anywhere; }
 .resource-declared { display: flex; flex-direction: column; gap: 2px; margin-top: 10px; font-size: 11px; overflow-wrap: anywhere; }
 .resource-declared span { font-family: monospace; }
+.resource-declaration { display: flex; align-items: flex-start; gap: 4px; }
+.resource-declaration > span { min-width: 0; }
+.resource-declaration .resource-declaration-open { flex-shrink: 0; width: 20px; height: 20px; font-size: 14px; }
 .resource-sequence { margin: -4px 0 10px; color: #8a939c; font-size: 11px; }
 .resource-sequence-id { display: block; color: #6b7280; font-family: monospace; overflow-wrap: anywhere; }
 .resource-sequence-id.is-guessed { font-family: inherit; font-style: italic; }

@@ -1,8 +1,11 @@
 """An image's card on the Sync page shows the GDA images that may show the same picture on one line, right of the copy
 arrow: one is chosen by clicking its card, or with Left and Right, the copy arrow and the details use it, and without a
-choice the details and Sync all pending use the most likely one."""
+choice the details and Sync all pending use the most likely one. In the details, Left and Right choose another GDA image
+and compare the game image with it, without closing them."""
 
 import json
+import re
+from urllib.parse import quote
 
 import pytest
 from playwright.sync_api import expect
@@ -37,6 +40,8 @@ def test_the_gda_image_to_sync_is_chosen_on_the_card(new_context, image_backend)
     errors, requests = [], []
     page.on("pageerror", lambda error: errors.append(str(error)))
     page.route("**/api/rss-sync/copy", lambda route: (requests.append(route.request.post_data_json), route.abort()))
+    described = []
+    page.route("**/api/rss-sync/details", lambda route: (described.append(route.request.post_data_json["files"]), route.continue_()))
     page.goto(backend.url)
     page.get_by_role("list", name="Workspaces").get_by_role("button", name="Images", exact=True).click()
 
@@ -62,7 +67,31 @@ def test_the_gda_image_to_sync_is_chosen_on_the_card(new_context, image_backend)
     expect(dialog.locator(".details-match")).to_contain_text("other/play_v2.png")
     expect(dialog).to_contain_text("GDA image, copied on sync")
     expect(dialog).not_to_contain_text(str((gda / "ui" / "play.png").resolve()))
+    expect(dialog.locator(".details-candidate-position")).to_have_text("1 of 2 · Left and Right change it")
+
+    # Right chooses the next GDA image: the details stay open, and compare the game image with it. Only the new image's
+    # facts are read.
+    same_name, renamed = (str((gda / name).resolve()) for name in ("ui/play.png", "other/play_v2.png"))
+    gda_preview = dialog.locator(".details-preview").nth(1).locator("img")
+    page.keyboard.press("ArrowRight")
+    expect(dialog).to_be_visible()
+    expect(dialog.locator(".details-candidate-position")).to_have_text("2 of 2 · Left and Right change it")
+    expect(dialog.locator(".details-match")).to_have_count(1)
+    expect(dialog.locator(".details-match")).to_contain_text("ui/play.png")
+    expect(dialog.locator(".details-match")).not_to_contain_text("play_v2.png")
+    expect(dialog).to_contain_text(same_name)
+    expect(gda_preview).to_have_attribute("src", re.compile(re.escape(f"/api/rss-sync/preview?file={quote(same_name, safe='')}&")))
+    expect(candidates.nth(1)).to_contain_text("Copied on sync")
+    assert described[-1] == [same_name] and renamed in described[0]
+    page.keyboard.press("ArrowRight")  # The last image stays.
+    expect(dialog.locator(".details-candidate-position")).to_have_text("2 of 2 · Left and Right change it")
+    page.keyboard.press("ArrowLeft")
+    expect(dialog).to_be_visible()
+    expect(dialog.locator(".details-match")).to_contain_text("other/play_v2.png")
+    expect(gda_preview).to_have_attribute("src", re.compile(re.escape(f"/api/rss-sync/preview?file={quote(renamed, safe='')}&")))
     page.keyboard.press("Escape")
+    expect(page.get_by_role("dialog")).to_have_count(0)
+    expect(candidates.nth(0)).to_contain_text("Copied on sync")
 
     # Sync all pending copies the most likely image.
     page.get_by_role("button", name="Sync all pending").click()

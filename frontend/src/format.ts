@@ -86,6 +86,9 @@ export function sequenceSummary(sequence: SequenceTiming) {
   return `${number(count)} frame${plural(count)} · ${sequence.frameTime} ms · ${loops}`;
 }
 
+export const rssStatusNames: Record<RssCategory, string> = {
+  identical: 'in sync', different: 'different', missing: 'missing', invalid: 'invalid', supplementary: 'supplementary',
+};
 export const rssBadges: Record<RssCategory, string> = {
   identical: 'badge-success', different: 'badge-danger', missing: 'badge-warning', invalid: 'badge-dark', supplementary: 'badge-info',
 };
