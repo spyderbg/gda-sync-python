@@ -23,11 +23,13 @@ from .fonts import FONT_EXTENSIONS, describe_font
 from .rss_jobs import ReportFolder, _now
 from .rss_sync import COMMON_DIR, GUESSED_FRAME_TIME, GUESSED_LOOP_COUNT, NUMBERED_NAME, Config, Use, expand_path, gather, required_by, row_id
 from .rtf import RTF_EXTENSION, describe_rtf
+from .views import describe_view, is_view
 
 # Version 2 reports fonts as their own type, with their names, the samples they draw and their coverage of each Font
 # entry's characters. Version 3 reports RTFs (RTF Tool projects) as their own type: an RTF's folder is one asset with
 # all of its files, with its pages, languages and the images and videos its pages draw that do not exist.
-ASSET_REPORT_VERSION = 3
+# Version 4 reports views (the .json files of the game's v folder) as their own type, with what they draw.
+ASSET_REPORT_VERSION = 4
 CATEGORIES = ("available", "missing", "invalid", "supplementary")
 # The status a sequence takes from its frames: the first of these that any of its files has.
 SEQUENCE_PRECEDENCE = ("invalid", "missing", "available")
@@ -92,6 +94,11 @@ def inventory(config: Config, facts: Facts) -> dict:
         elif source.suffix[1:].lower() == RTF_EXTENSION and entry["category"] in ("available", "supplementary"):
             # An RTF's pages, with their backgrounds, and the files that its pages draw but that do not exist.
             row.update(describe_rtf(str(source)))
+        elif is_view(source, game_dir):
+            # A view is its own type: what its elements draw, and the resources they name that cannot be found.
+            row["type"] = "view"
+            if entry["category"] in ("available", "supplementary"):
+                row.update(describe_view(source, game_dir))
         return row
 
     def sequence_row(document_name: str, sequence, lines: list[int], frames: list) -> dict:

@@ -97,7 +97,7 @@ The sync treats `game_path` as `<resources folder>/<game>` and `gda_path` as the
 | Field | Default | Meaning |
 | --- | --- | --- |
 | `common_gda_path` | none | GDA folder for the shared files under `<resources folder>/common`. A relative path is resolved against the folder of `workspace.json`. |
-| `extensions` | `[".csv", ".dds", ".ini", ".mov", ".png", ".rtf", ".ttf", ".wav"]` | File extensions to compare. |
+| `extensions` | `[".csv", ".dds", ".ini", ".json", ".mov", ".png", ".rtf", ".ttf", ".wav"]` | File extensions to compare. `.json` compares only views (see [Views](#views)); the `*Data.json` descriptors and other JSON files are never compared. |
 | `resource_paths` | `[]` | Extra paths to check, relative to `game_path`. |
 | `ignore_dds_mips` | `true` | Count DDS files that differ only in mip levels as in sync. |
 | `multithreading` | `true` | Hash files and match images on up to 8 threads; `false` runs the whole sync on one thread. |
@@ -126,16 +126,32 @@ Fonts (`.ttf`, `.otf`) are an asset type of their own. The report reads a font's
 
 RTFs (`.rtf`) are an asset type of their own, in the **RTFs** section. Despite the extension, an RTF is not Rich Text Format but a project of the RTF Tool, such as a game's help screens, which `Rtf` entries of `RssRtfsData.json` declare: JSON with pages, each with a resolution, a background image and text sections, rectangles with a text style and a text in each of the project's languages. An RTF is its whole folder: one asset, named by the folder that holds its `.rtf` file (usually `project.rtf`), whose `resource` and `resourcePath` are the folder's, with every file in it in `directory.files` (each with its path in the folder, type, size, modification time and image size), their total size and newest time, and the `.rtf` file's path in `directory.project`. It takes the status of its `.rtf` file and lists the entries that declare it. The files in its folder, such as its `data` images, video frames and `translations.xlsx`, are not assets of their own, nor guessed image sequences, unless a descriptor declares them; searching for one of their paths finds the RTF. A `.rtf` file directly in the game folder is listed as a file, since its folder would be the whole game. The report reads its tool version, languages and pages, how many images and videos its pages draw, its texts and styles, and the images and videos that its pages draw but that do not exist (`missing`, with `missingCount`), such as a background or an inline image whose file is not in the project's `data` folder. Paths such as `app:/data/rules.dds` are relative to the project's folder; a video is a folder of numbered frames. A `.rtf` file that is not such a project has an `rtfError`. A card shows the background of the first page that has one, a strip of every page's background to choose from, the number of pages, languages and files, and how many files its pages miss. The details draw the chosen page as the game does, approximately: the background and each section's default text (the one without tags) in its rectangle, alignment and style, in the language chosen, with inline images and a video's first frame, and smaller when it does not fit, as the RTF Tool draws it. The text is drawn with the app's font; a paytable figure, which the game computes, and a variable that the game fills in, such as `_serial_number_`, are outlined, and a variable that the project's `dynamics` name shows its value. **Text areas** outlines every section with its name. The details also list the pages with their resolutions, sections and backgrounds, which show a page when clicked, the missing files, and every file of the folder; the folder button opens the RTF's folder itself. The page layout comes from `GET /api/rss-sync/preview` for the `.rtf` file, read when the details open.
 
+#### Views
+
+Views are an asset type of their own, in the **Views** section: every `.json` file in the game's `v` folder, such as `v/1920x1080/BetBarView.json` or `v/1920x1080/SwButtons/InfoSwButtonView.json`, except the `*Data.json` descriptors kept there. The game's view elements (`GameVideoCtrl/ViewElements`) draw a view: a list of elements, drawn in order on a screen of the resolution its folder names (1920 × 1080 when none does). `RssElementsListData.json` declares the views, so their cards say which `Element` entries load them; a view that no descriptor declares is supplementary. An element names its resources by id, which the game's descriptors declare; of several entries with one id, the one for the view's resolution is used:
+
+| Element | Drawn as |
+| --- | --- |
+| `Image` | Its image (`rssKey`, or the first of `rssKeys`), cut to its `source` rectangle |
+| `Button`, `ToggleButton` | Its first image, the idle state; its `touchArea` is outlined in the details. A button without images, or with only `DUMMY_AREA`, is a touch area alone. |
+| `Anim` | The first frame of its image sequence; a movie is not drawn |
+| `Text` | Nothing: the game fills in its text at runtime, so its `fitBox` is outlined with its id, in its text style |
+| `Rtf` | The background of the RTF's first page that has one |
+| `Dummy` | Nothing: a hidden point, which the details mark with a cross |
+
+Each element is placed as `BaseElement::GetTransform` places it: moved by its `alignment` (by its size) and its `pivot`, scaled (`scale`) and rotated (`rotation`, degrees) around its pivot, at its `position`, tinted and faded by its `color`. A `hidden` element is drawn only on request. An `Image` or `Anim` without an id gets its image at runtime, so it draws nothing here without missing anything. The backend composes a view into a PNG image (`GET /api/rss-sync/preview` with `width`, `hidden` and `crop`), keeping decoded images and renders in memory, and reads only images inside the workspace's folders. A card shows the part of the screen the view draws on, with its name, its elements by type, and how many elements name resources that cannot be found. The details draw the whole screen at the view's size over a checkerboard where the view is transparent, with **Elements** to outline every element (missing ones in red), **Hide text names** to keep the text areas outlined without their names, **Hidden elements** to draw the hidden ones too, and the list of elements, from `GET /api/rss-sync/view`, which outlines the element clicked. A report keeps each view's `view` facts (`name`, `resolution`, `elements`, `types`, `hidden`, `images`, `missing`, `missingCount`), or a `viewError` when the file is not a view. In the GDA sync a view is compared by name and SHA-256 like any file, and a different view's row also has `gdaView`, the facts of its closest GDA file, which the Sync page draws beside it.
+
 ### Report versions
 
 Each report file holds the `version` of the format that wrote it. The app reads every earlier version, but a feature appears only once a **Rescan** writes a report of the version that added it. After updating the app, rescan each workspace once on both pages.
 
 #### Sync report
 
-GDA sync reports are at version 6. The Sync page's **Rescan** writes a new one.
+GDA sync reports are at version 7. The Sync page's **Rescan** writes a new one.
 
 | Feature | Added in version | With an older report |
 | --- | --- | --- |
+| Views (the `.json` files of the game's `v` folder) compared with the GDA, with what they and their GDA files draw (`view`, `gdaView`), drawn on their cards and in their details | 7 | No views on the Sync page. |
 | Images matched by their contents: each image's `imageMatch`, with its probability, match type and possible matches of any name, shown as possible matches on its card | 6 | No possible matches: a renamed copy of an image is only **missing**. |
 | Each same-named GDA file's `match`: the probability that it shows the same picture and every algorithm's value (SHA-256, pixels, pHash, dHash, SSIM, SIFT, CLIP, DINOv2), shown on its card and in the details | 6 | No probabilities; the details list no image matching. |
 | An image's GDA images on one line on its card, one of which is chosen to sync from; without a choice, Sync and its details use the most likely one; a missing image can be synced from a chosen image | 6 | An image is synced from its closest same-named GDA file, and a missing image cannot be synced. |
@@ -149,10 +165,11 @@ GDA sync reports are at version 6. The Sync page's **Rescan** writes a new one.
 
 #### Assets report
 
-Asset reports are at version 3. The Asset library's **Rescan** writes a new one.
+Asset reports are at version 4. The Asset library's **Rescan** writes a new one.
 
 | Feature | Added in version | With an older report |
 | --- | --- | --- |
+| Views as their own type, in the **Views** section, drawn as the game draws them, with their elements and the resources they miss | 4 | Views are other files, and a view that no descriptor declares is not listed; the library notes that the report is out of date. |
 | RTFs (`.rtf`) as their own type, in the **RTFs** section: each RTF's folder is one asset, named by the folder, with every file in it | 3 | `.rtf` files are other files, and the files in an RTF's folder are assets of their own, mostly supplementary; the library notes that the report is out of date. |
 | An RTF's tool version, languages, pages with their backgrounds, and the images and videos its pages miss | 3 | No pages in cards; the details show the file only. |
 | Fonts as their own type, in the **Fonts** section | 2 | `.ttf` and `.otf` files are other files; the library notes that the report is out of date. |
@@ -352,6 +369,7 @@ dist/            Generated standalone Linux and Windows executables with workspa
 | `egt_gda_sync/lifetime.py` | Page-lifetime event stream and the two-second close grace period |
 | `egt_gda_sync/library.py` | Scanning, hashing, safe paths, sync with backups, settings, activity, previews |
 | `egt_gda_sync/rss_sync.py`, `rss_jobs.py` | The GDA sync comparison and its background runs and report files |
+| `egt_gda_sync/views.py` | Views: their facts, the place of each element, and their renders |
 | `egt_gda_sync/image_compare.py`, `image_cache.py`, `image_gpu.py` | Image matching by contents, its SQLite cache, and the optional CLIP/DINOv2 GPU algorithms |
 | `egt_gda_sync/dds.py`, `bc7.py` | DDS parsing and NumPy-vectorized DXT/RGB/BC7 decoding |
 | `egt_gda_sync/demo.py` | Deterministic demo textures, DDS maps, models, materials, and audio |

@@ -1,12 +1,12 @@
-import type { AssetCategory, AssetDeclaration, AssetSequence, AssetStatus, AssetType, ImageAlgorithms, ImageCandidate, ImageEvaluation, ImageMatchType, PreviewFrame, ReportAsset, RssCategory, RssResource, RssRtfDirectory, RssSequence, RssSyncWorkspace, RtfChange, RtfFacts } from './types';
+import type { AssetCategory, AssetDeclaration, AssetSequence, AssetStatus, AssetType, ImageAlgorithms, ImageCandidate, ViewFacts, ImageEvaluation, ImageMatchType, PreviewFrame, ReportAsset, RssCategory, RssResource, RssRtfDirectory, RssSequence, RssSyncWorkspace, RtfChange, RtfFacts } from './types';
 
-export const ASSET_TYPES = ['texture', 'model', 'material', 'audio', 'font', 'rtf'] as const;
+export const ASSET_TYPES = ['texture', 'model', 'material', 'audio', 'font', 'rtf', 'view'] as const;
 export const typeIcons: Record<AssetType, string> = {
   texture: 'mdi-image-outline', model: 'mdi-cube-outline', material: 'mdi-layers-outline', audio: 'mdi-waveform', font: 'mdi-format-font',
-  rtf: 'mdi-book-open-page-variant-outline', other: 'mdi-file-outline',
+  rtf: 'mdi-book-open-page-variant-outline', view: 'mdi-view-dashboard-outline', other: 'mdi-file-outline',
 };
 export const typeNames: Record<AssetType, string> = {
-  texture: 'Textures', model: 'Models', material: 'Materials', audio: 'Audio', font: 'Fonts', rtf: 'RTFs', other: 'Other files',
+  texture: 'Textures', model: 'Models', material: 'Materials', audio: 'Audio', font: 'Fonts', rtf: 'RTFs', view: 'Views', other: 'Other files',
 };
 export const statusNames: Record<AssetStatus, string> = { new: 'New asset', modified: 'Modified', synced: 'In sync' };
 export const statusBadges: Record<AssetStatus, string> = { new: 'badge-info', modified: 'badge-warning', synced: 'badge-success' };
@@ -42,6 +42,8 @@ const TYPE_EXTENSIONS: [AssetType, string[]][] = [
   ['audio', ['wav', 'ogg', 'mp3', 'flac']],
   ['font', ['ttf', 'otf']],
   ['rtf', ['rtf']],
+  // The GDA sync report compares a .json file only when it is a view.
+  ['view', ['json']],
 ];
 /** The image files the backend previews: DDS textures, which it decodes, and the formats a browser shows as they are. */
 export const PREVIEW_EXTENSIONS = ['dds', 'png', 'jpg', 'jpeg', 'webp', 'svg', 'bmp'];
@@ -242,3 +244,21 @@ export function imageCandidates(row: RssResource): GdaCandidate[] {
 }
 /** The GDA image to sync when none is chosen: the most likely one that changes the game file. */
 export const defaultCandidate = (candidates: GdaCandidate[]) => candidates.find(candidate => candidate.syncable) ?? null;
+
+/** The URL of a view composed as an image, as wide as width, with its hidden elements, and cropped to what it draws, on
+ * request. */
+export const viewRenderURL = (file: string, revision: string, width: number, hidden = false, crop = false) =>
+  `${reportPreviewURL(file, revision)}&width=${width}${hidden ? '&hidden=true' : ''}${crop ? '&crop=true' : ''}`;
+/** A view's elements by type, such as "6 images · 1 anim". */
+export const viewSummary = (facts: ViewFacts) => Object.entries(facts.types)
+  .map(([type, count]) => `${number(count)} ${type.toLowerCase()}${count === 1 ? '' : type === 'Dummy' ? '' : 's'}`).join(' · ');
+/** The facts of a view, as the details' tables list them. */
+export const viewTable = (facts: ViewFacts) => [
+  { label: 'File format', value: 'View (JSON)' },
+  { label: 'Name', value: facts.name },
+  { label: 'Screen', value: `${facts.resolution.width} × ${facts.resolution.height}` },
+  { label: 'Elements', value: `${number(facts.elements)}${facts.elements ? `: ${viewSummary(facts)}` : ''}` },
+  { label: 'Hidden elements', value: facts.hidden ? number(facts.hidden) : 'None' },
+  { label: 'Images drawn', value: number(facts.images) },
+  { label: 'Missing resources', value: facts.missingCount ? number(facts.missingCount) : 'None', warn: !!facts.missingCount },
+];

@@ -247,6 +247,13 @@ export async function openDeclaration(descriptor: string, line: number) {
   } catch (e) { notify((e as Error).message, true); }
 }
 
+export async function openViewElement(file: string, index: number) {
+  try {
+    await api('rss-sync/open-view-element', 'POST', { file, index });
+    notify('Opened view element in VS Code.');
+  } catch (e) { notify((e as Error).message, true); }
+}
+
 export async function copy(text: string) {
   try {
     await navigator.clipboard.writeText(text);

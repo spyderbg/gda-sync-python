@@ -1,15 +1,18 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { assetBadges, assetFrames, baseName, declarationLabel, number, plural, sequenceName, sequenceSummary, size, splitPath, typeIcons } from '../format';
+import { assetBadges, assetFrames, baseName, declarationLabel, number, plural, sequenceName, sequenceSummary, size, splitPath, typeIcons, viewSummary } from '../format';
 import type { ReportAsset } from '../types';
 import ReportThumbnail from './ReportThumbnail.vue';
 import RtfPreview from './RtfPreview.vue';
 import SequencePreview from './SequencePreview.vue';
+import ViewPreview from './ViewPreview.vue';
 
 // One asset of the asset report as a card, in the look of the Sync page's cards: its preview, name, folder, size and
 // image size, the report's status, and the descriptor entries that load it. An image sequence plays its frames, and
 // clicking its preview plays it again from the first frame. An RTF is its folder, named by it: it shows its pages, its
-// languages, how many files the folder has, and how many of the files its pages draw are missing. Clicking the card, or its details button, emits open.
+// languages, how many files the folder has, and how many of the files its pages draw are missing. A view, a .json file of
+// the game's v folder, shows itself as the game draws it, its name, its elements by type, and how many of them name
+// resources that cannot be found. Clicking the card, or its details button, emits open.
 const props = withDefaults(defineProps<{ row: ReportAsset; revision: string; inspected?: boolean }>(), { inspected: false });
 const emit = defineEmits<{ open: [] }>();
 
@@ -26,6 +29,7 @@ const shownUses = computed(() => props.row.requiredBy.slice(0, 3));
 // The first Font entry whose declared characters the font does not all have.
 const fontGap = computed(() => props.row.requiredBy.find(use => use.coverage?.missingCount));
 const rtf = computed(() => (readable.value ? props.row.rtf : undefined));
+const view = computed(() => (readable.value ? props.row.view : undefined));
 // The file a preview shows: an RTF's .rtf file, or the asset's own.
 const file = computed(() => props.row.directory?.project ?? props.row.resourcePath);
 </script>
@@ -35,6 +39,7 @@ const file = computed(() => props.row.directory?.project ?? props.row.resourcePa
     <SequencePreview v-if="sequence" :frames="frames" :frame-time="sequence.frameTime" :loop-count="sequence.loopCount" :loop-to="sequence.loopTo" :name="sequence.id ?? resource.name" :revision="revision" />
     <div class="asset-hit-target" @click="emit('open')">
       <RtfPreview v-if="rtf" :file="file" :name="resource.name" :revision="revision" :facts="rtf" />
+      <ViewPreview v-else-if="view" :file="file" :name="resource.name" :revision="revision" :facts="view" />
       <button v-else-if="!sequence" type="button" class="report-asset-preview" :aria-label="`Inspect ${resource.name}`">
         <ReportThumbnail :file="file" :name="baseName(file)" :revision="revision" :preview="readable && row.preview !== false" />
       </button>
@@ -48,6 +53,7 @@ const file = computed(() => props.row.directory?.project ?? props.row.resourcePa
           <template v-if="rtf">{{ number(rtf.pages.length) }} page{{ plural(rtf.pages.length) }}<template v-if="rtf.languages.length"> · {{ rtf.languages.join(', ') }}</template> · </template>
           <template v-if="row.directory">{{ number(row.directory.files.length) }} file{{ plural(row.directory.files.length) }}</template>
         </p>
+        <p v-if="view" class="report-asset-sequence" :title="viewSummary(view)"><span class="report-asset-sequence-id">{{ view.name }}</span>{{ viewSummary(view) }}</p>
         <div class="asset-footer"><span :class="['badge', 'report-asset-status', assetBadges[row.category]]">{{ row.status }}</span><small v-if="dimensions">{{ dimensions }}</small></div>
         <div class="report-asset-declared">
           <small class="text-muted">{{ row.requiredBy.length ? 'Loaded by' : 'No JSON descriptor' }}</small>
@@ -58,6 +64,10 @@ const file = computed(() => props.row.directory?.project ?? props.row.resourcePa
           <i aria-hidden="true" class="mdi mdi-alert-outline" />{{ number(rtf.missingCount) }} file{{ plural(rtf.missingCount) }} that its pages draw {{ rtf.missingCount === 1 ? 'is' : 'are' }} missing
         </p>
         <p v-else-if="row.rtfError" class="report-asset-warning"><i aria-hidden="true" class="mdi mdi-alert-outline" />{{ row.rtfError }}</p>
+        <p v-if="view?.missingCount" class="report-asset-warning">
+          <i aria-hidden="true" class="mdi mdi-alert-outline" />{{ number(view.missingCount) }} element{{ plural(view.missingCount) }} without {{ view.missingCount === 1 ? 'its resource' : 'their resources' }}
+        </p>
+        <p v-else-if="row.viewError" class="report-asset-warning"><i aria-hidden="true" class="mdi mdi-alert-outline" />{{ row.viewError }}</p>
         <p v-if="fontGap?.coverage" class="report-asset-warning">
           <i aria-hidden="true" class="mdi mdi-alert-outline" />{{ number(fontGap.coverage.missingCount) }} declared character{{ plural(fontGap.coverage.missingCount) }} of {{ fontGap.id ?? 'a Font entry' }} not in the font
         </p>

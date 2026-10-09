@@ -51,7 +51,7 @@ What a workspace is, in the user's words and in `workspace.json` fields:
 - Workspaces come from `config.value.workspaces` (`workspaces` export): `{ id, name, source, destination }`. These map to the `workspace.json` fields as **`name` = `game_name`, `source` = `game_path`, `destination` = `gda_path`**. The backend does this translation; the frontend never sees the `game_*` names. The active workspace id is `config.value.defaultWorkspace`.
 - `selectWorkspace(id)` switches the backend's active workspace and then **always navigates to the dashboard** and shows a toast. It returns immediately without doing anything when `id` is already the active one. It does not throw: on failure it shows an error toast and leaves the view unchanged.
 - Only the **active** workspace is loaded. `assets`, `pending`, `syncedCount`, `countStatus(status)` and `countType(type)` describe the active workspace only. There is no data for the inactive ones, so the menu cannot show counts for them.
-- Asset types come from `ASSET_TYPES`, `typeNames` and `typeIcons` in `format.ts` (textures, models, materials, audio, fonts, RTFs). `other` files exist as a type but are not in `ASSET_TYPES`. Models and materials have no entry of their own in the sidebar: they are listed in the Asset library.
+- Asset types come from `ASSET_TYPES`, `typeNames` and `typeIcons` in `format.ts` (textures, models, materials, audio, fonts, RTFs, views). `other` files exist as a type but are not in `ASSET_TYPES`. Models and materials have no entry of their own in the sidebar: they are listed in the Asset library.
 - `config/workspace.json` (template `config/workspace.json.template`) has `defaultWorkspace` and a `workspaces` list of `id`, `game_name`, `game_path`, `gda_path`.
 - The status meaning (`new`, `modified`, `synced`) and the direction of the copy are decided by the backend. Do not change them, and keep the menu wording neutral: name the two folders "Game folder" and "GDA folder" and **do not draw an arrow between them**.
 
@@ -111,7 +111,7 @@ Carry-over rules when switching between two workspaces:
 | Part of the menu | Between workspaces |
 | --- | --- |
 | Workspaces, Sync items | the same entries; only badges and tooltips change |
-| Asset types (textures, audio, fonts, RTFs) | **the same list in the same order every time.** Define it once from `ASSET_TYPES`, without models and materials; only the counts change. Do not rebuild or reorder it on a switch |
+| Asset types (textures, audio, fonts, RTFs, views) | **the same list in the same order every time.** Define it once from `ASSET_TYPES`, without models and materials; only the counts change. Do not rebuild or reorder it on a switch |
 | The `*.json` resource lists | **different for each workspace** (section 5.4): the whole group is replaced on a switch |
 
 ## 5. Target menu

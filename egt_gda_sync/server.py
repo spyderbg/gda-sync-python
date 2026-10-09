@@ -95,6 +95,10 @@ class OpenDeclarationBody(_Body):
     line: Annotated[int, Field(strict=True, ge=1, le=2_147_483_647)]
 
 
+class OpenViewElementBody(ResourceFileBody):
+    index: Annotated[int, Field(strict=True, ge=0, le=2_147_483_647)]
+
+
 class ResourceFilesBody(_Body):
     files: Annotated[list[Text4K], Field(min_length=1, max_length=1000)]
     # The character lists of the Font entries that declare a font, to check each font file against.
@@ -270,13 +274,21 @@ def create_app(
         return library.sync(body.ids)
 
     @app.get("/api/rss-sync/preview")
-    def rss_sync_preview(file: Annotated[str, Query(max_length=4096)]) -> Response:
+    def rss_sync_preview(file: Annotated[str, Query(max_length=4096)], width: Annotated[int | None, Query(ge=16, le=8192)] = None,
+                         hidden: bool = False, crop: bool = False) -> Response:
+        # A view is composed as an image as wide as width, with its hidden elements and cropped to what it draws on request.
+        if width is not None or hidden or crop:
+            return Response(library.view_preview(file, width, hidden, crop), media_type="image/png", headers={"Content-Security-Policy": PREVIEW_CSP})
         data, mime = library.resource_preview(file)
         headers = {"Content-Security-Policy": PREVIEW_CSP}
         # A font comes with its names and the samples it can draw, for the page that draws text with it.
         if mime in FONT_EXTENSIONS.values() and (facts := facts_header(data)):
             headers["X-Font-Facts"] = facts
         return Response(data, media_type=mime, headers=headers)
+
+    @app.get("/api/rss-sync/view")
+    def rss_sync_view(file: Annotated[str, Query(max_length=4096)]) -> dict:
+        return library.view_details(file)
 
     @app.post("/api/rss-sync/copy")
     def rss_sync_copy(body: SyncBody) -> dict:
@@ -299,6 +311,11 @@ def create_app(
     @app.post("/api/rss-sync/open-declaration")
     def open_declaration(body: OpenDeclarationBody) -> dict:
         code_opener(library.descriptor_path(body.descriptor), body.line)
+        return {"opened": True}
+
+    @app.post("/api/rss-sync/open-view-element")
+    def open_view_element(body: OpenViewElementBody) -> dict:
+        code_opener(*library.view_element_location(body.file, body.index))
         return {"opened": True}
 
     @app.put("/api/settings")

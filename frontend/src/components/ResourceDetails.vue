@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { algorithmValues, baseName, type GdaCandidate, declarationLabel, directoryOf, extensionOf, fileType, matchBadge, matchText, number, plural, previewFrames, rssBadges, rtfChangeBadges, rtfChangeNames, rtfChangeSummary, sequenceName, size, splitPath, time } from '../format';
+import { algorithmValues, baseName, viewTable, type GdaCandidate, declarationLabel, directoryOf, extensionOf, fileType, matchBadge, matchText, number, plural, previewFrames, rssBadges, rtfChangeBadges, rtfChangeNames, rtfChangeSummary, sequenceName, size, splitPath, time } from '../format';
 import type { RssFileDetails, RssResource, RtfFacts } from '../types';
 import { busy, copy, data, openDeclaration, openResourceFolder, requestResourceSync, resourceDetails, rssSync } from '../workspace';
 import AppModal from './AppModal.vue';
@@ -9,6 +9,7 @@ import FontPreview from './FontPreview.vue';
 import ReportThumbnail from './ReportThumbnail.vue';
 import RtfPreview from './RtfPreview.vue';
 import SequencePreview from './SequencePreview.vue';
+import ViewPreview from './ViewPreview.vue';
 
 // The details of one resource of the GDA sync report in a dialog, like the asset library's asset details (AssetDetails):
 // a large preview, beside the GDA file's when the GDA has one, what the status means, the files' format, size,
@@ -204,6 +205,16 @@ const table = computed(() => {
       { label: 'Texts and styles', game: gameRtf.texts, gda: gdaRtf.texts, compare: true },
       { label: 'Files', game: files('resourcePath'), gda: hasGda.value ? files('gdaPath') : '—', compare: true },
     ];
+  } else if (props.row.view || props.row.viewError) {
+    // A view: what it and its closest GDA file draw, then the files.
+    const gameView = props.row.view ? viewTable(props.row.view) : [];
+    const gdaView = props.row.gdaView ? viewTable(props.row.gdaView) : [];
+    rows = [
+      ...gameView.map((item, index) => ({ label: item.label, game: item.value, gda: hasGda.value ? (gdaView[index]?.value ?? props.row.gdaViewError ?? '—') : '—', compare: index > 0 })),
+      ...(gameView.length ? [] : [{ label: 'View', game: props.row.viewError ?? '—', gda: props.row.gdaViewError ?? '—', compare: false }]),
+      { label: 'File size', game: game.size, gda: gda.size, compare: true },
+      { label: 'Last modified', game: game.modified, gda: gda.modified, compare: false },
+    ];
   } else if (isFont.value) {
     const gameFont = describeFont(gameFiles.value);
     const gdaFont = describeFont(gdaFiles.value);
@@ -315,7 +326,7 @@ function sync() {
       <div :class="['details-previews', { 'is-paired': pairedPreview }]">
         <figure class="details-preview">
           <figcaption>
-            {{ sequence ? 'Game frames' : directory ? 'Game folder' : 'Game file' }}<small v-if="sequence">Click to play again</small>
+            {{ sequence ? 'Game frames' : directory ? 'Game folder' : row.view ? 'Game view, as the game draws it' : 'Game file' }}<small v-if="sequence">Click to play again</small>
             <span v-if="isFont && fontUses.length > 1" class="btn-group btn-group-sm" role="group" aria-label="Characters of the Font entry">
               <button v-for="(use, index) in fontUses" :key="`${use.descriptor}:${use.line}`" type="button" :class="['btn', 'btn-secondary', { active: index === chosen }]" :aria-pressed="index === chosen" @click="chosen = index">{{ use.id ?? `${use.descriptor}:${use.line}` }}</button>
             </span>
@@ -325,6 +336,7 @@ function sync() {
           <AudioPreview v-else-if="isAudio(row.resourcePath) && row.category !== 'invalid'" :file="row.resourcePath" :name="name" :revision="revision" autoplay />
           <FontPreview v-else-if="isFont && row.category !== 'invalid'" v-model:text="fontText" :file="row.resourcePath" :name="name" :revision="revision" large
                        :chars="fontUse?.chars" :size="fontUse?.size" :missing="coverageOf(row.resourcePath)?.missing" />
+          <ViewPreview v-else-if="row.view" :file="row.resourcePath" :name="name" :revision="revision" :facts="row.view" large />
           <ReportThumbnail v-else :file="directory?.project ?? row.resourcePath" :name="directory ? baseName(directory.project) : name" :revision="revision" :preview="row.category !== 'invalid'" />
         </figure>
         <figure v-if="pairedPreview" class="details-preview">
@@ -334,6 +346,7 @@ function sync() {
           <SequencePreview v-if="sequence" :frames="gdaFrames" :frame-time="sequence.frameTime" :loop-count="sequence.loopCount" :loop-to="sequence.loopTo" :name="`${sequence.id ?? name} from the GDA`" :revision="revision" />
           <RtfPreview v-else-if="directory?.gdaProject && row.gdaRtf" :page="pageIndex(row.gdaRtf)" :file="directory.gdaProject" :name="`${baseName(row.gdaFiles[0].path)} from the GDA`" :revision="revision" :facts="row.gdaRtf" large @update:page="choosePage(row.gdaRtf, $event)" />
           <ReportThumbnail v-else-if="directory?.gdaProject" :file="directory.gdaProject" :name="baseName(directory.gdaProject)" :revision="revision" />
+          <ViewPreview v-else-if="row.gdaView && gdaShown" :file="gdaShown.absolutePath" :name="`${baseName(gdaShown.path)} from the GDA`" :revision="revision" :facts="row.gdaView" large />
           <AudioPreview v-else-if="isAudio(gdaShown!.path)" :file="gdaShown!.absolutePath" :name="baseName(gdaShown!.path)" :revision="revision" />
           <FontPreview v-else-if="isFont" v-model:text="fontText" :file="gdaShown!.absolutePath" :name="baseName(gdaShown!.path)" :revision="revision" large
                        :chars="fontUse?.chars" :size="fontUse?.size" :missing="coverageOf(gdaShown!.absolutePath)?.missing" />

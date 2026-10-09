@@ -1,4 +1,4 @@
-export type AssetType = 'texture' | 'model' | 'material' | 'audio' | 'font' | 'rtf' | 'other';
+export type AssetType = 'texture' | 'model' | 'material' | 'audio' | 'font' | 'rtf' | 'view' | 'other';
 export type AssetStatus = 'new' | 'modified' | 'synced';
 export type FolderKey = 'source' | 'destination';
 export type View ='dashboard' | 'library' | 'pending' | 'rssSync' | 'history' | 'settings';
@@ -64,6 +64,7 @@ export interface RtfFacts {
 export interface FileFacts {
   size?: number; modifiedAt?: string; dimensions?: { width: number; height: number; format: string; mipmaps?: number };
   preview?: boolean; previewError?: string; font?: FontFacts; fontError?: string; rtf?: RtfFacts; rtfError?: string;
+  view?: ViewFacts; viewError?: string;
 }
 export interface AssetFrame extends FileFacts { category: AssetCategory; status: string; resource: string; resourcePath: string; source?: RssRectangle }
 export interface AssetSequence {
@@ -192,6 +193,9 @@ export interface RssResource {
    * pages of the game's RTF and of the closest GDA one, or why they cannot be read. Reports from before version 5 list
    * an RTF's files one by one. */
   directory?: RssRtfDirectory; rtf?: RtfFacts; rtfError?: string; gdaRtf?: RtfFacts; gdaRtfError?: string;
+  /** A view, a .json file of the game's v folder: what it and its closest GDA file draw. Reports from before version 7
+   * have no views. */
+  view?: ViewFacts; viewError?: string; gdaView?: ViewFacts; gdaViewError?: string;
 }
 /** What syncing an RTF does to one of its files: nothing to an identical one, copy a changed one or one that only the
  * GDA folder has ("added"), and delete one that only the game has ("removed"). */
@@ -245,3 +249,22 @@ export interface SyncResult {
   copied: string[]; resources?: number; removed?: number; deleted?: number;
   failures: { name: string; message: string }[]; bytes: number; library: LibraryResponse;
 }
+
+/** A view, a .json file of a game's v folder that the game's view elements draw on a screen of its resolution: its
+ * name, how many elements of each type it has, how many are hidden or draw an image, and the elements whose resources
+ * cannot be found or drawn. */
+export interface ViewFacts {
+  name: string; resolution: { width: number; height: number }; elements: number; types: Record<string, number>;
+  hidden: number; images: number; missing: { id: string; type: string; keys: string[]; reason: string }[]; missingCount: number;
+  resourcesError?: string;
+}
+/** An element of a view as GET /api/rss-sync/view describes it: what it draws, the corners of the area it covers on the
+ * screen, the area that takes touches of a button, and why it draws nothing. runtime: an image the game sets; touchOnly:
+ * a button without images. */
+export interface ViewElement {
+  index: number; id: string; type: string; keys: string[]; hidden: boolean; drawn: boolean;
+  position: [number, number]; size: [number, number]; corners: [number, number][]; touchArea?: [number, number][];
+  file?: string; source?: number[]; reason?: string; frames?: number; frameTime?: number; movie?: boolean; runtime?: boolean;
+  touchOnly?: boolean; style?: string; fontSize?: number; page?: string; alpha?: number;
+}
+export interface ViewLayout { name: string; resolution: { width: number; height: number }; elements: ViewElement[]; resourcesError?: string }

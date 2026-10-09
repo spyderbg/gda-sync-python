@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { assetBadges, assetFrames, baseName, codePoint, extensionOf, fileType, firstRtfPage, number, plural, sequenceName, size, splitPath, time, typeIcons } from '../format';
+import { assetBadges, assetFrames, baseName, codePoint, extensionOf, fileType, firstRtfPage, number, plural, sequenceName, size, splitPath, time, typeIcons, viewTable } from '../format';
 import type { FileFacts, ReportAsset } from '../types';
-import { copy, openResourceFolder } from '../workspace';
+import { copy, openDeclaration, openResourceFolder } from '../workspace';
 import AppModal from './AppModal.vue';
 import AudioPreview from './AudioPreview.vue';
 import FontPreview from './FontPreview.vue';
 import ReportThumbnail from './ReportThumbnail.vue';
 import RtfPreview from './RtfPreview.vue';
 import SequencePreview from './SequencePreview.vue';
+import ViewPreview from './ViewPreview.vue';
 
 // The details of one asset of the asset report in a dialog, like the details of a GDA sync report resource: a large
 // preview, what the status means, the descriptor entries that load the asset, its game path with buttons to copy it or
@@ -38,6 +39,8 @@ const rtf = computed(() => (readable.value ? props.row.rtf : undefined));
 const directory = computed(() => props.row.directory);
 const file = computed(() => directory.value?.project ?? props.row.resourcePath);
 const rtfPage = ref(0);
+// A view's facts: what its elements draw.
+const view = computed(() => (readable.value ? props.row.view : undefined));
 watch(() => props.row.id, () => { rtfPage.value = props.row.rtf ? firstRtfPage(props.row.rtf) : 0; }, { immediate: true });
 
 /** Up to three different values, then how many more there are. */
@@ -72,6 +75,13 @@ const table = computed(() => {
       ...(folder ? [{ label: 'Files', value: `${number(folder.files.length)} file${plural(folder.files.length)}` }] : []),
       { label: folder ? 'Total size' : 'File size', value: props.row.size !== undefined ? size(props.row.size) : '—' },
       { label: folder ? 'Last modified, newest' : 'Last modified', value: props.row.modifiedAt ? time(props.row.modifiedAt) : '—' },
+    ];
+  }
+  if (props.row.type === 'view') {
+    return [
+      ...(view.value ? viewTable(view.value) : [{ label: 'View', value: props.row.viewError ?? (readable.value ? 'Rescan to read its elements' : '—') }]),
+      { label: 'File size', value: props.row.size !== undefined ? size(props.row.size) : '—' },
+      { label: 'Last modified', value: props.row.modifiedAt ? time(props.row.modifiedAt) : '—' },
     ];
   }
   if (isFont.value) {
@@ -144,7 +154,7 @@ const scope = computed(() => ({ game: '', common: 'A common resource, shared wit
       <div class="details-previews">
         <figure class="details-preview">
           <figcaption>
-            {{ sequence ? 'Game frames' : rtf ? 'Pages' : 'Game file' }}<small v-if="sequence">Click to play again</small>
+            {{ sequence ? 'Game frames' : rtf ? 'Pages' : view ? 'View, as the game draws it' : 'Game file' }}<small v-if="sequence">Click to play again</small>
             <span v-if="isFont && fontUses.length > 1" class="btn-group btn-group-sm" role="group" aria-label="Characters of the Font entry">
               <button v-for="(use, index) in fontUses" :key="`${use.descriptor}:${use.line}`" type="button" :class="['btn', 'btn-secondary', { active: index === chosen }]" :aria-pressed="index === chosen" @click="chosen = index">{{ use.id ?? `${use.descriptor}:${use.line}` }}</button>
             </span>
@@ -154,6 +164,7 @@ const scope = computed(() => ({ game: '', common: 'A common resource, shared wit
           <FontPreview v-else-if="isFont && readable" :file="row.resourcePath" :name="name" :revision="revision" large
                        :chars="fontUse?.chars" :size="fontUse?.size" :missing="fontUse?.coverage?.missing" />
           <RtfPreview v-else-if="rtf" v-model:page="rtfPage" :file="file" :name="name" :revision="revision" :facts="rtf" large />
+          <ViewPreview v-else-if="view" :file="file" :name="name" :revision="revision" :facts="view" large />
           <ReportThumbnail v-else :file="file" :name="baseName(file)" :revision="revision" :preview="readable && row.preview !== false" />
         </figure>
       </div>
@@ -170,6 +181,7 @@ const scope = computed(() => ({ game: '', common: 'A common resource, shared wit
           <p v-if="scope" class="details-scope text-muted"><i aria-hidden="true" class="mdi mdi-share-variant-outline" /> {{ scope }}</p>
           <p v-if="row.previewError" class="details-scope text-muted"><i aria-hidden="true" class="mdi mdi-image-off-outline" /> {{ row.previewError }}</p>
           <p v-if="row.rtfError" class="details-scope text-muted"><i aria-hidden="true" class="mdi mdi-book-alert-outline" /> {{ row.rtfError }}</p>
+          <p v-if="row.viewError" class="details-scope text-muted"><i aria-hidden="true" class="mdi mdi-alert-outline" /> {{ row.viewError }}</p>
 
           <h6 class="details-heading">Loaded by</h6>
           <p v-if="!row.requiredBy.length" class="text-muted details-small">No JSON descriptor</p>
@@ -177,6 +189,7 @@ const scope = computed(() => ({ game: '', common: 'A common resource, shared wit
             <li v-for="use in row.requiredBy" :key="`${use.descriptor}:${use.line}`" class="details-declaration">
               <span class="details-code">{{ use.descriptor }}:{{ use.line }}</span>
               <span class="badge badge-light">{{ use.type }}</span><span v-if="use.id" class="details-code">{{ use.id }}</span>
+              <button type="button" class="details-icon" :aria-label="`Open ${use.descriptor} at line ${use.line} in VS Code`" :title="`Open in VS Code: ${use.descriptor}:${use.line}`" @click="openDeclaration(use.descriptor, use.line)"><i aria-hidden="true" class="mdi mdi-code-braces" /></button>
               <span v-if="use.size" class="text-muted">{{ use.size }} px</span>
               <span v-if="use.coverage" :class="['details-coverage', use.coverage.missingCount ? 'text-danger' : 'text-success']">
                 <i aria-hidden="true" :class="['mdi', use.coverage.missingCount ? 'mdi-alert-outline' : 'mdi-check']" />{{ number(use.coverage.covered) }} of {{ number(use.coverage.declared) }} declared characters
@@ -232,6 +245,17 @@ const scope = computed(() => ({ game: '', common: 'A common resource, shared wit
                 <li v-if="rtf.missingCount > rtf.missing.length" class="text-muted">+{{ number(rtf.missingCount - rtf.missing.length) }} more</li>
               </ul>
             </template>
+          </template>
+
+          <template v-if="view?.missingCount">
+            <h6 class="details-heading">Missing resources</h6>
+            <ul class="details-list details-rtf-missing">
+              <li v-for="item in view.missing" :key="`${item.id}:${item.keys.join()}`">
+                <span class="badge badge-light">{{ item.type }}</span><span class="details-code">{{ item.id }}</span>
+                <span class="details-code text-muted">{{ item.reason }}</span>
+              </li>
+              <li v-if="view.missingCount > view.missing.length" class="text-muted">+{{ number(view.missingCount - view.missing.length) }} more</li>
+            </ul>
           </template>
 
           <template v-if="directory?.files.length">

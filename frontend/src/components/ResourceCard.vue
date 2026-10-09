@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue';
-import { algorithmTitle, baseName, declarationLabel, directoryOf, extensionOf, fileType, matchText, number, plural, previewFrames, resourceAction, rssBadges, rssStatusNames, rtfChangeNames, rtfChangeSummary, sequenceName, sequenceSummary, splitPath, typeIcons, type GdaCandidate } from '../format';
+import { algorithmTitle, baseName, declarationLabel, directoryOf, extensionOf, fileType, matchText, number, plural, previewFrames, resourceAction, rssBadges, rssStatusNames, rtfChangeNames, rtfChangeSummary, sequenceName, sequenceSummary, splitPath, typeIcons, viewSummary, type GdaCandidate } from '../format';
 import type { RssResource } from '../types';
 import { copy, openDeclaration, openResourceFolder } from '../workspace';
 import CheckBox from './CheckBox.vue';
 import ReportThumbnail from './ReportThumbnail.vue';
 import RtfPreview from './RtfPreview.vue';
 import SequencePreview from './SequencePreview.vue';
+import ViewPreview from './ViewPreview.vue';
 
 // One resource of the GDA sync report as a card in the look of AssetCard: the game file's preview, name, folder and the
 // report's status. A "different" resource also shows its GDA files as cards, closest folder first. Sync copies the first
@@ -19,7 +20,8 @@ import SequencePreview from './SequencePreview.vue';
 // as a guessed sequence.
 // An RTF is one card for its folder, which shows its pages and lists its files that are not in sync; a "different" one
 // shows the pages of the closest GDA folder beside it, which Sync makes the game's folder a copy of, and the other GDA
-// folders that hold a .rtf file of its name.
+// folders that hold a .rtf file of its name. A view, a .json file of the game's v folder, shows itself as the game draws it,
+// with its name and its elements; a different one shows its closest GDA file's view beside it.
 // A different or missing image shows its candidates, the GDA images that may show the same picture (possible matches by
 // content, and its same-named GDA files), on one line, most likely first, each with its probability and match type.
 // Clicking one chooses it, or clears the choice, which emits choose: Sync copies the chosen image, so the copy button
@@ -117,6 +119,7 @@ const gdaFolder = computed(() => gdaFiles.value[0]?.directory ?? '');
       <SequencePreview v-if="sequence" :frames="gameFrames" :frame-time="sequence.frameTime" :loop-count="sequence.loopCount" :loop-to="sequence.loopTo" :name="sequence.id ?? resource.name" :revision="revision" />
       <div class="asset-hit-target" @click="emit('open')">
         <RtfPreview v-if="directory && row.rtf" :file="directory.project" :name="resource.name" :revision="revision" :facts="row.rtf" />
+        <ViewPreview v-else-if="row.view" :file="row.resourcePath" :name="resource.name" :revision="revision" :facts="row.view" />
         <button v-else-if="!sequence" type="button" class="resource-preview" :aria-label="`Show the details of ${row.resource}`">
           <ReportThumbnail :file="directory?.project ?? row.resourcePath" :name="directory ? baseName(directory.project) : resource.name" :revision="revision" :preview="row.category !== 'invalid'" />
         </button>
@@ -126,6 +129,10 @@ const gdaFolder = computed(() => gdaFiles.value[0]?.directory ?? '');
           <p v-if="sequence" class="resource-sequence" :title="sequence.paths.join('\n')">
             <span :class="['resource-sequence-id', { 'is-guessed': sequence.guessed }]">{{ sequenceName(sequence) }}</span>{{ sequenceSummary(sequence) }}<template v-if="sequence.paths.length > 1"> · {{ sequence.paths.length }} paths</template>
           </p>
+          <p v-if="row.view" class="resource-sequence" :title="viewSummary(row.view)">
+            <span class="resource-sequence-id">{{ row.view.name }}</span>{{ viewSummary(row.view) }}<template v-if="row.view.missingCount"> · {{ number(row.view.missingCount) }} without resources</template>
+          </p>
+          <p v-else-if="row.viewError" class="resource-sequence">{{ row.viewError }}</p>
           <p v-if="directory" class="resource-sequence">
             <template v-if="row.rtf">{{ number(row.rtf.pages.length) }} page{{ plural(row.rtf.pages.length) }} · </template>{{ number(directory.files.filter(file => file.resourcePath).length) }} files
           </p>
@@ -216,7 +223,10 @@ const gdaFolder = computed(() => gdaFiles.value[0]?.directory ?? '');
     <section v-else-if="row.category === 'different'" class="resource-gda" :aria-label="`GDA files named ${resource.name}`">
       <div class="resource-gda-files">
         <article v-for="(file, index) in gdaFiles" :key="file.absolutePath" class="card asset-card gda-file-card">
-          <button type="button" class="resource-preview" :aria-label="`Show the details of ${row.resource}`" @click="emit('open')">
+          <div v-if="!index && row.gdaView" class="asset-hit-target" @click="emit('open')">
+            <ViewPreview :file="file.absolutePath" :name="file.name" :revision="revision" :facts="row.gdaView" />
+          </div>
+          <button v-else type="button" class="resource-preview" :aria-label="`Show the details of ${row.resource}`" @click="emit('open')">
             <ReportThumbnail :file="file.absolutePath" :name="file.name" :revision="revision" />
           </button>
           <div class="card-body">

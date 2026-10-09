@@ -29,10 +29,11 @@ from .errors import AppError, error_message
 from .asset_report import AssetReports, inventory
 from .fonts import FONT_EXTENSIONS, describe_font
 from .png import PNG_SIGNATURE
-from .rss_edit import remove_declarations
+from .rss_edit import parse as parse_json_source, remove_declarations
 from .rss_jobs import SyncJobs
 from .image_cache import CACHE_FILE
 from .rss_sync import DEFAULT_EXTENSIONS, DEFAULT_MATCH_THRESHOLD, Config, declared_files
+from .views import THUMBNAIL_WIDTH, read_view, render_view, view_layout, view_root
 from .rtf import RTF_EXTENSION, rtf_layout
 
 MAX_ASSETS = 10_000
@@ -985,11 +986,15 @@ class Library:
                 failures.append({"name": os.path.basename(row["resource"]), "message": error_message(error)})
         return {"files": deleted, "resources": count}
 
-    def _resource_path(self, file: str) -> str:
-        """Resolve a report file inside the active workspace's game, GDA or common GDA folders."""
+    def _resource_roots(self) -> list[str]:
+        """The active workspace's resources, GDA and common GDA folders, which report files must be inside."""
         workspace_id, entry = self._active_workspace()
         settings = self._comparison(workspace_id, entry)[1]
-        roots = [os.path.realpath(root) for root in (settings["resources_dir"], settings["gda_dir"], settings["common_gda_dir"]) if root]
+        return [os.path.realpath(root) for root in (settings["resources_dir"], settings["gda_dir"], settings["common_gda_dir"]) if root]
+
+    def _resource_path(self, file: str) -> str:
+        """Resolve a report file inside the active workspace's game, GDA or common GDA folders."""
+        roots = self._resource_roots()
         root = next((root for root in roots if os.path.isabs(file) and contained(root, file)), None)
         if root is None:
             raise AppError("File not found", 404)
@@ -1043,9 +1048,61 @@ class Library:
             details[file] = entry
         return {"files": details}
 
+    def _view(self, file: str) -> tuple[Path, Path, tuple[Path, ...]]:
+        """A view file inside the workspace's folders, the game folder whose descriptors its ids are looked up in, and
+        the folders its images may come from. A game's own view uses the descriptors beside its v folder; a view
+        elsewhere, such as in a GDA folder, those of the selected workspace's game."""
+        path = Path(self._resource_path(file))
+        root = view_root(path)
+        if root is None:
+            raise AppError("Not a view: a view is a .json file in a game's v folder", 415)
+        game = root if any(root.glob("*Data.json")) else Path(self.config["destination"])
+        return path, game, tuple(Path(folder) for folder in self._resource_roots())
+
+    def view_preview(self, file: str, width: int | None = None, hidden: bool = False, crop: bool = False) -> bytes:
+        """A view composed as a PNG image, as wide as width (a card's width by default), with its hidden elements on
+        request, and cropped to what it draws on request."""
+        path, game, roots = self._view(file)
+        try:
+            return render_view(path, width or THUMBNAIL_WIDTH, hidden, game, roots, crop)
+        except FileNotFoundError as error:
+            raise AppError("File not found", 404) from error
+        except (OSError, ValueError, RecursionError) as error:
+            raise AppError(error_message(error), 415) from error
+
+    def view_details(self, file: str) -> dict:
+        """Every element of a view, with what it draws and the area it covers, for the details to outline."""
+        path, game, roots = self._view(file)
+        try:
+            return view_layout(path, game, roots)
+        except FileNotFoundError as error:
+            raise AppError("File not found", 404) from error
+        except (OSError, ValueError, RecursionError) as error:
+            raise AppError(error_message(error), 415) from error
+
+    def view_element_location(self, file: str, index: int) -> tuple[str, int]:
+        """The current source line of an element in a workspace view, in the preview's drawing order."""
+        path, _game, _roots = self._view(file)
+        try:
+            read_view(path)  # Validate the view and its size before reading its source locations.
+            text = path.read_text(encoding="utf-8-sig")
+            root = parse_json_source(text)
+            # JSON permits duplicate keys; its last elements list is the one read_view uses.
+            members = [node for key, node in root.members if key == "elements"][-1]
+            elements = [node for _key, node in members.members if node.kind == "object"]
+            if index < 0 or index >= len(elements):
+                raise AppError("View element not found", 404)
+            return str(path), text.count("\n", 0, elements[index].start) + 1
+        except FileNotFoundError as error:
+            raise AppError("File not found", 404) from error
+        except (OSError, ValueError, RecursionError) as error:
+            raise AppError(error_message(error), 415) from error
+
     def resource_preview(self, file: str) -> tuple[bytes, str]:
-        """Preview an image, an audio file to play, a font to draw text with, or the pages of an RTF to draw,
-        inside the active workspace's resources and GDA folders."""
+        """Preview an image, an audio file to play, a font to draw text with, the pages of an RTF to draw, or a view
+        composed as an image, inside the active workspace's resources and GDA folders."""
+        if view_root(Path(file)) is not None:
+            return self.view_preview(file), "image/png"
         file = self._resource_path(file)
         extension = os.path.splitext(file)[1][1:].lower()
         if extension != "dds" and extension != RTF_EXTENSION and extension not in {**IMAGE_PREVIEWS, **AUDIO_PREVIEWS, **FONT_EXTENSIONS}:

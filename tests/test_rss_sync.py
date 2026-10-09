@@ -343,7 +343,7 @@ def test_each_run_saves_a_timestamped_report_and_a_failed_run_keeps_the_last_res
     assert report["summary"]["state"] == "succeeded" and report["summary"]["finishedAt"] == status["comparedAt"]
     assert not {"run", "lastRun", "startedAt", "finishedAt", "history"} & set(report)
     counts = {key: value for key, value in report["summary"].items() if key not in ("state", "startedAt", "finishedAt", "error")}
-    assert report["version"] == 6 and len(report["differences"]) == 4 and len(report["identical"]) == 1
+    assert report["version"] == 7 and len(report["differences"]) == 4 and len(report["identical"]) == 1
     [first] = report_files(tmp_path / "reports")
     assert REPORT_FILE.fullmatch(first) and status["reportPath"] == str(tmp_path / "reports" / first)
 

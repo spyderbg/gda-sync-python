@@ -8,7 +8,9 @@ image sequences. An RTF, a project of the RTF Tool, is one resource: its folder,
 that holds a .rtf file of the same name. It returns JSON-ready data instead of a Markdown report, lists identical files
 too, and reports progress so it can run as a background job. Images are also matched with the GDA's images by their
 contents, as egt_gda_sync.image_compare describes: each compared image has the probability that each GDA image is the same
-picture, and its possible matches.
+picture, and its possible matches. A view, a .json file in the game's v folder that the game's view elements draw, is
+compared like any file, with the facts of what it draws (egt_gda_sync.views); other .json files, such as the *Data.json
+descriptors, are not compared.
 """
 
 from __future__ import annotations
@@ -30,12 +32,13 @@ from .image_cache import CompareCache, FileHashes
 from .image_compare import IMAGE_EXTENSIONS, ImageMatcher, Query, Settings, Target, workers
 from .rss_schemas import DOCUMENT_TYPES, Frame, ImageSequence, parse_dataclass
 from .rtf import describe_rtf
+from .views import VIEW_SUFFIX, describe_view, is_view
 
 RANGE_PATTERN = re.compile(r"\{(\d+)-(\d+)\}")
 JSON_STRING_PATTERN = re.compile(r'"(?:\\.|[^"\\])*"')
 EXTENSION_PATTERN = re.compile(r"\.[A-Za-z0-9]+")
 COMMON_DIR = "common"  # folder under resources_dir that holds assets shared between games
-DEFAULT_EXTENSIONS = (".csv", ".dds", ".ini", ".mov", ".png", ".rtf", ".ttf", ".wav")
+DEFAULT_EXTENSIONS = (".csv", ".dds", ".ini", ".json", ".mov", ".png", ".rtf", ".ttf", ".wav")
 # DDS header layout: magic, then a 124 byte header (height and width at 12..20, pixel format at 76..108 with the
 # fourcc at 84, caps2 at 112) and, for fourcc DX10, a 20 byte extension (dimension 132, misc flags 136, array size 140).
 DDS_MAGIC = b"DDS "
@@ -220,6 +223,12 @@ def expand_path(path: str) -> Iterator[str]:
     width = max(len(first), len(last))
     for number in range(start, end + step, step):
         yield f"{path[:match.start()]}{number:0{width}d}{path[match.end():]}"
+
+
+def compared_file(path: Path, game_dir: Path, extensions: frozenset[str]) -> bool:
+    """Whether a file's extension is compared: a .json file is compared only when it is a view of the game."""
+    suffix = path.suffix.lower()
+    return suffix in extensions and (suffix != VIEW_SUFFIX or is_view(path, game_dir))
 
 
 def declared_files(game_dir: Path, resource_paths: tuple[str, ...] = ()) -> set[Path]:
@@ -431,7 +440,7 @@ def gather(config: Config, required: bool = True) -> Declarations:
     # The game files that nothing declares are supplementary: the game does not load them. Files with an extension that
     # is not compared are left out. Descriptor paths additionally bring in shared assets outside the game folder.
     declared_files = frame_files | {(game_dir / relative).resolve() for template in templates for relative in expand_path(template)}
-    unlisted = {path.resolve() for path in game_dir.rglob("*") if path.is_file() and path.suffix.lower() in config.extensions} - declared_files
+    unlisted = {path.resolve() for path in game_dir.rglob("*") if path.is_file() and compared_file(path.resolve(), game_dir, config.extensions)} - declared_files
     # An RTF is its whole folder, when .rtf files are compared: the folder of a declared .rtf file, or of one that nothing
     # declares.
     projects = [path for path in declared_files | unlisted if path.suffix.lower() == RTF_SUFFIX] if RTF_SUFFIX in config.extensions else []
@@ -472,7 +481,7 @@ def classify_resources(config: Config, progress: Progress | None, hashes: FileHa
         return (common_gda, game_gda) if common_gda and source.is_relative_to(common_dir) else (game_gda,)
 
     def compared(source: Path) -> bool:
-        return source.is_relative_to(config.resources_dir) and source.suffix.lower() in config.extensions and source.is_file()
+        return source.is_relative_to(config.resources_dir) and compared_file(source, game_dir, config.extensions) and source.is_file()
 
     def locate(source: Path) -> list[tuple[str, Path, Path]]:
         """The GDA files named like a game file, in the trees it is searched in."""
@@ -484,7 +493,7 @@ def classify_resources(config: Config, progress: Progress | None, hashes: FileHa
         if not source.is_relative_to(config.resources_dir) or not source.is_file():
             reason = "outside resources_dir" if not source.is_relative_to(config.resources_dir) else "source file does not exist"
             return {"status": f"invalid: {reason}", "located": []}
-        if source.suffix.lower() not in config.extensions:
+        if not compared_file(source, game_dir, config.extensions):
             return None
         located = locate(source)
         # Only the game's own files are reported missing. A shared file outside game_path without a GDA copy is left
@@ -534,7 +543,14 @@ def classify_resources(config: Config, progress: Progress | None, hashes: FileHa
 
     def file_row(source: Path, result: dict) -> dict:
         entry = file_entry(source, result)
-        return {"id": row_id(entry["resource"]), **entry, "scope": scope(source), "requiredBy": required_by(found.uses.get(source, ()))}
+        row = {"id": row_id(entry["resource"]), **entry, "scope": scope(source), "requiredBy": required_by(found.uses.get(source, ()))}
+        if is_view(source, game_dir):
+            # What the view and its closest GDA file draw, with the game's resources.
+            if source.is_file():
+                row.update(describe_view(source, game_dir))
+            if result["located"]:
+                row.update({f"gda{key[0].upper()}{key[1:]}": value for key, value in describe_view(result["located"][0][2], game_dir).items()})
+        return row
 
     def sequence_row(document_name: str, sequence: ImageSequence, lines: list[int], frames: list[tuple[Any, Path]]) -> dict | None:
         """One row for a sequence, with each of its frames; None when none of its files is compared."""

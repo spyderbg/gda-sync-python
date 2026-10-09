@@ -65,7 +65,7 @@ def test_reports_every_workspace_and_records_a_failed_one(tmp_path, monkeypatch,
     assert reports["empty"]["workspace"] == {
         "id": "empty", "game_name": "Empty", "game_path": str((tmp_path / "resources" / "empty").resolve()),
         "gda_path": str((tmp_path / "empty-gda").resolve()), "common_gda_path": None,
-        "extensions": [".csv", ".dds", ".ini", ".mov", ".png", ".rtf", ".ttf", ".wav"], "resource_paths": [], "ignore_dds_mips": True,
+        "extensions": [".csv", ".dds", ".ini", ".json", ".mov", ".png", ".rtf", ".ttf", ".wav"], "resource_paths": [], "ignore_dds_mips": True,
         "multithreading": True, "use_gpu": False, "image_match_threshold": 50.0,
     }
     # The app reads what the command saved: one report file per run.
