@@ -635,6 +635,16 @@ class Library:
         workspace_id, entry = self._active_workspace()
         return {"workspaceId": workspace_id, "workspace": self._comparison(workspace_id, entry)[0], "history": self.reports.history(workspace_id)}
 
+    def delete_rss_report(self, name: str) -> dict:
+        """Delete one GDA sync report of the active workspace, by its file name. The Sync page then shows the newest
+        successful report left. Returns the history and the library."""
+        def operation() -> dict:
+            if not self.reports.delete(self._active_workspace()[0], name):
+                raise AppError("The workspace has no such GDA sync report", 404)
+            return {**self.rss_history(), "library": self.scan()}
+
+        return self._exclusive(operation)
+
     def rss_report(self) -> bytes:
         report = self.reports.report(self._active_workspace()[0])
         if report is None:

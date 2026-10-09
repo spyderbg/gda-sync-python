@@ -103,6 +103,11 @@ class ViewPositionsBody(_Body):
     positions: Annotated[list[ViewPosition], Field(min_length=1, max_length=10000)]
 
 
+class ReportFileBody(_Body):
+    # A report's file name, as the history lists it.
+    file: Annotated[str, Field(min_length=6, max_length=512, pattern=r"^[^/\\]+\.json$")]
+
+
 class ResourceFolderBody(_Body):
     file: Text4K
     # The folder that file names, rather than the one it is in.
@@ -287,6 +292,10 @@ def create_app(
     @app.get("/api/rss-sync/report")
     def rss_sync_report() -> Response:
         return Response(library.rss_report(), media_type="application/json")
+
+    @app.post("/api/rss-sync/delete-report")
+    def delete_rss_report(body: ReportFileBody) -> dict:
+        return library.delete_rss_report(body.file)
 
     @app.post("/api/sync")
     def sync(body: SyncBody) -> dict:

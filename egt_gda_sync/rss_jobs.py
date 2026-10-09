@@ -155,6 +155,18 @@ class ReportFolder:
         self._headers[file] = (key, header)
         return header
 
+    def delete(self, workspace_id: str, name: str) -> bool:
+        """Delete one of the workspace's report files, by its name; False when the workspace has no such report."""
+        file = next((file for file in self._files(workspace_id) if os.path.basename(file) == name), None)
+        if file is None:
+            return False
+        try:
+            os.unlink(file)
+        except FileNotFoundError:
+            return False
+        self._headers.pop(file, None)
+        return True
+
     def report(self, workspace_id: str) -> bytes | None:
         """The report of the last successful run as stored, or None before the first one."""
         file = self.result_file(workspace_id)

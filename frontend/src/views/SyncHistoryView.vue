@@ -3,12 +3,13 @@ import { computed, ref, watch } from 'vue';
 import { themeColor } from '../charts/chartjs';
 import { syncRunBars } from '../charts/configs';
 import ChartCanvas from '../components/ChartCanvas.vue';
+import AppModal from '../components/AppModal.vue';
 import ChartLegend from '../components/ChartLegend.vue';
 import PageHeader from '../components/PageHeader.vue';
 import ReportNotice from '../components/ReportNotice.vue';
 import { ago, imageSettings, number, plural, size, time } from '../format';
 import type { RssSyncCount, RssSyncHistory, RssSyncHistoryEntry, RssSyncSummary, RssSyncWorkspace } from '../types';
-import { busy, data, navigate, rescan, rssSync } from '../workspace';
+import { busy, data, deleteSyncReport, navigate, rescan, rssSync } from '../workspace';
 
 const CHART_RUNS = 20;
 // Whether a rise of each count is an improvement decides the color of its change.
@@ -43,6 +44,20 @@ async function loadHistory() {
   }
 }
 watch(() => `${rssSync.value?.workspaceId}|${rssSync.value?.lastRun?.finishedAt ?? ''}`, loadHistory, { immediate: true });
+
+// A report to delete waits in a dialog for confirmation. The Sync page then shows the newest successful report left.
+const deleting = ref<RssSyncHistoryEntry | null>(null);
+const latestResult = computed(() => runs.value.find(run => run.summary)?.file);
+async function confirmDelete() {
+  const run = deleting.value;
+  if (!run) return;
+  const history = await deleteSyncReport(run.file);
+  deleting.value = null;
+  if (!history) return;
+  request++;
+  runs.value = history.history;
+  workspace.value = history.workspace;
+}
 
 const running = computed(() => !!rssSync.value?.running);
 const succeeded = computed(() => runs.value.filter(run => run.summary));
@@ -190,12 +205,31 @@ const legend = computed(() => [
           <small v-if="run.descriptors !== undefined" class="text-muted">{{ number(run.descriptors) }} descriptor{{ plural(run.descriptors) }} parsed</small>
           <small v-if="run.summary?.supplementary" class="text-muted">{{ number(run.summary.supplementary) }} supplementary, in no descriptor</small>
           <small v-if="settingsChanged(run)" class="text-warning"><i aria-hidden="true" class="mdi mdi-alert-outline" /> Workspace settings have changed since this run</small>
+          <button type="button" class="btn btn-link btn-sm history-delete" :disabled="!!busy" :aria-label="`Delete the report of the run of ${time(run.finishedAt)}`"
+                  :title="`Delete ${run.file}`" @click="deleting = run">
+            <i aria-hidden="true" class="mdi mdi-delete-outline" />Delete report
+          </button>
         </div>
       </div>
     </article>
   </div>
 
   <ReportNotice v-if="loaded && !runs.length && !running" />
+
+  <AppModal v-if="deleting" title="Delete this GDA sync report?" @close="deleting = null">
+    <div class="modal-body">
+      <p>The report of the run of {{ time(deleting.finishedAt) }} is deleted: <code class="history-delete-file">{{ deleting.file }}</code>. It cannot be restored.</p>
+      <p v-if="deleting.file === latestResult" class="text-warning mb-0">
+        <i aria-hidden="true" class="mdi mdi-alert-outline" /> It is the latest successful run: the Sync page will show {{ succeeded.length > 1 ? 'the one before it' : 'no report until the next Rescan' }}.
+      </p>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-light" @click="deleting = null">Cancel</button>
+      <button type="button" class="btn btn-danger" :disabled="busy === 'delete-report'" @click="confirmDelete">
+        <i aria-hidden="true" :class="['mdi', busy === 'delete-report' ? 'mdi-loading mdi-spin' : 'mdi-delete-outline']" />Delete report
+      </button>
+    </div>
+  </AppModal>
 
   <div v-if="copies.length" class="card grid-margin">
     <div class="card-body">
@@ -263,6 +297,9 @@ const legend = computed(() => [
 .history-note { margin: 8px 0 0; font-size: 12px; color: #87909b; }
 .history-error { flex: 1 1 300px; margin: 0; color: #d2453c; font-size: 13px; overflow-wrap: anywhere; }
 .history-run-footer { display: flex; flex-wrap: wrap; gap: 4px 20px; margin-top: 14px; padding-top: 10px; border-top: 1px solid #ebedf2; }
+.history-delete { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; padding: 0 4px; color: #87909b; font-size: 12px; }
+.history-delete:hover:not(:disabled) { color: #d2453c; text-decoration: none; }
+.history-delete-file { overflow-wrap: anywhere; }
 .history-run-footer small { font-size: 11px; line-height: 1.5; }
 .history-file { font-family: monospace; overflow-wrap: anywhere; }
 /* Four series do not fit on one line in the narrow column. */

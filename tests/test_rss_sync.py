@@ -442,6 +442,34 @@ def test_rescan_starts_the_comparison_and_the_api_serves_the_workspace_report(tm
     assert REPORT_FILE.fullmatch(report_files(tmp_path / "app" / "sync-reports")[0])
 
 
+def test_a_sync_report_is_deleted_from_the_history_and_the_sync_page_shows_the_one_before(tmp_path):
+    _game, gda = write_example(tmp_path)
+    entry = {"id": "example", "game_name": "Example", "game_path": str(tmp_path / "resources" / "example"), "gda_path": str(gda),
+             "extensions": [".dds", ".wav"]}
+    config = tmp_path / "workspace.json"
+    config.write_text(json.dumps({"defaultWorkspace": "example", "workspaces": [entry]}))
+    library = Library(str(tmp_path / "app"), config_path=str(config))
+    library.init()
+    for _run in range(2):
+        assert library.compare_workspace("example")["state"] == "succeeded"
+    # A third, from another workspace, is not this workspace's.
+    other = tmp_path / "app" / "sync-reports" / "other-1791195194.json"
+    other.write_text("{}")
+    with TestClient(create_app(library, dev=True), base_url="http://127.0.0.1") as client:
+        headers = session_headers(client)
+        newest, older = (run["file"] for run in client.get("/api/rss-sync/history").json()["history"])
+        assert client.post("/api/rss-sync/delete-report", json={"file": newest}).status_code == 403
+        deleted = client.post("/api/rss-sync/delete-report", headers=headers, json={"file": newest}).json()
+        assert [run["file"] for run in deleted["history"]] == [older]
+        # The Sync page shows the newest successful report left.
+        assert Path(deleted["library"]["rssSync"]["reportPath"]).name == older
+        assert not (tmp_path / "app" / "sync-reports" / newest).exists()
+        for name in (newest, other.name, "../workspace.json", "a/b.json"):
+            refused = client.post("/api/rss-sync/delete-report", headers=headers, json={"file": name})
+            assert refused.status_code in (400, 404), name
+        assert other.exists()
+
+
 def test_syncing_report_rows_copies_the_closest_gda_file_over_the_game_resource_and_compares_again(tmp_path):
     game, gda = write_example(tmp_path)
     entry = {"id": "example", "game_name": "Example", "game_path": str(game), "gda_path": str(gda), "extensions": [".dds"]}

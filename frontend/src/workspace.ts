@@ -1,7 +1,7 @@
 // Application state shared by the layout and the views, and the actions that talk to the backend.
 import { computed, reactive, ref, watch } from 'vue';
 import { commonAction, plural, resourceAction, viewSaves, type GdaCandidate } from './format';
-import type { Asset, AssetSection, LibraryResponse, RssFileDetails, RssResource, RssSyncStatus, Session, SyncResult, View, ViewLayout, WorkspaceConfig } from './types';
+import type { Asset, AssetSection, LibraryResponse, RssFileDetails, RssResource, RssSyncHistory, RssSyncStatus, Session, SyncResult, View, ViewLayout, WorkspaceConfig } from './types';
 
 const INVALID_SESSION = 'Invalid session. Reload the application.';
 const RSS_POLL_MS = 1000;
@@ -26,7 +26,7 @@ export const reportState = computed<'unknown' | 'creating' | 'none' | 'failed' |
 export const session = reactive({ token: '', version: '', platform: '' });
 export const loadError = ref('');
 export const stopped = ref(false);
-export const busy = ref<'' | 'scan' | 'sync' | 'report' | 'settings' | 'shutdown'>('');
+export const busy = ref<'' | 'scan' | 'sync' | 'report' | 'settings' | 'shutdown' | 'delete-report'>('');
 /** What the GDA sync report resources being applied do, while busy is "sync" for them. */
 export const applying = ref<ReturnType<typeof commonAction>>(null);
 export const toast = ref<{ text: string; error?: boolean } | null>(null);
@@ -245,6 +245,21 @@ export async function openResourceFolder(file: string, isFolder = false) {
     await api('rss-sync/open-folder', 'POST', { file, isFolder });
     notify('Opened folder.');
   } catch (e) { notify((e as Error).message, true); }
+}
+
+/** Delete one GDA sync report of the active workspace, by its file name. Returns the history left, or null when it
+ * could not be deleted. */
+export async function deleteSyncReport(file: string) {
+  busy.value = 'delete-report';
+  try {
+    const result = await api<RssSyncHistory & { library: LibraryResponse }>('rss-sync/delete-report', 'POST', { file });
+    applyLibrary(result.library);
+    notify(`Deleted the GDA sync report ${file}.`);
+    return result as RssSyncHistory;
+  } catch (e) {
+    notify((e as Error).message, true);
+    return null;
+  } finally { busy.value = ''; }
 }
 
 /** Write the new positions of a view's elements, by index, into its file, from the layout of the given revision; the
