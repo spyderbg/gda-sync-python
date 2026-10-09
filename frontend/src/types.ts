@@ -23,8 +23,9 @@ export interface WorkspaceConfig {
   templates?: { source: string; destination: string };
 }
 export interface Activity {
-  /** cleanup removes the declarations of invalid resources, or deletes supplementary ones; report generates an asset report. */
-  id: string; date: string; action: 'sync' | 'scan' | 'settings' | 'cleanup' | 'report';
+  /** cleanup removes the declarations of invalid resources, or deletes supplementary ones; report generates an asset
+   * report; edit moves the elements of a view. */
+  id: string; date: string; action: 'sync' | 'scan' | 'settings' | 'cleanup' | 'report' | 'edit';
   message: string; files: string[]; bytes?: number;
 }
 export interface LibraryResponse {
@@ -285,12 +286,16 @@ export interface ViewElement {
   position: [number, number]; size: [number, number]; corners: [number, number][]; touchArea?: [number, number][];
   file?: string; source?: number[]; reason?: string; frames?: number; frameTime?: number; movie?: boolean; runtime?: boolean;
   touchOnly?: boolean; style?: string; fontSize?: number; page?: string; alpha?: number;
+  /** The element's color, red, green, blue and alpha, which tints and fades what it draws, when it has one. */
+  color?: [number, number, number, number];
   /** An Anim's image sequence: how many times it plays (the element's loopCount, or else the sequence's; 0 repeats
-   * forever), the frame later loops start at, each frame's file and source rectangle, and its placement: its matrix
-   * for the first frame's size, as SVG's matrix(a b c d e f), and its alignment's share of a frame's size. */
+   * forever), the frame later loops start at, and each frame's file and source rectangle. Every element's placement is
+   * its matrix for its size (an Anim's first frame's), as SVG's matrix(a b c d e f), and its alignment's share of a
+   * frame's size. */
   loopCount?: number | null; loopTo?: number | null; sequence?: { file: string; source?: [number, number, number, number] }[];
   placement?: { matrix: [number, number, number, number, number, number]; alignment: [number, number] };
 }
-export interface ViewLayout { name: string; resolution: { width: number; height: number }; elements: ViewElement[]; resourcesError?: string }
+/** A view's elements; revision names the file's contents, which moving its elements must start from. */
+export interface ViewLayout { name: string; resolution: { width: number; height: number }; elements: ViewElement[]; revision?: string; resourcesError?: string }
 /** A view drawn with others on one screen: its file, name and facts. */
 export interface ViewLayer { file: string; name: string; facts: ViewFacts }

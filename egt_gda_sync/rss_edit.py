@@ -1,6 +1,9 @@
-"""Remove declarations from the *Data.json resource descriptors, keeping the rest of each file's text as it is: its
-indentation, line endings and key order. A declaration is a member of a list: the entry that holds a path, the image
-sequence that holds a frame, or one sample of an audio event, and removing it keeps the separators of the others."""
+"""Edit JSON files keeping the rest of their text as it is: its indentation, line endings and key order.
+
+Remove declarations from the *Data.json resource descriptors. A declaration is a member of a list: the entry that holds
+a path, the image sequence that holds a frame, or one sample of an audio event, and removing it keeps the separators of
+the others. Set the positions of a view's elements: their x and y numbers are replaced, and an element without a
+position gets one after its last member, in the layout of its other members."""
 
 from __future__ import annotations
 
@@ -161,3 +164,63 @@ def remove_declarations(descriptor: Path, text: str, rows: list[dict], game_dir:
     result = without(text, root, removed)
     parse_dataclass(cls, json.loads(result), str(descriptor))
     return result, {row_id: len(row_keys) for row_id, row_keys in keys.items()}
+
+
+def number_text(value: float) -> str:
+    """A number as a view writes it: whole numbers without a fraction, others with at most four decimals."""
+    if float(value).is_integer():
+        return str(int(value))
+    return f"{value:.4f}".rstrip("0").rstrip(".")
+
+
+def _indent(text: str, index: int) -> str:
+    """The whitespace that starts the line holding text[index]."""
+    start = text.rfind("\n", 0, index) + 1
+    return WHITESPACE.match(text, start).group().replace("\n", "").replace("\r", "")
+
+
+def set_view_positions(text: str, positions: dict[int, tuple[float, float]]) -> str:
+    """A view's text with the positions of its elements, by their index among the objects of its elements list (the
+    last elements list, which the game reads), replaced. ValueError for an element that does not exist."""
+    root = parse(text)
+    lists = [node for key, node in root.members if key == "elements" and node.kind == "list"]
+    if root.kind != "object" or not lists:
+        raise ValueError("a view is an object with an elements list")
+    elements = [node for _index, node in lists[-1].members if node.kind == "object"]
+    edits: list[tuple[int, int, str]] = []  # replaced spans of the text, and what replaces them
+    for index, (x, y) in sorted(positions.items()):
+        if not 0 <= index < len(elements):
+            raise ValueError(f"the view has no element {index + 1}")
+        element = elements[index]
+        values = {"x": number_text(x), "y": number_text(y)}
+        # JSON reads the last of repeated keys.
+        position = next((node for key, node in reversed(element.members) if key == "position"), None)
+        numbers = {axis: next((node for key, node in reversed(position.members) if key == axis), None) for axis in values} if position else {}
+        if position is not None and position.kind == "object" and all(isinstance(node, Node) and isinstance(node.value, (int, float))
+                                                                        and not isinstance(node.value, bool) for node in numbers.values()):
+            edits.extend((node.start, node.end, values[axis]) for axis, node in numbers.items())
+            continue
+        # A new position object, laid out like the element's members: on lines of their own, or on the element's line.
+        first = element.members[0][1] if element.members else None
+        key_start = text.rfind('"', element.start, first.start) if first else -1
+        key_start = text.rfind('"', element.start, key_start) if key_start > 0 else -1
+        multiline = first is not None and "\n" in text[element.start:key_start]
+        if multiline:
+            outer, inner = _indent(text, element.start), _indent(text, key_start)
+            step = inner[len(outer):] if inner.startswith(outer) and len(inner) > len(outer) else "  "
+            newline = "\r\n" if "\r\n" in text[element.start:key_start] else "\n"
+            value = "{" + newline + f'{inner}{step}"x": {values["x"]},' + newline + f'{inner}{step}"y": {values["y"]}' + newline + inner + "}"
+        else:
+            value = '{"x": %s, "y": %s}' % (values["x"], values["y"])
+        if position is not None:
+            edits.append((position.start, position.end, value))
+        elif first is None:
+            edits.append((element.start, element.end, '{"position": %s}' % value))
+        else:
+            last = element.members[-1][1]
+            separator = ("," + newline + inner) if multiline else ", "
+            edits.append((last.end, last.end, f'{separator}"position": {value}'))
+    for start, end, replacement in sorted(edits, reverse=True):
+        text = text[:start] + replacement + text[end:]
+    json.loads(text)
+    return text

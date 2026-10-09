@@ -90,6 +90,19 @@ class ResourceFileBody(_Body):
     file: Text4K
 
 
+class ViewPosition(_Body):
+    index: Annotated[int, Field(ge=0, le=100000)]
+    x: Annotated[float, Field(allow_inf_nan=False, ge=-1e6, le=1e6)]
+    y: Annotated[float, Field(allow_inf_nan=False, ge=-1e6, le=1e6)]
+
+
+class ViewPositionsBody(_Body):
+    file: Text4K
+    # The view's revision in the layout its elements were moved in.
+    revision: Annotated[str, Field(min_length=1, max_length=64)]
+    positions: Annotated[list[ViewPosition], Field(min_length=1, max_length=10000)]
+
+
 class ResourceFolderBody(_Body):
     file: Text4K
     # The folder that file names, rather than the one it is in.
@@ -281,11 +294,14 @@ def create_app(
 
     @app.get("/api/rss-sync/preview")
     def rss_sync_preview(file: Annotated[str, Query(max_length=4096)], width: Annotated[int | None, Query(ge=16, le=8192)] = None,
-                         hidden: bool = False, crop: bool = False, segment: Annotated[int | None, Query(ge=0, le=100000)] = None) -> Response:
+                         hidden: bool = False, crop: bool = False, segment: Annotated[int | None, Query(ge=0, le=100000)] = None,
+                         cuts: Annotated[str | None, Query(max_length=8192, pattern=r"^(\d{1,6}(,\d{1,6})*)?$")] = None) -> Response:
         # A view is composed as an image as wide as width, with its hidden elements, cropped to what it draws, or only the
-        # segment of its still elements between two Anims that play, on request.
+        # segment of its elements between two that the page draws itself (cuts, by index; by default the Anims that play),
+        # on request.
         if width is not None or hidden or crop or segment is not None:
-            return Response(library.view_preview(file, width, hidden, crop, segment), media_type="image/png",
+            split = tuple(int(index) for index in cuts.split(",") if index) if cuts is not None else None
+            return Response(library.view_preview(file, width, hidden, crop, segment, split), media_type="image/png",
                             headers={"Content-Security-Policy": PREVIEW_CSP})
         data, mime = library.resource_preview(file)
         headers = {"Content-Security-Policy": PREVIEW_CSP}
@@ -320,6 +336,10 @@ def create_app(
     def open_declaration(body: OpenDeclarationBody) -> dict:
         code_opener(library.descriptor_path(body.descriptor), body.line)
         return {"opened": True}
+
+    @app.post("/api/rss-sync/view-positions")
+    def save_view_positions(body: ViewPositionsBody) -> dict:
+        return library.save_view_positions(body.file, body.revision, {item.index: (item.x, item.y) for item in body.positions})
 
     @app.post("/api/rss-sync/open-view-element")
     def open_view_element(body: OpenViewElementBody) -> dict:

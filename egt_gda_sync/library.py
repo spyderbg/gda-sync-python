@@ -29,7 +29,7 @@ from .errors import AppError, error_message
 from .asset_report import AssetReports, inventory
 from .fonts import FONT_EXTENSIONS, describe_font
 from .png import PNG_SIGNATURE
-from .rss_edit import parse as parse_json_source, remove_declarations
+from .rss_edit import parse as parse_json_source, remove_declarations, set_view_positions
 from .rss_jobs import SyncJobs
 from .image_cache import CACHE_FILE
 from .paths import PLACEHOLDER, contract, expand, expand_fields, global_paths
@@ -1092,12 +1092,14 @@ class Library:
         game = root if any(root.glob("*Data.json")) and not included else destination
         return path, game, tuple(Path(folder) for folder in self._resource_roots())
 
-    def view_preview(self, file: str, width: int | None = None, hidden: bool = False, crop: bool = False, segment: int | None = None) -> bytes:
+    def view_preview(self, file: str, width: int | None = None, hidden: bool = False, crop: bool = False, segment: int | None = None,
+                     cuts: tuple[int, ...] | None = None) -> bytes:
         """A view composed as a PNG image, as wide as width (a card's width by default), with its hidden elements on
-        request, cropped to what it draws on request, or only one segment of its still elements."""
+        request, cropped to what it draws on request, or only one segment of it, between the elements that the page
+        draws itself (cuts)."""
         path, game, roots = self._view(file)
         try:
-            return render_view(path, width or THUMBNAIL_WIDTH, hidden, game, roots, crop, segment)
+            return render_view(path, width or THUMBNAIL_WIDTH, hidden, game, roots, crop, segment, cuts)
         except FileNotFoundError as error:
             raise AppError("File not found", 404) from error
         except (OSError, ValueError, RecursionError) as error:
@@ -1112,6 +1114,45 @@ class Library:
             raise AppError("File not found", 404) from error
         except (OSError, ValueError, RecursionError) as error:
             raise AppError(error_message(error), 415) from error
+
+    def save_view_positions(self, file: str, revision: str, positions: dict[int, tuple[float, float]]) -> dict:
+        """Write new positions of a game view's elements, by index, into its file, keeping the rest of its text, and save
+        the file it replaces in the backups. revision is the file the positions were moved in, from its layout: a view
+        changed since is refused. Returns the view's new layout and the library."""
+        def operation() -> dict:
+            path, game, roots = self._view(file)
+            workspace_id, entry = self._active_workspace()
+            resources = os.path.realpath(self._comparison(workspace_id, entry)[1]["resources_dir"])
+            if not contained(resources, str(path)):
+                raise AppError("Only the views of the game's resources can be edited", 403)
+            relative = os.path.relpath(path, resources)
+            target = safe_path(resources, relative)
+            try:
+                data = Path(target).read_bytes()
+            except FileNotFoundError as error:
+                raise AppError("File not found", 404) from error
+            if hashlib.sha256(data).hexdigest()[:16] != revision:
+                raise AppError("The view changed on disk since it was opened. Open it again to move its elements.", 409)
+            bom = data.startswith(b"\xef\xbb\xbf")
+            try:
+                text = set_view_positions(data[3 if bom else 0:].decode("utf-8"), positions)
+            except (UnicodeDecodeError, ValueError) as error:
+                raise AppError(error_message(error), 400) from error
+            result = (b"\xef\xbb\xbf" if bom else b"") + text.encode("utf-8")
+            if result != data:
+                backup = os.path.join(self.backup_path, str(uuid.uuid4()), relative)
+                os.makedirs(os.path.dirname(backup), exist_ok=True)
+                _copy_exclusive(target, backup)
+                _write_file(target, result)
+                count = len(positions)
+                self._record("edit", f"Moved {count} element{'' if count == 1 else 's'} of {path.stem}", [relative.replace(os.sep, "/")])
+            try:
+                layout = view_layout(path, game, roots)
+            except (OSError, ValueError, RecursionError) as error:
+                raise AppError(error_message(error), 415) from error
+            return {"layout": layout, "library": self.scan()}
+
+        return self._exclusive(operation)
 
     def view_element_location(self, file: str, index: int) -> tuple[str, int]:
         """The current source line of an element in a workspace view, in the preview's drawing order."""

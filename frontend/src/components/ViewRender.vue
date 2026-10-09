@@ -3,12 +3,14 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { reportPreviewURL, viewRenderURL } from '../format';
 import type { ViewElement, ViewLayout } from '../types';
 
-// One view of a large view preview's screen, as the game draws it. A view without an Anim that plays is the backend's
-// render of all its elements. Otherwise each Anim whose image sequence has more than one frame plays as the game plays
-// it (ImageSeqElement): a frame every frameTime milliseconds, loopCount times (0 repeats forever, each loop after the
-// first starting at frame loopTo), each frame placed by its own size, between the backend's renders of the still
-// elements drawn before and after it (segments), so that it stays over and under the elements it is between. The whole
-// render is shown until every segment has loaded, and an Anim shows its first frame until all its frames have loaded.
+// One view of a large view preview's screen, as the game draws it. A view without an Anim that plays, or a moved element,
+// is the backend's render of all its elements. Otherwise the page draws those elements itself, between the backend's
+// renders of the other elements drawn before and after each (segments, cut at them), so that each stays over and under
+// the elements it is between. Each Anim whose image sequence has more than one frame plays as the game plays it
+// (ImageSeqElement): a frame every frameTime milliseconds, loopCount times (0 repeats forever, each loop after the first
+// starting at frame loopTo), each frame placed by its own size; a moved element is drawn where it was moved to. Both are
+// tinted and faded by their color. The segments shown change once all the new ones have loaded, so that no element
+// disappears while they load, and an Anim shows its first frame until all its frames have loaded.
 const props = defineProps<{
   /** The view's absolute path, as the report stores it. */
   file: string;
@@ -22,32 +24,56 @@ const props = defineProps<{
   playing: boolean;
   /** Changed to play every Anim again from its first frame. */
   restart: number;
+  /** How far each moved element is moved, by its index. */
+  moves?: Record<number, [number, number]>;
 }>();
 const emit = defineEmits<{ error: [] }>();
 
 /** The Anims that play, in drawing order: those the backend cuts its segments at (animated in egt_gda_sync/views.py). */
 const anims = computed<ViewElement[]>(() => (props.layout?.elements ?? []).filter(element => element.type === 'Anim' && element.drawn
   && (element.frames ?? 0) > 1 && !!element.sequence?.length && !!element.placement && (props.hidden || !element.hidden)));
-const segmentURL = (segment: number) => `${viewRenderURL(props.file, props.revision, props.resolution.width, props.hidden)}&segment=${segment}`;
 const frameURL = (file: string) => reportPreviewURL(file, props.revision);
+const byIndex = computed(() => new Map((props.layout?.elements ?? []).map(element => [element.index, element])));
+const animAt = computed(() => new Map(anims.value.map((anim, position) => [anim.index, position])));
 
-// The segments are shown once all of them have loaded, so that no still element disappears while they load.
-const segmentsReady = ref(false);
+/** The elements the page draws itself, in drawing order: the Anims that play and the moved elements that draw an image. */
+const live = computed(() => (props.layout?.elements ?? []).filter(element => element.drawn && element.type !== 'Dummy' && !!element.placement
+  && (props.hidden || !element.hidden) && (animAt.value.has(element.index) || !!props.moves?.[element.index])));
+// The segments, cut at the elements drawn live: those shown, and the next ones while they load.
+interface Segments { key: string; indices: number[]; urls: string[] }
+const wanted = computed<Segments>(() => {
+  const indices = live.value.map(element => element.index);
+  const key = `${viewRenderURL(props.file, props.revision, props.resolution.width, props.hidden)}&cuts=${indices.join(',')}`;
+  return { key, indices, urls: indices.length ? Array.from({ length: indices.length + 1 }, (_value, segment) => `${key}&segment=${segment}`) : [] };
+});
+const shown = ref<Segments | null>(null);
 let segmentLoad = 0;
-watch(() => [anims.value.length, props.file, props.revision, props.hidden, props.resolution.width], () => {
+watch(() => wanted.value.key, () => {
   const current = ++segmentLoad;
-  segmentsReady.value = false;
-  if (!anims.value.length) return;
-  void Promise.all(Array.from({ length: anims.value.length + 1 }, (_value, segment) => new Promise<boolean>(resolve => {
+  const next = wanted.value;
+  if (!next.indices.length) { shown.value = null; return; }
+  void Promise.all(next.urls.map(url => new Promise<boolean>(resolve => {
     const image = new Image();
     image.onload = () => resolve(true);
     image.onerror = () => resolve(false);
-    image.src = segmentURL(segment);
+    image.src = url;
   }))).then(results => {
     if (current !== segmentLoad) return;
-    if (results.every(Boolean)) segmentsReady.value = true;
+    if (results.every(Boolean)) shown.value = next;
     else emit('error');
   });
+}, { immediate: true });
+
+// The images of the moved elements that are not Anims, for the size of an image that a source rectangle is cut from.
+const stills = ref(new Map<string, HTMLImageElement>());
+watch(live, elements => {
+  for (const element of elements) {
+    if (!element.file || !element.source || stills.value.has(element.file) || animAt.value.has(element.index)) continue;
+    const file = element.file;
+    const image = new Image();
+    image.onload = () => { stills.value.set(file, image); };
+    image.src = frameURL(file);
+  }
 }, { immediate: true });
 
 // The loaded images of the frames, by file, and the frame each Anim shows.
@@ -138,38 +164,56 @@ function run() {
 }
 onBeforeUnmount(() => { generation++; segmentLoad++; cancelAnimationFrame(handle); });
 
-/** An Anim's frame as it is drawn: its image, the part of it, its size, and its matrix for that size. */
-function drawn(anim: ViewElement, position: number) {
-  const frame = anim.sequence![shownFrames.value[position]] ?? anim.sequence![0];
-  const image = images.value.get(frame.file);
-  const [x, y, w, h] = frame.source ?? [0, 0, image?.naturalWidth ?? anim.size[0], image?.naturalHeight ?? anim.size[1]];
-  // A frame of another size than the first is moved by its alignment's share of the difference (BaseElement::GetTransform).
-  const [a, b, c, d, e, f] = anim.placement!.matrix;
-  const [shareX, shareY] = anim.placement!.alignment;
-  const dx = shareX * (w - anim.size[0]);
-  const dy = shareY * (h - anim.size[1]);
+/** An element drawn live: its image, or an Anim's frame, the part of it, its size, and its matrix for that size where it
+ * was moved to, with its fade and tint. */
+function drawn(element: ViewElement) {
+  const position = animAt.value.get(element.index);
+  const frame = position !== undefined ? element.sequence![shownFrames.value[position]] ?? element.sequence![0]
+    : { file: element.file!, source: element.source as [number, number, number, number] | undefined };
+  const image = position !== undefined ? images.value.get(frame.file) : stills.value.get(frame.file);
+  const [x, y, w, h] = frame.source ?? [0, 0, position !== undefined ? image?.naturalWidth ?? element.size[0] : element.size[0],
+    position !== undefined ? image?.naturalHeight ?? element.size[1] : element.size[1]];
+  // A frame of another size than the first is moved by its alignment's share of the difference (BaseElement::GetTransform),
+  // and a moved element by how far it was moved.
+  const [a, b, c, d, e, f] = element.placement!.matrix;
+  const [shareX, shareY] = element.placement!.alignment;
+  const dx = shareX * (w - element.size[0]);
+  const dy = shareY * (h - element.size[1]);
+  const [moveX, moveY] = props.moves?.[element.index] ?? [0, 0];
+  const [red, green, blue, alpha] = element.color ?? [255, 255, 255, element.alpha ?? 255];
   return {
+    index: element.index, id: element.id, anim: position !== undefined, frame: position !== undefined ? shownFrames.value[position] : undefined,
     url: frameURL(frame.file), source: frame.source ? { x, y, w, h } : null, width: w, height: h,
     image: image ? { width: image.naturalWidth, height: image.naturalHeight } : null,
-    matrix: `matrix(${a} ${b} ${c} ${d} ${e - a * dx - c * dy} ${f - b * dx - d * dy})`,
+    matrix: `matrix(${a} ${b} ${c} ${d} ${e - a * dx - c * dy + moveX} ${f - b * dx - d * dy + moveY})`,
+    opacity: alpha / 255,
+    tint: red < 255 || green < 255 || blue < 255 ? `${red / 255} 0 0 0 0 0 ${green / 255} 0 0 0 0 0 ${blue / 255} 0 0 0 0 0 1 0` : null,
   };
 }
-const frames = computed(() => anims.value.map((anim, position) => ({ ...drawn(anim, position), opacity: (anim.alpha ?? 255) / 255 })));
+// The elements drawn live between the segments shown, in drawing order, where they are now.
+const items = computed(() => (shown.value?.indices ?? []).map(index => byIndex.value.get(index)).map(element => (element ? drawn(element) : null)));
+const animCount = computed(() => items.value.filter(item => item?.anim).length);
+// Tint filters need ids of their own on the page.
+const uid = `view-render-${Math.random().toString(36).slice(2, 10)}`;
 </script>
 
 <template>
-  <svg v-if="anims.length && segmentsReady" class="view-stage-image view-render" :viewBox="`0 0 ${resolution.width} ${resolution.height}`" preserveAspectRatio="none"
-       role="img" :aria-label="`${name} as the game draws it, with ${anims.length} animation${anims.length === 1 ? '' : 's'}`" :data-view="name" :data-anims="anims.length">
-    <template v-for="segment in anims.length + 1" :key="segment">
-      <image :href="segmentURL(segment - 1)" x="0" y="0" :width="resolution.width" :height="resolution.height" preserveAspectRatio="none" @error="emit('error')" />
-      <g v-if="segment <= anims.length" class="view-anim" :data-element="anims[segment - 1].id" :data-frame="shownFrames[segment - 1]"
-         :transform="frames[segment - 1].matrix" :opacity="frames[segment - 1].opacity">
-        <svg v-if="frames[segment - 1].source && frames[segment - 1].image" :width="frames[segment - 1].width" :height="frames[segment - 1].height"
-             :viewBox="`${frames[segment - 1].source!.x} ${frames[segment - 1].source!.y} ${frames[segment - 1].source!.w} ${frames[segment - 1].source!.h}`" preserveAspectRatio="none">
-          <image :href="frames[segment - 1].url" :width="frames[segment - 1].image!.width" :height="frames[segment - 1].image!.height" />
+  <svg v-if="shown" class="view-stage-image view-render" :viewBox="`0 0 ${resolution.width} ${resolution.height}`" preserveAspectRatio="none"
+       role="img" :aria-label="`${name} as the game draws it${animCount ? `, with ${animCount} animation${animCount === 1 ? '' : 's'}` : ''}`" :data-view="name" :data-anims="animCount">
+    <defs>
+      <template v-for="item in items" :key="item?.index">
+        <filter v-if="item?.tint" :id="`${uid}-${item.index}`" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" :values="item.tint" /></filter>
+      </template>
+    </defs>
+    <template v-for="(item, position) in [null, ...items]" :key="position">
+      <g v-if="item" :class="['view-live', { 'view-anim': item.anim }]" :data-element="item.id" :data-frame="item.frame" :transform="item.matrix" :opacity="item.opacity"
+         :filter="item.tint ? `url(#${uid}-${item.index})` : undefined">
+        <svg v-if="item.source && item.image" :width="item.width" :height="item.height" :viewBox="`${item.source.x} ${item.source.y} ${item.source.w} ${item.source.h}`" preserveAspectRatio="none">
+          <image :href="item.url" :width="item.image.width" :height="item.image.height" />
         </svg>
-        <image v-else-if="!frames[segment - 1].source" :href="frames[segment - 1].url" :width="frames[segment - 1].width" :height="frames[segment - 1].height" preserveAspectRatio="none" />
+        <image v-else-if="!item.source" :href="item.url" :width="item.width" :height="item.height" preserveAspectRatio="none" />
       </g>
+      <image :href="shown.urls[position]" x="0" y="0" :width="resolution.width" :height="resolution.height" preserveAspectRatio="none" @error="emit('error')" />
     </template>
   </svg>
   <img v-else class="view-stage-image" :src="viewRenderURL(file, revision, resolution.width, hidden)" :alt="`${name} as the game draws it`" :data-view="name" @error="emit('error')">

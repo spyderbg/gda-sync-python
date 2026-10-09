@@ -20,11 +20,13 @@ alignment and its size, scaled and rotated around its pivot, at its position; an
 is drawn only on request. *Data.json files in the v folder are descriptors, not views.
 
 describe_view gives the facts a report keeps, view_layout the place of every element, and render_view the view composed
-as a PNG image, or one segment of it.
+as a PNG image, or one segment of it: the elements between two that the page draws itself, such as the Anims that
+play and the elements being moved.
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 import os
@@ -392,13 +394,15 @@ def view_layout(path: Path, game_dir: Path | None = None, roots: tuple[Path, ...
             "corners": corners(matrix, drawing.size),
             **({"file": str(drawing.file)} if drawing.file else {}), **({"source": list(drawing.source)} if drawing.source else {}),
             **({"reason": drawing.reason} if drawing.reason else {}), **drawing.detail,
-            **({"alpha": _color(element.get("color"))[3]} if "color" in element else {}),
-            **({"placement": placement(element, drawing.size)} if kind == "Anim" and "sequence" in drawing.detail else {}),
+            **({"alpha": _color(element.get("color"))[3], "color": list(_color(element.get("color")))} if "color" in element else {}),
+            "placement": placement(element, drawing.size),
             **({"touchArea": corners(matrix @ np.vstack([np.hstack([np.eye(2), [[touch[0]], [touch[1]]]]), [0, 0, 1]]), touch[2:])}
                if touch else {}),
         })
+    # The file's contents, which an edit of the positions must start from.
+    revision = hashlib.sha256(path.read_bytes()).hexdigest()[:16]
     return {"name": view["name"], "resolution": {"width": resolution[0], "height": resolution[1]}, "elements": elements,
-            **({"resourcesError": resources.error} if resources.error else {})}
+            "revision": revision, **({"resourcesError": resources.error} if resources.error else {})}
 
 
 def describe_view(path: Path, game_dir: Path | None = None) -> dict:
@@ -461,12 +465,13 @@ def _scaled_image(file: Path, source: tuple[int, int, int, int] | None, scale: f
 
 
 def render_view(path: Path, width: int | None = None, hidden: bool = False, game_dir: Path | None = None,
-                roots: tuple[Path, ...] = (), crop: bool = False, segment: int | None = None) -> bytes:
+                roots: tuple[Path, ...] = (), crop: bool = False, segment: int | None = None,
+                cuts: tuple[int, ...] | None = None) -> bytes:
     """The view composed as a PNG image with a transparent background, as wide as width (at most the view's own width):
     every element that draws an image, in order, hidden ones too on request, an Anim with its first frame. Cropped, it
     shows only the part of the screen that the view draws on, with a margin, so a small view fills a card. A segment
-    draws only the still elements between two Anims that play: segment 0 the ones before the first, segment n the ones
-    after the nth, so that the frames of each can be drawn between them. Renders are kept until the view or an image it
+    draws only the elements between two that the page draws itself (cuts, by element index; by default the Anims that
+    play): segment 0 the ones before the first, segment n the ones after the nth, so that each can be drawn between them. Renders are kept until the view or an image it
     draws changes."""
     layout = view_layout(path, game_dir, roots)
     resolution = layout["resolution"]
@@ -474,10 +479,11 @@ def render_view(path: Path, width: int | None = None, hidden: bool = False, game
                 if element["drawn"] and (hidden or not element["hidden"]) and element["type"] != "Dummy"]
     shown = elements
     if segment is not None:
-        cuts = [position for position, element in enumerate(elements) if animated(element)]
-        if segment > len(cuts):
-            raise ValueError(f"the view has {len(cuts) + 1} segments")
-        shown = elements[cuts[segment - 1] + 1 if segment else 0:cuts[segment] if segment < len(cuts) else len(elements)]
+        split = [position for position, element in enumerate(elements)
+                 if (element["index"] in cuts if cuts is not None else animated(element))]
+        if segment > len(split):
+            raise ValueError(f"the view has {len(split) + 1} segments")
+        shown = elements[split[segment - 1] + 1 if segment else 0:split[segment] if segment < len(split) else len(elements)]
     # The part of the screen drawn: all of it, or what the elements cover, with a margin.
     left, top, right, bottom = 0.0, 0.0, float(resolution["width"]), float(resolution["height"])
     if crop and elements:
@@ -490,7 +496,7 @@ def render_view(path: Path, width: int | None = None, hidden: bool = False, game
     # A cropped render may be drawn up to twice as large, so a small view stays sharp in a card.
     scale = min(CROP_ZOOM if crop else 1.0, (width or resolution["width"]) / (right - left))
     view = path.stat()
-    signature = (str(path), view.st_mtime_ns, view.st_size, round(scale, 6), hidden, (left, top, right, bottom), segment,
+    signature = (str(path), view.st_mtime_ns, view.st_size, round(scale, 6), hidden, (left, top, right, bottom), segment, cuts,
                  tuple((element["file"], os.stat(element["file"]).st_mtime_ns) for element in shown))
     with _render_lock:
         if signature in _renders:

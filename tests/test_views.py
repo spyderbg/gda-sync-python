@@ -243,6 +243,45 @@ def test_the_api_draws_a_view_and_lists_its_elements(client):
     assert api.get("/api/rss-sync/view", params={"file": str(root / "elsewhere" / "v" / "OtherView.json")}).status_code == 404
 
 
+def test_the_api_saves_moved_elements_into_the_view_file_and_backs_it_up(client):
+    api, game, root = client
+    headers = session_headers(api)
+    main = game / "v" / "1920x1080" / "MainView.json"
+    main.write_text(json.dumps(json.loads(main.read_text()), indent=2) + "\n")
+    before = main.read_text()
+    layout = api.get("/api/rss-sync/view", params={"file": str(main)}).json()
+    # Every element has its placement; a moved element is cut out of the segments, for the page to draw it.
+    assert all("placement" in element for element in layout["elements"])
+    whole = decode(api.get("/api/rss-sync/preview", params={"file": str(main), "width": 1920}).content)
+    cut = decode(api.get("/api/rss-sync/preview", params={"file": str(main), "width": 1920, "segment": 0, "cuts": "0"}).content)
+    assert tuple(whole[50, 100]) == RED and cut[50, 100, 3] == 0
+    assert api.get("/api/rss-sync/preview", params={"file": str(main), "width": 1920, "segment": 0, "cuts": "a"}).status_code == 400
+
+    endpoint = "/api/rss-sync/view-positions"
+    body = {"file": str(main), "revision": layout["revision"], "positions": [{"index": 0, "x": 120, "y": 64.5}, {"index": 9, "x": 3, "y": 4}]}
+    assert api.post(endpoint, json=body).status_code == 403
+    saved = api.post(endpoint, headers=headers, json=body).json()
+    data = json.loads(main.read_text())
+    # image_red's numbers change and dummy_point, which had no position, gets one; the rest of the text stays.
+    assert data["elements"][0]["position"] == {"x": 120, "y": 64.5} and data["elements"][9]["position"] == {"x": 3, "y": 4}
+    assert main.read_text().replace('"x": 120', '"x": 100').replace('"y": 64.5', '"y": 50').splitlines()[:40] == before.splitlines()[:40]
+    assert saved["layout"]["elements"][0]["position"] == [120, 64.5] and saved["layout"]["revision"] != layout["revision"]
+    assert saved["library"]["activity"][0]["action"] == "edit" and saved["library"]["activity"][0]["message"] == "Moved 2 elements of MainView"
+    backups = list(Path(saved["library"]["backupPath"]).rglob("MainView.json"))
+    assert len(backups) == 1 and backups[0].read_text() == before
+    # A view changed since its layout was read, an element that does not exist, and a GDA view are refused.
+    stale = api.post(endpoint, headers=headers, json=body)
+    assert stale.status_code == 409 and "changed on disk" in stale.json()["error"]
+    missing = api.post(endpoint, headers=headers, json={**body, "revision": saved["layout"]["revision"], "positions": [{"index": 99, "x": 0, "y": 0}]})
+    assert missing.status_code == 400 and "no element 100" in missing.json()["error"]
+    gda_view = root / "gda" / "v" / "1920x1080" / "GdaView.json"
+    gda_view.parent.mkdir(parents=True)
+    gda_view.write_text('{"name": "GdaView", "elements": [{"id": "a", "type": "Dummy"}]}')
+    gda_layout = api.get("/api/rss-sync/view", params={"file": str(gda_view)}).json()
+    refused = api.post(endpoint, headers=headers, json={"file": str(gda_view), "revision": gda_layout["revision"], "positions": [{"index": 0, "x": 1, "y": 1}]})
+    assert refused.status_code == 403
+
+
 def test_open_view_element_uses_current_source_and_rejects_invalid_targets(client):
     api, game, root = client
     file = game / "v" / "1920x1080" / "MainView.json"

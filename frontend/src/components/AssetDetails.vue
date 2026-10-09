@@ -22,6 +22,12 @@ import ViewPreview from './ViewPreview.vue';
 // button opens the RTF's folder itself. Escape closes the dialog.
 const props = defineProps<{ row: ReportAsset; revision: string }>();
 const emit = defineEmits<{ close: [] }>();
+// A view's elements can be moved; closing with moves that are not saved asks first.
+const unsaved = ref(false);
+function close() {
+  if (unsaved.value && !window.confirm('Discard the elements you moved without saving them?')) return;
+  emit('close');
+}
 
 const sequence = computed(() => props.row.sequence);
 const name = computed(() => splitPath(props.row.resource).name);
@@ -149,7 +155,7 @@ const scope = computed(() => ({ game: '', common: 'A common resource, shared wit
 </script>
 
 <template>
-  <AppModal :title="name" xl @close="emit('close')">
+  <AppModal :title="name" xl @close="close">
     <div class="modal-body details-dialog asset-details">
       <div class="details-previews">
         <figure class="details-preview">
@@ -164,7 +170,7 @@ const scope = computed(() => ({ game: '', common: 'A common resource, shared wit
           <FontPreview v-else-if="isFont && readable" :file="row.resourcePath" :name="name" :revision="revision" large
                        :chars="fontUse?.chars" :size="fontUse?.size" :missing="fontUse?.coverage?.missing" />
           <RtfPreview v-else-if="rtf" v-model:page="rtfPage" :file="file" :name="name" :revision="revision" :facts="rtf" large />
-          <ViewPreview v-else-if="view" :file="file" :name="name" :revision="revision" :facts="view" large />
+          <ViewPreview v-else-if="view" :file="file" :name="name" :revision="revision" :facts="view" large editable @dirty="unsaved = $event" />
           <ReportThumbnail v-else :file="file" :name="baseName(file)" :revision="revision" :preview="readable && row.preview !== false" />
         </figure>
       </div>
@@ -303,7 +309,7 @@ const scope = computed(() => ({ game: '', common: 'A common resource, shared wit
     </div>
     <div class="modal-footer details-footer">
       <span class="text-muted">{{ row.resource }}</span>
-      <button type="button" class="btn btn-light" @click="emit('close')">Close</button>
+      <button type="button" class="btn btn-light" @click="close">Close</button>
     </div>
   </AppModal>
 </template>

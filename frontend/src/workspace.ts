@@ -1,7 +1,7 @@
 // Application state shared by the layout and the views, and the actions that talk to the backend.
 import { computed, reactive, ref, watch } from 'vue';
-import { commonAction, plural, resourceAction, type GdaCandidate } from './format';
-import type { Asset, AssetSection, LibraryResponse, RssFileDetails, RssResource, RssSyncStatus, Session, SyncResult, View, WorkspaceConfig } from './types';
+import { commonAction, plural, resourceAction, viewSaves, type GdaCandidate } from './format';
+import type { Asset, AssetSection, LibraryResponse, RssFileDetails, RssResource, RssSyncStatus, Session, SyncResult, View, ViewLayout, WorkspaceConfig } from './types';
 
 const INVALID_SESSION = 'Invalid session. Reload the application.';
 const RSS_POLL_MS = 1000;
@@ -245,6 +245,21 @@ export async function openResourceFolder(file: string, isFolder = false) {
     await api('rss-sync/open-folder', 'POST', { file, isFolder });
     notify('Opened folder.');
   } catch (e) { notify((e as Error).message, true); }
+}
+
+/** Write the new positions of a view's elements, by index, into its file, from the layout of the given revision; the
+ * view's renders are asked for again. Returns its new layout, or null when it could not be saved. */
+export async function saveViewPositions(file: string, name: string, revision: string, positions: { index: number; x: number; y: number }[]) {
+  try {
+    const result = await api<{ layout: ViewLayout; library: LibraryResponse }>('rss-sync/view-positions', 'POST', { file, revision, positions });
+    applyLibrary(result.library);
+    viewSaves[file] = (viewSaves[file] ?? 0) + 1;
+    notify(`Saved the position${plural(positions.length)} of ${positions.length} element${plural(positions.length)} in ${name}.`);
+    return result.layout;
+  } catch (e) {
+    notify((e as Error).message, true);
+    return null;
+  }
 }
 
 export async function openDeclaration(descriptor: string, line: number) {

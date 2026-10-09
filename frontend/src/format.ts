@@ -1,3 +1,4 @@
+import { reactive } from 'vue';
 import type { AssetCategory, AssetDeclaration, AssetSection, AssetSequence, AssetStatus, AssetType, ImageAlgorithms, ImageCandidate, ViewFacts, ImageEvaluation, ImageMatchType, PreviewFrame, ReportAsset, RssCategory, RssResource, RssRtfDirectory, RssSequence, RssSyncWorkspace, RtfChange, RtfFacts } from './types';
 
 export const ASSET_TYPES = ['texture', 'model', 'material', 'audio', 'font', 'rtf', 'view'] as const;
@@ -255,8 +256,10 @@ export const defaultCandidate = (candidates: GdaCandidate[]) => candidates.find(
 
 /** The URL of a view composed as an image, as wide as width, with its hidden elements, and cropped to what it draws, on
  * request. */
+/** How many times each view, by its file, was saved since the page loaded: its renders are asked for again. */
+export const viewSaves = reactive<Record<string, number>>({});
 export const viewRenderURL = (file: string, revision: string, width: number, hidden = false, crop = false) =>
-  `${reportPreviewURL(file, revision)}&width=${width}${hidden ? '&hidden=true' : ''}${crop ? '&crop=true' : ''}`;
+  `${reportPreviewURL(file, revision)}&width=${width}${hidden ? '&hidden=true' : ''}${crop ? '&crop=true' : ''}${viewSaves[file] ? `&saved=${viewSaves[file]}` : ''}`;
 /** A view's elements by type, such as "6 images · 1 anim". */
 export const viewSummary = (facts: ViewFacts) => Object.entries(facts.types)
   .map(([type, count]) => `${number(count)} ${type.toLowerCase()}${count === 1 ? '' : type === 'Dummy' ? '' : 's'}`).join(' · ');

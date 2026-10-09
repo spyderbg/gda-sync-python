@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { assetBadges, number, plural, splitPath, viewSummary } from '../format';
 import type { ReportAsset, ViewLayer } from '../types';
 import AppModal from './AppModal.vue';
@@ -14,15 +14,21 @@ const emit = defineEmits<{ close: [] }>();
 const nameOf = (row: ReportAsset) => splitPath(row.resource).name.replace(/\.json$/i, '');
 const layers = computed<ViewLayer[]>(() => props.rows.flatMap(row => (row.view ? [{ file: row.resourcePath, name: nameOf(row), facts: row.view }] : [])));
 const first = computed(() => layers.value[0]);
+// The views' elements can be moved; closing with moves that are not saved asks first.
+const unsaved = ref(false);
+function close() {
+  if (unsaved.value && !window.confirm('Discard the elements you moved without saving them?')) return;
+  emit('close');
+}
 </script>
 
 <template>
-  <AppModal :title="`${number(layers.length)} views`" xl @close="emit('close')">
+  <AppModal :title="`${number(layers.length)} views`" xl @close="close">
     <div class="modal-body details-dialog asset-details">
       <div class="details-previews">
         <figure class="details-preview">
           <figcaption>Views, as the game draws them together</figcaption>
-          <ViewPreview v-if="first" :file="first.file" :name="first.name" :revision="revision" :facts="first.facts" :layers="layers" large />
+          <ViewPreview v-if="first" :file="first.file" :name="first.name" :revision="revision" :facts="first.facts" :layers="layers" large editable @dirty="unsaved = $event" />
         </figure>
       </div>
       <section class="details-facts" aria-label="Views">
@@ -44,7 +50,7 @@ const first = computed(() => layers.value[0]);
     </div>
     <div class="modal-footer details-footer">
       <span class="text-muted">{{ layers.map(layer => layer.name).join(' · ') }}</span>
-      <button type="button" class="btn btn-light" @click="emit('close')">Close</button>
+      <button type="button" class="btn btn-light" @click="close">Close</button>
     </div>
   </AppModal>
 </template>
