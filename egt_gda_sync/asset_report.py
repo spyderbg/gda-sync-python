@@ -1,14 +1,19 @@
 """The asset report: an inventory of a game's assets, which the asset library shows.
 
-It lists every file that the game's *Data.json descriptors (or the workspace's resource_paths) declare, with the
-descriptor, the line, the type and the id of the entry that loads it, and the files of the game folder that no
-descriptor declares. Nothing is compared with the GDA folder. A declared file is "available" when it exists, "missing"
+It lists every file that the game's *Data.json descriptors, the ones they include, (or the workspace's resource_paths)
+declare, wherever it is, with the descriptor, the line, the type and the id of the entry that loads it, and the files of
+the game folder that no descriptor declares: other folders are not searched for files that nothing declares. Nothing is compared with the GDA folder. A declared file is "available" when it exists, "missing"
 when it does not, and "invalid" when its path leads outside the resources folder; a file that nothing declares is
 "supplementary". Image sequences follow the GDA sync (rss_sync): a sequence is one asset with its frames, and takes the
 status of its frames, the first of invalid, missing and available that any of its files has; supplementary numbered
 images are guessed to be sequences. An RTF, a project of the RTF Tool, is one asset with every file of its folder, named
 by the folder: it takes the status of its .rtf file, and the files in its folder are not assets of their own unless a
-descriptor declares them. Each report is saved like a GDA sync report, as <workspace id>-<Unix time>.json.
+descriptor declares them. A declared .json file in a v folder is a view, in the game folder or any other.
+
+Each asset is in one of the report's folders: the game folder, or another folder of the resources folder, the one that
+directly holds it (such as ../common, for the files of a feature the game includes from ../common/features/taxation,
+or another game's), and for a path outside the resources folder, its own folder.
+Each report is saved like a GDA sync report, as <workspace id>-<Unix time>.json.
 """
 
 from __future__ import annotations
@@ -23,13 +28,15 @@ from .fonts import FONT_EXTENSIONS, describe_font
 from .rss_jobs import ReportFolder, _now
 from .rss_sync import COMMON_DIR, GUESSED_FRAME_TIME, GUESSED_LOOP_COUNT, NUMBERED_NAME, Config, Use, expand_path, gather, required_by, row_id
 from .rtf import RTF_EXTENSION, describe_rtf
-from .views import describe_view, is_view
+from .views import describe_view, is_view, view_root
 
 # Version 2 reports fonts as their own type, with their names, the samples they draw and their coverage of each Font
 # entry's characters. Version 3 reports RTFs (RTF Tool projects) as their own type: an RTF's folder is one asset with
 # all of its files, with its pages, languages and the images and videos its pages draw that do not exist.
 # Version 4 reports views (the .json files of the game's v folder) as their own type, with what they draw.
-ASSET_REPORT_VERSION = 4
+# Version 5 lists the folders the assets are in, with each asset's, and reports the declared views of other folders, such
+# as those of the features the game includes, as views.
+ASSET_REPORT_VERSION = 5
 CATEGORIES = ("available", "missing", "invalid", "supplementary")
 # The status a sequence takes from its frames: the first of these that any of its files has.
 SEQUENCE_PRECEDENCE = ("invalid", "missing", "available")
@@ -94,8 +101,9 @@ def inventory(config: Config, facts: Facts) -> dict:
         elif source.suffix[1:].lower() == RTF_EXTENSION and entry["category"] in ("available", "supplementary"):
             # An RTF's pages, with their backgrounds, and the files that its pages draw but that do not exist.
             row.update(describe_rtf(str(source)))
-        elif is_view(source, game_dir):
-            # A view is its own type: what its elements draw, and the resources they name that cannot be found.
+        elif is_view(source, game_dir) or (not supplementary and view_root(source) is not None):
+            # A view is its own type: what its elements draw, and the resources they name that cannot be found. The
+            # game's descriptors name the resources of a view it declares in another folder too.
             row["type"] = "view"
             if entry["category"] in ("available", "supplementary"):
                 row.update(describe_view(source, game_dir))
@@ -172,9 +180,11 @@ def inventory(config: Config, facts: Facts) -> dict:
                 rows.append(file_row(source))
     rows.extend(sequence_row(*sequence) for sequence in found.sequences)
     rows.sort(key=lambda row: (row["resource"], row["id"]))
+    folders = asset_folders(rows, config.resources_dir, game_dir)
     counts = Counter(row["category"] for row in rows)
     return {
         "descriptors": found.descriptors,
+        "folders": folders,
         "summary": {
             "assets": len(rows), **{category: counts[category] for category in CATEGORIES},
             # Each file once, though a file can be an asset of its own and a frame of sequences.
@@ -183,6 +193,37 @@ def inventory(config: Config, facts: Facts) -> dict:
         },
         "assets": rows,
     }
+
+
+def location(row: dict) -> Path:
+    """Where an asset is: its file, a sequence's first frame, or an RTF's folder."""
+    frames = (row.get("sequence") or {}).get("frames") or []
+    return Path(frames[0]["resourcePath"] if frames else row["resourcePath"])
+
+
+def asset_folders(rows: list[dict], resources_dir: Path, game_dir: Path) -> list[dict]:
+    """The folders the assets are in, the game folder first, each with its kind and its number of assets; each row gets
+    its folder: the game folder, the folder of the resources folder that holds it, or its own folder outside it."""
+    roots: dict[Path, str] = {game_dir: "game"}
+
+    def folder_of(path: Path) -> Path:
+        if path.is_relative_to(game_dir):
+            return game_dir
+        inside = path.is_relative_to(resources_dir)
+        parts = path.relative_to(resources_dir).parts if inside else ()
+        # A shared folder is the one directly in the resources folder; a path elsewhere is in its own folder.
+        folder = resources_dir / parts[0] if len(parts) > 1 else path.parent
+        roots.setdefault(folder, "shared" if inside else "outside")
+        return folder
+
+    counts: Counter[Path] = Counter()
+    for row in rows:
+        folder = folder_of(location(row))
+        row["folder"] = str(folder)
+        counts[folder] += 1
+    order = {"game": 0, "shared": 1, "outside": 2}
+    return [{"path": str(folder), "relative": os.path.relpath(folder, game_dir), "kind": kind, "assets": counts[folder]}
+            for folder, kind in sorted(roots.items(), key=lambda item: (order[item[1]], str(item[0])))]
 
 
 class AssetReports(ReportFolder):
@@ -194,7 +235,7 @@ class AssetReports(ReportFolder):
         """Save a generated report with the workspace settings it used, and return its file."""
         run = {"state": "succeeded", "startedAt": started_at, "finishedAt": _now()}
         report = {"version": ASSET_REPORT_VERSION, "workspace": workspace, "descriptors": result["descriptors"],
-                  "summary": {**run, **result["summary"]}, "assets": result["assets"]}
+                  "folders": result["folders"], "summary": {**run, **result["summary"]}, "assets": result["assets"]}
         file = self._new_file(workspace_id, run["finishedAt"])
         self._write(file, report)
         return file

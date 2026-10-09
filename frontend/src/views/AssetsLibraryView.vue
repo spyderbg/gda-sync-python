@@ -9,18 +9,19 @@ import ReportThumbnail from '../components/ReportThumbnail.vue';
 import WorkspaceHeader from '../components/WorkspaceHeader.vue';
 import { useAssetReport } from '../composables/useAssetReport';
 import { assetBadges, assetMatches, baseName, declarationLabel, number, plural, size, splitPath } from '../format';
-import type { AssetCategory, ReportAsset } from '../types';
+import type { AssetCategory, AssetFolder, ReportAsset } from '../types';
 import { assetReport, busy, generateAssetReport, ui } from '../workspace';
 
 // The asset library shows the newest asset report of the workspace's game: every asset that its descriptors declare,
 // with the entries that load it, and the files of the game folder that nothing declares. Rescan writes a new
-// one. The sidebar's types, the status filters and the search narrow the assets down.
+// one. The sidebar's types, the header's folders, the status filters and the search narrow the assets down.
 type Filter = 'all' | AssetCategory;
 const FILTERS: { key: Filter; label: string; hint: string }[] = [
   {
     key: 'all', label: 'All',
-    hint: 'Every asset of the newest asset report: each file that the game\'s *Data.json descriptors (or the workspace\'s '
-      + 'resource_paths) declare, and each file of the game folder with a compared extension that nothing declares.\n\n'
+    hint: 'Every asset of the newest asset report: each file that the game\'s *Data.json descriptors, and those they '
+      + 'include, (or the workspace\'s resource_paths) declare, in any folder, and each file of the game folder with a '
+      + 'compared extension that nothing declares.\n\n'
       + 'An image sequence is one asset with its frames, as in the GDA sync. Rescan reads the game again.',
   },
   {
@@ -47,22 +48,30 @@ const FILTERS: { key: Filter; label: string; hint: string }[] = [
 ];
 const PAGE_SIZE = 200;
 // The asset report version this release writes, ASSET_REPORT_VERSION in egt_gda_sync/asset_report.py.
-const REPORT_VERSION = 4;
+const REPORT_VERSION = 5;
 
 const { report, loadError } = useAssetReport();
 const filter = ref<Filter>('all');
+// The header's folder that narrows the assets down, by path; null shows every folder.
+const folder = ref<string | null>(null);
 const shown = ref(PAGE_SIZE);
 const state = computed(() => (!assetReport.value?.reportPath ? 'none' : loadError.value ? 'error' : report.value ? 'ready' : 'loading'));
 const revision = computed(() => report.value?.summary.finishedAt ?? '');
 const outdated = computed(() => !!assetReport.value?.reportPath && (assetReport.value.version ?? 1) < REPORT_VERSION);
-// What an earlier version did not report: fonts before version 2, RTFs before version 3, and views before version 4.
-const outdatedTypes = computed(() => {
+// What an earlier version did not report: fonts before version 2, RTFs before version 3, views before version 4, and
+// before version 5, the views of other folders and the folders the assets are in.
+const outdatedNote = computed(() => {
   const version = assetReport.value?.version ?? 1;
-  return version < 2 ? 'fonts, RTFs and views' : version < 3 ? 'RTFs and views' : 'views';
+  const types = version < 2 ? 'fonts, RTFs and views' : version < 3 ? 'RTFs and views' : version < 4 ? 'views' : 'views outside the game folder';
+  return `This report was written by an earlier version, which counted ${types} as other files and did not read them, and did not list the folders its assets are in. Rescan to update it.`;
 });
 const assets = computed(() => report.value?.assets ?? []);
-// The sidebar's type narrows the assets that the status filters count.
-const typed = computed(() => assets.value.filter(row => ui.category === 'all' || row.type === ui.category));
+// The folders of the report, or for an earlier report, only the game folder, which does not filter.
+const folders = computed<AssetFolder[]>(() => report.value?.folders ?? []);
+watch(folders, list => { if (folder.value && !list.some(item => item.path === folder.value)) folder.value = null; });
+// The sidebar's type and the header's folder narrow the assets that the status filters count.
+const typed = computed(() => assets.value.filter(row => (ui.category === 'all' || row.type === ui.category)
+  && (!folder.value || row.folder === folder.value)));
 const counts = computed(() => {
   const result: Record<Filter, number> = { all: typed.value.length, available: 0, missing: 0, invalid: 0, supplementary: 0 };
   for (const row of typed.value) result[row.category]++;
@@ -73,7 +82,7 @@ const rows = computed(() => {
   return typed.value.filter(row => (filter.value === 'all' || row.category === filter.value) && assetMatches(row, needle));
 });
 const visible = computed(() => rows.value.slice(0, shown.value));
-watch([filter, () => ui.query, () => ui.category, report], () => { shown.value = PAGE_SIZE; });
+watch([filter, folder, () => ui.query, () => ui.category, report], () => { shown.value = PAGE_SIZE; });
 
 // Clicking an asset shows its details; a new report that no longer lists it closes them.
 const detailsRow = computed(() => (ui.inspecting ? assets.value.find(row => row.id === ui.inspecting) ?? null : null));
@@ -107,11 +116,13 @@ function showAll() {
   ui.query = '';
   ui.category = 'all';
   filter.value = 'all';
+  folder.value = null;
 }
+const folderName = computed(() => folders.value.find(item => item.path === folder.value)?.relative);
 </script>
 
 <template>
-  <WorkspaceHeader v-model:filter="filter" />
+  <WorkspaceHeader v-model:filter="filter" v-model:folder="folder" :folders="folders" />
 
   <div v-if="state !== 'ready'" class="card empty-state grid-margin">
     <div class="card-body">
@@ -123,7 +134,7 @@ function showAll() {
 
   <template v-else>
     <div v-if="outdated" class="alert alert-info library-outdated" role="note">
-      <i aria-hidden="true" class="mdi mdi-information-outline" />This report was written by an earlier version, which counted {{ outdatedTypes }} as other files and did not read them. Rescan to update it.
+      <i aria-hidden="true" class="mdi mdi-information-outline" />{{ outdatedNote }}
     </div>
     <div class="library-controls">
       <div class="library-filter-toolbar" role="group" aria-label="Asset filters and layout">
@@ -150,7 +161,7 @@ function showAll() {
     </div>
 
     <div class="results-heading">
-      <span>{{ number(rows.length) }} of {{ number(counts.all) }} assets<small v-if="ui.query" class="text-muted"> matching “{{ ui.query }}”</small></span>
+      <span>{{ number(rows.length) }} of {{ number(counts.all) }} assets<small v-if="folderName" class="text-muted"> in {{ folderName === '.' ? 'the game folder' : folderName }}</small><small v-if="ui.query" class="text-muted"> matching “{{ ui.query }}”</small></span>
       <span v-if="stacked.length" class="library-views-selection" role="group" aria-label="Selected views">
         <i aria-hidden="true" class="mdi mdi-layers-outline" />{{ number(stacked.length) }} view{{ plural(stacked.length) }} selected<small v-if="stacked.length < 2" class="text-muted"> · select another to show them together</small>
         <button type="button" class="btn btn-primary btn-sm" :disabled="stacked.length < 2" @click="viewsOpen = true">Show together</button>

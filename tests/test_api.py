@@ -65,7 +65,7 @@ def test_api_validates_payloads_rejects_foreign_requests_and_requires_a_session_
     assert data["assetReport"]["summary"]["assets"] == 6
     assert data["activity"][0]["message"] == "Generated an asset report of 6 assets"
     report = api.get("/api/asset-report").json()
-    assert report["version"] == 4 and report["workspace"]["game_path"] == library.config["destination"]
+    assert report["version"] == 5 and report["workspace"]["game_path"] == library.config["destination"]
     assert data["assetReport"]["reportPath"].endswith(".json")
     dds = next(row for row in report["assets"] if row["resource"].endswith(".dds") and row["preview"])
     preview = api.get("/api/rss-sync/preview", params={"file": dds["resourcePath"]})

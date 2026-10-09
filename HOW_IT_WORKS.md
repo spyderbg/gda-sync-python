@@ -84,6 +84,11 @@ from, and `game_path`, the game folder they are copied to.
 }
 ```
 
+A top-level field whose name ends with `_path`, such as `"games_root_path": "/absolute/path/to/games"`,
+is a global path that the `_path` fields of a workspace use as `{games_root_path}`, for example
+`"game_path": "{games_root_path}/resources/burning_crown_tetra_spins_10"`; see
+[Global paths](README.md#global-paths) in the README.
+
 For Windows, paths can use forward slashes, such as `C:/Users/you/assets/gda`.
 Neither folder may contain the other. The optional fields of the GDA sync
 (`common_gda_path`, `extensions`, `resource_paths`, `ignore_dds_mips`,
@@ -269,9 +274,12 @@ See [PyInstaller's Linux compatibility guidance](https://pyinstaller.org/en/stab
    in the launcher makes that copy run the comparison instead of the app. Each
    run saves a report in the data directory's `sync-reports/`.
 6. **Report the game's assets.** **Rescan** in the Asset library reads
-   the active workspace's descriptors and game files, without the GDA folder,
-   and saves an asset report in the data directory's `asset-reports/`; the
-   library shows the newest one.
+   the active workspace's descriptors, the ones they include, and the files
+   they declare in any folder, such as `../common`, without the GDA folder; it
+   searches only the game folder for files that nothing declares. It saves an
+   asset report in the data directory's `asset-reports/`, with the folders its
+   assets are in, and the library shows the newest one, filtered by folder on
+   request.
 7. **Keep running while a page is open.** Each app page holds an event-stream
    connection. Closing the last page schedules shutdown after a two-second
    grace period. Refreshing or another connected app page keeps the backend

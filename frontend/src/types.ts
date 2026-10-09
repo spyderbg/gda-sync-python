@@ -14,7 +14,12 @@ export interface Asset {
 export interface ComparedAsset extends Asset { status: AssetStatus }
 /** `source` is the GDA folder files are copied from, `destination` the game folder they are copied to. */
 export interface WorkspaceEntry { id: string; name: string; source: string; destination: string; demo?: boolean }
-export interface WorkspaceConfig { name: string; source: string; destination: string; demo: boolean; port?: number; defaultWorkspace?: string; workspaces?: WorkspaceEntry[] }
+/** The selected workspace's settings. source and destination are its folders expanded; templates holds them as
+ * workspace.json writes them, with global paths such as {games_root_path}. */
+export interface WorkspaceConfig {
+  name: string; source: string; destination: string; demo: boolean; port?: number; defaultWorkspace?: string; workspaces?: WorkspaceEntry[];
+  templates?: { source: string; destination: string };
+}
 export interface Activity {
   /** cleanup removes the declarations of invalid resources, or deletes supplementary ones; report generates an asset report. */
   id: string; date: string; action: 'sync' | 'scan' | 'settings' | 'cleanup' | 'report';
@@ -22,6 +27,8 @@ export interface Activity {
 }
 export interface LibraryResponse {
   config: WorkspaceConfig; activity: Activity[]; scannedAt: string; backupPath: string; rssSync: RssSyncStatus;
+  /** The global paths of workspace.json, expanded, by name: what {name} stands for in a *_path field. */
+  globalPaths?: Record<string, string>;
   /** The newest asset report of the active workspace, which the asset library shows. */
   assetReport: AssetReportStatus;
   /** The active workspace's folders that do not exist on disk. */
@@ -80,7 +87,13 @@ export interface RtfDirectory { project: string; files: RtfFolderFile[] }
 export interface ReportAsset extends FileFacts {
   id: string; category: AssetCategory; status: string; resource: string; resourcePath: string; type: AssetType;
   scope: 'game' | 'common' | 'outside'; requiredBy: AssetDeclaration[]; sequence?: AssetSequence; directory?: RtfDirectory;
+  /** The path of the report folder the asset is in; reports from before version 5 have none. */
+  folder?: string;
 }
+/** A folder the assets of an asset report are in: the game folder, another folder directly in the resources folder
+ * that holds declared files, such as ../common, or one outside the resources folder. relative is its path from the game
+ * folder. */
+export interface AssetFolder { path: string; relative: string; kind: 'game' | 'shared' | 'outside'; assets: number }
 export interface AssetReportSummary extends RssSyncRun, Record<AssetCategory, number> {
   assets: number; size: number; types: Partial<Record<AssetType, number>>;
 }
@@ -88,6 +101,8 @@ export interface AssetReportStatus { reportPath: string | null; version?: number
 export interface AssetReport {
   version: number; workspace: RssSyncWorkspace; summary: AssetReportSummary; assets: ReportAsset[];
   descriptors: { name: string; path: string; type: string; declarations: number; resources: number }[];
+  /** The folders its assets are in, the game folder first; reports from before version 5 have none. */
+  folders?: AssetFolder[];
 }
 
 /** A run of an RTF's text: text, an image or a video's first frame (null when it does not exist), a paytable

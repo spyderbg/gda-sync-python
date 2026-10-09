@@ -42,19 +42,20 @@ def test_template_settings_load_at_startup_and_ui_changes_persist_in_the_project
     legacy.write_text("{unused legacy config}", encoding="utf-8")
     library = Library(str(home), config_path=str(config_path))
     library.init()
+    selected = next(entry for entry in settings["workspaces"] if entry["id"] == settings.get("defaultWorkspace", settings["workspaces"][0]["id"]))
     # Files are copied from the GDA folder (the source) to the game folder (the destination).
-    assert library.config["source"] == settings["workspaces"][0]["gda_path"]
-    assert library.config["destination"] == settings["workspaces"][0]["game_path"]
+    assert library.config["source"] == selected["gda_path"]
+    assert library.config["destination"] == selected["game_path"]
     assert library.config["config"] == settings["config"]
     assert not (home / "demo").exists()
 
     with TestClient(create_app(library, dev=True), base_url="http://127.0.0.1") as client:
-        assert client.get("/api/library").json()["config"]["destination"] == settings["workspaces"][0]["game_path"]
+        assert client.get("/api/library").json()["config"]["destination"] == selected["game_path"]
         payload = {key: library.config[key] for key in ("name", "source", "destination")}
         payload["name"] = "Renamed project"
         response = client.put("/api/settings", headers=session_headers(client), json=payload)
         assert response.status_code == 200
-    settings["workspaces"][0]["game_name"] = "Renamed project"
+    selected["game_name"] = "Renamed project"
     for entry in settings["workspaces"]:
         entry["demo"] = False
     saved = json.loads(config_path.read_text(encoding="utf-8"))
@@ -64,7 +65,7 @@ def test_template_settings_load_at_startup_and_ui_changes_persist_in_the_project
     assert (home / "activity.json").is_file()
 
     # An edit made outside the app becomes active on the next launch.
-    settings["workspaces"][0]["game_name"] = "Edited in JSON"
+    selected["game_name"] = "Edited in JSON"
     config_path.write_text(json.dumps(settings), encoding="utf-8")
     restored = Library(str(home), config_path=str(config_path))
     restored.init()

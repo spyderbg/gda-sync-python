@@ -135,7 +135,7 @@ def test_generating_a_report_saves_it_and_the_library_shows_the_newest(client):
     assert Path(status["reportPath"]).name.startswith("example-")
     report = client.get("/api/asset-report").json()
     # Like a GDA sync report: the settings it used, the parsed descriptors, the summary with the run, then the rows.
-    assert list(report) == ["version", "workspace", "descriptors", "summary", "assets"]
+    assert list(report) == ["version", "workspace", "descriptors", "folders", "summary", "assets"]
     assert report["workspace"]["game_path"] == str(client.game) and report["summary"] == status["summary"]
     assert first["activity"][0]["action"] == "report" and first["activity"][0]["message"] == "Generated an asset report of 9 assets"
 

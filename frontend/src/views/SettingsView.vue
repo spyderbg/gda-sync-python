@@ -1,16 +1,36 @@
 <script setup lang="ts">
 import { computed, reactive } from 'vue';
 import PageHeader from '../components/PageHeader.vue';
+import { contractPath, expandPath } from '../format';
 import type { FolderKey } from '../types';
 import { busy, config, data, navigate, openFolder, saveSettings, session, ui } from '../workspace';
 
-const form = reactive({ name: config.value.name, source: config.value.source, destination: config.value.destination });
+// The folders as workspace.json writes them, which can use its global paths such as {games_root_path}.
+const stored = (folder: FolderKey) => config.value.templates?.[folder] ?? config.value[folder];
+const form = reactive({ name: config.value.name, source: stored('source'), destination: stored('destination') });
 const hasChanges = computed(() => form.name !== config.value.name
-  || form.source !== config.value.source
-  || form.destination !== config.value.destination);
+  || form.source !== stored('source')
+  || form.destination !== stored('destination'));
 const windows = session.platform === 'Windows';
 // The scan knows only the saved folders, so a path being edited is not reported until it is saved.
-const missing = (folder: FolderKey) => data.value!.missingFolders.includes(folder) && form[folder] === config.value[folder];
+const missing = (folder: FolderKey) => data.value!.missingFolders.includes(folder) && form[folder] === stored(folder);
+const globalPaths = computed(() => data.value?.globalPaths ?? {});
+const placeholder = (name: string) => `{${name}}`;
+/** What happens to a folder being entered: a path that uses global paths expands, one inside a global path is saved
+ * with it, and a global path that workspace.json does not define is an error. */
+function pathHint(folder: FolderKey): { text: string; error?: boolean } | null {
+  const value = form[folder].trim();
+  if (/\{[A-Za-z0-9_]+\}/.test(value)) {
+    const { expanded, unknown } = expandPath(value, globalPaths.value);
+    if (unknown.length) {
+      const names = Object.keys(globalPaths.value).map(name => `{${name}}`).join(', ');
+      return { text: `workspace.json defines no global path {${unknown[0]}}${names ? `. Its global paths: ${names}` : ''}.`, error: true };
+    }
+    return { text: `Expands to ${expanded}` };
+  }
+  const contracted = contractPath(value, globalPaths.value);
+  return contracted !== value ? { text: `Saved as ${contracted}` } : null;
+}
 const anyMissing = computed(() => missing('source') || missing('destination'));
 
 async function save() {
@@ -50,6 +70,7 @@ async function save() {
                 </a>
               </label>
               <input id="source-folder" v-model="form.source" class="form-control" :aria-describedby="missing('source') ? 'source-help source-missing' : 'source-help'" required :placeholder="windows ? 'C:\\Users\\you\\project\\gda' : '/home/you/project/gda'">
+              <small v-if="pathHint('source')" :class="['form-text', 'settings-path-hint', pathHint('source')?.error ? 'text-danger' : 'text-muted']" role="status">{{ pathHint('source')?.text }}</small>
               <small id="source-help" class="form-text text-muted">The originals you’re working with. All subfolders are included.</small>
               <div v-if="missing('source')" id="source-missing" class="alert alert-warning folder-missing" role="status">
                 <i aria-hidden="true" class="mdi mdi-alert-outline" />The GDA folder does not exist. No assets can be listed until it does.
@@ -64,10 +85,17 @@ async function save() {
                 </a>
               </label>
               <input id="destination-folder" v-model="form.destination" class="form-control" :aria-describedby="missing('destination') ? 'destination-help destination-missing' : 'destination-help'" required :placeholder="windows ? 'C:\\Users\\you\\project\\game' : '/home/you/project/game'">
+              <small v-if="pathHint('destination')" :class="['form-text', 'settings-path-hint', pathHint('destination')?.error ? 'text-danger' : 'text-muted']" role="status">{{ pathHint('destination')?.text }}</small>
               <small id="destination-help" class="form-text text-muted">A separate folder where your synced assets belong.</small>
               <div v-if="missing('destination')" id="destination-missing" class="alert alert-warning folder-missing" role="status">
                 <i aria-hidden="true" class="mdi mdi-alert-outline" />The Game folder does not exist. Assets cannot be synced until it does.
               </div>
+            </div>
+            <div v-if="Object.keys(globalPaths).length" class="settings-global-paths">
+              <small class="text-muted">Global paths of workspace.json, which a path can use, and which a path inside one is saved with:</small>
+              <dl>
+                <template v-for="(path, name) in globalPaths" :key="name"><dt>{{ placeholder(String(name)) }}</dt><dd>{{ path }}</dd></template>
+              </dl>
             </div>
             <button type="submit" class="btn btn-primary settings-save" :disabled="!!busy || !hasChanges">
               <i aria-hidden="true" :class="['mdi', busy === 'settings' ? 'mdi-loading mdi-spin' : 'mdi-check']" /><span>Save workspace</span>

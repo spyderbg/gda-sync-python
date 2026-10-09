@@ -32,6 +32,7 @@ from .png import PNG_SIGNATURE
 from .rss_edit import parse as parse_json_source, remove_declarations
 from .rss_jobs import SyncJobs
 from .image_cache import CACHE_FILE
+from .paths import PLACEHOLDER, contract, expand, expand_fields, global_paths
 from .rss_sync import DEFAULT_EXTENSIONS, DEFAULT_MATCH_THRESHOLD, Config, declared_files
 from .views import THUMBNAIL_WIDTH, read_view, render_view, view_layout, view_root
 from .rtf import RTF_EXTENSION, rtf_layout
@@ -54,6 +55,8 @@ ASSET_TYPES = (
     ("rtf", {RTF_EXTENSION}),
 )
 FOLDER_NAMES = {"source": "GDA", "destination": "Game"}
+# The selected workspace's fields that the configuration repeats at its top level: its folders expanded, and as written.
+WORKSPACE_KEYS = ("name", "source", "destination", "templates", "demo")
 # The GDA sync report statuses that have an action: copy the GDA file over a "different" resource, remove the
 # declarations of an "invalid" one, and delete the files of a "supplementary" one. A "missing" resource has none.
 RESOURCE_ACTIONS = ("different", "invalid", "supplementary")
@@ -376,6 +379,9 @@ class Library:
                     raise TypeError("config must be an object")
                 # Accept older files with global ports at the top level.
                 global_config = {**{key: config[key] for key in ("port", "vite_port") if key in config}, **global_config}
+                # The top-level *_path fields, and those of the config section, are global paths, which a workspace's
+                # *_path fields use as {name}.
+                paths = global_paths({**config, "config": global_config})
                 entries = config["workspaces"]
                 if not isinstance(entries, list) or not entries:
                     raise TypeError("workspaces must be a non-empty list")
@@ -390,9 +396,14 @@ class Library:
                         raise TypeError("Each workspace needs game_name, game_path and gda_path text fields")
                     if not isinstance(entry.get("demo", False), bool):
                         raise TypeError("demo must be true or false")
+                    # Every *_path field must expand; the folders are used expanded, and written back as they are.
+                    expand_fields(entry, paths, f"{entry['id']}: ")
+                    templates = {"source": source, "destination": destination}
                     # Keep the API's name/source/destination fields while using the new names on disk.
                     workspace = {key: value for key, value in entry.items() if key not in ("game_name", "game_path", "gda_path")}
-                    workspaces.append({**workspace, **self._validated_settings(name, source, destination), "demo": entry.get("demo", False)})
+                    settings = self._validated_settings(name, expand(source, paths, f"{entry['id']}: gda_path"),
+                                                        expand(destination, paths, f"{entry['id']}: game_path"))
+                    workspaces.append({**workspace, **settings, "templates": templates, "demo": entry.get("demo", False)})
                 if len({entry["id"] for entry in workspaces}) != len(workspaces):
                     raise TypeError("Workspace ids must be unique")
                 active = config.get("defaultWorkspace", config.get("activeWorkspace", workspaces[0]["id"]))
@@ -400,7 +411,7 @@ class Library:
                 if selected is None:
                     raise TypeError("defaultWorkspace must identify a configured workspace")
                 extras = {key: value for key, value in config.items() if key not in ("port", "vite_port", "activeWorkspace")}
-                return {**extras, "config": global_config, **{key: selected[key] for key in ("name", "source", "destination", "demo")},
+                return {**extras, "config": global_config, **{key: selected[key] for key in WORKSPACE_KEYS},
                         "workspaces": workspaces, "defaultWorkspace": active}
             if not isinstance(config, dict) or not all(isinstance(config.get(key), str) for key in ("name", "source", "destination")):
                 raise TypeError("Expected name, source and destination text fields")
@@ -466,18 +477,26 @@ class Library:
             raise
 
     def _save_config(self) -> None:
+        """Write workspace.json, each workspace's folders as they were read or entered, with their global paths."""
         config = self.config
         if "workspaces" in config:
             config = {
                 "config": config["config"],
-                **{key: value for key, value in config.items() if key not in ("config", "name", "source", "destination", "demo", "workspaces")},
+                **{key: value for key, value in config.items() if key not in ("config", *WORKSPACE_KEYS, "workspaces")},
                 "workspaces": [
-                    {**{key: value for key, value in entry.items() if key not in ("name", "source", "destination")},
-                     "game_name": entry["name"], "game_path": entry["destination"], "gda_path": entry["source"]}
+                    {**{key: value for key, value in entry.items() if key not in ("name", "source", "destination", "templates")},
+                     "game_name": entry["name"], "game_path": entry.get("templates", {}).get("destination", entry["destination"]),
+                     "gda_path": entry.get("templates", {}).get("source", entry["source"])}
                     for entry in config["workspaces"]
                 ],
             }
+        else:
+            config = {key: value for key, value in config.items() if key != "templates"}
         self._write_json(self.config_path, config)
+
+    def global_paths(self) -> dict[str, str]:
+        """The global paths of workspace.json, expanded: what a {name} in a *_path field stands for."""
+        return global_paths(self.config) if "workspaces" in self.config else {}
 
     def _record(self, action: str, message: str, files: list[str] | None = None, size: int | None = None) -> None:
         entry: dict = {"id": str(uuid.uuid4()), "date": iso_time(), "action": action, "message": message, "files": files or []}
@@ -509,11 +528,11 @@ class Library:
             pass
 
     def scan(self) -> dict:
-        """The selected workspace: its settings and folders, the activity, and the status of its GDA sync and of its
-        asset report, which the asset library shows."""
+        """The selected workspace: its settings and folders, the global paths its folders can use, the activity, and the
+        status of its GDA sync and of its asset report, which the asset library shows."""
         config = dict(self.config)
         return {
-            "config": config, "activity": self.activity, "scannedAt": iso_time(), "backupPath": self.backup_path,
+            "config": config, "globalPaths": self.global_paths(), "activity": self.activity, "scannedAt": iso_time(), "backupPath": self.backup_path,
             "missingFolders": self.missing_folders(), "rssSync": self.rss_status(),
             "assetReport": self.asset_reports.status(self._active_workspace()[0]),
         }
@@ -589,7 +608,7 @@ class Library:
         """The workspace settings a run uses, named as in workspace.json with defaults filled in and the run's overrides
         applied, and the GDA sync settings made from them: game_path is <resources_dir>/<game>, and gda_path is gda_dir.
         Every run shares the compare cache in the app data folder."""
-        entry = {**entry, **(overrides or {})}
+        entry = expand_fields({**entry, **(overrides or {})}, self.global_paths())
         common = entry.get("common_gda_path")
         if isinstance(common, str) and common and not os.path.isabs(common):
             common = os.path.join(os.path.dirname(self.config_path), common)
@@ -698,8 +717,17 @@ class Library:
         return report
 
     def update_config(self, name: str, source: str, destination: str) -> dict:
+        """Save the selected workspace's name and folders. A folder can use the global paths as {name}, and one inside a
+        global path is written with it."""
         def operation() -> dict:
-            settings = self._validated_settings(name, source, destination)
+            paths = self.global_paths()
+            try:
+                folders = {key: expand(value.strip(), paths, label) for key, value, label in (("source", source, "The GDA path"), ("destination", destination, "The Game path"))}
+            except ValueError as error:
+                raise AppError(str(error)) from error
+            settings = self._validated_settings(name, folders["source"], folders["destination"])
+            settings["templates"] = {key: contract(value if PLACEHOLDER.search(value) else os.path.normpath(value), paths)
+                                     for key, value in (("source", source.strip()), ("destination", destination.strip()))}
             previous = self.config
             demo = settings["source"] == previous["source"] and settings["destination"] == previous["destination"] and previous["demo"]
             self.config = {**previous, **settings, "demo": demo}
@@ -728,7 +756,7 @@ class Library:
             entry = next((entry for entry in current.get("workspaces", []) if entry["id"] == workspace_id), None)
             if entry is None:
                 raise AppError("Workspace not found", 404)
-            self.config = {**current, **{key: entry[key] for key in ("name", "source", "destination", "demo")}, "defaultWorkspace": workspace_id}
+            self.config = {**current, **{key: entry[key] for key in WORKSPACE_KEYS}, "defaultWorkspace": workspace_id}
             try:
                 self._save_config()
             except BaseException:
@@ -1011,9 +1039,11 @@ class Library:
             raise AppError("Descriptor not found", 404)
         return path
 
-    def resource_folder(self, file: str) -> str:
-        """The existing parent directory of a report file, including a missing file or sequence pattern."""
-        folder = os.path.dirname(self._resource_path(file))
+    def resource_folder(self, file: str, itself: bool = False) -> str:
+        """The existing parent directory of a report file, including a missing file or sequence pattern, or with itself,
+        the report folder that file names."""
+        path = self._resource_path(file)
+        folder = path if itself else os.path.dirname(path)
         if not os.path.isdir(folder):
             raise AppError("Folder does not exist", 404)
         return folder
@@ -1051,12 +1081,15 @@ class Library:
     def _view(self, file: str) -> tuple[Path, Path, tuple[Path, ...]]:
         """A view file inside the workspace's folders, the game folder whose descriptors its ids are looked up in, and
         the folders its images may come from. A game's own view uses the descriptors beside its v folder; a view
-        elsewhere, such as in a GDA folder, those of the selected workspace's game."""
+        elsewhere, such as in a GDA folder, those of the selected workspace's game. So does a view of a folder that the
+        game includes, such as ../common/features/taxation, whose descriptor names its files from the game folder."""
         path = Path(self._resource_path(file))
         root = view_root(path)
         if root is None:
             raise AppError("Not a view: a view is a .json file in a game's v folder", 415)
-        game = root if any(root.glob("*Data.json")) else Path(self.config["destination"])
+        destination = Path(self.config["destination"])
+        included = root.is_relative_to(destination.parent) and root.parent != destination.parent
+        game = root if any(root.glob("*Data.json")) and not included else destination
         return path, game, tuple(Path(folder) for folder in self._resource_roots())
 
     def view_preview(self, file: str, width: int | None = None, hidden: bool = False, crop: bool = False) -> bytes:

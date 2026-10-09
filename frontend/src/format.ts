@@ -262,3 +262,34 @@ export const viewTable = (facts: ViewFacts) => [
   { label: 'Images drawn', value: number(facts.images) },
   { label: 'Missing resources', value: facts.missingCount ? number(facts.missingCount) : 'None', warn: !!facts.missingCount },
 ];
+
+// Global paths of workspace.json, as egt_gda_sync/paths.py replaces and writes them.
+const PLACEHOLDER = /\{([A-Za-z0-9_]+)\}/g;
+const windowsPath = (path: string) => /^[A-Za-z]:[\\/]|^\\\\/.test(path);
+const pathKey = (path: string, windows: boolean) => {
+  const normalized = path.replace(/[\\/]+/g, '/').replace(/\/$/, '');
+  return windows ? normalized.toLowerCase() : normalized;
+};
+/** A path with each {name} replaced by its global path, and the names that are not defined. */
+export function expandPath(path: string, paths: Record<string, string>) {
+  const unknown: string[] = [];
+  const expanded = path.replace(PLACEHOLDER, (match, name: string) => {
+    if (name in paths) return paths[name];
+    unknown.push(name);
+    return match;
+  });
+  return { expanded, unknown };
+}
+/** The form workspace.json writes a path in: as it is when it uses a global path, otherwise inside a global path with
+ * its {name}, the longest global path first. The same rule as contract in egt_gda_sync/paths.py. */
+export function contractPath(path: string, paths: Record<string, string>) {
+  if (/\{[A-Za-z0-9_]+\}/.test(path)) return path;
+  const windows = windowsPath(path);
+  const key = pathKey(path, windows);
+  for (const [name, root] of Object.entries(paths).sort((a, b) => b[1].length - a[1].length)) {
+    const rootKey = pathKey(root, windows);
+    if (key === rootKey) return `{${name}}`;
+    if (key.startsWith(`${rootKey}/`)) return `{${name}}/${path.replace(/[\\/]+/g, '/').replace(/\/$/, '').slice(rootKey.length + 1)}`;
+  }
+  return path;
+}

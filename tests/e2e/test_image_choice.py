@@ -79,7 +79,8 @@ def test_the_gda_image_to_sync_is_chosen_on_the_card(new_context, image_backend)
     expect(dialog.locator(".details-match")).to_have_count(1)
     expect(dialog.locator(".details-match")).to_contain_text("ui/play.png")
     expect(dialog.locator(".details-match")).not_to_contain_text("play_v2.png")
-    expect(dialog).to_contain_text(same_name)
+    # The GDA image's path is shown relative to its folder, with the full path as its tooltip.
+    expect(dialog.get_by_title(same_name, exact=True).first).to_be_visible()
     expect(gda_preview).to_have_attribute("src", re.compile(re.escape(f"/api/rss-sync/preview?file={quote(same_name, safe='')}&")))
     expect(candidates.nth(1)).to_contain_text("Copied on sync")
     assert described[-1] == [same_name] and renamed in described[0]

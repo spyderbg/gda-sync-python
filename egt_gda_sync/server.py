@@ -90,6 +90,12 @@ class ResourceFileBody(_Body):
     file: Text4K
 
 
+class ResourceFolderBody(_Body):
+    file: Text4K
+    # The folder that file names, rather than the one it is in.
+    isFolder: bool = False
+
+
 class OpenDeclarationBody(_Body):
     descriptor: Text4K
     line: Annotated[int, Field(strict=True, ge=1, le=2_147_483_647)]
@@ -304,8 +310,8 @@ def create_app(
         return library.resource_details(body.files, body.chars)
 
     @app.post("/api/rss-sync/open-folder")
-    def open_resource_folder(body: ResourceFileBody) -> dict:
-        opener(library.resource_folder(body.file))
+    def open_resource_folder(body: ResourceFolderBody) -> dict:
+        opener(library.resource_folder(body.file, body.isFolder))
         return {"opened": True}
 
     @app.post("/api/rss-sync/open-declaration")

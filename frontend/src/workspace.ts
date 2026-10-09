@@ -233,9 +233,10 @@ export async function resourceDetails(files: string[], chars: string[] = []) {
   return (await api<{ files: Record<string, RssFileDetails> }>('rss-sync/details', 'POST', { files, chars })).files;
 }
 
-export async function openResourceFolder(file: string) {
+/** Open the folder a report file is in, or with isFolder, the report folder it names. */
+export async function openResourceFolder(file: string, isFolder = false) {
   try {
-    await api('rss-sync/open-folder', 'POST', { file });
+    await api('rss-sync/open-folder', 'POST', { file, isFolder });
     notify('Opened folder.');
   } catch (e) { notify((e as Error).message, true); }
 }

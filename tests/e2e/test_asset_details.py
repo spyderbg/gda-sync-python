@@ -64,7 +64,9 @@ def test_library_shows_the_generated_asset_report_and_opens_an_asset_in_a_dialog
     expect(details.locator('.details-declaration')).to_have_text(['RssImagesData.json:5ImageBANNER'])
     expect(details.get_by_role('row').filter(has_text='Resolution')).to_have_text('Resolution8 × 4')
     poll(lambda: details.get_by_role('img', name='banner.dds preview', exact=True).evaluate('image => image.naturalWidth'), 8)
-    expect(details.get_by_text(str(game / 'banner.dds'), exact=True)).to_be_visible()
+    # The game path is shown relative to the game folder, with the full path as its tooltip.
+    expect(details.locator('.details-path .details-code')).to_have_text('banner.dds')
+    expect(details.locator('.details-path .details-code')).to_have_attribute('title', str(game / 'banner.dds'))
     page.screenshot(path=str(BUILD / 'asset-details-desktop.png'))
     page.keyboard.press('Escape')
     expect(page.get_by_role('dialog')).to_have_count(0)

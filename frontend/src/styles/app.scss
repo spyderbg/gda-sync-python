@@ -829,6 +829,27 @@ button.nav-link {
   }
 }
 
+.settings-path-hint {
+  font-family: monospace;
+  overflow-wrap: anywhere;
+}
+
+.settings-global-paths {
+  margin: 4px 0 16px;
+
+  dl {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 2px 12px;
+    margin: 6px 0 0;
+    font-family: monospace;
+    font-size: 12px;
+  }
+
+  dt { font-weight: 500; }
+  dd { margin: 0; color: $text-muted; overflow-wrap: anywhere; }
+}
+
 .settings-save {
   display: inline-flex;
   align-items: center;

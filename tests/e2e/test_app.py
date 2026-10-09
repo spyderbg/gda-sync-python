@@ -131,14 +131,17 @@ def test_validates_workspace_folders_and_saves_a_project_configuration(page):
     source = page.get_by_label("GDA path", exact=True).input_value()
     destination = page.get_by_label("Game path", exact=True).input_value()
     page.get_by_label("Game path", exact=True).fill(source)
-    page.get_by_role("button", name="Save connection").click()
+    page.get_by_role("button", name="Save workspace").click()
     expect(page.get_by_role("status")).to_contain_text("must be separate")
     page.get_by_label("Game path", exact=True).fill(destination)
     page.get_by_label("Project name", exact=True).fill("Verdant Studio")
-    page.get_by_role("button", name="Save connection").click()
-    expect(page.get_by_role("heading", name="Asset library")).to_be_visible()
+    page.get_by_role("button", name="Save workspace").click()
+    # Saving opens the Asset library, and the new name stays after a reload.
+    navigation = page.get_by_role("navigation", name="Main navigation")
+    expect(navigation.get_by_role("button", name="Asset library", exact=True)).to_have_attribute("aria-current", "page")
+    expect(page.get_by_role("banner")).to_contain_text("Verdant Studio")
     page.reload()
-    expect(page.locator(".sidebar .profile-name")).to_have_text("Verdant Studio")
+    expect(page.get_by_role("list", name="Workspaces").get_by_role("button", name="Verdant Studio", exact=True)).to_be_visible()
 
 
 def test_loads_a_dx10_bc7_asset_in_the_catalog_inspector_and_enlarged_preview(page, backend):
