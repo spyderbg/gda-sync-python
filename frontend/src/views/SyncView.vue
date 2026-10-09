@@ -6,7 +6,7 @@ import ReportNotice from '../components/ReportNotice.vue';
 import ResourceCard from '../components/ResourceCard.vue';
 import ResourceDetails from '../components/ResourceDetails.vue';
 import { useSyncReport } from '../composables/useSyncReport';
-import { commonAction, number, plural, resourceAction, resourceActionIcons, rowMatches, time } from '../format';
+import { commonAction, defaultCandidate, imageCandidates, number, plural, resourceAction, resourceActionIcons, rowMatches, time, type GdaCandidate } from '../format';
 import type { RssCategory, RssResource } from '../types';
 import { applying, busy, config, copy, navigate, openFolder, requestResourceActions, requestResourceSync, rescan, rssSync } from '../workspace';
 
@@ -14,6 +14,10 @@ import { applying, busy, config, copy, navigate, openFolder, requestResourceActi
 // the counts of its comparison and the resources that differ from the GDA folder, then the supplementary files, which
 // no descriptor declares. A resource with an action can be selected: a "different" one is synced, an "invalid" one has
 // its declarations removed from the descriptors, and a "supplementary" one is deleted. A "missing" one has none.
+// A different or missing image's card shows the GDA images that may show the same picture, and one can be chosen on it:
+// its copy button syncs the chosen image, and a missing image can be synced this way too. Its details show the chosen
+// image, or else the most likely one; Sync all pending and Sync selected also copy the chosen image, or else the most
+// likely one.
 type Category = Exclude<RssCategory, 'identical'>;
 type Filter = 'all' | Category;
 // Each filter's tooltip says what its status means and why the GDA sync gives a resource that status.
@@ -24,8 +28,8 @@ const FILTERS: { key: Filter; label: string; hint: string }[] = [
       + 'resources together, in the report\'s order, by status and then path.\n\n'
       + 'Select resources to act on them with the button at the top: a Different resource is synced, an Invalid one has '
       + 'its declarations removed from the descriptors, and a Supplementary one is deleted. A Missing resource has no '
-      + 'action. Without a selection, the button syncs every Different resource. The In sync page lists the resources '
-      + 'that are in sync.',
+      + 'action, but a missing image can be synced from a GDA image chosen on its card. Without a selection, the button '
+      + 'syncs every Different resource. The In sync page lists the resources that are in sync.',
   },
   {
     key: 'different', label: 'Different',
@@ -35,8 +39,9 @@ const FILTERS: { key: Filter; label: string; hint: string }[] = [
       + 'common file also in the common GDA folder), and compares the contents by SHA-256. When none of the same-named GDA '
       + 'files is identical, the resource is different. By default, a DDS file that differs only in its mip levels counts '
       + 'as in sync. An image sequence is different when any of its files is.\n\n'
-      + 'These are the only resources that Sync updates: it copies the GDA file from the closest folder over the game file, '
-      + 'and keeps the replaced file in your backups.\n\n'
+      + 'Sync updates them, and keeps each replaced file in your backups. An image\'s card shows the GDA images that may show '
+      + 'the same picture, most likely first: Sync copies the one chosen by clicking it, or else the most likely one. Any '
+      + 'other file is copied from the GDA file in the closest folder.\n\n'
       + 'An RTF is one resource, its folder. It is compared file by file with each GDA folder that holds a .rtf file of '
       + 'the same name, the closest by path and folder name first, and is different when none is identical. Sync makes '
       + 'the game\'s folder a copy of the closest: it copies the changed files and the ones only the GDA has, and deletes '
@@ -51,7 +56,8 @@ const FILTERS: { key: Filter; label: string; hint: string }[] = [
       + 'An image sequence is '
       + 'missing when some of its files are missing and none is different or invalid.\n\n'
       + 'There is nothing to apply, so it cannot be selected: add the file to the GDA folder, or correct its name, then '
-      + 'rescan.',
+      + 'rescan. A missing image whose card shows GDA images that may show the same picture, such as a renamed copy, can '
+      + 'be synced from the one chosen on its card with its copy arrow.',
   },
   {
     key: 'invalid', label: 'Invalid',
@@ -94,6 +100,25 @@ const lastRun = computed(() => rssSync.value?.lastRun);
 const summary = computed(() => report.value?.summary);
 const finishedAt = computed(() => summary.value?.finishedAt ?? report.value?.finishedAt);
 const differences = computed(() => report.value?.differences ?? []);
+// Each image's GDA images that may show the same picture, most likely first, and the one chosen on its card, by row id.
+const candidates = computed(() => new Map(differences.value.map(row => [row.id, imageCandidates(row)])));
+const candidatesOf = (row: RssResource) => candidates.value.get(row.id) ?? [];
+const chosen = ref(new Map<string, string>());
+const chosenOf = (row: RssResource) => candidatesOf(row).find(candidate => candidate.absolutePath === chosen.value.get(row.id)) ?? null;
+function choose(row: RssResource, file: string | null) {
+  const next = new Map(chosen.value);
+  if (file) next.set(row.id, file); else next.delete(row.id);
+  chosen.value = next;
+}
+/** The GDA image each image is synced from: the one chosen on its card, or else the most likely one. */
+function choices(rows: RssResource[]) {
+  const found: Record<string, GdaCandidate> = {};
+  for (const row of rows) {
+    const candidate = chosenOf(row) ?? (row.category === 'different' ? defaultCandidate(candidatesOf(row)) : null);
+    if (candidate) found[row.id] = candidate;
+  }
+  return found;
+}
 const counts = computed(() => {
   const result = { all: differences.value.length, different: 0, missing: 0, invalid: 0, supplementary: 0 };
   for (const row of differences.value) if (row.category !== 'identical') result[row.category]++;
@@ -125,15 +150,25 @@ const actionLabel = computed(() => (busy.value === 'sync' ? ACTION_LABELS[applyi
   : hasSelection.value ? ACTION_LABELS[targetAction.value].idle : 'Sync all pending'));
 const allSelected = computed(() => shownSelectable.value.length > 0 && selectedRows.value.length === shownSelectable.value.length);
 
-// A resource that a new report no longer lists with an action leaves the selection.
+// A resource that a new report no longer lists with an action leaves the selection, and a GDA image it no longer lists
+// as a candidate leaves the choices.
 watch(differences, rows => {
   const ids = new Set(rows.filter(selectable).map(row => row.id));
   if ([...selected.value].some(id => !ids.has(id))) selected.value = new Set([...selected.value].filter(id => ids.has(id)));
+  const kept = new Map([...chosen.value].filter(([id, file]) => candidates.value.get(id)?.some(candidate => candidate.absolutePath === file && candidate.syncable)));
+  if (kept.size !== chosen.value.size) chosen.value = kept;
 });
 
 // Clicking a card shows its details; a new report that no longer lists the resource closes them.
 const detailsId = ref<string | null>(null);
 const detailsRow = computed(() => (detailsId.value ? differences.value.find(row => row.id === detailsId.value) ?? null : null));
+// The GDA image the details compare an image with: the chosen one, or else the most likely one.
+const detailsCandidate = computed(() => {
+  const row = detailsRow.value;
+  if (!row) return null;
+  const all = candidatesOf(row);
+  return chosenOf(row) ?? defaultCandidate(all) ?? all[0] ?? null;
+});
 
 function toggle(id: string) {
   const next = new Set(selected.value);
@@ -163,7 +198,7 @@ function toggleAll(select: boolean) {
       </div>
       <div class="sync-workspace-actions">
         <button type="button" :class="['btn', targetAction === 'sync' ? 'btn-primary' : 'btn-danger']" :disabled="!!busy || running || !targets.length"
-                @click="hasSelection ? requestResourceActions(targets) : requestResourceSync(targets)">
+                @click="hasSelection ? requestResourceActions(targets, choices(targets)) : requestResourceSync(targets, choices(targets))">
           <i aria-hidden="true" :class="['mdi', busy === 'sync' ? 'mdi-loading mdi-spin' : resourceActionIcons[targetAction]]" /><span>{{ actionLabel }}</span><span v-if="targets.length" class="badge badge-light">{{ number(targets.length) }}</span>
         </button>
         <button type="button" class="btn btn-outline-primary" :disabled="!!busy || running" @click="rescan">
@@ -246,10 +281,12 @@ function toggleAll(select: boolean) {
           </CheckBox>
           <span v-else>{{ number(rows.length) }} of {{ number(counts.all) }} resources<small v-if="query" class="text-muted"> matching “{{ query }}”</small></span>
         </div>
-        <!-- A different resource spans the row, so its GDA files sit beside the game file. -->
+        <!-- A different resource, and an image with GDA images to choose from, spans the row, so its GDA files sit beside the game file. -->
         <div class="row asset-grid">
-          <div v-for="row in visible" :key="row.id" :class="[row.category === 'different' ? 'col-12' : 'col-sm-6 col-xl-4', 'grid-margin', 'stretch-card']">
-            <ResourceCard :row="row" :revision="finishedAt ?? ''" :selected="selected.has(row.id)" :sync-disabled="!!busy || running" @toggle="toggle(row.id)" @open="detailsId = row.id" @sync="requestResourceSync([row])" />
+          <div v-for="row in visible" :key="row.id" :class="[row.category === 'different' || candidatesOf(row).length ? 'col-12' : 'col-sm-6 col-xl-4', 'grid-margin', 'stretch-card']">
+            <ResourceCard :row="row" :revision="finishedAt ?? ''" :selected="selected.has(row.id)" :sync-disabled="!!busy || running"
+                          :candidates="candidatesOf(row)" :chosen="chosenOf(row)?.absolutePath ?? null"
+                          @toggle="toggle(row.id)" @open="detailsId = row.id" @choose="choose(row, $event)" @sync="requestResourceSync([row], choices([row]))" />
           </div>
         </div>
         <div v-if="rows.length > shown" class="sync-more grid-margin">
@@ -267,7 +304,8 @@ function toggleAll(select: boolean) {
     </template>
   </template>
 
-  <ResourceDetails v-if="detailsRow" :row="detailsRow" :revision="finishedAt ?? ''" :report-version="report?.version ?? 0" @close="detailsId = null" />
+  <ResourceDetails v-if="detailsRow" :row="detailsRow" :revision="finishedAt ?? ''" :report-version="report?.version ?? 0"
+                   :candidate="detailsCandidate" :candidates="candidatesOf(detailsRow)" @choose="choose(detailsRow, $event)" @close="detailsId = null" />
 </template>
 
 <style scoped>

@@ -18,7 +18,8 @@ analysis = Analysis(
     datas=[(str(STATIC), "egt_gda_sync/static")],
     # uvicorn imports the implementations chosen in egt_gda_sync.runtime by name.
     hiddenimports=["uvicorn.loops.asyncio", "uvicorn.protocols.http.h11_impl", "uvicorn.lifespan.on"],
-    excludes=["tkinter"],
+    # The GPU algorithms' packages (the gpu extra) are gigabytes; the executables match images without them.
+    excludes=["tkinter", "torch", "transformers", "huggingface_hub", "safetensors", "tokenizers"],
 )
 pyz = PYZ(analysis.pure)
 windows = sys.platform == "win32"

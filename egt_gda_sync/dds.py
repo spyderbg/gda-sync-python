@@ -130,6 +130,11 @@ def _decode_rgb(data: bytes, width: int, height: int) -> np.ndarray:
 
 def decode_dds(data: bytes) -> bytes:
     """Decode the first surface/mip of a DXT1/3/5, RGB or DX10 BC7 DDS file as a PNG."""
+    return encode_png(decode_dds_rgba(data))
+
+
+def decode_dds_rgba(data: bytes) -> np.ndarray:
+    """Decode the first surface/mip of a DXT1/3/5, RGB or DX10 BC7 DDS file as a (height, width, 4) uint8 RGBA array."""
     info = read_dds_info(data)
     width, height, format = info["width"], info["height"], info["format"]
     if format in ("BC7_UNORM", "BC7_UNORM_SRGB"):
@@ -143,4 +148,4 @@ def decode_dds(data: bytes) -> bytes:
         image = _decode_rgb(data, width, height)
     else:
         raise ValueError(f"Preview unavailable for {format}. DXT1, DXT3, DXT5, RGB and BC7 DDS are supported.")
-    return encode_png(np.ascontiguousarray(image))
+    return np.ascontiguousarray(image)

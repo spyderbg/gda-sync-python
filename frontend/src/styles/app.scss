@@ -496,6 +496,11 @@ button.nav-link {
     box-shadow: 0 0 0 2px $primary, $card-dropshadow;
   }
 
+  // A GDA image chosen to sync from.
+  &.chosen {
+    box-shadow: 0 0 0 2px $primary, $card-dropshadow;
+  }
+
   &.selected .thumbnail:after {
     content: "";
     position: absolute;
@@ -711,12 +716,17 @@ button.nav-link {
 .details-path { display: flex; align-items: center; gap: 4px; margin-bottom: 4px; }
 .details-path > .details-code { flex: 1 1 auto; min-width: 0; }
 .details-path .badge { flex-shrink: 0; }
+.details-path-entry { margin-bottom: 8px; }
 .details-icon { display: flex; flex-shrink: 0; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: #6b7280; font-size: 15px; cursor: pointer; }
 .details-icon:hover { background: #ebedf2; color: #4b49ac; }
 .details-table { margin: 0; }
 .details-table th, .details-table td { padding: 6px 8px 6px 0; border-top: 1px solid #f0f1f4; font-size: 0.8125rem; vertical-align: top; }
 .details-table thead th { border-top: 0; color: #6c757d; font-size: 12px; font-weight: 500; }
 .details-table tbody th { width: 34%; color: #6c757d; font-weight: 400; }
+.details-match { margin-bottom: 14px; }
+.details-match-title { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 4px; font-size: 0.8125rem; overflow-wrap: anywhere; }
+.details-match .details-table tbody th { width: 22%; }
+.details-match .details-table td:last-child { width: 64px; padding-right: 0; text-align: right; font-weight: 400; }
 .details-table td { font-weight: 500; overflow-wrap: anywhere; }
 .details-table td.is-different { color: #d2453c; }
 .details-frames { max-height: 260px; overflow-y: auto; border: 1px solid #ebedf2; border-radius: 4px; }
@@ -905,8 +915,20 @@ button.nav-link {
 }
 
 /* Dialogs */
+.modal-header {
+  align-items: center;
+}
+
 .modal-header .modal-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
   font-weight: 500;
+}
+
+.modal-header .close {
+  flex-shrink: 0;
+  margin: 0 0 0 1rem;
+  padding: 0.5rem;
 }
 
 .sync-summary {

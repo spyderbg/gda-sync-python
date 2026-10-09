@@ -29,9 +29,11 @@ from .errors import AppError, error_message
 from .asset_report import AssetReports, inventory
 from .fonts import FONT_EXTENSIONS, describe_font
 from .png import PNG_SIGNATURE
-from .rss_edit import remove_declarations
+from .rss_edit import parse as parse_json_source, remove_declarations
 from .rss_jobs import SyncJobs
-from .rss_sync import DEFAULT_EXTENSIONS, Config, declared_files
+from .image_cache import CACHE_FILE
+from .rss_sync import DEFAULT_EXTENSIONS, DEFAULT_MATCH_THRESHOLD, Config, declared_files
+from .views import THUMBNAIL_WIDTH, read_view, render_view, view_layout, view_root
 from .rtf import RTF_EXTENSION, rtf_layout
 
 MAX_ASSETS = 10_000
@@ -172,6 +174,24 @@ def _copy_exclusive(source: str, target: str) -> None:
     """Copy file bytes into a new file; fails if target already exists."""
     with open(source, "rb") as reader, open(target, "xb") as writer:
         shutil.copyfileobj(reader, writer, 1024 * 1024)
+
+
+def image_candidates(row: dict) -> list[dict]:
+    """The GDA images that may show the same picture as a different or missing image of the GDA sync report: its possible
+    matches by content, and its same-named GDA files whatever their probability, most likely first, on a tie a same-named
+    one first. Each is syncable unless it has the game file's contents, since copying it would change nothing. Sequences,
+    RTFs, other files and reports from before version 6 have none. The same rule as imageCandidates in
+    frontend/src/format.ts."""
+    match = row.get("imageMatch")
+    if not match or "sequence" in row or "directory" in row or row["category"] not in ("different", "missing"):
+        return []
+    found = {candidate["absolutePath"]: candidate for candidate in match["matches"]}
+    for file in row["gdaFiles"]:
+        if "match" in file and file["absolutePath"] not in found:
+            found[file["absolutePath"]] = {**file, **file["match"], "sameName": True, "foundBy": ["name"]}
+    ordered = sorted(found.values(), key=lambda candidate: (-(candidate["probability"] if candidate["probability"] is not None else -1),
+                                                             not candidate["sameName"]))
+    return [{**candidate, "syncable": candidate["matchType"] != "exact_file"} for candidate in ordered]
 
 
 def _replace_file(source: str, target_root: str, relative: str, backup: str, create_parents: bool = False) -> None:
@@ -565,9 +585,11 @@ class Library:
         entry = next((entry for entry in self.config.get("workspaces", []) if entry["id"] == workspace_id), self.config)
         return workspace_id, entry
 
-    def _comparison(self, workspace_id: str, entry: dict) -> tuple[dict, dict]:
-        """The workspace settings a run uses, named as in workspace.json with defaults filled in, and the GDA sync
-        settings made from them: game_path is <resources_dir>/<game>, and gda_path is gda_dir."""
+    def _comparison(self, workspace_id: str, entry: dict, overrides: dict | None = None) -> tuple[dict, dict]:
+        """The workspace settings a run uses, named as in workspace.json with defaults filled in and the run's overrides
+        applied, and the GDA sync settings made from them: game_path is <resources_dir>/<game>, and gda_path is gda_dir.
+        Every run shares the compare cache in the app data folder."""
+        entry = {**entry, **(overrides or {})}
         common = entry.get("common_gda_path")
         if isinstance(common, str) and common and not os.path.isabs(common):
             common = os.path.join(os.path.dirname(self.config_path), common)
@@ -575,11 +597,15 @@ class Library:
             "id": workspace_id, "game_name": entry["name"], "game_path": entry["destination"], "gda_path": entry["source"],
             "common_gda_path": common, "extensions": entry.get("extensions", list(DEFAULT_EXTENSIONS)),
             "resource_paths": entry.get("resource_paths", []), "ignore_dds_mips": entry.get("ignore_dds_mips", True),
+            "multithreading": entry.get("multithreading", True), "use_gpu": entry.get("use_gpu", False),
+            "image_match_threshold": entry.get("image_match_threshold", DEFAULT_MATCH_THRESHOLD),
         }
         settings = {
             "resources_dir": os.path.dirname(workspace["game_path"]), "game": os.path.basename(workspace["game_path"]),
             "gda_dir": workspace["gda_path"], "common_gda_dir": common, "extensions": workspace["extensions"],
             "resource_paths": workspace["resource_paths"], "ignore_dds_mips": workspace["ignore_dds_mips"],
+            "multithreading": workspace["multithreading"], "use_gpu": workspace["use_gpu"],
+            "image_match_threshold": workspace["image_match_threshold"], "cache_path": os.path.join(self.home, CACHE_FILE),
         }
         return workspace, settings
 
@@ -605,12 +631,14 @@ class Library:
         workspaces = self.config.get("workspaces")
         return [(entry["id"], entry) for entry in workspaces] if workspaces else [("current", self.config)]
 
-    def compare_workspace(self, workspace_id: str, progress: Callable[[str, int, int], None] | None = None) -> dict:
-        """Run a workspace's GDA sync in this process and save its report, without the app; return the run."""
+    def compare_workspace(self, workspace_id: str, progress: Callable[[str, int, int], None] | None = None,
+                          overrides: dict | None = None) -> dict:
+        """Run a workspace's GDA sync in this process and save its report, without the app; return the run. overrides
+        replace workspace.json fields, such as use_gpu, for this run."""
         entry = dict(self.workspace_entries()).get(workspace_id)
         if entry is None:
             raise AppError(f"Workspace not found: {workspace_id}", 404)
-        return self.reports.run(workspace_id, *self._comparison(workspace_id, entry), progress)
+        return self.reports.run(workspace_id, *self._comparison(workspace_id, entry, overrides), progress)
 
     def close(self) -> None:
         self.reports.stop_all()
@@ -741,20 +769,24 @@ class Library:
 
         return self._exclusive(operation)
 
-    def sync_resources(self, ids: list[str]) -> dict:
-        """Copy the closest GDA file of each chosen "different" resource of the GDA sync report over the game resource,
-        or of each different frame of an image sequence, then compare again, since the report lists a copied resource
-        as different until the next run."""
-        return self._apply_resources(dict.fromkeys(ids, "different"), "Only a resource that differs from its GDA file can be synced")
+    def sync_resources(self, ids: list[str], gda_files: dict[str, str] | None = None) -> dict:
+        """Copy a GDA file of each chosen "different" resource of the GDA sync report over the game resource, then compare
+        again, since the report lists a copied resource as different until the next run. An image is copied from the GDA
+        image chosen for it in gda_files, by row id, which must be one of its candidates (image_candidates) and can sync
+        a "missing" image too; without a choice from its most likely candidate. Any other file is copied from its
+        closest GDA file, and each different frame of an image sequence from the closest GDA file of the frame."""
+        return self._apply_resources(dict.fromkeys(ids, "different"), "Only a resource that differs from its GDA file can be synced",
+                                     gda_files or {})
 
-    def apply_resources(self, resources: dict[str, str]) -> dict:
+    def apply_resources(self, resources: dict[str, str], gda_files: dict[str, str] | None = None) -> dict:
         """Apply the action of each chosen resource of the GDA sync report, by row id, for the status the caller saw,
-        which must still be its status in the report: sync a "different" resource as sync_resources does, remove the
-        declarations of an "invalid" one from the descriptors, and delete the files of a "supplementary" one. Every
-        changed or deleted file is saved in the backups first. Then compare again."""
-        return self._apply_resources(resources, "A resource has another status in the GDA sync report now. Review it and try again.")
+        which must still be its status in the report: sync a "different" resource as sync_resources does, from its chosen
+        GDA image in gda_files, remove the declarations of an "invalid" one from the descriptors, and delete the files of
+        a "supplementary" one. Every changed or deleted file is saved in the backups first. Then compare again."""
+        return self._apply_resources(resources, "A resource has another status in the GDA sync report now. Review it and try again.",
+                                     gda_files or {})
 
-    def _apply_resources(self, wanted: dict[str, str], other_status: str) -> dict:
+    def _apply_resources(self, wanted: dict[str, str], other_status: str, gda_files: dict[str, str]) -> dict:
         def operation() -> dict:
             workspace_id, entry = self._active_workspace()
             if self.reports.status(workspace_id)["running"]:
@@ -765,9 +797,23 @@ class Library:
             rows = {row["id"]: row for row in json.loads(report).get("differences", [])}
             if any(row_id not in rows for row_id in wanted):
                 raise AppError("A resource is no longer in the GDA sync report. Rescan and try again.")
-            if any(rows[row_id]["category"] != category or category not in RESOURCE_ACTIONS
-                   or (category == "different" and not rows[row_id]["gdaFiles"]) for row_id, category in wanted.items()):
+            # A missing image is synced only from a GDA image chosen for it.
+            if any(category not in RESOURCE_ACTIONS or not (
+                    rows[row_id]["category"] == category or (category == "different" and rows[row_id]["category"] == "missing" and row_id in gda_files))
+                   or (category == "different" and not rows[row_id]["gdaFiles"] and row_id not in gda_files) for row_id, category in wanted.items()):
                 raise AppError(other_status)
+            # The GDA file of each synced image: the chosen one, which must still be a candidate that changes the game
+            # file, or else the most likely candidate.
+            sources: dict[str, str] = {}
+            for row_id in (row_id for row_id, category in wanted.items() if category == "different"):
+                candidates = [candidate["absolutePath"] for candidate in image_candidates(rows[row_id]) if candidate["syncable"]]
+                if row_id in gda_files and gda_files[row_id] not in candidates:
+                    raise AppError(f"{rows[row_id]['resource']}: the chosen GDA image is not one it can be synced from in the GDA sync "
+                                   "report now. Rescan and try again.")
+                if row_id in gda_files or candidates:
+                    sources[row_id] = gda_files.get(row_id) or candidates[0]
+            if any(row_id not in wanted or wanted[row_id] != "different" for row_id in gda_files):
+                raise AppError("A GDA image can only be chosen for a resource that is synced")
             chosen = {category: [rows[row_id] for row_id, wanted_category in wanted.items() if wanted_category == category]
                       for category in RESOURCE_ACTIONS}
             settings = self._comparison(workspace_id, entry)[1]
@@ -781,7 +827,7 @@ class Library:
                 "backups": os.path.join(self.backup_path, str(uuid.uuid4())),
             }
             failures: list[dict] = []
-            synced = self._copy_resources(chosen["different"], folders, settings["resource_paths"], failures)
+            synced = self._copy_resources(chosen["different"], folders, settings["resource_paths"], failures, sources)
             removed = self._remove_declarations(chosen["invalid"], folders, failures)
             deleted = self._delete_resources(chosen["supplementary"], folders, settings["resource_paths"], failures)
             if synced["files"]:
@@ -802,25 +848,28 @@ class Library:
 
         return self._exclusive(operation)
 
-    def _copy_resources(self, rows: list[dict], folders: dict, resource_paths: list[str], failures: list[dict]) -> dict:
-        """Copy the closest GDA file of each "different" row, or of each different frame of a sequence, over the game file,
-        and make each different RTF's folder a copy of its closest GDA folder."""
+    def _copy_resources(self, rows: list[dict], folders: dict, resource_paths: list[str], failures: list[dict],
+                        sources: dict[str, str]) -> dict:
+        """Copy the GDA file of each row in sources, by row id, or else its closest GDA file, or of each different frame of
+        a sequence its closest GDA file, over the game file, and make each different RTF's folder a copy of its closest
+        GDA folder."""
         resources = folders["resources"]
         rtfs = [row for row in rows if "directory" in row]
-        # The game files to replace, each once with the resource it belongs to: the frames of a sequence can repeat a file.
+        # The game files to replace, each once with the resource it belongs to and the GDA file to copy: the frames of a
+        # sequence can repeat a file.
         files = {
-            file["resourcePath"]: (row["id"], file)
+            file["resourcePath"]: (row["id"], file, sources.get(row["id"]) if file is row else None)
             for row in rows if "directory" not in row
             for file in (row["sequence"]["frames"] if "sequence" in row else [row])
-            if file["category"] == "different" and file["gdaFiles"]
+            if (file is row and row["id"] in sources) or (file["category"] == "different" and file["gdaFiles"])
         }
         copied: list[str] = []
         synced: set[str] = set()
         total = 0
         failed = 0
-        for row_id, file in files.values():
+        for row_id, file, chosen_source in files.values():
             try:
-                source, target = file["gdaFiles"][0]["absolutePath"], file["resourcePath"]
+                source, target = chosen_source or file["gdaFiles"][0]["absolutePath"], file["resourcePath"]
                 root = next((root for root in folders["gda"] if contained(root, source)), None)
                 if root is None or not contained(resources, target):
                     raise AppError("The files are outside the workspace folders")
@@ -937,15 +986,30 @@ class Library:
                 failures.append({"name": os.path.basename(row["resource"]), "message": error_message(error)})
         return {"files": deleted, "resources": count}
 
-    def _resource_path(self, file: str) -> str:
-        """Resolve a report file inside the active workspace's game, GDA or common GDA folders."""
+    def _resource_roots(self) -> list[str]:
+        """The active workspace's resources, GDA and common GDA folders, which report files must be inside."""
         workspace_id, entry = self._active_workspace()
         settings = self._comparison(workspace_id, entry)[1]
-        roots = [os.path.realpath(root) for root in (settings["resources_dir"], settings["gda_dir"], settings["common_gda_dir"]) if root]
+        return [os.path.realpath(root) for root in (settings["resources_dir"], settings["gda_dir"], settings["common_gda_dir"]) if root]
+
+    def _resource_path(self, file: str) -> str:
+        """Resolve a report file inside the active workspace's game, GDA or common GDA folders."""
+        roots = self._resource_roots()
         root = next((root for root in roots if os.path.isabs(file) and contained(root, file)), None)
         if root is None:
             raise AppError("File not found", 404)
         return safe_path(root, os.path.relpath(file, root))
+
+    def descriptor_path(self, descriptor: str) -> str:
+        """Resolve a declaration's JSON descriptor relative to the game, within its resources root."""
+        workspace_id, entry = self._active_workspace()
+        workspace, settings = self._comparison(workspace_id, entry)
+        root = os.path.realpath(settings["resources_dir"])
+        file = os.path.normpath(os.path.join(workspace["game_path"], descriptor))
+        path = safe_path(root, os.path.relpath(file, root))
+        if not path.lower().endswith(".json") or not os.path.isfile(path):
+            raise AppError("Descriptor not found", 404)
+        return path
 
     def resource_folder(self, file: str) -> str:
         """The existing parent directory of a report file, including a missing file or sequence pattern."""
@@ -984,9 +1048,61 @@ class Library:
             details[file] = entry
         return {"files": details}
 
+    def _view(self, file: str) -> tuple[Path, Path, tuple[Path, ...]]:
+        """A view file inside the workspace's folders, the game folder whose descriptors its ids are looked up in, and
+        the folders its images may come from. A game's own view uses the descriptors beside its v folder; a view
+        elsewhere, such as in a GDA folder, those of the selected workspace's game."""
+        path = Path(self._resource_path(file))
+        root = view_root(path)
+        if root is None:
+            raise AppError("Not a view: a view is a .json file in a game's v folder", 415)
+        game = root if any(root.glob("*Data.json")) else Path(self.config["destination"])
+        return path, game, tuple(Path(folder) for folder in self._resource_roots())
+
+    def view_preview(self, file: str, width: int | None = None, hidden: bool = False, crop: bool = False) -> bytes:
+        """A view composed as a PNG image, as wide as width (a card's width by default), with its hidden elements on
+        request, and cropped to what it draws on request."""
+        path, game, roots = self._view(file)
+        try:
+            return render_view(path, width or THUMBNAIL_WIDTH, hidden, game, roots, crop)
+        except FileNotFoundError as error:
+            raise AppError("File not found", 404) from error
+        except (OSError, ValueError, RecursionError) as error:
+            raise AppError(error_message(error), 415) from error
+
+    def view_details(self, file: str) -> dict:
+        """Every element of a view, with what it draws and the area it covers, for the details to outline."""
+        path, game, roots = self._view(file)
+        try:
+            return view_layout(path, game, roots)
+        except FileNotFoundError as error:
+            raise AppError("File not found", 404) from error
+        except (OSError, ValueError, RecursionError) as error:
+            raise AppError(error_message(error), 415) from error
+
+    def view_element_location(self, file: str, index: int) -> tuple[str, int]:
+        """The current source line of an element in a workspace view, in the preview's drawing order."""
+        path, _game, _roots = self._view(file)
+        try:
+            read_view(path)  # Validate the view and its size before reading its source locations.
+            text = path.read_text(encoding="utf-8-sig")
+            root = parse_json_source(text)
+            # JSON permits duplicate keys; its last elements list is the one read_view uses.
+            members = [node for key, node in root.members if key == "elements"][-1]
+            elements = [node for _key, node in members.members if node.kind == "object"]
+            if index < 0 or index >= len(elements):
+                raise AppError("View element not found", 404)
+            return str(path), text.count("\n", 0, elements[index].start) + 1
+        except FileNotFoundError as error:
+            raise AppError("File not found", 404) from error
+        except (OSError, ValueError, RecursionError) as error:
+            raise AppError(error_message(error), 415) from error
+
     def resource_preview(self, file: str) -> tuple[bytes, str]:
-        """Preview an image, an audio file to play, a font to draw text with, or the pages of an RTF to draw,
-        inside the active workspace's resources and GDA folders."""
+        """Preview an image, an audio file to play, a font to draw text with, the pages of an RTF to draw, or a view
+        composed as an image, inside the active workspace's resources and GDA folders."""
+        if view_root(Path(file)) is not None:
+            return self.view_preview(file), "image/png"
         file = self._resource_path(file)
         extension = os.path.splitext(file)[1][1:].lower()
         if extension != "dds" and extension != RTF_EXTENSION and extension not in {**IMAGE_PREVIEWS, **AUDIO_PREVIEWS, **FONT_EXTENSIONS}:

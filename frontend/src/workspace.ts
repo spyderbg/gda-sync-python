@@ -1,6 +1,6 @@
 // Application state shared by the layout and the views, and the actions that talk to the backend.
 import { computed, reactive, ref, watch } from 'vue';
-import { commonAction, plural, resourceAction } from './format';
+import { commonAction, plural, resourceAction, type GdaCandidate } from './format';
 import type { Asset, AssetType, LibraryResponse, RssFileDetails, RssResource, RssSyncStatus, Session, SyncResult, View, WorkspaceConfig } from './types';
 
 const INVALID_SESSION = 'Invalid session. Reload the application.';
@@ -40,6 +40,8 @@ export const ui = reactive({
   inspecting: null as string | null,
   /** GDA sync report resources whose action waits for confirmation. */
   resourceActions: null as RssResource[] | null,
+  /** The GDA image each image resource waiting for confirmation is synced from, by row id. */
+  resourceChoices: {} as Record<string, GdaCandidate>,
   help: false,
   shutdownConfirm: false,
   sidebarOpen: false,
@@ -170,29 +172,40 @@ export async function generateAssetReport() {
   } catch (e) { notify((e as Error).message, true); } finally { busy.value = ''; }
 }
 
-/** Ask to copy the closest GDA file of each "different" resource of the GDA sync report over the game resource. */
-export function requestResourceSync(rows: RssResource[]) {
-  ui.resourceActions = rows.filter(row => resourceAction(row) === 'sync');
+/** What confirming a resource does: its action, or a sync for a missing image that a GDA image was chosen for. */
+export const pendingAction = (row: RssResource) => resourceAction(row) ?? (ui.resourceChoices[row.id] ? 'sync' : null);
+
+/** Ask to copy a GDA file of each "different" resource of the GDA sync report over the game resource: the chosen GDA
+ * image of an image (choices, by row id), which can also sync a missing one, otherwise the closest GDA file. */
+export function requestResourceSync(rows: RssResource[], choices: Record<string, GdaCandidate> = {}) {
+  ui.resourceChoices = choices;
+  ui.resourceActions = rows.filter(row => pendingAction(row) === 'sync');
 }
 
-/** Ask to apply the action of each resource of the GDA sync report that has one: sync a different resource, remove the
- * declarations of an invalid one, or delete a supplementary one. */
-export function requestResourceActions(rows: RssResource[]) {
-  ui.resourceActions = rows.filter(row => resourceAction(row));
+/** Ask to apply the action of each resource of the GDA sync report that has one: sync a different resource, from its
+ * chosen GDA image when it has one, remove the declarations of an invalid one, or delete a supplementary one. */
+export function requestResourceActions(rows: RssResource[], choices: Record<string, GdaCandidate> = {}) {
+  ui.resourceChoices = choices;
+  ui.resourceActions = rows.filter(row => pendingAction(row));
 }
 
 export async function confirmResourceActions() {
   if (!ui.resourceActions) return;
   const rows = ui.resourceActions;
+  // The GDA image each image is synced from, by row id.
+  const gdaFiles = Object.fromEntries(rows.filter(row => ui.resourceChoices[row.id]).map(row => [row.id, ui.resourceChoices[row.id].absolutePath]));
+  const actions = new Set(rows.map(pendingAction));
   ui.resourceActions = null;
   busy.value = 'sync';
-  applying.value = commonAction(rows);
+  applying.value = actions.size > 1 ? 'mixed' : [...actions][0] ?? null;
   try {
     // Copies alone go to the endpoint that can only copy. Otherwise each resource names the status it was chosen with,
     // so the backend refuses one that a newer report gives another status, and another action.
     const result = applying.value === 'sync'
-      ? await api<SyncResult>('rss-sync/copy', 'POST', { ids: rows.map(row => row.id) })
-      : await api<SyncResult>('rss-sync/apply', 'POST', { resources: rows.map(row => ({ id: row.id, category: row.category })) });
+      ? await api<SyncResult>('rss-sync/copy', 'POST', { ids: rows.map(row => row.id), gdaFiles })
+      : await api<SyncResult>('rss-sync/apply', 'POST', {
+        resources: rows.map(row => ({ id: row.id, category: row.category, ...(gdaFiles[row.id] ? { gdaFile: gdaFiles[row.id] } : {}) })),
+      });
     applyLibrary(result.library);
     // An image sequence is one resource, however many of its files were copied or deleted.
     const synced = result.resources ?? result.copied.length;
@@ -224,6 +237,20 @@ export async function openResourceFolder(file: string) {
   try {
     await api('rss-sync/open-folder', 'POST', { file });
     notify('Opened folder.');
+  } catch (e) { notify((e as Error).message, true); }
+}
+
+export async function openDeclaration(descriptor: string, line: number) {
+  try {
+    await api('rss-sync/open-declaration', 'POST', { descriptor, line });
+    notify('Opened declaration in VS Code.');
+  } catch (e) { notify((e as Error).message, true); }
+}
+
+export async function openViewElement(file: string, index: number) {
+  try {
+    await api('rss-sync/open-view-element', 'POST', { file, index });
+    notify('Opened view element in VS Code.');
   } catch (e) { notify((e as Error).message, true); }
 }
 

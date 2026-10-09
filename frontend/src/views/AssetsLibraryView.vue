@@ -45,7 +45,7 @@ const FILTERS: { key: Filter; label: string; hint: string }[] = [
 ];
 const PAGE_SIZE = 200;
 // The asset report version this release writes, ASSET_REPORT_VERSION in egt_gda_sync/asset_report.py.
-const REPORT_VERSION = 3;
+const REPORT_VERSION = 4;
 
 const { report, loadError } = useAssetReport();
 const filter = ref<Filter>('all');
@@ -53,8 +53,11 @@ const shown = ref(PAGE_SIZE);
 const state = computed(() => (!assetReport.value?.reportPath ? 'none' : loadError.value ? 'error' : report.value ? 'ready' : 'loading'));
 const revision = computed(() => report.value?.summary.finishedAt ?? '');
 const outdated = computed(() => !!assetReport.value?.reportPath && (assetReport.value.version ?? 1) < REPORT_VERSION);
-// What an earlier version did not report: fonts before version 2, and RTFs before version 3.
-const outdatedTypes = computed(() => ((assetReport.value?.version ?? 1) < 2 ? 'fonts and RTFs' : 'RTFs'));
+// What an earlier version did not report: fonts before version 2, RTFs before version 3, and views before version 4.
+const outdatedTypes = computed(() => {
+  const version = assetReport.value?.version ?? 1;
+  return version < 2 ? 'fonts, RTFs and views' : version < 3 ? 'RTFs and views' : 'views';
+});
 const assets = computed(() => report.value?.assets ?? []);
 // The sidebar's type narrows the assets that the status filters count.
 const typed = computed(() => assets.value.filter(row => ui.category === 'all' || row.type === ui.category));

@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from fastapi.testclient import TestClient
 
@@ -7,6 +8,35 @@ from egt_gda_sync.server import APP_CSP, create_app
 from tests.conftest import session_headers
 from tests.fixtures.bc7_dds import create_bc7_dds
 from tests.fixtures.png_reader import read_png
+
+
+def test_open_declaration_uses_file_and_line_and_rejects_unsafe_paths(library, tmp_path):
+    descriptor = Path(library.config["destination"]) / "RssImagesData.json"
+    descriptor.write_text('{}', encoding="utf-8")
+    outside = tmp_path / "outside.json"
+    outside.write_text('{}', encoding="utf-8")
+    linked = descriptor.parent / "linked.json"
+    try:
+        linked.symlink_to(outside)
+    except OSError:
+        linked = None  # Windows may require Developer Mode or administrator rights for symlinks.
+    opened = []
+    app = create_app(library, dev=True, code_opener=lambda file, line: opened.append((file, line)))
+    with TestClient(app, base_url="http://127.0.0.1") as client:
+        endpoint = "/api/rss-sync/open-declaration"
+        body = {"descriptor": descriptor.name, "line": 163}
+        assert client.post(endpoint, json=body).status_code == 403
+        headers = session_headers(client)
+        assert client.post(endpoint, headers=headers, json=body).json() == {"opened": True}
+        assert opened == [(str(descriptor), 163)]
+        refused = [str(outside), "../../outside.json", "missing.json", "textures/title.png"]
+        if linked is not None:
+            refused.append("linked.json")
+        for name in refused:
+            assert client.post(endpoint, headers=headers, json={**body, "descriptor": name}).status_code in (400, 404)
+        for line in (0, -1, True, "163"):
+            assert client.post(endpoint, headers=headers, json={**body, "line": line}).status_code == 400
+        assert opened == [(str(descriptor), 163)]
 
 
 def test_api_validates_payloads_rejects_foreign_requests_and_requires_a_session_token_for_writes(api, library):
@@ -35,7 +65,7 @@ def test_api_validates_payloads_rejects_foreign_requests_and_requires_a_session_
     assert data["assetReport"]["summary"]["assets"] == 6
     assert data["activity"][0]["message"] == "Generated an asset report of 6 assets"
     report = api.get("/api/asset-report").json()
-    assert report["version"] == 3 and report["workspace"]["game_path"] == library.config["destination"]
+    assert report["version"] == 4 and report["workspace"]["game_path"] == library.config["destination"]
     assert data["assetReport"]["reportPath"].endswith(".json")
     dds = next(row for row in report["assets"] if row["resource"].endswith(".dds") and row["preview"])
     preview = api.get("/api/rss-sync/preview", params={"file": dds["resourcePath"]})

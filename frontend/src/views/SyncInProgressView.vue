@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import PageHeader from '../components/PageHeader.vue';
 import { useSyncReport } from '../composables/useSyncReport';
-import { number, plural, rowMatches, sequenceName, sequenceSummary, splitPath, time } from '../format';
+import { imageSettings, number, plural, rowMatches, sequenceName, sequenceSummary, splitPath, time } from '../format';
 import type { RssCategory, RssResource } from '../types';
 import { activeSyncCount, busy, config, rescan, rssSync } from '../workspace';
 
@@ -14,7 +14,10 @@ const CATEGORIES: { key: RssCategory; label: string; badge: string; hint: string
   { key: 'invalid', label: 'Invalid', badge: 'badge-dark', hint: 'declared path not usable', detail: 'Reason' },
   { key: 'supplementary', label: 'Supplementary', badge: 'badge-info', hint: 'in the game, in no descriptor', detail: 'Not compared' },
 ];
-const PHASES = { descriptors: 'Reading the *Data.json descriptors', index: 'Indexing the GDA folder', compare: 'Comparing files' };
+const PHASES = {
+  descriptors: 'Reading the *Data.json descriptors', index: 'Indexing the GDA folder', hashing: 'Hashing files', compare: 'Comparing files',
+  images: 'Reading images', matches: 'Matching images',
+};
 
 const { report, loadError } = useSyncReport();
 const category = ref<RssCategory>('identical');
@@ -29,6 +32,12 @@ const progressPercent = computed(() => progress.value?.total
 const summary = computed(() => report.value?.summary);
 // The settings the run used; reports from an earlier version may not have them.
 const settings = computed(() => report.value?.workspace);
+// Whether the GPU algorithms ran, when the run asked for them.
+const imageGpu = computed(() => {
+  const gpu = report.value?.imageCompare?.gpu;
+  if (!gpu?.requested) return '';
+  return gpu.available ? ` on ${gpu.device}` : `, not used: ${gpu.reason ?? 'unavailable'}`;
+});
 const startedAt = computed(() => summary.value?.startedAt ?? report.value?.startedAt);
 const finishedAt = computed(() => summary.value?.finishedAt ?? report.value?.finishedAt);
 // The report is the last successful run; the run after it may have failed.
@@ -138,6 +147,7 @@ function gdaFolders(row: RssResource) {
           <template v-if="settings.common_gda_path"><dt>Common GDA</dt><dd>{{ settings.common_gda_path }}</dd></template>
           <dt>Extensions</dt><dd>{{ settings.extensions.join(', ') }}</dd>
           <dt>DDS mip levels</dt><dd>{{ settings.ignore_dds_mips ? 'Ignored: a copy that differs only in mip levels counts as in sync' : 'Compared byte for byte' }}</dd>
+          <template v-if="imageSettings(settings)"><dt>Image matching</dt><dd>{{ imageSettings(settings) }}{{ imageGpu }}</dd></template>
         </dl>
       </div>
     </div>

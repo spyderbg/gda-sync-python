@@ -12,9 +12,15 @@ dependencies = [
   "fastapi>=0.115",
   "uvicorn>=0.30",
   "numpy>=1.26",
+  "opencv-python-headless>=4.10",
 ]
 
 [project.optional-dependencies]
+# The GDA sync's GPU algorithms (use_gpu): CLIP and DINOv2 on a CUDA GPU. Not part of the packaged executables.
+gpu = [
+  "torch>=2.1",
+  "transformers>=4.40",
+]
 dev = [
   "httpx2>=2.13",
   "pytest>=8",

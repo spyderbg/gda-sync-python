@@ -1,4 +1,5 @@
-"""The arrow between a Game resource and its GDA version copies only that resource."""
+"""The arrow between a Game resource and its GDA version copies only that resource; an image's from the GDA image chosen
+on its card."""
 
 import json
 
@@ -60,8 +61,14 @@ def test_copy_arrow_targets_its_card_and_replaces_only_its_game_file(new_context
     page.route('**/api/rss-sync', lambda route: route.fulfill(json=held['status']) if held['status'] else route.continue_())
     page.route('**/api/rss-sync/copy', copy_resource)
     open_sync(page, backend)
-    button = page.get_by_role('button', name='Copy GDA file over game file for changed.dds', exact=True)
-    other = page.get_by_role('button', name='Copy GDA file over game file for other.dds', exact=True)
+    # An image's copy button waits for a GDA image to be chosen on its card.
+    waiting = page.get_by_role('button', name='Select a GDA image to copy over changed.dds', exact=True)
+    expect(waiting).to_be_disabled()
+    page.get_by_role('button', name='Choose GDA image a/changed.dds for changed.dds', exact=True).click()
+    expect(page.get_by_role('button', name='Clear the choice of GDA image a/changed.dds for changed.dds', exact=True)).to_have_attribute('aria-pressed', 'true')
+    page.get_by_role('button', name='Choose GDA image a/other.dds for other.dds', exact=True).click()
+    button = page.get_by_role('button', name='Copy GDA image a/changed.dds over game file changed.dds', exact=True)
+    other = page.get_by_role('button', name='Copy GDA image a/other.dds over game file other.dds', exact=True)
     expect(button).to_be_enabled()
     poll(lambda: button.locator('img').evaluate('image => image.complete && image.naturalWidth > 0'), True)
     # An existing selection does not turn a card's copy action into a bulk copy.
@@ -71,6 +78,7 @@ def test_copy_arrow_targets_its_card_and_replaces_only_its_game_file(new_context
     dialog = page.get_by_role('dialog')
     expect(dialog).to_be_visible()
     expect(dialog.locator('.sync-file-list')).to_contain_text('changed.dds')
+    expect(dialog.locator('.sync-file-list')).to_contain_text('from a/changed.dds')
     expect(dialog.locator('.sync-file-list')).not_to_contain_text('other.dds')
     expect(dialog.get_by_role('button', name='Sync 1 resource', exact=True)).to_be_visible()
     dialog.get_by_role('button', name='Cancel', exact=True).click()
@@ -83,6 +91,7 @@ def test_copy_arrow_targets_its_card_and_replaces_only_its_game_file(new_context
     expect(page.get_by_role('dialog')).to_have_count(0)
     expect(other).to_be_disabled()
     assert len(copies) == 1 and len(copies[0]['ids']) == 1
+    assert copies[0]['gdaFiles'] == {copies[0]['ids'][0]: str((gda / 'a' / 'changed.dds').resolve())}
     assert (game / 'changed.dds').read_bytes() == (gda / 'a' / 'changed.dds').read_bytes() == b'old'
     assert (game / 'other.dds').read_bytes() == b'keep game'
     assert [file.read_bytes() for file in (home / 'backups').rglob('changed.dds')] == [b'new']

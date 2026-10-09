@@ -40,7 +40,7 @@ def test_the_sync_page_compares_and_syncs_an_rtf_as_its_folder(new_context, rtf_
     game_card = card.locator('.resource-game')
     expect(game_card.locator('.asset-name')).to_have_text('10_Crown')
     expect(game_card).to_contain_text('3 pages · 8 files')
-    expect(game_card.locator('.resource-status')).to_have_text('different SHA-256 (1 changed, 1 only in the GDA, 1 only in the game)')
+    expect(game_card.locator('.resource-status')).to_have_text('different')
     expect(game_card.locator('.resource-frames summary')).to_have_text('3 files not in sync')
     expect(game_card.get_by_role('group', name='Pages of 10_Crown').get_by_role('button')).to_have_count(3)
     # The closest GDA folder, whose pages it shows, and the other one that holds a project.rtf.

@@ -20,7 +20,7 @@ from starlette.exceptions import HTTPException
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from . import APP_ID, __version__
-from .desktop import open_on_desktop, platform_label
+from .desktop import open_in_code, open_on_desktop, platform_label
 from .errors import AppError
 from .fonts import FONT_EXTENSIONS, facts_header
 from .library import Library
@@ -58,11 +58,14 @@ class _Body(BaseModel):
 
 class SyncBody(_Body):
     ids: Annotated[list[Text4K], Field(min_length=1, max_length=10_000)]
+    # The GDA image to copy over each image, by row id: one of the image's candidates in the report.
+    gdaFiles: Annotated[dict[Text4K, Text4K], Field(max_length=10_000)] = {}
 
 
 class ResourceAction(_Body):
     id: Text4K
     category: Literal["different", "invalid", "supplementary"]
+    gdaFile: Text4K | None = None
 
 
 class ResourceActionsBody(_Body):
@@ -85,6 +88,15 @@ class OpenFolderBody(_Body):
 
 class ResourceFileBody(_Body):
     file: Text4K
+
+
+class OpenDeclarationBody(_Body):
+    descriptor: Text4K
+    line: Annotated[int, Field(strict=True, ge=1, le=2_147_483_647)]
+
+
+class OpenViewElementBody(ResourceFileBody):
+    index: Annotated[int, Field(strict=True, ge=0, le=2_147_483_647)]
 
 
 class ResourceFilesBody(_Body):
@@ -157,6 +169,7 @@ def create_app(
     *,
     dev: bool = False,
     opener: Callable[[str], None] = open_on_desktop,
+    code_opener: Callable[[str, int], None] = open_in_code,
     on_shutdown: Callable[[], None] | None = None,
     page_close_grace: float = PAGE_CLOSE_GRACE_SECONDS,
     frontend: dict[str, tuple[bytes, str]] | None = None,
@@ -261,7 +274,11 @@ def create_app(
         return library.sync(body.ids)
 
     @app.get("/api/rss-sync/preview")
-    def rss_sync_preview(file: Annotated[str, Query(max_length=4096)]) -> Response:
+    def rss_sync_preview(file: Annotated[str, Query(max_length=4096)], width: Annotated[int | None, Query(ge=16, le=8192)] = None,
+                         hidden: bool = False, crop: bool = False) -> Response:
+        # A view is composed as an image as wide as width, with its hidden elements and cropped to what it draws on request.
+        if width is not None or hidden or crop:
+            return Response(library.view_preview(file, width, hidden, crop), media_type="image/png", headers={"Content-Security-Policy": PREVIEW_CSP})
         data, mime = library.resource_preview(file)
         headers = {"Content-Security-Policy": PREVIEW_CSP}
         # A font comes with its names and the samples it can draw, for the page that draws text with it.
@@ -269,13 +286,18 @@ def create_app(
             headers["X-Font-Facts"] = facts
         return Response(data, media_type=mime, headers=headers)
 
+    @app.get("/api/rss-sync/view")
+    def rss_sync_view(file: Annotated[str, Query(max_length=4096)]) -> dict:
+        return library.view_details(file)
+
     @app.post("/api/rss-sync/copy")
     def rss_sync_copy(body: SyncBody) -> dict:
-        return library.sync_resources(body.ids)
+        return library.sync_resources(body.ids, body.gdaFiles)
 
     @app.post("/api/rss-sync/apply")
     def rss_sync_apply(body: ResourceActionsBody) -> dict:
-        return library.apply_resources({resource.id: resource.category for resource in body.resources})
+        return library.apply_resources({resource.id: resource.category for resource in body.resources},
+                                       {resource.id: resource.gdaFile for resource in body.resources if resource.gdaFile})
 
     @app.post("/api/rss-sync/details")
     def rss_sync_details(body: ResourceFilesBody) -> dict:
@@ -284,6 +306,16 @@ def create_app(
     @app.post("/api/rss-sync/open-folder")
     def open_resource_folder(body: ResourceFileBody) -> dict:
         opener(library.resource_folder(body.file))
+        return {"opened": True}
+
+    @app.post("/api/rss-sync/open-declaration")
+    def open_declaration(body: OpenDeclarationBody) -> dict:
+        code_opener(library.descriptor_path(body.descriptor), body.line)
+        return {"opened": True}
+
+    @app.post("/api/rss-sync/open-view-element")
+    def open_view_element(body: OpenViewElementBody) -> dict:
+        code_opener(*library.view_element_location(body.file, body.index))
         return {"opened": True}
 
     @app.put("/api/settings")

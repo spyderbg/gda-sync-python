@@ -33,7 +33,7 @@ WINE_ROOT = Path(
 WINDOWS_PYTHON_VERSION = "3.12.10"
 WINDOWS_PYTHON_URL = f"https://www.nuget.org/api/v2/package/python/{WINDOWS_PYTHON_VERSION}"
 WINDOWS_PYTHON_SHA256 = "0eb85c2dfccccf1b17352de4c397f69194035b7d37149eacc16f1147d93de3b8"
-BUILD_REQUIREMENTS = ("fastapi", "uvicorn", "numpy", "pyinstaller")
+BUILD_REQUIREMENTS = ("fastapi", "uvicorn", "numpy", "opencv-python-headless", "pyinstaller")
 # NumPy needs ucrtbase crealf and Python 3.12 needs CopyFile2, which Wine implements from version 11.
 # Without a system Wine 11+, the official WineHQ build for Ubuntu 24.04 is unpacked into build/wine.
 # Hashes are from the WineHQ Packages index, verified against its InRelease signature

@@ -1,8 +1,60 @@
 import base64
 import os
 
-from egt_gda_sync.desktop import application_data_home, child_environment, desktop_command
+import pytest
+
+from egt_gda_sync.desktop import application_data_home, child_environment, desktop_command, open_in_code
+from egt_gda_sync.errors import AppError
 from egt_gda_sync.library import asset_id
+
+
+@pytest.mark.parametrize("platform, executable, file", [
+    ("linux", "/usr/bin/code", "/studio/Artist's Assets & $(stuff)/RssImagesData.json"),
+    ("darwin", "/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code", "/studio/My Game/RssImagesData.json"),
+    ("win32", r"C:\Program Files\Microsoft VS Code\bin\code.cmd", r"D:\Studio\My Game\RssImagesData.json"),
+])
+def test_code_opener_passes_file_and_line_as_one_literal_argument(monkeypatch, platform, executable, file):
+    commands = []
+    class Process:
+        def wait(self, timeout):
+            return 0
+    def launch(command, **kwargs):
+        commands.append((command, kwargs))
+        return Process()
+    lookups = []
+    def which(name):
+        lookups.append(name)
+        return executable
+    monkeypatch.setattr("egt_gda_sync.desktop.sys.platform", platform)
+    monkeypatch.setattr("egt_gda_sync.desktop.shutil.which", which)
+    monkeypatch.setattr("egt_gda_sync.desktop.subprocess.Popen", launch)
+    open_in_code(file, 163)
+    assert lookups == ["code"]
+    assert commands[0][0] == [executable, "--reuse-window", "--goto", f"{file}:163"]
+    assert not commands[0][1].get("shell", False)
+    monkeypatch.setattr("egt_gda_sync.desktop.shutil.which", lambda name: None)
+    with pytest.raises(AppError, match="not available on PATH"):
+        open_in_code(file, 163)
+
+
+def test_windows_code_cmd_fallback_is_resolved_from_path(monkeypatch):
+    monkeypatch.setattr("egt_gda_sync.desktop.sys.platform", "win32")
+    lookups, commands = [], []
+    executable = r"C:\Tools\VS Code\bin\code.cmd"
+    def which(name):
+        lookups.append(name)
+        return executable if name == "code.cmd" else None
+    class Process:
+        def wait(self, timeout):
+            return 0
+    def launch(command, **kwargs):
+        commands.append(command)
+        return Process()
+    monkeypatch.setattr("egt_gda_sync.desktop.shutil.which", which)
+    monkeypatch.setattr("egt_gda_sync.desktop.subprocess.Popen", launch)
+    open_in_code(r"D:\Games\Resources\RssImagesData.json", 163)
+    assert lookups == ["code", "code.cmd"]
+    assert commands == [[executable, "--reuse-window", "--goto", r"D:\Games\Resources\RssImagesData.json:163"]]
 
 
 def test_windows_stores_app_data_in_local_app_data_and_honors_an_explicit_workspace_override():

@@ -1,4 +1,4 @@
-export type AssetType = 'texture' | 'model' | 'material' | 'audio' | 'font' | 'rtf' | 'other';
+export type AssetType = 'texture' | 'model' | 'material' | 'audio' | 'font' | 'rtf' | 'view' | 'other';
 export type AssetStatus = 'new' | 'modified' | 'synced';
 export type FolderKey = 'source' | 'destination';
 export type View ='dashboard' | 'library' | 'pending' | 'rssSync' | 'history' | 'settings';
@@ -64,6 +64,7 @@ export interface RtfFacts {
 export interface FileFacts {
   size?: number; modifiedAt?: string; dimensions?: { width: number; height: number; format: string; mipmaps?: number };
   preview?: boolean; previewError?: string; font?: FontFacts; fontError?: string; rtf?: RtfFacts; rtfError?: string;
+  view?: ViewFacts; viewError?: string;
 }
 export interface AssetFrame extends FileFacts { category: AssetCategory; status: string; resource: string; resourcePath: string; source?: RssRectangle }
 export interface AssetSequence {
@@ -137,14 +138,53 @@ export interface RssSyncHistoryEntry extends RssSyncRun { summary?: RssSyncSumma
 export interface RssSyncHistory { workspaceId: string; workspace: RssSyncWorkspace; history: RssSyncHistoryEntry[] }
 export interface RssSyncStatus {
   workspaceId: string; reportPath: string | null; running: boolean; startedAt: string | null;
-  progress: { phase: 'descriptors' | 'index' | 'compare'; done: number; total: number } | null;
+  progress: { phase: 'descriptors' | 'index' | 'hashing' | 'compare' | 'images' | 'matches'; done: number; total: number } | null;
   lastRun: RssSyncRun | null; comparedAt: string | null; summary: RssSyncSummary | null;
 }
-export interface RssGdaFile { tree: 'game' | 'common'; path: string; absolutePath: string }
+/** A GDA file named like the resource. An image's has its match, how likely it shows the same picture; reports from
+ * before version 6 have none. */
+export interface RssGdaFile { tree: 'game' | 'common'; path: string; absolutePath: string; match?: ImageEvaluation }
+/** How the image matching judges a game image and a GDA image (docs/image_compare/implementation.md). */
+export type ImageMatchType = 'exact_file' | 'exact_pixels' | 'near_duplicate' | 'transformed_duplicate' | 'visually_similar'
+  | 'semantically_similar' | 'different' | 'uncertain';
+/** Each algorithm that ran on a pair: its value, such as pHash's Hamming distance, and the probability it gives alone.
+ * SIFT does not apply to images with too few keypoints. */
+export interface ImageAlgorithms {
+  sha256: { equal: boolean };
+  pixels?: { equal: boolean; size?: [number, number]; gdaSize?: [number, number]; ddsMipsOnly?: boolean };
+  phash?: { hamming: number; probability: number };
+  dhash?: { hamming: number; probability: number };
+  ssim?: { value: number; probability: number };
+  sift?: { keypoints: [number, number]; applicable?: false; goodMatches?: number; inliers?: number; coverage?: number;
+    transform?: 'homography' | 'similarity'; probability?: number };
+  clip?: { cosine: number; probability: number };
+  dinov2?: { cosine: number; probability: number };
+}
+/** A pair's probability of matching, 0.0 to 100.0 (null when an image cannot be decoded), its type, its algorithms, and
+ * the algorithm whose result ended the comparison early. */
+export interface ImageEvaluation {
+  probability: number | null; matchType: ImageMatchType; algorithms: ImageAlgorithms; stoppedBy?: 'sha256' | 'pixels' | 'ssim'; error?: string;
+}
+/** A GDA image that may be the same picture as a game image, and what found it. */
+export interface ImageCandidate extends RssGdaFile, ImageEvaluation {
+  sameName: boolean; foundBy: ('name' | 'sha256' | 'pixels' | 'phash' | 'clip' | 'dinov2')[];
+}
+/** A compared image's best probability and type among the GDA images verified, and its possible matches: those from the
+ * run's threshold, most likely first. */
+export interface ImageMatch { probability: number | null; matchType: ImageMatchType; candidates: number; matches: ImageCandidate[]; error?: string }
+/** How a run matched images: its settings, whether it could use the GPU algorithms, its counts, and any error. */
+export interface ImageCompareReport {
+  version: number; settings: { multithreading: boolean; workers: number; useGpu: boolean; matchThreshold: number };
+  gpu: { requested: boolean; available?: boolean; device?: string; reason?: string };
+  counts: Partial<Record<'images' | 'exact' | 'searched' | 'gdaImages' | 'decoded' | 'undecodable' | 'candidates' | 'pairs' | 'possibleMatches', number>>;
+  error?: string;
+}
 export interface RssResource {
   id: string; category: RssCategory; status: string; resource: string; resourcePath: string; scope: 'game' | 'common' | 'outside';
   gdaFiles: RssGdaFile[];
   requiredBy: AssetDeclaration[]; mipOnly?: boolean;
+  /** An image's matching with the GDA's images by their contents. */
+  imageMatch?: ImageMatch;
   /** An image sequence is one resource: resource is its first frame path, often a {N-M} range, and its status is
    * that of its frames. Its gdaFiles are the GDA file of each frame that has one. */
   sequence?: RssSequence;
@@ -153,6 +193,9 @@ export interface RssResource {
    * pages of the game's RTF and of the closest GDA one, or why they cannot be read. Reports from before version 5 list
    * an RTF's files one by one. */
   directory?: RssRtfDirectory; rtf?: RtfFacts; rtfError?: string; gdaRtf?: RtfFacts; gdaRtfError?: string;
+  /** A view, a .json file of the game's v folder: what it and its closest GDA file draw. Reports from before version 7
+   * have no views. */
+  view?: ViewFacts; viewError?: string; gdaView?: ViewFacts; gdaViewError?: string;
 }
 /** What syncing an RTF does to one of its files: nothing to an identical one, copy a changed one or one that only the
  * GDA folder has ("added"), and delete one that only the game has ("removed"). */
@@ -166,7 +209,7 @@ export interface RssRectangle { x: number; y: number; w: number; h: number }
 /** One frame of an image sequence: one file of its range. A frame whose file is not compared is "skipped". */
 export interface RssFrame {
   category: RssCategory | 'skipped'; status: string; resource: string; resourcePath: string; gdaFiles: RssGdaFile[];
-  mipOnly?: boolean; source?: RssRectangle;
+  mipOnly?: boolean; source?: RssRectangle; imageMatch?: ImageMatch;
 }
 /** A file the GDA sync report names, as POST /api/rss-sync/details describes it: only an error when it does not exist.
  * A font also has its coverage of each character list the request named. */
@@ -181,10 +224,12 @@ export interface PreviewFrame { file: string | null; source?: RssRectangle }
 export interface RssSequence {
   id: string | null; guessed?: boolean; frameTime: number; loopCount: number; loopTo: number | null; paths: string[]; frames: RssFrame[];
 }
-/** The workspace settings a run used, named as in workspace.json, with defaults filled in. */
+/** The workspace settings a run used, named as in workspace.json, with defaults filled in. Reports from before version 6
+ * have no image matching settings. */
 export interface RssSyncWorkspace {
   id: string; game_name: string; game_path: string; gda_path: string; common_gda_path: string | null;
   extensions: string[]; resource_paths: string[]; ignore_dds_mips: boolean;
+  multithreading?: boolean; use_gpu?: boolean; image_match_threshold?: number;
 }
 /** A run's report file. Its summary starts with the run's state and times; a failed run's file holds only those and the
  * workspace settings, which are the report's only copy of the settings the run used. Reports from earlier versions keep
@@ -194,6 +239,7 @@ export interface RssSyncReport {
   startedAt?: string; finishedAt?: string;
   descriptors?: { name: string; path: string; type: string; declarations: number; resources: number }[];
   summary?: RssSyncSummary & Partial<RssSyncRun>;
+  imageCompare?: ImageCompareReport;
   differences?: RssResource[]; identical?: RssResource[];
 }
 export interface Session { token: string; version: string; autoShutdownOnClose: boolean; platform: string }
@@ -203,3 +249,22 @@ export interface SyncResult {
   copied: string[]; resources?: number; removed?: number; deleted?: number;
   failures: { name: string; message: string }[]; bytes: number; library: LibraryResponse;
 }
+
+/** A view, a .json file of a game's v folder that the game's view elements draw on a screen of its resolution: its
+ * name, how many elements of each type it has, how many are hidden or draw an image, and the elements whose resources
+ * cannot be found or drawn. */
+export interface ViewFacts {
+  name: string; resolution: { width: number; height: number }; elements: number; types: Record<string, number>;
+  hidden: number; images: number; missing: { id: string; type: string; keys: string[]; reason: string }[]; missingCount: number;
+  resourcesError?: string;
+}
+/** An element of a view as GET /api/rss-sync/view describes it: what it draws, the corners of the area it covers on the
+ * screen, the area that takes touches of a button, and why it draws nothing. runtime: an image the game sets; touchOnly:
+ * a button without images. */
+export interface ViewElement {
+  index: number; id: string; type: string; keys: string[]; hidden: boolean; drawn: boolean;
+  position: [number, number]; size: [number, number]; corners: [number, number][]; touchArea?: [number, number][];
+  file?: string; source?: number[]; reason?: string; frames?: number; frameTime?: number; movie?: boolean; runtime?: boolean;
+  touchOnly?: boolean; style?: string; fontSize?: number; page?: string; alpha?: number;
+}
+export interface ViewLayout { name: string; resolution: { width: number; height: number }; elements: ViewElement[]; resourcesError?: string }

@@ -339,11 +339,11 @@ def test_each_run_saves_a_timestamped_report_and_a_failed_run_keeps_the_last_res
     assert report["workspace"] == WORKSPACE
     # The run's state and times lead the summary, the counts follow, and nothing repeats them at the top level.
     assert list(report["summary"])[:4] == ["state", "startedAt", "finishedAt", "compared"]
-    assert list(report) == ["version", "workspace", "descriptors", "summary", "differences", "identical"]
+    assert list(report) == ["version", "workspace", "descriptors", "summary", "imageCompare", "differences", "identical"]
     assert report["summary"]["state"] == "succeeded" and report["summary"]["finishedAt"] == status["comparedAt"]
     assert not {"run", "lastRun", "startedAt", "finishedAt", "history"} & set(report)
     counts = {key: value for key, value in report["summary"].items() if key not in ("state", "startedAt", "finishedAt", "error")}
-    assert report["version"] == 5 and len(report["differences"]) == 4 and len(report["identical"]) == 1
+    assert report["version"] == 7 and len(report["differences"]) == 4 and len(report["identical"]) == 1
     [first] = report_files(tmp_path / "reports")
     assert REPORT_FILE.fullmatch(first) and status["reportPath"] == str(tmp_path / "reports" / first)
 
@@ -435,7 +435,7 @@ def test_rescan_starts_the_comparison_and_the_api_serves_the_workspace_report(tm
         assert report["workspace"] == {
             "id": "example", "game_name": "Example", "game_path": str((tmp_path / "resources" / "example").resolve()),
             "gda_path": str(gda.resolve()), "common_gda_path": str(tmp_path / "common"), "extensions": [".dds", ".wav"],
-            "resource_paths": [], "ignore_dds_mips": True,
+            "resource_paths": [], "ignore_dds_mips": True, "multithreading": True, "use_gpu": False, "image_match_threshold": 50.0,
         }
         # The settings are kept only there.
         assert not {"game", "resourcesDir", "gameDir", "gdaDir", "commonGdaDir", "extensions", "ignoreDdsMips"} & set(report)

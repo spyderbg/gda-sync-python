@@ -1,12 +1,12 @@
-import type { AssetCategory, AssetDeclaration, AssetSequence, AssetStatus, AssetType, PreviewFrame, ReportAsset, RssCategory, RssResource, RssRtfDirectory, RssSequence, RtfChange, RtfFacts } from './types';
+import type { AssetCategory, AssetDeclaration, AssetSequence, AssetStatus, AssetType, ImageAlgorithms, ImageCandidate, ViewFacts, ImageEvaluation, ImageMatchType, PreviewFrame, ReportAsset, RssCategory, RssResource, RssRtfDirectory, RssSequence, RssSyncWorkspace, RtfChange, RtfFacts } from './types';
 
-export const ASSET_TYPES = ['texture', 'model', 'material', 'audio', 'font', 'rtf'] as const;
+export const ASSET_TYPES = ['texture', 'model', 'material', 'audio', 'font', 'rtf', 'view'] as const;
 export const typeIcons: Record<AssetType, string> = {
   texture: 'mdi-image-outline', model: 'mdi-cube-outline', material: 'mdi-layers-outline', audio: 'mdi-waveform', font: 'mdi-format-font',
-  rtf: 'mdi-book-open-page-variant-outline', other: 'mdi-file-outline',
+  rtf: 'mdi-book-open-page-variant-outline', view: 'mdi-view-dashboard-outline', other: 'mdi-file-outline',
 };
 export const typeNames: Record<AssetType, string> = {
-  texture: 'Textures', model: 'Models', material: 'Materials', audio: 'Audio', font: 'Fonts', rtf: 'RTFs', other: 'Other files',
+  texture: 'Textures', model: 'Models', material: 'Materials', audio: 'Audio', font: 'Fonts', rtf: 'RTFs', view: 'Views', other: 'Other files',
 };
 export const statusNames: Record<AssetStatus, string> = { new: 'New asset', modified: 'Modified', synced: 'In sync' };
 export const statusBadges: Record<AssetStatus, string> = { new: 'badge-info', modified: 'badge-warning', synced: 'badge-success' };
@@ -42,6 +42,8 @@ const TYPE_EXTENSIONS: [AssetType, string[]][] = [
   ['audio', ['wav', 'ogg', 'mp3', 'flac']],
   ['font', ['ttf', 'otf']],
   ['rtf', ['rtf']],
+  // The GDA sync report compares a .json file only when it is a view.
+  ['view', ['json']],
 ];
 /** The image files the backend previews: DDS textures, which it decodes, and the formats a browser shows as they are. */
 export const PREVIEW_EXTENSIONS = ['dds', 'png', 'jpg', 'jpeg', 'webp', 'svg', 'bmp'];
@@ -86,6 +88,9 @@ export function sequenceSummary(sequence: SequenceTiming) {
   return `${number(count)} frame${plural(count)} · ${sequence.frameTime} ms · ${loops}`;
 }
 
+export const rssStatusNames: Record<RssCategory, string> = {
+  identical: 'in sync', different: 'different', missing: 'missing', invalid: 'invalid', supplementary: 'supplementary',
+};
 export const rssBadges: Record<RssCategory, string> = {
   identical: 'badge-success', different: 'badge-danger', missing: 'badge-warning', invalid: 'badge-dark', supplementary: 'badge-info',
 };
@@ -181,3 +186,79 @@ export function characterRanges(chars: string, limit = 96) {
     return { label: first === last ? codePoint(first) : `${codePoint(first)}–${codePoint(last)}`, points, count };
   }).filter(range => range.count);
 }
+
+// The image matching of the GDA sync report (docs/image_compare/implementation.md).
+export const matchTypeNames: Record<ImageMatchType, string> = {
+  exact_file: 'exact file', exact_pixels: 'same pixels', near_duplicate: 'near duplicate', transformed_duplicate: 'transformed copy',
+  visually_similar: 'visually similar', semantically_similar: 'semantically similar', different: 'another picture', uncertain: 'uncertain',
+};
+/** A pair's probability and type, such as "97.8 % · near duplicate"; a probability is unknown when an image cannot be decoded. */
+export const matchText = (evaluation: Pick<ImageEvaluation, 'probability' | 'matchType'>) =>
+  `${evaluation.probability === null ? 'unknown' : `${evaluation.probability.toFixed(1)} %`} · ${matchTypeNames[evaluation.matchType]}`;
+/** Each algorithm that ran on a pair, with its value and the probability it gives alone. */
+export function algorithmValues(algorithms: ImageAlgorithms): { name: string; value: string; probability?: number }[] {
+  const values: { name: string; value: string; probability?: number }[] = [{ name: 'SHA-256', value: algorithms.sha256.equal ? 'equal' : 'different' }];
+  const { pixels, phash, dhash, ssim, sift, clip, dinov2 } = algorithms;
+  if (pixels) values.push({ name: 'Pixels', value: pixels.ddsMipsOnly ? 'equal (DDS mip levels differ)' : pixels.equal ? 'equal' : pixels.size && pixels.gdaSize && pixels.size.join() !== pixels.gdaSize.join() ? `different, ${pixels.size.join(' × ')} and ${pixels.gdaSize.join(' × ')}` : 'different' });
+  if (phash) values.push({ name: 'pHash', value: `Hamming ${phash.hamming}`, probability: phash.probability });
+  if (dhash) values.push({ name: 'dHash', value: `Hamming ${dhash.hamming}`, probability: dhash.probability });
+  if (ssim) values.push({ name: 'SSIM', value: ssim.value.toFixed(4), probability: ssim.probability });
+  if (sift) {
+    values.push(sift.applicable === false
+      ? { name: 'SIFT', value: `too few keypoints (${sift.keypoints.join(' and ')})` }
+      : { name: 'SIFT', value: `${sift.inliers} inliers of ${sift.goodMatches} matches, ${((sift.coverage ?? 0) * 100).toFixed(1)} % of the image`, probability: sift.probability });
+  }
+  if (clip) values.push({ name: 'CLIP', value: `cosine ${clip.cosine.toFixed(4)}`, probability: clip.probability });
+  if (dinov2) values.push({ name: 'DINOv2', value: `cosine ${dinov2.cosine.toFixed(4)}`, probability: dinov2.probability });
+  return values;
+}
+/** The algorithms of a pair on one line each, for a tooltip. */
+export const algorithmTitle = (evaluation: ImageEvaluation) => algorithmValues(evaluation.algorithms)
+  .map(item => `${item.name}: ${item.value}${item.probability === undefined ? '' : ` (${item.probability.toFixed(1)} %)`}`).join('\n');
+/** A run's image matching settings, such as "possible matches from 50.0 % · multithreading · GPU algorithms"; reports
+ * from before version 6 have none. */
+export const imageSettings = (workspace: RssSyncWorkspace) => (workspace.image_match_threshold === undefined ? null
+  : [`possible matches from ${workspace.image_match_threshold.toFixed(1)} %`, workspace.multithreading ? 'multithreading' : 'one thread',
+    workspace.use_gpu ? 'GPU algorithms' : 'CPU algorithms only'].join(' · '));
+/** A pair's badge: likely matches stand out. */
+export const matchBadge = (evaluation: Pick<ImageEvaluation, 'probability'>) => (evaluation.probability === null ? 'badge-light'
+  : evaluation.probability >= 80 ? 'badge-success' : evaluation.probability >= 50 ? 'badge-info' : 'badge-light');
+
+/** A GDA image that an image resource can be synced from. One with the game file's contents (an exact file) changes
+ * nothing when it is copied, so it cannot be chosen. */
+export interface GdaCandidate extends ImageCandidate { syncable: boolean }
+/** The GDA images that may show the same picture as a different or missing image: its possible matches by content, and
+ * its same-named GDA files whatever their probability, most likely first; on a tie, a same-named one first. Sequences,
+ * RTFs, other files and reports from before version 6 have none. The same rule as image_candidates in
+ * egt_gda_sync/library.py. */
+export function imageCandidates(row: RssResource): GdaCandidate[] {
+  const match = row.imageMatch;
+  if (!match || row.sequence || row.directory || (row.category !== 'different' && row.category !== 'missing')) return [];
+  const found = new Map<string, ImageCandidate>(match.matches.map(candidate => [candidate.absolutePath, candidate]));
+  for (const file of row.gdaFiles) {
+    if (file.match && !found.has(file.absolutePath)) found.set(file.absolutePath, { ...file, ...file.match, sameName: true, foundBy: ['name'] });
+  }
+  return [...found.values()]
+    .map(candidate => ({ ...candidate, syncable: candidate.matchType !== 'exact_file' }))
+    .sort((a, b) => (b.probability ?? -1) - (a.probability ?? -1) || Number(b.sameName) - Number(a.sameName));
+}
+/** The GDA image to sync when none is chosen: the most likely one that changes the game file. */
+export const defaultCandidate = (candidates: GdaCandidate[]) => candidates.find(candidate => candidate.syncable) ?? null;
+
+/** The URL of a view composed as an image, as wide as width, with its hidden elements, and cropped to what it draws, on
+ * request. */
+export const viewRenderURL = (file: string, revision: string, width: number, hidden = false, crop = false) =>
+  `${reportPreviewURL(file, revision)}&width=${width}${hidden ? '&hidden=true' : ''}${crop ? '&crop=true' : ''}`;
+/** A view's elements by type, such as "6 images · 1 anim". */
+export const viewSummary = (facts: ViewFacts) => Object.entries(facts.types)
+  .map(([type, count]) => `${number(count)} ${type.toLowerCase()}${count === 1 ? '' : type === 'Dummy' ? '' : 's'}`).join(' · ');
+/** The facts of a view, as the details' tables list them. */
+export const viewTable = (facts: ViewFacts) => [
+  { label: 'File format', value: 'View (JSON)' },
+  { label: 'Name', value: facts.name },
+  { label: 'Screen', value: `${facts.resolution.width} × ${facts.resolution.height}` },
+  { label: 'Elements', value: `${number(facts.elements)}${facts.elements ? `: ${viewSummary(facts)}` : ''}` },
+  { label: 'Hidden elements', value: facts.hidden ? number(facts.hidden) : 'None' },
+  { label: 'Images drawn', value: number(facts.images) },
+  { label: 'Missing resources', value: facts.missingCount ? number(facts.missingCount) : 'None', warn: !!facts.missingCount },
+];
