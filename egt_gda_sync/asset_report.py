@@ -35,8 +35,9 @@ from .views import describe_view, is_view, view_root
 # all of its files, with its pages, languages and the images and videos its pages draw that do not exist.
 # Version 4 reports views (the .json files of the game's v folder) as their own type, with what they draw.
 # Version 5 lists the folders the assets are in, with each asset's, and reports the declared views of other folders, such
-# as those of the features the game includes, as views.
-ASSET_REPORT_VERSION = 5
+# as those of the features the game includes, as views. Version 6 counts the assets by the library's sections, which
+# list images and image sequences apart.
+ASSET_REPORT_VERSION = 6
 CATEGORIES = ("available", "missing", "invalid", "supplementary")
 # The status a sequence takes from its frames: the first of these that any of its files has.
 SEQUENCE_PRECEDENCE = ("invalid", "missing", "available")
@@ -190,9 +191,16 @@ def inventory(config: Config, facts: Facts) -> dict:
             # Each file once, though a file can be an asset of its own and a frame of sequences.
             "size": sum(entry.get("size", 0) for entry in checked.values()),
             "types": dict(sorted(Counter(row["type"] for row in rows).items())),
+            "sections": dict(sorted(Counter(asset_section(row) for row in rows).items())),
         },
         "assets": rows,
     }
+
+
+def asset_section(row: dict) -> str:
+    """The library section an asset is listed in: "sequence" for an image sequence, "image" for any other texture, and
+    otherwise its type."""
+    return "sequence" if row.get("sequence") else "image" if row["type"] == "texture" else row["type"]
 
 
 def location(row: dict) -> Path:

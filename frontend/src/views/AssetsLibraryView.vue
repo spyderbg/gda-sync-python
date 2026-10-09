@@ -8,7 +8,7 @@ import ButtonTooltip from '../components/ButtonTooltip.vue';
 import ReportThumbnail from '../components/ReportThumbnail.vue';
 import WorkspaceHeader from '../components/WorkspaceHeader.vue';
 import { useAssetReport } from '../composables/useAssetReport';
-import { assetBadges, assetMatches, baseName, declarationLabel, number, plural, size, splitPath } from '../format';
+import { assetBadges, assetMatches, assetSection, baseName, declarationLabel, number, plural, size, splitPath } from '../format';
 import type { AssetCategory, AssetFolder, ReportAsset } from '../types';
 import { assetReport, busy, generateAssetReport, ui } from '../workspace';
 
@@ -48,7 +48,7 @@ const FILTERS: { key: Filter; label: string; hint: string }[] = [
 ];
 const PAGE_SIZE = 200;
 // The asset report version this release writes, ASSET_REPORT_VERSION in egt_gda_sync/asset_report.py.
-const REPORT_VERSION = 5;
+const REPORT_VERSION = 6;
 
 const { report, loadError } = useAssetReport();
 const filter = ref<Filter>('all');
@@ -58,10 +58,12 @@ const shown = ref(PAGE_SIZE);
 const state = computed(() => (!assetReport.value?.reportPath ? 'none' : loadError.value ? 'error' : report.value ? 'ready' : 'loading'));
 const revision = computed(() => report.value?.summary.finishedAt ?? '');
 const outdated = computed(() => !!assetReport.value?.reportPath && (assetReport.value.version ?? 1) < REPORT_VERSION);
-// What an earlier version did not report: fonts before version 2, RTFs before version 3, views before version 4, and
-// before version 5, the views of other folders and the folders the assets are in.
+// What an earlier version did not report: fonts before version 2, RTFs before version 3, views before version 4, the
+// views of other folders and the folders the assets are in before version 5, and the counts of the sidebar's Images and
+// ImagesSeq before version 6.
 const outdatedNote = computed(() => {
   const version = assetReport.value?.version ?? 1;
+  if (version >= 5) return 'This report was written by an earlier version, which did not count images and image sequences apart, so the sidebar counts image sequences as images. Rescan to update it.';
   const types = version < 2 ? 'fonts, RTFs and views' : version < 3 ? 'RTFs and views' : version < 4 ? 'views' : 'views outside the game folder';
   return `This report was written by an earlier version, which counted ${types} as other files and did not read them, and did not list the folders its assets are in. Rescan to update it.`;
 });
@@ -69,8 +71,8 @@ const assets = computed(() => report.value?.assets ?? []);
 // The folders of the report, or for an earlier report, only the game folder, which does not filter.
 const folders = computed<AssetFolder[]>(() => report.value?.folders ?? []);
 watch(folders, list => { if (folder.value && !list.some(item => item.path === folder.value)) folder.value = null; });
-// The sidebar's type and the header's folder narrow the assets that the status filters count.
-const typed = computed(() => assets.value.filter(row => (ui.category === 'all' || row.type === ui.category)
+// The sidebar's section and the header's folder narrow the assets that the status filters count.
+const typed = computed(() => assets.value.filter(row => (ui.category === 'all' || assetSection(row) === ui.category)
   && (!folder.value || row.folder === folder.value)));
 const counts = computed(() => {
   const result: Record<Filter, number> = { all: typed.value.length, available: 0, missing: 0, invalid: 0, supplementary: 0 };

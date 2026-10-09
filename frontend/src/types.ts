@@ -1,4 +1,6 @@
 export type AssetType = 'texture' | 'model' | 'material' | 'audio' | 'font' | 'rtf' | 'view' | 'other';
+/** The Asset library's sections: textures are listed as images and image sequences, any other asset by its type. */
+export type AssetSection = 'image' | 'sequence' | Exclude<AssetType, 'texture'>;
 export type AssetStatus = 'new' | 'modified' | 'synced';
 export type FolderKey = 'source' | 'destination';
 export type View ='dashboard' | 'library' | 'pending' | 'rssSync' | 'history' | 'settings';
@@ -96,6 +98,8 @@ export interface ReportAsset extends FileFacts {
 export interface AssetFolder { path: string; relative: string; kind: 'game' | 'shared' | 'outside'; assets: number }
 export interface AssetReportSummary extends RssSyncRun, Record<AssetCategory, number> {
   assets: number; size: number; types: Partial<Record<AssetType, number>>;
+  /** The assets of each library section; reports from before version 6 have none. */
+  sections?: Partial<Record<AssetSection, number>>;
 }
 export interface AssetReportStatus { reportPath: string | null; version?: number | null; summary: AssetReportSummary | null }
 export interface AssetReport {

@@ -1,16 +1,17 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
-import { ASSET_TYPES, number, typeIcons, typeNames } from '../format';
-import type { AssetType, View } from '../types';
-import { activeSyncCount, assetCount, busy, config, countType, navigate, rssSync, selectWorkspace, ui, workspaces } from '../workspace';
+import { ASSET_SECTIONS, number, sectionIcons, sectionNames } from '../format';
+import type { AssetSection, View } from '../types';
+import { activeSyncCount, assetCount, busy, config, countSection, navigate, rssSync, selectWorkspace, ui, workspaces } from '../workspace';
 
 interface Entry { key: string; label: string; icon: string; count?: number; badge?: string; title?: string; active: boolean; onSelect: () => void }
 
 // Choosing a workspace on the dashboard opens the first step of its work.
 const LANDING_VIEW: View = 'pending';
 const MAX_UNFILTERED = 8;
-// The asset types with an entry of their own. Models and materials have none: they are listed in the Asset library.
-const ASSET_CATEGORIES: (AssetType | 'all')[] = ['all', ...ASSET_TYPES.filter(type => type !== 'model' && type !== 'material')];
+// The library sections with an entry of their own: textures as Images and ImagesSeq (image sequences), then the other
+// types. Models and materials have none: they are listed in the Asset library.
+const ASSET_CATEGORIES: (AssetSection | 'all')[] = ['all', ...ASSET_SECTIONS];
 
 // A workspace is selected only while one of its views is open; the dashboard covers all of them.
 const inWorkspace = computed(() => ui.view !== 'dashboard');
@@ -47,7 +48,7 @@ async function chooseWorkspace(id: string) {
   await selectWorkspace(id);
   // selectWorkspace always ends on the dashboard; return to where the user was unless the switch failed.
   if (config.value.defaultWorkspace !== id) return;
-  navigate(target, target === 'library' && category !== 'all' && countType(category) ? category : 'all');
+  navigate(target, target === 'library' && category !== 'all' && countSection(category) ? category : 'all');
 }
 
 // The Sync badge counts what the summary of the latest GDA sync report has not in sync; there is none before the first report.
@@ -65,11 +66,11 @@ const syncEntries = computed<Entry[]>(() => [
   { key: 'history', label: 'Sync history', icon: 'mdi-history' },
 ].map(entry => ({ ...entry, active: ui.view === entry.key, onSelect: () => navigate(entry.key as View) })));
 
-const assetEntries = computed<Entry[]>(() => [...ASSET_CATEGORIES, ...(countType('other') ? ['other' as const] : [])].map(category => ({
+const assetEntries = computed<Entry[]>(() => [...ASSET_CATEGORIES, ...(countSection('other') ? ['other' as const] : [])].map(category => ({
   key: category,
-  label: category === 'all' ? 'Asset library' : typeNames[category],
-  icon: category === 'all' ? 'mdi-view-grid-outline' : typeIcons[category],
-  count: category === 'all' ? assetCount.value : countType(category),
+  label: category === 'all' ? 'Asset library' : sectionNames[category],
+  icon: category === 'all' ? 'mdi-view-grid-outline' : sectionIcons[category],
+  count: category === 'all' ? assetCount.value : countSection(category),
   badge: 'badge-light',
   active: ui.view === 'library' && ui.category === category,
   onSelect: () => navigate('library', category),

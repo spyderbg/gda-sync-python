@@ -78,3 +78,29 @@ def test_library_shows_the_generated_asset_report_and_opens_an_asset_in_a_dialog
     expect(details.get_by_role('row', name='Files 3 of 3 found')).to_be_visible()
     page.keyboard.press('Escape')
     assert errors == []
+
+
+def test_the_sidebar_lists_images_and_image_sequences_apart(new_context, details_backend):
+    backend, _game = details_backend
+    page = new_context().new_page()
+    errors = []
+    page.on('pageerror', lambda error: errors.append(str(error)))
+    page.goto(backend.url)
+    page.get_by_role('list', name='Workspaces').get_by_role('button', name='Example', exact=True).click()
+    page.get_by_role('button', name='Asset library', exact=True).click()
+    page.get_by_role('region', name='Workspace summary').get_by_role('button', name='Rescan', exact=True).click()
+    expect(page.locator('.asset-card')).to_have_count(4)
+    navigation = page.get_by_role('navigation', name='Main navigation')
+    # The banner, the missing image and the file that nothing declares are images; SPIN is an image sequence.
+    images, sequences = (navigation.get_by_role('button', name=name, exact=True) for name in ('Images', 'ImagesSeq'))
+    expect(images).to_contain_text('3')
+    expect(sequences).to_contain_text('1')
+    expect(navigation.get_by_role('button', name='Textures', exact=True)).to_have_count(0)
+    sequences.click()
+    expect(sequences).to_have_attribute('aria-current', 'page')
+    expect(page.locator('.asset-card')).to_have_count(1)
+    expect(page.locator('.asset-card')).to_contain_text('SPIN')
+    images.click()
+    expect(page.locator('.asset-card')).to_have_count(3)
+    expect(page.locator('.asset-card').filter(has_text='SPIN')).to_have_count(0)
+    assert errors == []

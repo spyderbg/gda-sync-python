@@ -50,8 +50,8 @@ What a workspace is, in the user's words and in `workspace.json` fields:
 - The app starts on `dashboard`. Several actions leave the dashboard on their own: searching (`ui.query` switches to `library`), inspecting an asset, and saving settings.
 - Workspaces come from `config.value.workspaces` (`workspaces` export): `{ id, name, source, destination }`. These map to the `workspace.json` fields as **`name` = `game_name`, `source` = `game_path`, `destination` = `gda_path`**. The backend does this translation; the frontend never sees the `game_*` names. The active workspace id is `config.value.defaultWorkspace`.
 - `selectWorkspace(id)` switches the backend's active workspace and then **always navigates to the dashboard** and shows a toast. It returns immediately without doing anything when `id` is already the active one. It does not throw: on failure it shows an error toast and leaves the view unchanged.
-- Only the **active** workspace is loaded. `assets`, `pending`, `syncedCount`, `countStatus(status)` and `countType(type)` describe the active workspace only. There is no data for the inactive ones, so the menu cannot show counts for them.
-- Asset types come from `ASSET_TYPES`, `typeNames` and `typeIcons` in `format.ts` (textures, models, materials, audio, fonts, RTFs, views). `other` files exist as a type but are not in `ASSET_TYPES`. Models and materials have no entry of their own in the sidebar: they are listed in the Asset library.
+- Only the **active** workspace is loaded. `assets`, `pending`, `syncedCount`, `countStatus(status)` and `countSection(section)` describe the active workspace only. There is no data for the inactive ones, so the menu cannot show counts for them.
+- Asset types come from `ASSET_TYPES`, `typeNames` and `typeIcons` in `format.ts` (textures, models, materials, audio, fonts, RTFs, views). `other` files exist as a type but are not in `ASSET_TYPES`. The sidebar lists the library's sections instead, from `ASSET_SECTIONS`, `sectionNames` and `sectionIcons`: textures are split into **Images** (`image`, single images) and **ImagesSeq** (`sequence`, image sequences), and `assetSection(row)` gives an asset's section. Models and materials have no entry of their own in the sidebar: they are listed in the Asset library.
 - `config/workspace.json` (template `config/workspace.json.template`) has `defaultWorkspace` and a `workspaces` list of `id`, `game_name`, `game_path`, `gda_path`.
 - The status meaning (`new`, `modified`, `synced`) and the direction of the copy are decided by the backend. Do not change them, and keep the menu wording neutral: name the two folders "Game folder" and "GDA folder" and **do not draw an arrow between them**.
 
@@ -103,7 +103,7 @@ Two details of the existing code you must handle in the panel:
 Carry-over rules when switching between two workspaces:
 
 - `pending`, `synced`, `activity` and `settings` carry over as they are.
-- For `library`, **the asset-type category carries over**. Asset types are nearly the same in every workspace, so the user can compare "Textures" across games with one click each. If the new workspace has no assets of that type (`countType(type) === 0` after the switch), fall back to the whole library (`all`).
+- For `library`, **the section carries over**. Sections are nearly the same in every workspace, so the user can compare "Images" across games with one click each. If the new workspace has no assets of that section (`countSection(section) === 0` after the switch), fall back to the whole library (`all`).
 - Resource-list selections (section 5.4) **never** carry over, because those lists are different in every workspace.
 
 ### 4.4 What is stable and what changes between workspaces
@@ -154,8 +154,8 @@ Where space allows, show the split of "Needs sync" in a `title` tooltip (for exa
 Shown only in a workspace view. Heading **Assets**, without the workspace name. It lists the assets of the selected workspace by **every supported asset type**:
 
 - first item: `Asset library` (all assets), `navigate('library')`, badge `assets.length`
-- then one item per type in `ASSET_TYPES` (use `typeNames` and `typeIcons` for the label and icon), `navigate('library', type)`, badge `countType(type)`; the same list in the same order for every workspace (section 4.4)
-- add `Other files` (`other`) as the last item **only** when `countType('other') > 0`
+- then one item per section in `ASSET_SECTIONS`, Images and ImagesSeq first (use `sectionNames` and `sectionIcons` for the label and icon), `navigate('library', section)`, badge `countSection(section)`, from the report summary's `sections`; the same list in the same order for every workspace (section 4.4)
+- add `Other files` (`other`) as the last item **only** when `countSection('other') > 0`
 - an item is active when `ui.view === 'library'` and `ui.category` matches (`all` for the library item)
 
 Show the types directly, not behind a collapsed "Asset types" parent, because this is the main working list. The section may be collapsible if that keeps a long menu manageable; if so, default it to open and make the toggle a real button with `aria-expanded`.

@@ -1,7 +1,7 @@
 // Application state shared by the layout and the views, and the actions that talk to the backend.
 import { computed, reactive, ref, watch } from 'vue';
 import { commonAction, plural, resourceAction, type GdaCandidate } from './format';
-import type { Asset, AssetType, LibraryResponse, RssFileDetails, RssResource, RssSyncStatus, Session, SyncResult, View, WorkspaceConfig } from './types';
+import type { Asset, AssetSection, LibraryResponse, RssFileDetails, RssResource, RssSyncStatus, Session, SyncResult, View, WorkspaceConfig } from './types';
 
 const INVALID_SESSION = 'Invalid session. Reload the application.';
 const RSS_POLL_MS = 1000;
@@ -33,7 +33,7 @@ export const toast = ref<{ text: string; error?: boolean } | null>(null);
 
 export const ui = reactive({
   view: 'dashboard' as View,
-  category: 'all' as AssetType | 'all',
+  category: 'all' as AssetSection | 'all',
   query: '',
   layout: 'grid' as 'grid' | 'list',
   /** The asset whose details dialog is open. */
@@ -53,7 +53,13 @@ export const workspaces = computed(() => config.value?.workspaces || []);
 export const assetReport = computed(() => data.value?.assetReport ?? null);
 export const assetCount = computed(() => assetReport.value?.summary?.assets ?? 0);
 export const totalSize = computed(() => assetReport.value?.summary?.size ?? 0);
-export const countType = (type: AssetType) => assetReport.value?.summary?.types[type] ?? 0;
+/** The assets of a library section; a report from before version 6 counts only types, so its textures are its images. */
+export const countSection = (section: AssetSection) => {
+  const summary = assetReport.value?.summary;
+  if (!summary) return 0;
+  if (summary.sections) return summary.sections[section] ?? 0;
+  return section === 'image' ? summary.types.texture ?? 0 : section === 'sequence' ? 0 : summary.types[section] ?? 0;
+};
 export const isLibraryView = computed(() => LIBRARY_VIEWS.includes(ui.view));
 
 // Searching from any page shows the matching assets.
@@ -138,7 +144,7 @@ async function api<T>(path: string, method = 'POST', body?: unknown): Promise<T>
   return value as T;
 }
 
-export function navigate(view: View, category: AssetType | 'all' = 'all') {
+export function navigate(view: View, category: AssetSection | 'all' = 'all') {
   ui.view = view;
   ui.category = category;
   ui.query = '';

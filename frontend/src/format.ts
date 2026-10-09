@@ -1,4 +1,4 @@
-import type { AssetCategory, AssetDeclaration, AssetSequence, AssetStatus, AssetType, ImageAlgorithms, ImageCandidate, ViewFacts, ImageEvaluation, ImageMatchType, PreviewFrame, ReportAsset, RssCategory, RssResource, RssRtfDirectory, RssSequence, RssSyncWorkspace, RtfChange, RtfFacts } from './types';
+import type { AssetCategory, AssetDeclaration, AssetSection, AssetSequence, AssetStatus, AssetType, ImageAlgorithms, ImageCandidate, ViewFacts, ImageEvaluation, ImageMatchType, PreviewFrame, ReportAsset, RssCategory, RssResource, RssRtfDirectory, RssSequence, RssSyncWorkspace, RtfChange, RtfFacts } from './types';
 
 export const ASSET_TYPES = ['texture', 'model', 'material', 'audio', 'font', 'rtf', 'view'] as const;
 export const typeIcons: Record<AssetType, string> = {
@@ -8,6 +8,14 @@ export const typeIcons: Record<AssetType, string> = {
 export const typeNames: Record<AssetType, string> = {
   texture: 'Textures', model: 'Models', material: 'Materials', audio: 'Audio', font: 'Fonts', rtf: 'RTFs', view: 'Views', other: 'Other files',
 };
+// The Asset library's sections, in the sidebar's order, as asset_section in egt_gda_sync/asset_report.py assigns them.
+export const ASSET_SECTIONS = ['image', 'sequence', 'audio', 'font', 'rtf', 'view'] as const;
+export const sectionIcons: Record<AssetSection, string> = {
+  ...typeIcons, image: 'mdi-image-outline', sequence: 'mdi-animation-outline',
+};
+export const sectionNames: Record<AssetSection, string> = { ...typeNames, image: 'Images', sequence: 'ImagesSeq' };
+/** The library section of an asset: an image sequence, any other texture as an image, or else its type. */
+export const assetSection = (row: { type: AssetType; sequence?: unknown }): AssetSection => (row.sequence ? 'sequence' : row.type === 'texture' ? 'image' : row.type);
 export const statusNames: Record<AssetStatus, string> = { new: 'New asset', modified: 'Modified', synced: 'In sync' };
 export const statusBadges: Record<AssetStatus, string> = { new: 'badge-info', modified: 'badge-warning', synced: 'badge-success' };
 
