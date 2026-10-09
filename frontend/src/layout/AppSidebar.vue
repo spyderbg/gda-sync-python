@@ -9,7 +9,8 @@ interface Entry { key: string; label: string; icon: string; count?: number; badg
 // Choosing a workspace on the dashboard opens the first step of its work.
 const LANDING_VIEW: View = 'pending';
 const MAX_UNFILTERED = 8;
-const ASSET_CATEGORIES: (AssetType | 'all')[] = ['all', ...ASSET_TYPES];
+// The asset types with an entry of their own. Models and materials have none: they are listed in the Asset library.
+const ASSET_CATEGORIES: (AssetType | 'all')[] = ['all', ...ASSET_TYPES.filter(type => type !== 'model' && type !== 'material')];
 
 // A workspace is selected only while one of its views is open; the dashboard covers all of them.
 const inWorkspace = computed(() => ui.view !== 'dashboard');
