@@ -45,7 +45,7 @@ def test_views_are_drawn_in_the_asset_library_and_on_the_sync_page(new_context, 
     # The Asset library's Views section lists every view, drawn, with its name and elements.
     navigation.get_by_role("button", name="Asset library", exact=True).click()
     page.get_by_role("button", name="Rescan").first.click()
-    navigation.get_by_role("button", name="Views", exact=True).click()
+    navigation.get_by_role("button", name="ElementsList", exact=True).click()
     cards = page.locator(".report-asset")
     expect(cards).to_have_count(5)
     main = cards.filter(has_text="1920 × 1080 · 10 elements")
@@ -120,7 +120,7 @@ def test_selected_views_are_shown_together_in_one_dialog(new_context, view_backe
     expect(page.locator(".report-asset").first).to_be_visible()
     images = page.locator(".report-asset").filter(has_text="red.png")
     expect(images.get_by_role("checkbox")).to_have_count(0)
-    navigation.get_by_role("button", name="Views", exact=True).click()
+    navigation.get_by_role("button", name="ElementsList", exact=True).click()
     main = page.locator(".report-asset").filter(has_text="1920 × 1080 · 10 elements")
     buttons = page.locator(".report-asset").filter(has_text="ButtonView.json")
     # A view that cannot be read cannot be drawn with others.

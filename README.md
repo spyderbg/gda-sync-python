@@ -27,7 +27,7 @@ The app opens on the **Dashboard**, with a short guide to selecting a workspace,
 
 Launching without an existing workspace configuration creates the **Verdant** workspace with 18 real sample files: textures, DDS maps, OBJ models, materials, and audio. Five assets are new, three are modified, and ten are already in sync.
 
-- Browse the game's resources in the **Asset library**: its **Rescan** writes an asset report of everything the game's descriptors declare, in the Game path and the folders it includes, and the library shows the newest one. Search paths, ids and sequences, and filter by section (**Images**, **ImagesSeq** for image sequences, **Audio**, **Fonts**, **RTFs**, **Views**), status or folder.
+- Browse the game's resources in the **Asset library**: its **Rescan** writes an asset report of everything the game's descriptors declare, in the Game path and the folders it includes, and the library shows the newest one. Search paths, ids and sequences, and filter by section (**Images**, **ImagesSeq** for image sequences, **Audio**, **Fonts**, **RTFs**, **ElementsList** for views), status or folder.
 - Switch between grid and list views.
 - Click an asset to open its details: a large preview, the descriptor entries that load it, its metadata, and its path.
 - Sync on the **Sync** page: select resources of the GDA sync report and choose **Sync selected**, sync an individual resource, or **Sync all pending**, then review and confirm the copy.
@@ -146,7 +146,7 @@ RTFs (`.rtf`) are an asset type of their own, in the **RTFs** section. Despite t
 
 #### Views
 
-Views are an asset type of their own, in the **Views** section: every `.json` file in the game's `v` folder, such as `v/1920x1080/BetBarView.json` or `v/1920x1080/SwButtons/InfoSwButtonView.json`, except the `*Data.json` descriptors kept there. The game's view elements (`GameVideoCtrl/ViewElements`) draw a view: a list of elements, drawn in order on a screen of the resolution its folder names (1920 × 1080 when none does). `RssElementsListData.json` declares the views, so their cards say which `Element` entries load them; a view that no descriptor declares is supplementary. An element names its resources by id, which the game's descriptors declare; of several entries with one id, the one for the view's resolution is used:
+Views are an asset type of their own, in the **ElementsList** section (named after `RssElementsListData.json`, which declares them): every `.json` file in the game's `v` folder, such as `v/1920x1080/BetBarView.json` or `v/1920x1080/SwButtons/InfoSwButtonView.json`, except the `*Data.json` descriptors kept there. The game's view elements (`GameVideoCtrl/ViewElements`) draw a view: a list of elements, drawn in order on a screen of the resolution its folder names (1920 × 1080 when none does). `RssElementsListData.json` declares the views, so their cards say which `Element` entries load them; a view that no descriptor declares is supplementary. An element names its resources by id, which the game's descriptors declare; of several entries with one id, the one for the view's resolution is used:
 
 | Element | Drawn as |
 | --- | --- |
@@ -190,7 +190,7 @@ Asset reports are at version 6. The Asset library's **Rescan** writes a new one.
 | The summary's `sections`: the counts of the sidebar's **Images** and **ImagesSeq** | 6 | The sidebar counts image sequences as images and shows 0 for **ImagesSeq**, though both sections list the right assets; the library notes that the report is out of date. |
 | The `folders` the assets are in and each asset's `folder`: the library's folder lines and folder filter | 5 | Only the Game path is shown, and it does not filter; the library notes that the report is out of date. |
 | The declared views of other folders, such as those of an included feature, as views | 5 | They are other files. |
-| Views as their own type, in the **Views** section, drawn as the game draws them, with their elements and the resources they miss | 4 | Views are other files, and a view that no descriptor declares is not listed; the library notes that the report is out of date. |
+| Views as their own type, in the **ElementsList** section, drawn as the game draws them, with their elements and the resources they miss | 4 | Views are other files, and a view that no descriptor declares is not listed; the library notes that the report is out of date. |
 | RTFs (`.rtf`) as their own type, in the **RTFs** section: each RTF's folder is one asset, named by the folder, with every file in it | 3 | `.rtf` files are other files, and the files in an RTF's folder are assets of their own, mostly supplementary; the library notes that the report is out of date. |
 | An RTF's tool version, languages, pages with their backgrounds, and the images and videos its pages miss | 3 | No pages in cards; the details show the file only. |
 | Fonts as their own type, in the **Fonts** section | 2 | `.ttf` and `.otf` files are other files; the library notes that the report is out of date. |

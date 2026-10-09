@@ -13,7 +13,7 @@ export const ASSET_SECTIONS = ['image', 'sequence', 'audio', 'font', 'rtf', 'vie
 export const sectionIcons: Record<AssetSection, string> = {
   ...typeIcons, image: 'mdi-image-outline', sequence: 'mdi-animation-outline',
 };
-export const sectionNames: Record<AssetSection, string> = { ...typeNames, image: 'Images', sequence: 'ImagesSeq' };
+export const sectionNames: Record<AssetSection, string> = { ...typeNames, image: 'Images', sequence: 'ImagesSeq', view: 'ElementsList' };
 /** The library section of an asset: an image sequence, any other texture as an image, or else its type. */
 export const assetSection = (row: { type: AssetType; sequence?: unknown }): AssetSection => (row.sequence ? 'sequence' : row.type === 'texture' ? 'image' : row.type);
 export const statusNames: Record<AssetStatus, string> = { new: 'New asset', modified: 'Modified', synced: 'In sync' };
