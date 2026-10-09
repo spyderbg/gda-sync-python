@@ -3,9 +3,9 @@
     "port": 3457,
     "vite_port": 5174
   },
-  "defaultWorkspace": "super_hot_coins_20",
+  "defaultWorkspace": "burning_hot_coins",
   "games_root_path": "/media/plamen/data/Egt/games",
-  "gda_root_path": "/media/plamen/data1/Egt/gda_new",
+  "gda_root_path": "/media/plamen/data1/Egt/gda",
   "workspaces": [
     {
       "id": "burning_crown_tetra_spins_10",
