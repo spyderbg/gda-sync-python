@@ -1,13 +1,14 @@
 // Application state shared by the layout and the views, and the actions that talk to the backend.
 import { computed, reactive, ref, watch } from 'vue';
 import { commonAction, plural, resourceAction, viewSaves, type GdaCandidate } from './format';
-import type { Asset, AssetSection, LibraryResponse, RssFileDetails, RssResource, RssSyncHistory, RssSyncStatus, Session, SyncResult, View, ViewLayout, WorkspaceConfig } from './types';
+import type { Asset, AssetSection, LibraryResponse, RestoreResult, RssFileDetails, RssResource, RssSyncHistory, RssSyncStatus, Session, SyncResult, View, ViewLayout, WorkspaceConfig } from './types';
 
 const INVALID_SESSION = 'Invalid session. Reload the application.';
 const RSS_POLL_MS = 1000;
 export const LIBRARY_VIEWS: View[] = ['library', 'pending'];
 export const PAGE_NAMES: Record<View, string> = {
-  dashboard: 'Dashboard', library: 'Asset library', pending: 'Sync', rssSync: 'Sync in progress', history: 'Sync history', settings: 'Workspace settings',
+  dashboard: 'Dashboard', library: 'Asset library', pending: 'Sync', rssSync: 'Sync in progress', history: 'Sync history', backups: 'Backups',
+  settings: 'Workspace settings',
 };
 
 export const data = ref<LibraryResponse | null>(null);
@@ -26,7 +27,7 @@ export const reportState = computed<'unknown' | 'creating' | 'none' | 'failed' |
 export const session = reactive({ token: '', version: '', platform: '' });
 export const loadError = ref('');
 export const stopped = ref(false);
-export const busy = ref<'' | 'scan' | 'sync' | 'report' | 'settings' | 'shutdown' | 'delete-report'>('');
+export const busy = ref<'' | 'scan' | 'sync' | 'report' | 'settings' | 'shutdown' | 'delete-report' | 'restore'>('');
 /** What the GDA sync report resources being applied do, while busy is "sync" for them. */
 export const applying = ref<ReturnType<typeof commonAction>>(null);
 export const toast = ref<{ text: string; error?: boolean } | null>(null);
@@ -245,6 +246,26 @@ export async function openResourceFolder(file: string, isFolder = false) {
     await api('rss-sync/open-folder', 'POST', { file, isFolder });
     notify('Opened folder.');
   } catch (e) { notify((e as Error).message, true); }
+}
+
+/** Copy an operation's backups back where they were: the given files, or all of them. The files there now are backed
+ * up first. Returns what was restored, or null when nothing could be. */
+export async function restoreBackup(id: string, files?: string[]) {
+  busy.value = 'restore';
+  try {
+    const result = await api<RestoreResult>('backups/restore', 'POST', { id, ...(files ? { files } : {}) });
+    applyLibrary(result.library);
+    const parts = [
+      result.restored.length ? `Restored ${result.restored.length} file${plural(result.restored.length)}.` : 'Nothing to restore.',
+      result.skipped.length ? `${result.skipped.length} already the same as the backup.` : '',
+      result.failures.length ? `${result.failures.length} could not be restored: ${result.failures[0].name}: ${result.failures[0].message}` : '',
+    ];
+    notify(parts.filter(Boolean).join(' '), result.failures.length > 0);
+    return result;
+  } catch (e) {
+    notify((e as Error).message, true);
+    return null;
+  } finally { busy.value = ''; }
 }
 
 /** Delete one GDA sync report of the active workspace, by its file name. Returns the history left, or null when it

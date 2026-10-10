@@ -3,7 +3,7 @@ export type AssetType = 'texture' | 'model' | 'material' | 'audio' | 'font' | 'r
 export type AssetSection = 'image' | 'sequence' | Exclude<AssetType, 'texture'>;
 export type AssetStatus = 'new' | 'modified' | 'synced';
 export type FolderKey = 'source' | 'destination';
-export type View ='dashboard' | 'library' | 'pending' | 'rssSync' | 'history' | 'settings';
+export type View ='dashboard' | 'library' | 'pending' | 'rssSync' | 'history' | 'backups' | 'settings';
 
 /** A file of the game folder, which the asset library lists. */
 export interface Asset {
@@ -24,10 +24,23 @@ export interface WorkspaceConfig {
 }
 export interface Activity {
   /** cleanup removes the declarations of invalid resources, or deletes supplementary ones; report generates an asset
-   * report; edit moves the elements of a view. */
-  id: string; date: string; action: 'sync' | 'scan' | 'settings' | 'cleanup' | 'report' | 'edit';
+   * report; edit moves the elements of a view; restore copies files back from the backups. */
+  id: string; date: string; action: 'sync' | 'scan' | 'settings' | 'cleanup' | 'report' | 'edit' | 'restore';
   message: string; files: string[]; bytes?: number;
 }
+/** An operation's backups: the files it replaced or deleted, at their paths relative to root, the folder it changed. A
+ * backup from before these records (legacy) has no action or message; when its workspace is not known, it has no root
+ * and cannot be restored. */
+export interface BackupOperation {
+  id: string; date: string; action: 'sync' | 'cleanup' | 'edit' | 'restore' | 'backup'; message: string; legacy: boolean;
+  workspace: { id: string; name: string } | null; root: string | null; fileCount: number; size: number; restorable: boolean;
+}
+/** A file of an operation's backups: what the operation did to it, and how it is now: the same as its backup, changed
+ * since, or missing (deleted, or not restored yet). */
+export interface BackupFile { path: string; change: 'replaced' | 'deleted'; size: number; now: 'same' | 'changed' | 'missing' | 'unknown'; currentPath?: string }
+export interface BackupList { backups: BackupOperation[]; backupPath: string; workspaceId: string }
+export interface RestoreResult { restored: string[]; skipped: string[]; failures: { name: string; message: string }[]; library: LibraryResponse }
+
 export interface LibraryResponse {
   config: WorkspaceConfig; activity: Activity[]; scannedAt: string; backupPath: string; rssSync: RssSyncStatus;
   /** The global paths of workspace.json, expanded, by name: what {name} stands for in a *_path field. */

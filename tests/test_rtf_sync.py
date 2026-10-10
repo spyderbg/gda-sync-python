@@ -99,7 +99,7 @@ def test_syncing_an_rtf_makes_its_folder_a_copy_of_the_gda_folder(tmp_path):
         files = lambda root: {path.relative_to(root).as_posix(): path.read_bytes() for path in root.rglob("*") if path.is_file()}
         assert files(folder) == files(source) and not (folder / "data" / "old").exists()
         # Every replaced or removed game file is in the backups.
-        backups = {path.name: path.read_bytes() for path in Path(library.backup_path).rglob("*") if path.is_file()}
+        backups = {path.name: path.read_bytes() for path in Path(library.backup_path).glob("*/**/*") if path.is_file()}
         assert backups == {"background.dds": create_bc7_dds(64, 36), "old_button.dds": b"old", "unused.dds": b"unused"}
         library.reports.wait("example", 60)
         report = client.get("/api/rss-sync/report").json()

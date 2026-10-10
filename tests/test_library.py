@@ -43,8 +43,10 @@ def test_sync_copies_originals_keeps_folder_structure_and_backs_up_replaced_gda_
     assert all(asset["status"] == "synced" for asset in library.dashboard()["assets"])
     assert read(os.path.join(library.config["source"], changed["path"])) == original
     assert read(destination) == original
-    [operation] = os.listdir(library.backup_path)
+    # The operation's backups, and its record beside them.
+    [operation] = [name for name in os.listdir(library.backup_path) if os.path.isdir(os.path.join(library.backup_path, name))]
     assert read(os.path.join(library.backup_path, operation, changed["path"])) == previous
+    assert json.loads(read(os.path.join(library.backup_path, f"{operation}.json")))["action"] == "sync"
     assert not [name for _root, _dirs, files in os.walk(library.config["destination"]) for name in files if name.endswith(".tmp")]
 
     assert library.sync([asset["id"] for asset in pending])["copied"] == []

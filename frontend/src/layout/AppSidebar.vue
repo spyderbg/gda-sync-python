@@ -64,6 +64,7 @@ const syncEntries = computed<Entry[]>(() => [
     title: activeSyncCount.value ? 'GDA sync in progress' : undefined,
   },
   { key: 'history', label: 'Sync history', icon: 'mdi-history' },
+  { key: 'backups', label: 'Backups', icon: 'mdi-backup-restore' },
 ].map(entry => ({ ...entry, active: ui.view === entry.key, onSelect: () => navigate(entry.key as View) })));
 
 const assetEntries = computed<Entry[]>(() => [...ASSET_CATEGORIES, ...(countSection('other') ? ['other' as const] : [])].map(category => ({

@@ -229,14 +229,21 @@ Both use this layout:
 ├── compare-cache.sqlite3   # The GDA sync's file hashes, image features and pair results; safe to delete
 ├── demo/gda/               # The demo's GDA folder: where its files are copied from
 ├── demo/game/              # The demo's game folder: where they are copied to
-└── backups/<sync-id>/<relative-file-path>
+├── backups/<operation-id>/<relative-file-path>
+└── backups/<operation-id>.json    # The operation's record: when, what, the workspace and the folder it changed
 ```
 
-The exact backup directory is displayed in settings. To restore a previous Game version, copy the corresponding backup file back into the same relative location in your Game folder. Set `EGT_GDA_SYNC_HOME` to use a different app data directory; `config/workspace.json.template` shows the configuration format. The GDA and Game folders must be separate; nested roots are rejected. A folder that does not exist does not stop the app: Workspace settings warns about it, no assets are listed for a missing GDA folder, and syncing or opening a missing folder is refused until it exists (the app never creates a folder itself). Symbolic links (and Windows junctions) are skipped. Hidden files and folders are skipped: names starting with `.`, and on Windows also items with the Hidden attribute. The demo supports up to 10,000 files per workspace.
+The **Backups** page lists and restores the files that operations replaced or deleted; see [Backups](#backups). Set `EGT_GDA_SYNC_HOME` to use a different app data directory; `config/workspace.json.template` shows the configuration format. The GDA and Game folders must be separate; nested roots are rejected. A folder that does not exist does not stop the app: Workspace settings warns about it, no assets are listed for a missing GDA folder, and syncing or opening a missing folder is refused until it exists (the app never creates a folder itself). Symbolic links (and Windows junctions) are skipped. Hidden files and folders are skipped: names starting with `.`, and on Windows also items with the Hidden attribute. The demo supports up to 10,000 files per workspace.
 
 DDS previews decode the first surface and mip of **DXT1, DXT3, DXT5, RGB24, RGB32, and DX10 BC7 (UNORM / sRGB)**. Other DDS formats remain available for syncing, with a clear preview-unavailable message. DDS previews are limited to 16 megapixels, and all previews to 64 MB. Demo model thumbnails are illustrations; arbitrary 3D files are copied but not rendered. Material/audio files use type thumbnails.
 
 The server binds only to loopback. Write operations require a per-process session token; foreign hosts, cross-site browser requests, and request bodies over 128 KB are rejected. This is an app for a trusted local desktop, with no account or cloud service.
+
+### Backups
+
+Every operation that changes game files saves each file it replaces or deletes before changing it: syncs and cleanups on the Sync page, and moving view elements in the Asset library. Each operation keeps its files in a folder of its own, `backups/<operation-id>/`, at their paths relative to the folder it changed (the workspace's resources folder, so they start with the game folder's name), with a record beside it, `<operation-id>.json`: the date, the action (`sync`, `cleanup`, `edit` or `restore`), its message, the workspace, that folder, and whether each file was replaced or deleted.
+
+The sidebar's **Backups** page lists the operations, newest first: the selected workspace's, or with **All workspaces** every workspace's. **Files** opens an operation's files, each with what the operation did to it and how it is now: the same as its backup, changed since, or not there. **Restore all**, or a file's **Restore**, copies the backups back where they were after a confirmation (`POST /api/backups/restore`, with an operation's `id` and optionally its `files`). Each file there now is saved in a backup of its own first, a `restore` operation, so a restore can be restored too; a file that is the same as its backup is skipped, and a file the operation deleted is created again with its folders. Restoring files of the selected workspace compares it again. Backups saved before these records are listed too: when all their paths start with a workspace's game folder they are that workspace's, and otherwise they cannot be restored, since where they belong is not known. `GET /api/backups` lists the operations and `GET /api/backups/<id>` an operation's files. Backups are never deleted automatically; the page shows their folder.
 
 ## Development
 

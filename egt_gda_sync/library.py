@@ -29,6 +29,7 @@ from .errors import AppError, error_message
 from .asset_report import AssetReports, inventory
 from .fonts import FONT_EXTENSIONS, describe_font
 from .png import PNG_SIGNATURE
+from . import backups
 from .rss_edit import parse as parse_json_source, remove_declarations, set_view_positions
 from .rss_jobs import SyncJobs
 from .image_cache import CACHE_FILE
@@ -635,6 +636,82 @@ class Library:
         workspace_id, entry = self._active_workspace()
         return {"workspaceId": workspace_id, "workspace": self._comparison(workspace_id, entry)[0], "history": self.reports.history(workspace_id)}
 
+    def _backup_owner(self, paths: list[str]) -> tuple[dict, str] | None:
+        """The workspace and root of a backup without a record: the workspace whose game folder all its paths start with,
+        relative to its resources folder."""
+        tops = {path.split("/", 1)[0] for path in paths}
+        if len(tops) != 1:
+            return None
+        for workspace_id, entry in self.workspace_entries():
+            destination = entry.get("destination")
+            if isinstance(destination, str) and os.path.basename(os.path.normpath(destination)) in tops:
+                return {"id": workspace_id, "name": entry.get("name", workspace_id)}, os.path.realpath(os.path.dirname(destination))
+        return None
+
+    def _backup_roots(self) -> set[str]:
+        """The folders a backup can be restored into: each workspace's game folder and resources folder."""
+        roots = set()
+        for _workspace_id, entry in self.workspace_entries():
+            destination = entry.get("destination")
+            if isinstance(destination, str):
+                roots |= {os.path.realpath(destination), os.path.realpath(os.path.dirname(destination))}
+        return roots
+
+    def list_backups(self) -> dict:
+        """Every operation's backups, newest first, and the selected workspace's id."""
+        return {"backups": backups.list_operations(self.backup_path, self._backup_owner), "backupPath": self.backup_path,
+                "workspaceId": self._active_workspace()[0]}
+
+    def backup_files(self, operation_id: str) -> dict:
+        """An operation's backups, with each file and how it is now."""
+        record = backups.operation(self.backup_path, operation_id, self._backup_owner)
+        if record is None:
+            raise AppError("Backup not found", 404)
+        return record
+
+    def restore_backup(self, operation_id: str, files: list[str] | None = None) -> dict:
+        """Copy an operation's backups, all of them or the given files, back where they were. Each file that is there
+        now and differs is saved in a backup of its own first, so a restore can be restored too; a file that is the
+        same as its backup is skipped. The selected workspace is compared again when its files changed."""
+        def operation() -> dict:
+            record = backups.operation(self.backup_path, operation_id, self._backup_owner)
+            if record is None:
+                raise AppError("Backup not found", 404)
+            root = record["root"]
+            if root is None:
+                raise AppError("Where this backup's files belong is not known, so it cannot be restored", 409)
+            if os.path.realpath(root) not in self._backup_roots():
+                raise AppError("This backup belongs to a folder that no workspace uses now", 409)
+            by_path = {item["path"]: item for item in record["files"]}
+            chosen = list(dict.fromkeys(files)) if files else list(by_path)
+            if any(path not in by_path for path in chosen):
+                raise AppError("A file is not in this backup", 404)
+            source_root = os.path.join(self.backup_path, operation_id)
+            folder = backups.new_operation(self.backup_path)
+            restored, skipped, failures = [], [], []
+            for path in chosen:
+                try:
+                    source = safe_path(source_root, path)
+                    if by_path[path]["now"] == "same":
+                        skipped.append(path)
+                        continue
+                    _replace_file(source, root, path, os.path.join(folder, *path.split("/")), create_parents=True)
+                    restored.append(path)
+                except Exception as error:
+                    failures.append({"name": path, "message": error_message(error)})
+            when = record["date"][:16].replace("T", " ")
+            if restored:
+                message = f"Restored {len(restored)} file{'' if len(restored) == 1 else 's'} from the backup of {when}"
+                self._record("restore", message, restored)
+                workspace = record["workspace"] or {"id": "", "name": ""}
+                backups.write_manifest(folder, action="restore", message=f"Replaced when restoring the backup of {when}",
+                                       workspace=workspace, root=root)
+                if workspace.get("id") == self._active_workspace()[0] and not self.reports.status(workspace["id"])["running"]:
+                    self.start_comparison()
+            return {"restored": restored, "skipped": skipped, "failures": failures, "library": self.scan()}
+
+        return self._exclusive(operation)
+
     def delete_rss_report(self, name: str) -> dict:
         """Delete one GDA sync report of the active workspace, by its file name. The Sync page then shows the newest
         successful report left. Returns the history and the library."""
@@ -788,6 +865,7 @@ class Library:
             if any(asset_id not in lookup for asset_id in wanted):
                 raise AppError("An asset no longer exists. Rescan your library and try again.")
             config, operation_id = self.config, str(uuid.uuid4())
+            workspace_id, _entry = self._active_workspace()
             copied: list[str] = []
             failures: list[dict] = []
             total = 0
@@ -802,7 +880,10 @@ class Library:
                 except Exception as error:
                     failures.append({"name": asset["name"], "message": error_message(error)})
             if copied:
-                self._record("sync", f"Synced {len(copied)} asset{'' if len(copied) == 1 else 's'} to Game", copied, total)
+                message = f"Synced {len(copied)} asset{'' if len(copied) == 1 else 's'} to Game"
+                self._record("sync", message, copied, total)
+                backups.write_manifest(os.path.join(self.backup_path, operation_id), action="sync", message=message,
+                                       workspace={"id": workspace_id, "name": config["name"]}, root=os.path.realpath(config["destination"]))
             return {"copied": copied, "failures": failures, "bytes": total, "library": self.scan()}
 
         return self._exclusive(operation)
@@ -862,21 +943,29 @@ class Library:
                 "gda": [os.path.realpath(root) for root in (settings["gda_dir"], settings["common_gda_dir"]) if root],
                 # The game folder as the GDA sync resolves it, which the report's paths are relative to.
                 "game": Path(settings["resources_dir"]).resolve() / settings["game"],
-                "backups": os.path.join(self.backup_path, str(uuid.uuid4())),
+                "backups": backups.new_operation(self.backup_path),
             }
             failures: list[dict] = []
             synced = self._copy_resources(chosen["different"], folders, settings["resource_paths"], failures, sources)
             removed = self._remove_declarations(chosen["invalid"], folders, failures)
             deleted = self._delete_resources(chosen["supplementary"], folders, settings["resource_paths"], failures)
+            messages: list[str] = []
             if synced["files"]:
                 count = synced["resources"]
-                self._record("sync", f"Synced {count} resource{'' if count == 1 else 's'} to Game", synced["files"], synced["bytes"])
+                messages.append(f"Synced {count} resource{'' if count == 1 else 's'} to Game")
+                self._record("sync", messages[-1], synced["files"], synced["bytes"])
             if removed["resources"]:
                 count = removed["resources"]
-                self._record("cleanup", f"Removed the declarations of {count} invalid resource{'' if count == 1 else 's'}", removed["files"])
+                messages.append(f"Removed the declarations of {count} invalid resource{'' if count == 1 else 's'}")
+                self._record("cleanup", messages[-1], removed["files"])
             if deleted["resources"]:
                 count = deleted["resources"]
-                self._record("cleanup", f"Deleted {count} supplementary resource{'' if count == 1 else 's'} from Game", deleted["files"])
+                messages.append(f"Deleted {count} supplementary resource{'' if count == 1 else 's'} from Game")
+                self._record("cleanup", messages[-1], deleted["files"])
+            # The files replaced and deleted are kept in one backup of the whole operation.
+            backups.write_manifest(folders["backups"], action="sync" if synced["files"] else "cleanup",
+                                   message="; ".join(messages) or "Applied resources of the GDA sync report",
+                                   workspace={"id": workspace_id, "name": entry.get("name", workspace_id)}, root=folders["resources"])
             # Compare again unless nothing was done: a copy that found the file already in sync still outdates the report.
             if synced["outdated"] or removed["resources"] or deleted["resources"]:
                 self.start_comparison()
@@ -1150,12 +1239,16 @@ class Library:
                 raise AppError(error_message(error), 400) from error
             result = (b"\xef\xbb\xbf" if bom else b"") + text.encode("utf-8")
             if result != data:
-                backup = os.path.join(self.backup_path, str(uuid.uuid4()), relative)
+                folder = backups.new_operation(self.backup_path)
+                backup = os.path.join(folder, relative)
                 os.makedirs(os.path.dirname(backup), exist_ok=True)
                 _copy_exclusive(target, backup)
                 _write_file(target, result)
                 count = len(positions)
-                self._record("edit", f"Moved {count} element{'' if count == 1 else 's'} of {path.stem}", [relative.replace(os.sep, "/")])
+                message = f"Moved {count} element{'' if count == 1 else 's'} of {path.stem}"
+                self._record("edit", message, [relative.replace(os.sep, "/")])
+                backups.write_manifest(folder, action="edit", message=message,
+                                       workspace={"id": workspace_id, "name": entry.get("name", workspace_id)}, root=resources)
             try:
                 layout = view_layout(path, game, roots)
             except (OSError, ValueError, RecursionError) as error:

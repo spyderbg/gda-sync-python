@@ -10,6 +10,7 @@ import AppSidebar from './layout/AppSidebar.vue';
 import DashboardView from './views/DashboardView.vue';
 import AssetsLibraryView from './views/AssetsLibraryView.vue';
 import SettingsView from './views/SettingsView.vue';
+import BackupsView from './views/BackupsView.vue';
 import SyncHistoryView from './views/SyncHistoryView.vue';
 import SyncInProgressView from './views/SyncInProgressView.vue';
 import SyncView from './views/SyncView.vue';
@@ -59,6 +60,7 @@ onBeforeUnmount(() => {
           <AssetsLibraryView v-else-if="isLibraryView" />
           <SyncInProgressView v-else-if="ui.view === 'rssSync'" />
           <SyncHistoryView v-else-if="ui.view === 'history'" />
+          <BackupsView v-else-if="ui.view === 'backups'" />
           <SettingsView v-else-if="ui.view === 'settings'" />
         </div>
         <AppFooter />

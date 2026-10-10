@@ -103,6 +103,15 @@ class ViewPositionsBody(_Body):
     positions: Annotated[list[ViewPosition], Field(min_length=1, max_length=10000)]
 
 
+BackupId = Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")]
+
+
+class RestoreBody(_Body):
+    id: BackupId
+    # The files to restore, by their paths in the backup; all of them when left out.
+    files: Annotated[list[Text4K], Field(max_length=100000)] | None = None
+
+
 class ReportFileBody(_Body):
     # A report's file name, as the history lists it.
     file: Annotated[str, Field(min_length=6, max_length=512, pattern=r"^[^/\\]+\.json$")]
@@ -292,6 +301,18 @@ def create_app(
     @app.get("/api/rss-sync/report")
     def rss_sync_report() -> Response:
         return Response(library.rss_report(), media_type="application/json")
+
+    @app.get("/api/backups")
+    def list_backups() -> dict:
+        return library.list_backups()
+
+    @app.get("/api/backups/{backup_id}")
+    def backup_files(backup_id: BackupId) -> dict:
+        return library.backup_files(backup_id)
+
+    @app.post("/api/backups/restore")
+    def restore_backup(body: RestoreBody) -> dict:
+        return library.restore_backup(body.id, body.files)
 
     @app.post("/api/rss-sync/delete-report")
     def delete_rss_report(body: ReportFileBody) -> dict:

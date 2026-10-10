@@ -641,7 +641,8 @@ def test_applying_invalid_rows_removes_their_declarations_and_keeps_the_rest_of_
         assert json.loads((game / "RssImagesSeqData.json").read_bytes())["imagesSeq"] == [
             {"id": "KEPT", "frameTime": 40, "loopCount": 0, "frames": [{"path": "same.dds"}]}]
         # Each changed descriptor is in the backups as it was.
-        backups = {path.name: path.read_bytes() for path in Path(library.backup_path).rglob("*.json")}
+        # The operation's records are beside its folder, not in it.
+        backups = {path.name: path.read_bytes() for path in Path(library.backup_path).glob("*/**/*.json")}
         assert backups == {"RssRawData.json": crlf(RAW_DESCRIPTOR), "RssAudioData.json": crlf(AUDIO_DESCRIPTOR),
                            "RssImagesSeqData.json": crlf(SEQUENCE_DESCRIPTOR)}
         activity = result["library"]["activity"][0]
