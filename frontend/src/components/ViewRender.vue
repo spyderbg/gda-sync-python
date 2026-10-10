@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
-import { reportPreviewURL, viewRenderURL } from '../format';
+import { reportPreviewURL, viewRenderURL, viewTextURL } from '../format';
 import type { ViewElement, ViewLayout } from '../types';
 
 // One view of a large view preview's screen, as the game draws it. A view without an Anim that plays, or a moved element,
@@ -26,6 +26,8 @@ const props = defineProps<{
   restart: number;
   /** How far each moved element is moved, by its index. */
   moves?: Record<number, [number, number]>;
+  /** The sample text that Text elements draw; the backend's default one when it is not given. */
+  text?: string;
 }>();
 const emit = defineEmits<{ error: [] }>();
 
@@ -36,14 +38,15 @@ const frameURL = (file: string) => reportPreviewURL(file, props.revision);
 const byIndex = computed(() => new Map((props.layout?.elements ?? []).map(element => [element.index, element])));
 const animAt = computed(() => new Map(anims.value.map((anim, position) => [anim.index, position])));
 
-/** The elements the page draws itself, in drawing order: the Anims that play and the moved elements that draw an image. */
-const live = computed(() => (props.layout?.elements ?? []).filter(element => element.drawn && element.type !== 'Dummy' && !!element.placement
+/** The elements the page draws itself, in drawing order: the Anims that play and the moved elements that draw an image
+ * or a text. */
+const live = computed(() => (props.layout?.elements ?? []).filter(element => (element.drawn || !!element.text) && element.type !== 'Dummy' && !!element.placement
   && (props.hidden || !element.hidden) && (animAt.value.has(element.index) || !!props.moves?.[element.index])));
 // The segments, cut at the elements drawn live: those shown, and the next ones while they load.
 interface Segments { key: string; indices: number[]; urls: string[] }
 const wanted = computed<Segments>(() => {
   const indices = live.value.map(element => element.index);
-  const key = `${viewRenderURL(props.file, props.revision, props.resolution.width, props.hidden)}&cuts=${indices.join(',')}`;
+  const key = `${viewRenderURL(props.file, props.revision, props.resolution.width, props.hidden, false, props.text)}&cuts=${indices.join(',')}`;
   return { key, indices, urls: indices.length ? Array.from({ length: indices.length + 1 }, (_value, segment) => `${key}&segment=${segment}`) : [] };
 });
 const shown = ref<Segments | null>(null);
@@ -167,6 +170,7 @@ onBeforeUnmount(() => { generation++; segmentLoad++; cancelAnimationFrame(handle
 /** An element drawn live: its image, or an Anim's frame, the part of it, its size, and its matrix for that size where it
  * was moved to, with its fade and tint. */
 function drawn(element: ViewElement) {
+  if (element.text) return drawnText(element, element.text);
   const position = animAt.value.get(element.index);
   const frame = position !== undefined ? element.sequence![shownFrames.value[position]] ?? element.sequence![0]
     : { file: element.file!, source: element.source as [number, number, number, number] | undefined };
@@ -186,6 +190,18 @@ function drawn(element: ViewElement) {
     url: frameURL(frame.file), source: frame.source ? { x, y, w, h } : null, width: w, height: h,
     image: image ? { width: image.naturalWidth, height: image.naturalHeight } : null,
     matrix: `matrix(${a} ${b} ${c} ${d} ${e - a * dx - c * dy + moveX} ${f - b * dx - d * dy + moveY})`,
+    opacity: alpha / 255,
+    tint: red < 255 || green < 255 || blue < 255 ? `${red / 255} 0 0 0 0 0 ${green / 255} 0 0 0 0 0 ${blue / 255} 0 0 0 0 0 1 0` : null,
+  };
+}
+/** A moved Text element's sample text: its image, at its size, with its matrix and the fit box's shrink. */
+function drawnText(element: ViewElement, text: NonNullable<ViewElement['text']>) {
+  const [a, b, c, d, e, f] = text.matrix;
+  const [moveX, moveY] = props.moves?.[element.index] ?? [0, 0];
+  const [red, green, blue, alpha] = element.color ?? [255, 255, 255, element.alpha ?? 255];
+  return {
+    index: element.index, id: element.id, anim: false, frame: undefined, url: viewTextURL(props.file, props.revision, element.index, text.sample),
+    source: null, width: text.width, height: text.height, image: null, matrix: `matrix(${a} ${b} ${c} ${d} ${e + moveX} ${f + moveY})`,
     opacity: alpha / 255,
     tint: red < 255 || green < 255 || blue < 255 ? `${red / 255} 0 0 0 0 0 ${green / 255} 0 0 0 0 0 ${blue / 255} 0 0 0 0 0 1 0` : null,
   };
@@ -216,5 +232,5 @@ const uid = `view-render-${Math.random().toString(36).slice(2, 10)}`;
       <image :href="shown.urls[position]" x="0" y="0" :width="resolution.width" :height="resolution.height" preserveAspectRatio="none" @error="emit('error')" />
     </template>
   </svg>
-  <img v-else class="view-stage-image" :src="viewRenderURL(file, revision, resolution.width, hidden)" :alt="`${name} as the game draws it`" :data-view="name" @error="emit('error')">
+  <img v-else class="view-stage-image" :src="viewRenderURL(file, revision, resolution.width, hidden, false, text)" :alt="`${name} as the game draws it`" :data-view="name" @error="emit('error')">
 </template>

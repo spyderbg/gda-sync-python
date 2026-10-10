@@ -104,9 +104,11 @@ def test_views_are_drawn_in_the_asset_library_and_on_the_sync_page(new_context, 
     game_path = view_backend.get("/api/library")["config"]["destination"]
     assert opened == [{"file": f"{game_path}/v/1920x1080/MainView.json", "index": 5}]
     expect(dialog.locator(".view-elements tr.is-picked")).to_have_count(0)
-    dialog.locator(".view-elements tbody tr").filter(has_text="text_win").click()
+    # A row is picked by its id, since its position is edited where it is clicked.
+    text_row_id = dialog.locator(".view-elements tbody tr").filter(has_text="text_win").locator("td").nth(1)
+    text_row_id.click()
     expect(dialog.locator(".view-element.is-text text")).to_have_text("text_win")
-    dialog.locator(".view-elements tbody tr").filter(has_text="text_win").click()
+    text_row_id.click()
     expect(dialog.locator(".view-element.is-text text")).to_have_count(0)
     dialog.get_by_role("checkbox", name="Hide the names of text elements").uncheck()
     # In the Asset library every drawn element stays under the pointer, to be dragged, but only outlined ones are drawn.
@@ -292,4 +294,55 @@ def test_elements_of_a_view_are_moved_in_its_details_and_saved_into_its_file(new
     expect(stage.locator('.view-live[data-element="image_red"]')).to_have_count(0)
     page.keyboard.press("Escape")
     expect(page.get_by_role("dialog")).to_have_count(0)
+    assert errors == []
+
+
+def test_text_elements_draw_the_sample_text_that_the_details_set(new_context, view_backend):
+    page = new_context().new_page()
+    errors = []
+    page.on("pageerror", lambda error: errors.append(str(error)))
+    page.goto(view_backend.url)
+    page.get_by_role("list", name="Workspaces").get_by_role("button", name="View game", exact=True).click()
+    navigation = page.get_by_role("navigation", name="Main navigation")
+    navigation.get_by_role("button", name="Asset library", exact=True).click()
+    page.get_by_role("button", name="Rescan").first.click()
+    navigation.get_by_role("button", name="ElementsList", exact=True).click()
+    main = page.locator(".report-asset").filter(has_text="1920 × 1080 · 10 elements")
+    # The card draws the sample that suits the font: a count, in a font of digits alone.
+    poll(lambda: drawn(main.locator(".view-preview img")), True)
+    main.locator(".asset-hit-target").click()
+    dialog = page.get_by_role("dialog")
+    sample = dialog.get_by_role("textbox", name="Sample text of the text elements")
+    expect(sample).to_have_value("")
+    segments = dialog.locator(".view-stage-image > image")
+    expect(segments.first).not_to_have_attribute("href", re.compile(r"&text="))
+    dialog.get_by_text("10 elements, drawn in this order").click()
+    row = dialog.locator(".view-elements tbody tr").filter(has_text="text_win")
+    expect(row).to_contain_text("FONT_WIN · 32 px · a text the game fills in, drawn with “10”")
+
+    # Another sample draws in every Text element, once typing pauses.
+    sample.fill("42")
+    expect(segments.first).to_have_attribute("href", re.compile(r"&text=42(&|$)"))
+    expect(row).to_contain_text("drawn with “42”")
+    # A moved text is drawn where it is moved to, from its own image.
+    x = dialog.get_by_role("button", name="x of text_win:")
+    x.click()
+    dialog.get_by_role("textbox", name="x of text_win").press("Shift+ArrowUp")
+    dialog.get_by_role("textbox", name="x of text_win").press("Enter")
+    moved = dialog.locator('.view-live[data-element="text_win"] image')
+    expect(moved).to_have_attribute("href", re.compile(r"/api/rss-sync/view-text\?.*&index=5&text=42"))
+    # The fixture's digits are 5 × 8, drawn 4 times as large: "42" is 40 × 32, its bottom center at (970, 900).
+    expect(moved).to_have_attribute("width", "40")
+    expect(dialog.locator('.view-live[data-element="text_win"]')).to_have_attribute("transform", "matrix(1 0 0 1 950 868)")
+    BUILD.mkdir(exist_ok=True)
+    dialog.screenshot(path=str(BUILD / "view-text.png"))
+    dialog.get_by_role("group", name="Moved elements").get_by_role("button", name="Discard").click()
+
+    # An empty sample draws the one that suits the font again, and without Texts, Text elements draw nothing.
+    sample.fill("")
+    expect(row).to_contain_text("drawn with “10”")
+    dialog.get_by_role("checkbox", name="Draw a sample text in the text elements").uncheck()
+    expect(segments.first).to_have_attribute("href", re.compile(r"&text=(&|$)"))
+    expect(row).not_to_contain_text("drawn with")
+    expect(sample).to_be_disabled()
     assert errors == []

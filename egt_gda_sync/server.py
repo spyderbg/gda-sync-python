@@ -325,13 +325,14 @@ def create_app(
     @app.get("/api/rss-sync/preview")
     def rss_sync_preview(file: Annotated[str, Query(max_length=4096)], width: Annotated[int | None, Query(ge=16, le=8192)] = None,
                          hidden: bool = False, crop: bool = False, segment: Annotated[int | None, Query(ge=0, le=100000)] = None,
-                         cuts: Annotated[str | None, Query(max_length=8192, pattern=r"^(\d{1,6}(,\d{1,6})*)?$")] = None) -> Response:
+                         cuts: Annotated[str | None, Query(max_length=8192, pattern=r"^(\d{1,6}(,\d{1,6})*)?$")] = None,
+                         text: Annotated[str | None, Query(max_length=200)] = None) -> Response:
         # A view is composed as an image as wide as width, with its hidden elements, cropped to what it draws, or only the
         # segment of its elements between two that the page draws itself (cuts, by index; by default the Anims that play),
-        # on request.
-        if width is not None or hidden or crop or segment is not None:
+        # on request; its Text elements draw the sample text, a default one unless it is given (none when it is empty).
+        if width is not None or hidden or crop or segment is not None or text is not None:
             split = tuple(int(index) for index in cuts.split(",") if index) if cuts is not None else None
-            return Response(library.view_preview(file, width, hidden, crop, segment, split), media_type="image/png",
+            return Response(library.view_preview(file, width, hidden, crop, segment, split, text), media_type="image/png",
                             headers={"Content-Security-Policy": PREVIEW_CSP})
         data, mime = library.resource_preview(file)
         headers = {"Content-Security-Policy": PREVIEW_CSP}
@@ -341,8 +342,14 @@ def create_app(
         return Response(data, media_type=mime, headers=headers)
 
     @app.get("/api/rss-sync/view")
-    def rss_sync_view(file: Annotated[str, Query(max_length=4096)]) -> dict:
-        return library.view_details(file)
+    def rss_sync_view(file: Annotated[str, Query(max_length=4096)], text: Annotated[str | None, Query(max_length=200)] = None) -> dict:
+        return library.view_details(file, text)
+
+    @app.get("/api/rss-sync/view-text")
+    def rss_sync_view_text(file: Annotated[str, Query(max_length=4096)], index: Annotated[int, Query(ge=0, le=100000)],
+                           text: Annotated[str | None, Query(max_length=200)] = None) -> Response:
+        # A Text element's sample text alone, at its own size, for the page to draw a moved one.
+        return Response(library.view_text(file, index, text), media_type="image/png", headers={"Content-Security-Policy": PREVIEW_CSP})
 
     @app.post("/api/rss-sync/copy")
     def rss_sync_copy(body: SyncBody) -> dict:

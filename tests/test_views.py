@@ -56,6 +56,13 @@ def write_game(root: Path) -> Path:
         {"id": "ANIM_GLOW", "frameTime": 40, "loopCount": 0, "frames": [{"path": "art/frame_{00-02}.png"}]},
     ]})
     write_json(game / "RssTextStylesData.json", {"styles": [{"id": "STYLE_WIN", "font_id": "FONT_WIN", "size": 32}]})
+    # An image font of the ten digits: its first row marks where each 5 pixel wide glyph starts, its glyphs are 8 tall.
+    font = np.zeros((9, 61, 4), np.uint8)
+    font[0, ::6] = (0, 255, 255, 255)
+    for digit in range(10):
+        font[1:, digit * 6 + 1:digit * 6 + 6] = BLUE
+    write_png(game / "art" / "font_win.png", font)
+    write_json(game / "RssFontsData.json", {"fonts": [{"id": "FONT_WIN", "path": "art/font_win.png", "chars": "[U+0030-U+0039]", "size": 8}]})
     views = [{"id": "MainView", "path": "v/1920x1080/MainView.json", "resolution": "1920x1080"},
              {"id": "MainView", "path": "v/1920x1200/MainView.json", "resolution": "1920x1200"},
              {"id": "ButtonView", "path": "v/1920x1080/Buttons/ButtonView.json", "resolution": "1920x1080"}]

@@ -258,8 +258,14 @@ export const defaultCandidate = (candidates: GdaCandidate[]) => candidates.find(
  * request. */
 /** How many times each view, by its file, was saved since the page loaded: its renders are asked for again. */
 export const viewSaves = reactive<Record<string, number>>({});
-export const viewRenderURL = (file: string, revision: string, width: number, hidden = false, crop = false) =>
-  `${reportPreviewURL(file, revision)}&width=${width}${hidden ? '&hidden=true' : ''}${crop ? '&crop=true' : ''}${viewSaves[file] ? `&saved=${viewSaves[file]}` : ''}`;
+/** A view's render; its Text elements draw the sample text, the backend's default one unless it is given. */
+export const viewRenderURL = (file: string, revision: string, width: number, hidden = false, crop = false, text?: string) =>
+  `${reportPreviewURL(file, revision)}&width=${width}${hidden ? '&hidden=true' : ''}${crop ? '&crop=true' : ''}`
+  + `${text !== undefined ? `&text=${encodeURIComponent(text)}` : ''}${viewSaves[file] ? `&saved=${viewSaves[file]}` : ''}`;
+/** A Text element's sample text alone, at its own size, for a preview to draw a moved one. */
+export const viewTextURL = (file: string, revision: string, index: number, text: string) =>
+  `/api/rss-sync/view-text?file=${encodeURIComponent(file)}&index=${index}&text=${encodeURIComponent(text)}&v=${encodeURIComponent(revision)}`
+  + `${viewSaves[file] ? `&saved=${viewSaves[file]}` : ''}`;
 /** A view's elements by type, such as "6 images · 1 anim". */
 export const viewSummary = (facts: ViewFacts) => Object.entries(facts.types)
   .map(([type, count]) => `${number(count)} ${type.toLowerCase()}${count === 1 ? '' : type === 'Dummy' ? '' : 's'}`).join(' · ');

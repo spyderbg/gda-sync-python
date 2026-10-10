@@ -1,8 +1,8 @@
 # Feature ideas
 
 Features that EGT GDA Sync could add next, found while building the recent ones: the view editor, image sequence
-playback, the asset folders and the sync history. The three most useful come first. The first is done; the others are
-not planned or started.
+playback, the asset folders and the sync history. The three most useful come first. The first and the third are done; the
+others are not planned or started.
 
 ## Recommended first
 
@@ -19,7 +19,10 @@ the whole operation. It makes every destructive action safe to undo, so it is th
 Before syncing or editing something in `../common`, show every workspace whose descriptors use it, so that a change meant
 for one game does not quietly change the others. Today the app says that an asset is "common", but not who uses it.
 
-### 3. Text in views
+### 3. Text in views (done)
+
+Implemented: view previews draw a sample text in each Text element's font; see [Views](../README.md#views) in the README.
+
 
 Text elements are only outlined. Their text styles (`RssTextStylesData.json`) name a font and a size, and the app already
 reads fonts, so a view could draw a sample text at the right size and alignment. View previews would then look much

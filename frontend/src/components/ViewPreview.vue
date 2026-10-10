@@ -1,8 +1,11 @@
 <script lang="ts">
 import { ref } from 'vue';
 
-// Whether the names of text elements are hidden, kept for every view the details show.
+// Whether the names of text elements are hidden, whether Text elements draw a sample text, and the one they draw (empty
+// for the one that suits each font), kept for every view the details show.
 const hideTextNames = ref(false);
+const drawTexts = ref(true);
+const sampleText = ref('');
 </script>
 
 <script setup lang="ts">
@@ -24,7 +27,10 @@ import ViewRender from './ViewRender.vue';
 // /api/rss-sync/view. With layers, a large preview draws several views on one screen, as the game shows them together:
 // each view's render over the one before, the first at the bottom. Each view can be hidden or moved up and down, and
 // has its own list of elements; an element's tooltip names its view. A large preview plays the Anims whose image sequence
-// has more than one frame, with ViewRender, which Pause stops and Replay plays again from their first frames.
+// has more than one frame, with ViewRender, which Pause stops and Replay plays again from their first frames. Text
+// elements draw a sample text in their style's font and size, as the game fills theirs in at runtime: by default the one
+// that suits the font (an amount, or a count in a font of digits alone), or the one typed in Sample text; Texts turns
+// them off.
 // An editable preview moves elements: dragged on the screen (with Shift, only across or only up and down; the element
 // picked in the list is dragged where it is under the pointer, though another is drawn over it), or by their x and y in
 // the list, typed, stepped with Up and Down, or dragged. Moved elements are drawn where they are moved to, outlined and
@@ -73,6 +79,15 @@ const resolution = computed(() => ({
 }));
 const mixed = computed(() => new Set(stack.value.map(layer => `${layer.facts.resolution.width}x${layer.facts.resolution.height}`)).size > 1);
 const cardSource = computed(() => viewRenderURL(props.file, props.revision, CARD_WIDTH, false, true));
+// The sample text drawn, once typing pauses, so that every key does not draw the views again: none without Texts, and
+// the one that suits each font (no text parameter) while Sample text is empty.
+const sample = ref(sampleText.value);
+let sampleTimer = 0;
+watch(sampleText, value => {
+  window.clearTimeout(sampleTimer);
+  sampleTimer = window.setTimeout(() => { sample.value = value; }, 350);
+});
+const textParam = computed(() => (!drawTexts.value ? '' : sample.value.trim() ? sample.value : undefined));
 const playing = ref(true);
 const restart = ref(0);
 const placed = (layer: ViewLayer) => ({
@@ -94,12 +109,14 @@ const layouts = ref<(ViewLayout | null)[]>([]);
 const errors = ref<string[]>([]);
 const state = ref<'loading' | 'ready' | 'failed'>('loading');
 let request = 0;
-async function load() {
+/** Read the views' elements; quietly, the elements shown stay until the new ones are read. */
+async function load(quiet = false) {
   const id = ++request;
-  state.value = 'loading';
+  if (!quiet) state.value = 'loading';
   const results = await Promise.all(stack.value.map(async layer => {
     try {
-      const response = await fetch(`/api/rss-sync/view?file=${encodeURIComponent(layer.file)}&v=${encodeURIComponent(props.revision)}`);
+      const text = textParam.value !== undefined ? `&text=${encodeURIComponent(textParam.value)}` : '';
+      const response = await fetch(`/api/rss-sync/view?file=${encodeURIComponent(layer.file)}&v=${encodeURIComponent(props.revision)}${text}`);
       const body = await response.json().catch(() => null);
       if (!response.ok || !body) throw new Error(body?.error || 'The elements could not be loaded');
       return { layout: body as ViewLayout, error: '' };
@@ -118,6 +135,8 @@ watch(() => [props.large, stack.value, props.revision], () => {
   history.value = [];
   if (props.large) void load();
 }, { immediate: true });
+// Another sample text gives the Text elements other sizes; the moved elements stay moved.
+watch(textParam, () => { if (props.large) void load(true); });
 
 const elementsOf = (index: number) => layouts.value[index]?.elements ?? [];
 
@@ -277,7 +296,10 @@ function describe(element: ViewElement) {
   if (element.reason) return element.reason;
   if (element.runtime) return 'an image the game sets';
   if (element.touchOnly) return 'a touch area';
-  if (element.type === 'Text') return [element.style, element.fontSize ? `${element.fontSize} px` : '', 'a text the game fills in'].filter(Boolean).join(' · ');
+  if (element.type === 'Text') {
+    return [element.style, element.fontId, element.fontSize ? `${element.fontSize} px` : '',
+      element.text ? `a text the game fills in, drawn with “${element.text.sample}”` : 'a text the game fills in'].filter(Boolean).join(' · ');
+  }
   if (element.type === 'Dummy') return 'a hidden point';
   if (element.frames) {
     const loops = element.loopCount ?? 1;
@@ -311,6 +333,12 @@ const labelSize = computed(() => Math.max(14, resolution.value.width / 90));
     <div class="view-viewer-toolbar">
       <CheckBox :checked="outlines" label="Outline every element" @change="outlines = $event">Elements</CheckBox>
       <CheckBox v-if="totals.texts" :checked="hideTextNames" label="Hide the names of text elements" @change="hideTextNames = $event">Hide text names</CheckBox>
+      <CheckBox v-if="totals.texts" :checked="drawTexts" label="Draw a sample text in the text elements" @change="drawTexts = $event">Texts</CheckBox>
+      <label v-if="totals.texts" class="view-viewer-sample" title="The text that Text elements draw, as the game fills theirs in at runtime; empty draws the one that suits each font">
+        <span>Sample text</span>
+        <input v-model="sampleText" type="text" class="form-control form-control-sm" maxlength="200" aria-label="Sample text of the text elements"
+               placeholder="1 234.56 or 10" :disabled="!drawTexts">
+      </label>
       <CheckBox :checked="hidden" label="Draw the hidden elements" @change="hidden = $event">Hidden elements<small v-if="totals.hidden" class="text-muted"> ({{ number(totals.hidden) }})</small></CheckBox>
       <span v-if="animations" class="view-viewer-play" role="group" aria-label="Animations">
         <button type="button" class="btn btn-outline-secondary btn-sm" :aria-pressed="!playing" @click="playing = !playing">
@@ -351,7 +379,8 @@ const labelSize = computed(() => Math.max(14, resolution.value.width / 90));
     <div class="view-stage" :style="{ aspectRatio: `${resolution.width} / ${resolution.height}`, maxWidth: `calc(58vh * ${resolution.width} / ${resolution.height})` }">
       <template v-for="{ index, layer } in shown" :key="layer.file">
         <ViewRender v-if="!failed.has(layer.file)" :style="placed(layer)" :file="layer.file" :name="layer.name" :revision="revision" :resolution="layer.facts.resolution"
-                    :hidden="hidden" :layout="layouts[index] ?? null" :playing="playing" :restart="restart" :moves="movesOf(index)" @error="failed.add(layer.file)" />
+                    :hidden="hidden" :layout="layouts[index] ?? null" :playing="playing" :restart="restart" :moves="movesOf(index)" :text="textParam"
+                    @error="failed.add(layer.file)" />
         <p v-else class="view-stage-state text-danger"><i aria-hidden="true" class="mdi mdi-alert-circle-outline" />{{ many ? `${layer.name} cannot be drawn` : 'The view cannot be drawn' }}</p>
       </template>
       <svg v-if="state === 'ready'" ref="overlay" :class="['view-stage-overlay', { 'is-editable': editable }]" :viewBox="`0 0 ${resolution.width} ${resolution.height}`" preserveAspectRatio="none"
@@ -415,6 +444,8 @@ const labelSize = computed(() => Math.max(14, resolution.value.width / 90));
 .generic-preview.view { color: #c9ced6; }
 .view-viewer-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; margin-bottom: 10px; font-size: 13px; }
 .view-viewer-summary { font-size: 12px; }
+.view-viewer-sample { display: inline-flex; align-items: center; gap: 6px; margin: 0; font-size: 13px; }
+.view-viewer-sample input { width: 120px; height: 26px; padding: 2px 6px; font-size: 12px; }
 .view-viewer-play { display: inline-flex; align-items: center; gap: 6px; }
 .view-viewer-play .btn { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; font-size: 12px; }
 .view-viewer-missing { color: #c77700; font-size: 12px; }

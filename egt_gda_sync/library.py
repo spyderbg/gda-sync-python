@@ -35,7 +35,8 @@ from .rss_jobs import SyncJobs
 from .image_cache import CACHE_FILE
 from .paths import PLACEHOLDER, contract, expand, expand_fields, global_paths
 from .rss_sync import DEFAULT_EXTENSIONS, DEFAULT_MATCH_THRESHOLD, Config, declared_files
-from .views import THUMBNAIL_WIDTH, read_view, render_view, view_layout, view_root
+from .view_text import DEFAULT_SAMPLE
+from .views import THUMBNAIL_WIDTH, read_view, render_text, render_view, view_layout, view_root
 from .rtf import RTF_EXTENSION, rtf_layout
 
 MAX_ASSETS = 10_000
@@ -1192,23 +1193,25 @@ class Library:
         return path, game, tuple(Path(folder) for folder in self._resource_roots())
 
     def view_preview(self, file: str, width: int | None = None, hidden: bool = False, crop: bool = False, segment: int | None = None,
-                     cuts: tuple[int, ...] | None = None) -> bytes:
+                     cuts: tuple[int, ...] | None = None, text: str | None = None) -> bytes:
         """A view composed as a PNG image, as wide as width (a card's width by default), with its hidden elements on
         request, cropped to what it draws on request, or only one segment of it, between the elements that the page
-        draws itself (cuts)."""
+        draws itself (cuts). Its Text elements draw the sample text (DEFAULT_SAMPLE unless one is given; none when it is
+        empty)."""
         path, game, roots = self._view(file)
         try:
-            return render_view(path, width or THUMBNAIL_WIDTH, hidden, game, roots, crop, segment, cuts)
+            return render_view(path, width or THUMBNAIL_WIDTH, hidden, game, roots, crop, segment, cuts, DEFAULT_SAMPLE if text is None else text)
         except FileNotFoundError as error:
             raise AppError("File not found", 404) from error
         except (OSError, ValueError, RecursionError) as error:
             raise AppError(error_message(error), 415) from error
 
-    def view_details(self, file: str) -> dict:
-        """Every element of a view, with what it draws and the area it covers, for the details to outline."""
+    def view_details(self, file: str, text: str | None = None) -> dict:
+        """Every element of a view, with what it draws and the area it covers, for the details to outline, and each Text
+        element's sample text as it is drawn (DEFAULT_SAMPLE unless one is given)."""
         path, game, roots = self._view(file)
         try:
-            return view_layout(path, game, roots)
+            return view_layout(path, game, roots, DEFAULT_SAMPLE if text is None else text)
         except FileNotFoundError as error:
             raise AppError("File not found", 404) from error
         except (OSError, ValueError, RecursionError) as error:
@@ -1256,6 +1259,16 @@ class Library:
             return {"layout": layout, "library": self.scan()}
 
         return self._exclusive(operation)
+
+    def view_text(self, file: str, index: int, text: str | None = None) -> bytes:
+        """A Text element's sample text as a PNG image at its own size, for the page to draw a moved one."""
+        path, game, roots = self._view(file)
+        try:
+            return render_text(path, index, DEFAULT_SAMPLE if text is None else text, game, roots)[0]
+        except FileNotFoundError as error:
+            raise AppError("File not found", 404) from error
+        except (OSError, ValueError, ImportError, RecursionError) as error:
+            raise AppError(error_message(error), 415) from error
 
     def view_element_location(self, file: str, index: int) -> tuple[str, int]:
         """The current source line of an element in a workspace view, in the preview's drawing order."""

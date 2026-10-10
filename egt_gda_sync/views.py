@@ -9,7 +9,8 @@ A view is a list of elements, drawn in order on a screen of the resolution its f
   lists the frames and how they play, a frame every frameTime milliseconds, loopCount times (the element's own, or else
   the sequence's; 0 repeats from frame loopTo), each frame placed by its own size, for the details to play them over
   render_view's segments: the still elements drawn before and after each Anim that plays;
-- Text: a text filled in at runtime, in a text style (rssStyleId) and within a fit box (fitBox);
+- Text: a text filled in at runtime, in a text style (rssStyleId) and within a fit box (fitBox), which the previews
+  draw with a sample text in the style's font and size (view_text);
 - Rtf: a page of an RTF project, drawn here with the background of its first page that has one;
 - Dummy: a hidden point that other elements are placed by.
 
@@ -44,6 +45,7 @@ import numpy as np
 from .dds import read_dds_info
 from .image_compare import decode_image
 from .rtf import describe_rtf
+from .view_text import font_problem, sample_for, shrink_matrix, text_image
 
 VIEW_FOLDER = "v"
 VIEW_SUFFIX = ".json"
@@ -298,7 +300,12 @@ def resolve(element: dict, resources: Resources, resolution: tuple[int, int]) ->
         detail = {"style": element.get("rssStyleId")} if element.get("rssStyleId") else {}
         if element.get("rssStyleId") and style is None:
             return Drawing(size=fit or (0.0, height), reason=f"no text style has the id {element['rssStyleId']}", detail=detail)
-        return Drawing(size=fit or (0.0, height), detail={**detail, **({"fontSize": style["size"]} if style else {})})
+        if style is None:
+            return Drawing(size=fit or (0.0, height), detail=detail)
+        font_id = str(style.get("font_id") or "")
+        font = resources.choose("fonts", font_id, resolution)
+        detail = {**detail, "fontSize": style["size"], **({"font": font["path"], "fontId": font_id} if font else {})}
+        return Drawing(size=fit or (0.0, height), reason=font_problem(font, font_id), detail=detail)
     if kind == "Rtf":
         rtf = resources.choose("rtfs", keys[0], resolution) if keys else None
         if rtf is None:
@@ -370,9 +377,45 @@ def _resources_for(path: Path, game_dir: Path | None) -> Resources:
     return load_resources(game_dir or view_root(path) or path.parent)
 
 
-def view_layout(path: Path, game_dir: Path | None = None, roots: tuple[Path, ...] = ()) -> dict:
+def _text_parts(element: dict, resources: Resources, resolution: tuple[int, int], sample: str) -> tuple[np.ndarray, tuple[float, float], np.ndarray, dict] | None:
+    """A Text element's sample text drawn in its style's font, as straight RGBA, its size, its 3 × 3 matrix with the fit
+    box's shrink, and its font entry; None when there is no font, or it draws none of the text."""
+    style = resources.choose("styles", str(element.get("rssStyleId") or ""), resolution)
+    font = resources.choose("fonts", str(style.get("font_id") or ""), resolution) if style else None
+    if font is None or not sample:
+        return None
+    drawn = text_image(font, float(style["size"]), sample_for(font, sample), str(element.get("orientation") or "") == "Vertical")
+    if drawn is None:
+        return None
+    image, size = drawn
+    share = ALIGNMENT.get(str(element.get("alignment") or "None"), (0.0, 0.0))
+    matrix = np.vstack([transform(element, size), [0, 0, 1]]) @ shrink_matrix(size, _size(element.get("fitBox")), share)
+    return image, size, matrix, font
+
+
+def _text(element: dict, resources: Resources, resolution: tuple[int, int], drawing: Drawing, sample: str) -> dict | None:
+    """A Text element's sample text as it is drawn: its size, its matrix with the fit box's shrink (SVG's matrix(a b c d
+    e f)), the corners it covers, and its font; None when its font cannot draw any of it."""
+    if not sample or drawing.reason or "font" not in drawing.detail:
+        return None
+    try:
+        parts = _text_parts(element, resources, resolution, sample)
+    except (OSError, ValueError, ImportError) as error:
+        drawing.reason = f"the font cannot be read: {error}"
+        return None
+    if parts is None:
+        return None
+    _image, size, matrix, font = parts
+    vertical = str(element.get("orientation") or "") == "Vertical"
+    return {"sample": sample_for(font, sample), "width": size[0], "height": size[1], "font": font["path"], "vertical": vertical,
+            "matrix": [round(float(value), 6) for value in (matrix[0, 0], matrix[1, 0], matrix[0, 1], matrix[1, 1], matrix[0, 2], matrix[1, 2])],
+            "corners": corners(matrix[:2], size)}
+
+
+def view_layout(path: Path, game_dir: Path | None = None, roots: tuple[Path, ...] = (), text: str | None = None) -> dict:
     """A view's name, resolution and every element: its id, type, resource ids, whether it is hidden or drawn, what it
-    draws, the corners of the area it covers, and why it draws nothing. With roots, only images inside them are drawn."""
+    draws, the corners of the area it covers, and why it draws nothing. With roots, only images and fonts inside them are
+    drawn. With a sample text, each Text element whose style's font can draw it has it as its text."""
     view = read_view(path)
     resources = _resources_for(path, game_dir)
     resolution = view_resolution(path)
@@ -382,6 +425,10 @@ def view_layout(path: Path, game_dir: Path | None = None, roots: tuple[Path, ...
         drawing = resolve(element, resources, resolution)
         if drawing.file and drawing.reason is None and roots and not any(drawing.file.is_relative_to(root) for root in roots):
             drawing.reason = "the image is outside the workspace folders"
+        font = drawing.detail.get("font")
+        if font and drawing.reason is None and roots and not any(Path(font).is_relative_to(root) for root in roots):
+            drawing.reason = "the font is outside the workspace folders"
+        written = _text(element, resources, resolution, drawing, text) if kind == "Text" and text else None
         matrix = transform(element, drawing.size)
         position = _point(element.get("position"), (0.0, 0.0))
         area = element.get("touchArea") if kind in ("Button", "ToggleButton", "Dummy") else None
@@ -396,6 +443,7 @@ def view_layout(path: Path, game_dir: Path | None = None, roots: tuple[Path, ...
             **({"reason": drawing.reason} if drawing.reason else {}), **drawing.detail,
             **({"alpha": _color(element.get("color"))[3], "color": list(_color(element.get("color")))} if "color" in element else {}),
             "placement": placement(element, drawing.size),
+            **({"text": written} if written else {}),
             **({"touchArea": corners(matrix @ np.vstack([np.hstack([np.eye(2), [[touch[0]], [touch[1]]]]), [0, 0, 1]]), touch[2:])}
                if touch else {}),
         })
@@ -464,19 +512,46 @@ def _scaled_image(file: Path, source: tuple[int, int, int, int] | None, scale: f
     return image
 
 
+def render_text(path: Path, index: int, text: str, game_dir: Path | None = None, roots: tuple[Path, ...] = ()) -> tuple[bytes, dict]:
+    """A Text element's sample text as a PNG image at its own size, as the page draws a moved one, and its layout."""
+    layout = view_layout(path, game_dir, roots, text)
+    element = next((item for item in layout["elements"] if item["index"] == index), None)
+    if element is None or "text" not in element:
+        raise ValueError("the element draws no text")
+    parts = _text_parts(read_view(path)["elements"][index], _resources_for(path, game_dir),
+                        (layout["resolution"]["width"], layout["resolution"]["height"]), text)
+    if parts is None:
+        raise ValueError("the element draws no text")
+    ok, encoded = cv2.imencode(".png", cv2.cvtColor(parts[0], cv2.COLOR_RGBA2BGRA))
+    if not ok:
+        raise ValueError("the text cannot be encoded as PNG")
+    return encoded.tobytes(), element["text"]
+
+
+def _premultiplied(rgba: np.ndarray, scale: float) -> np.ndarray:
+    """A straight RGBA image scaled, as premultiplied float32."""
+    if scale != 1.0 and rgba.size:
+        size = (max(1, round(rgba.shape[1] * scale)), max(1, round(rgba.shape[0] * scale)))
+        rgba = cv2.resize(rgba, size, interpolation=cv2.INTER_AREA if scale < 1 else cv2.INTER_LINEAR)
+    image = rgba.astype(np.float32) / 255.0
+    image[..., :3] *= image[..., 3:4]
+    return image
+
+
 def render_view(path: Path, width: int | None = None, hidden: bool = False, game_dir: Path | None = None,
                 roots: tuple[Path, ...] = (), crop: bool = False, segment: int | None = None,
-                cuts: tuple[int, ...] | None = None) -> bytes:
+                cuts: tuple[int, ...] | None = None, text: str | None = None) -> bytes:
     """The view composed as a PNG image with a transparent background, as wide as width (at most the view's own width):
     every element that draws an image, in order, hidden ones too on request, an Anim with its first frame. Cropped, it
     shows only the part of the screen that the view draws on, with a margin, so a small view fills a card. A segment
     draws only the elements between two that the page draws itself (cuts, by element index; by default the Anims that
-    play): segment 0 the ones before the first, segment n the ones after the nth, so that each can be drawn between them. Renders are kept until the view or an image it
-    draws changes."""
-    layout = view_layout(path, game_dir, roots)
+    play): segment 0 the ones before the first, segment n the ones after the nth, so that each can be drawn between them.
+    With a sample text, each Text element draws it in its style's font. Renders are kept until the view, an image or a font
+    it draws changes."""
+    layout = view_layout(path, game_dir, roots, text)
     resolution = layout["resolution"]
     elements = [element for element in layout["elements"]
-                if element["drawn"] and (hidden or not element["hidden"]) and element["type"] != "Dummy"]
+                if (element["drawn"] or "text" in element) and (hidden or not element["hidden"]) and element["type"] != "Dummy"]
     shown = elements
     if segment is not None:
         split = [position for position, element in enumerate(elements)
@@ -487,7 +562,7 @@ def render_view(path: Path, width: int | None = None, hidden: bool = False, game
     # The part of the screen drawn: all of it, or what the elements cover, with a margin.
     left, top, right, bottom = 0.0, 0.0, float(resolution["width"]), float(resolution["height"])
     if crop and elements:
-        points = np.array([point for element in elements for point in element["corners"]])
+        points = np.array([point for element in elements for point in (element["text"]["corners"] if "text" in element else element["corners"])])
         margin = CROP_MARGIN * max(np.ptp(points[:, 0]), np.ptp(points[:, 1]))
         left, top = max(left, points[:, 0].min() - margin), max(top, points[:, 1].min() - margin)
         right, bottom = min(right, points[:, 0].max() + margin), min(bottom, points[:, 1].max() + margin)
@@ -496,8 +571,8 @@ def render_view(path: Path, width: int | None = None, hidden: bool = False, game
     # A cropped render may be drawn up to twice as large, so a small view stays sharp in a card.
     scale = min(CROP_ZOOM if crop else 1.0, (width or resolution["width"]) / (right - left))
     view = path.stat()
-    signature = (str(path), view.st_mtime_ns, view.st_size, round(scale, 6), hidden, (left, top, right, bottom), segment, cuts,
-                 tuple((element["file"], os.stat(element["file"]).st_mtime_ns) for element in shown))
+    signature = (str(path), view.st_mtime_ns, view.st_size, round(scale, 6), hidden, (left, top, right, bottom), segment, cuts, text,
+                 tuple((file, os.stat(file).st_mtime_ns) for element in shown for file in [element["text"]["font"] if "text" in element else element["file"]]))
     with _render_lock:
         if signature in _renders:
             _renders.move_to_end(signature)
@@ -505,20 +580,33 @@ def render_view(path: Path, width: int | None = None, hidden: bool = False, game
     canvas_width, canvas_height = max(1, round((right - left) * scale)), max(1, round((bottom - top) * scale))
     canvas = np.zeros((canvas_height, canvas_width, 4), np.float32)
     source_elements = read_view(path)["elements"]
+    resources = _resources_for(path, game_dir)
     for element in shown:
+        data = source_elements[element["index"]]
         try:
-            image = _scaled_image(Path(element["file"]), tuple(element["source"]) if "source" in element else None, scale)
-        except (OSError, ValueError, cv2.error):
+            if "text" in element:
+                # A text is drawn at its own size, then shrunk into its fit box by its matrix.
+                parts = _text_parts(data, resources, (resolution["width"], resolution["height"]), text or "")
+                if parts is None:
+                    continue
+                image = _premultiplied(parts[0], scale)
+            else:
+                image = _scaled_image(Path(element["file"]), tuple(element["source"]) if "source" in element else None, scale)
+        except (OSError, ValueError, ImportError, cv2.error):
             continue
         if not image.size:
             continue
-        data = source_elements[element["index"]]
         red, green, blue, alpha = _color(data.get("color"))
         if (red, green, blue, alpha) != (255, 255, 255, 255):
             image = image * np.array([red / 255, green / 255, blue / 255, 1.0], np.float32) * (alpha / 255)
         # The element's matrix in the scaled image's pixels and on the scaled screen.
-        size = (element["size"][0], element["size"][1])
-        matrix = transform(data, size)
+        if "text" in element:
+            size = (element["text"]["width"], element["text"]["height"])
+            a, b, c, d, e, f = element["text"]["matrix"]
+            matrix = np.array([[a, c, e], [b, d, f]])
+        else:
+            size = (element["size"][0], element["size"][1])
+            matrix = transform(data, size)
         to_image = np.diag([image.shape[1] / size[0] if size[0] else 1.0, image.shape[0] / size[1] if size[1] else 1.0])
         linear = scale * matrix[:, :2] @ np.linalg.inv(to_image)
         translation = scale * (matrix[:, 2] - [left, top])

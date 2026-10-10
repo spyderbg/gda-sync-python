@@ -301,6 +301,10 @@ export interface ViewElement {
   touchOnly?: boolean; style?: string; fontSize?: number; page?: string; alpha?: number;
   /** The element's color, red, green, blue and alpha, which tints and fades what it draws, when it has one. */
   color?: [number, number, number, number];
+  /** A Text element's font, by its file and id, and the sample text it draws: its size, its matrix with the fit box's
+   * shrink, as SVG's matrix(a b c d e f), and the corners it covers. */
+  font?: string; fontId?: string;
+  text?: { sample: string; width: number; height: number; font: string; vertical: boolean; matrix: [number, number, number, number, number, number]; corners: [number, number][] };
   /** An Anim's image sequence: how many times it plays (the element's loopCount, or else the sequence's; 0 repeats
    * forever), the frame later loops start at, and each frame's file and source rectangle. Every element's placement is
    * its matrix for its size (an Anim's first frame's), as SVG's matrix(a b c d e f), and its alignment's share of a
