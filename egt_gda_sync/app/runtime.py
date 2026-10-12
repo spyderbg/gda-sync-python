@@ -2,7 +2,9 @@
 
 import errno
 import os
+import signal
 import socket
+from pathlib import Path
 
 import uvicorn
 from fastapi import FastAPI
@@ -47,3 +49,40 @@ class AppServer(uvicorn.Server):
     async def shutdown(self, sockets: list[socket.socket] | None = None) -> None:
         self.lifetime.dispose()
         await super().shutdown(sockets=sockets)
+
+
+def create_development_app() -> FastAPI:
+    """Construct fresh workspace and application state in each reload worker."""
+    from egt_gda_sync.__main__ import workspace_config_path
+    from egt_gda_sync.app.desktop import application_data_home
+    from egt_gda_sync.app.server import create_app
+    from egt_gda_sync.workspace.library import Library
+
+    data_home = os.path.abspath(application_data_home())
+    library = Library(data_home, config_path=workspace_config_path(data_home))
+    library.init()
+    return create_app(library, dev=True)
+
+
+def _run_development_worker(sockets: list[socket.socket]) -> None:
+    # Keep the same graceful cleanup as production, including open page event streams.
+    server = AppServer(create_development_app())
+    for stop_signal in (signal.SIGINT, signal.SIGTERM):
+        signal.signal(stop_signal, lambda *_: None)
+    server.run(sockets=sockets)
+
+
+def run_reloading_server(sock: socket.socket, source_dir: Path) -> None:
+    """Watch backend Python files while keeping the launcher's bound port across restarts."""
+    # Imported only by checkout development mode; packaged applications use AppServer directly.
+    from uvicorn.supervisors import ChangeReload
+
+    config = uvicorn.Config(
+        "egt_gda_sync.app.runtime:create_development_app", factory=True,
+        reload=True, reload_dirs=[str(source_dir)], log_level="info",
+    )
+    sock.set_inheritable(True)
+    try:
+        ChangeReload(config, target=_run_development_worker, sockets=[sock]).run()
+    finally:
+        sock.close()

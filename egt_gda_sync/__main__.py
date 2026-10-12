@@ -71,6 +71,13 @@ def run(argv: list[str]) -> int:
 
     server: AppServer | None = None
 
+    print(f"EGT GDA Sync is ready at {url}\nWorkspace: {data_home}\nConfiguration: {library.config_path}", flush=True)
+    if dev and not getattr(sys, "frozen", False):
+        from egt_gda_sync.app.runtime import run_reloading_server
+
+        run_reloading_server(sock, PROJECT_ROOT / "egt_gda_sync")
+        return 0
+
     def shutdown() -> None:
         if server:
             server.request_shutdown()
@@ -80,7 +87,6 @@ def run(argv: list[str]) -> int:
     # take the Vite dev server down with it; it is stopped with Ctrl+C or `dev.py stop`.
     app = create_app(library, dev=dev, on_shutdown=None if dev else shutdown)
     server = AppServer(app)
-    print(f"EGT GDA Sync is ready at {url}\nWorkspace: {data_home}\nConfiguration: {library.config_path}", flush=True)
     if should_open:
         threading.Thread(target=_open_browser, args=(url,), daemon=True).start()
     # uvicorn re-raises the signal that stopped it after its graceful shutdown; by then nothing is left to do.

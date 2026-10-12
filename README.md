@@ -291,7 +291,7 @@ Start the backend and open the app in your browser:
 python -m egt_gda_sync
 ```
 
-Start the Vite dev server with hot reload and the backend. The browser is **not** opened automatically; open the development UI (the Vite port, e.g. **http://127.0.0.1:5174**) in your browser:
+Start the Vite dev server and backend with automatic reload on code changes. The browser is **not** opened automatically; open the development UI (the Vite port, e.g. **http://127.0.0.1:5174**) in your browser:
 
 ```bash
 python scripts/dev.py
@@ -307,7 +307,9 @@ python scripts/dev.py stop
 
 ### Debugging in PyCharm
 
-Open the project folder in PyCharm and set the Python interpreter for the `egt-gda-sync` module to the project's `.venv` (`.venv/bin/python` on Linux or `.venv/Scripts/python.exe` on Windows), with `.[dev]` installed. Select the shared **Development: backend** run configuration and click **Debug**. It runs `python -m egt_gda_sync` from the project root with `EGT_GDA_SYNC_DEV=1`; set breakpoints in `egt_gda_sync/`.
+Open the project folder in PyCharm and set the Python interpreter for the `egt-gda-sync` module to the project's `.venv` (`.venv/bin/python` on Linux or `.venv/Scripts/python.exe` on Windows), with `.[dev]` installed. Select the shared backend run configuration (`egt-gday-sync`) and click **Debug**. It runs `python -m egt_gda_sync` from the project root with `EGT_GDA_SYNC_DEV=1`; set breakpoints in `egt_gda_sync/`.
+
+Enable **Attach to subprocess automatically while debugging** in **Settings → Build, Execution, Deployment → Python Debugger** so breakpoints work in the backend worker after each reload. See the [PyCharm debugger settings](https://www.jetbrains.com/help/pycharm/debugger-python.html).
 
 For the development UI, run `npm --prefix frontend ci` once and `npm --prefix frontend run dev` in a separate terminal, then open the URL printed by the backend. Stop any existing backend or `scripts/dev.py` session before debugging. Closing a browser tab keeps the development backend running; use PyCharm's **Stop** button to end it.
 
@@ -317,7 +319,7 @@ Open the project folder in VS Code, install the recommended Python/Python Debugg
 
 In **Run and Debug**, select **Development: backend + frontend (Chrome)** and press **F5**. This runs `scripts/dev.py start`, including `npm ci`, and debugs the Python backend subprocess. Once the backend reports its development URL, VS Code opens Chrome with the browser debugger attached. Set Python breakpoints in `egt_gda_sync/` and frontend breakpoints in `frontend/src/` (`.vue` and `.ts` files). The URL follows `workspace.json` and the `PORT` / `VITE_PORT` environment overrides; no debug-specific ports are hard-coded.
 
-Select **Development: backend** to launch the same services with only Python debugging, then open the reported Vite URL in your own browser. Stop any existing `dev.py` session before starting either configuration. Stop the Python launch session (or use **Debug: Stop All**) to end development: a post-debug task runs `scripts/dev.py stop` to clean up the backend and Vite. Closing only Chrome leaves the development services running. Frontend edits use Vite's hot reload; restart the debug session after changing Python code.
+Select **Development: backend** to debug the backend, and run Vite separately with `npm --prefix frontend run dev`. Stop any existing backend or `dev.py` session first. Both development launch methods watch Python files under `egt_gda_sync/` and restart the backend on changes, retaining its port and reloading workspace settings. VS Code attaches to the worker subprocess automatically. Vite handles frontend changes separately. Packaged executables never start the Python reloader.
 
 Type-check the Vue code:
 
