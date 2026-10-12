@@ -28,7 +28,9 @@ def paths_backend(tmp_path, browser):
 
 def test_settings_use_and_save_global_paths(new_context, paths_backend):
     backend, home, root = paths_backend
-    page = new_context().new_page()
+    context = new_context()
+    context.grant_permissions(["clipboard-read", "clipboard-write"], origin=backend.url)
+    page = context.new_page()
     errors = []
     page.on("pageerror", lambda error: errors.append(str(error)))
     page.goto(backend.url)
@@ -41,6 +43,10 @@ def test_settings_use_and_save_global_paths(new_context, paths_backend):
     expect(gda).to_have_value("{gda_root_path}/a")
     expect(page.locator(".settings-path-hint").last).to_have_text(f"Expands to {root / 'games'}/a")
     expect(page.locator(".settings-global-paths dt")).to_have_text(["{games_root_path}", "{gda_root_path}"])
+    page.get_by_role("button", name="Copy full GDA path").click()
+    assert page.evaluate("navigator.clipboard.readText()") == str(root / "gda" / "a")
+    page.get_by_role("button", name="Copy full Game path").click()
+    assert page.evaluate("navigator.clipboard.readText()") == str(root / "games" / "a")
 
     # A path inside a global path is saved with it; a global path that is not defined is an error.
     game.fill(str(root / "games" / "new"))

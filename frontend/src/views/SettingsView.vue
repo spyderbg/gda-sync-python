@@ -3,7 +3,7 @@ import { computed, reactive } from 'vue';
 import PageHeader from '../components/PageHeader.vue';
 import { contractPath, expandPath } from '../format';
 import type { FolderKey } from '../types';
-import { busy, config, data, navigate, openFolder, saveSettings, session, ui } from '../workspace';
+import { busy, config, copy, data, navigate, openFolder, saveSettings, session, ui } from '../workspace';
 
 // The folders as workspace.json writes them, which can use its global paths such as {games_root_path}.
 const stored = (folder: FolderKey) => config.value.templates?.[folder] ?? config.value[folder];
@@ -18,7 +18,7 @@ const globalPaths = computed(() => data.value?.globalPaths ?? {});
 const placeholder = (name: string) => `{${name}}`;
 /** What happens to a folder being entered: a path that uses global paths expands, one inside a global path is saved
  * with it, and a global path that workspace.json does not define is an error. */
-function pathHint(folder: FolderKey): { text: string; error?: boolean } | null {
+function pathHint(folder: FolderKey): { text: string; error?: boolean; expanded?: string } | null {
   const value = form[folder].trim();
   if (/\{[A-Za-z0-9_]+\}/.test(value)) {
     const { expanded, unknown } = expandPath(value, globalPaths.value);
@@ -26,7 +26,7 @@ function pathHint(folder: FolderKey): { text: string; error?: boolean } | null {
       const names = Object.keys(globalPaths.value).map(name => `{${name}}`).join(', ');
       return { text: `workspace.json defines no global path {${unknown[0]}}${names ? `. Its global paths: ${names}` : ''}.`, error: true };
     }
-    return { text: `Expands to ${expanded}` };
+    return { text: `Expands to ${expanded}`, expanded };
   }
   const contracted = contractPath(value, globalPaths.value);
   return contracted !== value ? { text: `Saved as ${contracted}` } : null;
@@ -70,7 +70,10 @@ async function save() {
                 </a>
               </label>
               <input id="source-folder" v-model="form.source" class="form-control" :aria-describedby="missing('source') ? 'source-help source-missing' : 'source-help'" required :placeholder="windows ? 'C:\\Users\\you\\project\\gda' : '/home/you/project/gda'">
-              <small v-if="pathHint('source')" :class="['form-text', 'settings-path-hint', pathHint('source')?.error ? 'text-danger' : 'text-muted']" role="status">{{ pathHint('source')?.text }}</small>
+              <div v-if="pathHint('source')" class="settings-path-hint-row">
+                <small :class="['form-text', 'settings-path-hint', pathHint('source')?.error ? 'text-danger' : 'text-muted']" role="status">{{ pathHint('source')?.text }}</small>
+                <button v-if="pathHint('source')?.expanded" type="button" class="settings-path-copy" :aria-label="`Copy full GDA path ${pathHint('source')?.expanded}`" title="Copy full GDA path" @click="copy(pathHint('source')!.expanded!)"><i aria-hidden="true" class="mdi mdi-content-copy" /></button>
+              </div>
               <small id="source-help" class="form-text text-muted">The originals you’re working with. All subfolders are included.</small>
               <div v-if="missing('source')" id="source-missing" class="alert alert-warning folder-missing" role="status">
                 <i aria-hidden="true" class="mdi mdi-alert-outline" />The GDA folder does not exist. No assets can be listed until it does.
@@ -85,7 +88,10 @@ async function save() {
                 </a>
               </label>
               <input id="destination-folder" v-model="form.destination" class="form-control" :aria-describedby="missing('destination') ? 'destination-help destination-missing' : 'destination-help'" required :placeholder="windows ? 'C:\\Users\\you\\project\\game' : '/home/you/project/game'">
-              <small v-if="pathHint('destination')" :class="['form-text', 'settings-path-hint', pathHint('destination')?.error ? 'text-danger' : 'text-muted']" role="status">{{ pathHint('destination')?.text }}</small>
+              <div v-if="pathHint('destination')" class="settings-path-hint-row">
+                <small :class="['form-text', 'settings-path-hint', pathHint('destination')?.error ? 'text-danger' : 'text-muted']" role="status">{{ pathHint('destination')?.text }}</small>
+                <button v-if="pathHint('destination')?.expanded" type="button" class="settings-path-copy" :aria-label="`Copy full Game path ${pathHint('destination')?.expanded}`" title="Copy full Game path" @click="copy(pathHint('destination')!.expanded!)"><i aria-hidden="true" class="mdi mdi-content-copy" /></button>
+              </div>
               <small id="destination-help" class="form-text text-muted">A separate folder where your synced assets belong.</small>
               <div v-if="missing('destination')" id="destination-missing" class="alert alert-warning folder-missing" role="status">
                 <i aria-hidden="true" class="mdi mdi-alert-outline" />The Game folder does not exist. Assets cannot be synced until it does.
