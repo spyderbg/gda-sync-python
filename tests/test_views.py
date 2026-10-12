@@ -1,5 +1,5 @@
 """Views: the .json files of a game's v folder, described, laid out and drawn as the game's view elements draw them
-(egt_gda_sync.views), and listed as their own type by the GDA sync and the asset report."""
+(egt_gda_sync.assets.views), and listed as their own type by the GDA sync and the asset report."""
 
 import json
 from pathlib import Path
@@ -9,12 +9,12 @@ import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 
-from egt_gda_sync.asset_report import inventory
-from egt_gda_sync.library import Library, asset_facts
-from egt_gda_sync.png import encode_png
-from egt_gda_sync.rss_sync import DEFAULT_EXTENSIONS, Config, compare
-from egt_gda_sync.server import create_app
-from egt_gda_sync.views import describe_view, is_view, render_view, view_layout, view_resolution, view_root
+from egt_gda_sync.workspace.asset_report import inventory
+from egt_gda_sync.workspace.library import Library, asset_facts
+from egt_gda_sync.images.png import encode_png
+from egt_gda_sync.sync.rss_sync import DEFAULT_EXTENSIONS, Config, compare
+from egt_gda_sync.app.server import create_app
+from egt_gda_sync.assets.views import describe_view, is_view, render_view, view_layout, view_resolution, view_root
 from tests.conftest import session_headers
 
 RED, GREEN, BLUE = (255, 0, 0, 255), (0, 255, 0, 255), (0, 0, 255, 255)

@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 """Verify a built executable end to end: first launch, previews, sync and backups, refresh, and exit on page close.
 
 Usage: python scripts/verify_package.py [linux|windows]   (Windows executables run under Wine on Linux)
@@ -20,7 +22,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from egt_gda_sync import __version__  # noqa: E402
-from egt_gda_sync.demo import seed_demo  # noqa: E402
+from egt_gda_sync.workspace.demo import seed_demo  # noqa: E402
 from scripts.package_support import (  # noqa: E402
     windows_path,
     wine_bin,
@@ -156,8 +158,9 @@ def main() -> None:
         assert len(synced["assets"]) == 19 and all(asset["status"] == "synced" for asset in synced["assets"]), synced
         assert (source_root / relative).read_bytes() == bc7
         assert (destination_root / relative).read_bytes() == bc7
-        [operation] = os.listdir(data_home / "backups")
-        assert (data_home / "backups" / operation / changed["path"]).read_bytes() == previous
+        # Each operation has a backup folder and a JSON record beside it.
+        [operation] = [path for path in (data_home / "backups").iterdir() if path.is_dir()]
+        assert (operation / changed["path"]).read_bytes() == previous
         assert json.loads((data_home / "activity.json").read_text(encoding="utf-8"))[0]["action"] == "sync"
 
         playwright = sync_playwright().start()

@@ -6,10 +6,10 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from egt_gda_sync.asset_report import inventory
-from egt_gda_sync.library import Library, asset_facts
-from egt_gda_sync.rss_sync import Config
-from egt_gda_sync.server import create_app
+from egt_gda_sync.workspace.asset_report import inventory
+from egt_gda_sync.workspace.library import Library, asset_facts
+from egt_gda_sync.sync.rss_sync import Config
+from egt_gda_sync.app.server import create_app
 from tests.conftest import session_headers
 from tests.fixtures.bc7_dds import create_bc7_dds
 

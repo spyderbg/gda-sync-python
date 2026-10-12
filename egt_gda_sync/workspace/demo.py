@@ -9,7 +9,7 @@ import time
 
 import numpy as np
 
-from .png import encode_png
+from egt_gda_sync.images.png import encode_png
 
 
 def _noise(x, y, seed: float):
@@ -24,7 +24,7 @@ def _to_uint8(values: np.ndarray) -> np.ndarray:
 
 def texture(kind: str, size: int = 512) -> np.ndarray:
     """Return a (size, size, 4) RGBA texture of the given material kind."""
-    y, x = np.mgrid[0:size, 0:size].astype(np.float64)
+    y, x = np.asarray(np.mgrid[0:size, 0:size]).astype(np.float64)
     nx, ny = x / size, y / size
     n = _noise(x, y, 4)
     broad = np.sin(nx * 22 + np.sin(ny * 15) * 3) * np.cos(ny * 19 + nx * 4)

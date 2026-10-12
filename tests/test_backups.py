@@ -5,8 +5,8 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from egt_gda_sync.library import Library
-from egt_gda_sync.server import create_app
+from egt_gda_sync.workspace.library import Library
+from egt_gda_sync.app.server import create_app
 from tests.conftest import session_headers
 from tests.test_rss_sync import write_example
 

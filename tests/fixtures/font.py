@@ -1,4 +1,4 @@
-"""Synthetic sfnt fonts with only the tables that egt_gda_sync.fonts reads: cmap, name and maxp."""
+"""Synthetic sfnt fonts with only the tables that egt_gda_sync.assets.fonts reads: cmap, name and maxp."""
 
 import struct
 

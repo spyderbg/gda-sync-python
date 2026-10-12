@@ -16,7 +16,7 @@ analysis = Analysis(
     [str(ROOT / "bundle" / "launcher.py")],
     pathex=[str(ROOT)],
     datas=[(str(STATIC), "egt_gda_sync/static")],
-    # uvicorn imports the implementations chosen in egt_gda_sync.runtime by name.
+    # uvicorn imports the implementations chosen in egt_gda_sync.app.runtime by name.
     hiddenimports=["uvicorn.loops.asyncio", "uvicorn.protocols.http.h11_impl", "uvicorn.lifespan.on"],
     # The GPU algorithms' packages (the gpu extra) are gigabytes; the executables match images without them.
     excludes=["tkinter", "torch", "transformers", "huggingface_hub", "safetensors", "tokenizers"],

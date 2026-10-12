@@ -16,7 +16,8 @@ def bind_local_socket(port: int) -> socket.socket:
     try:
         if os.name == "nt":
             # SO_REUSEADDR on Windows would let us bind a port another program is listening on.
-            sock.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+            # Windows only. Other platforms have no SO_EXCLUSIVEADDRUSE.
+            sock.setsockopt(socket.SOL_SOCKET, getattr(socket, "SO_EXCLUSIVEADDRUSE"), 1)
         else:
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.bind(("127.0.0.1", port))

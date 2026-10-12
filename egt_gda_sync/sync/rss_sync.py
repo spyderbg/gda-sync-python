@@ -7,9 +7,9 @@ A game file that nothing declares is "supplementary" and not compared; numbered 
 image sequences. An RTF, a project of the RTF Tool, is one resource: its folder, compared file by file with the GDA folder
 that holds a .rtf file of the same name. It returns JSON-ready data instead of a Markdown report, lists identical files
 too, and reports progress so it can run as a background job. Images are also matched with the GDA's images by their
-contents, as egt_gda_sync.image_compare describes: each compared image has the probability that each GDA image is the same
+contents, as egt_gda_sync.images.image_compare describes: each compared image has the probability that each GDA image is the same
 picture, and its possible matches. A view, a .json file in the game's v folder that the game's view elements draw, is
-compared like any file, with the facts of what it draws (egt_gda_sync.views); other .json files, such as the *Data.json
+compared like any file, with the facts of what it draws (egt_gda_sync.assets.views); other .json files, such as the *Data.json
 descriptors, are not compared.
 """
 
@@ -28,11 +28,11 @@ from dataclasses import asdict, dataclass, fields, is_dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any, NamedTuple
 
-from .image_cache import CompareCache, FileHashes
-from .image_compare import IMAGE_EXTENSIONS, ImageMatcher, Query, Settings, Target, workers
-from .rss_schemas import DOCUMENT_TYPES, Frame, ImageSequence, parse_dataclass
-from .rtf import describe_rtf
-from .views import VIEW_SUFFIX, describe_view, is_view
+from egt_gda_sync.images.image_cache import CompareCache, FileHashes
+from egt_gda_sync.images.image_compare import IMAGE_EXTENSIONS, ImageMatcher, Query, Settings, Target, workers
+from egt_gda_sync.sync.rss_schemas import DOCUMENT_TYPES, Frame, ImageSequence, parse_dataclass
+from egt_gda_sync.assets.rtf import describe_rtf
+from egt_gda_sync.assets.views import VIEW_SUFFIX, describe_view, is_view
 
 RANGE_PATTERN = re.compile(r"\{(\d+)-(\d+)\}")
 JSON_STRING_PATTERN = re.compile(r'"(?:\\.|[^"\\])*"')

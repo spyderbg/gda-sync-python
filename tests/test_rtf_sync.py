@@ -5,8 +5,8 @@ import json
 import shutil
 from pathlib import Path
 
-from egt_gda_sync.rss_sync import compare, make_config
-from egt_gda_sync.rtf import describe_rtf
+from egt_gda_sync.sync.rss_sync import compare, make_config
+from egt_gda_sync.assets.rtf import describe_rtf
 from tests.conftest import session_headers
 from tests.fixtures.bc7_dds import create_bc7_dds
 from tests.fixtures.rtf import write_project

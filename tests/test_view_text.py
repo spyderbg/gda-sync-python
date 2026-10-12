@@ -6,8 +6,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from egt_gda_sync.view_text import DEFAULT_SAMPLE, sample_for
-from egt_gda_sync.views import render_view, view_layout
+from egt_gda_sync.assets.view_text import DEFAULT_SAMPLE, sample_for
+from egt_gda_sync.assets.views import render_view, view_layout
 from tests.test_views import BLUE, decode, write_game, write_json
 
 # A TrueType font of the system, for the fonts that Pillow draws.

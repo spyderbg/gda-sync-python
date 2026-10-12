@@ -22,8 +22,8 @@ from pathlib import Path
 
 import numpy as np
 
-from .fonts import declared_characters
-from .image_compare import decode_image
+from egt_gda_sync.assets.fonts import declared_characters
+from egt_gda_sync.images.image_compare import decode_image
 
 # The sample text that suits each font, unless one is given: an amount, or a count in a font without a decimal point.
 DEFAULT_SAMPLE = "\x00default"

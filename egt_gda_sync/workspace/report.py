@@ -7,8 +7,8 @@ Usage: egt-gda-sync report [ID ...] [--all] [--[no-]multithreading] [--[no-]gpu]
 import argparse
 import sys
 
-from .library import Library
-from .rss_sync import throttled
+from egt_gda_sync.workspace.library import Library
+from egt_gda_sync.sync.rss_sync import throttled
 
 PHASES = {"descriptors": "Reading descriptors", "index": "Indexing the GDA folder", "hashing": "Hashing files",
           "compare": "Comparing files", "images": "Reading images", "matches": "Matching images"}

@@ -14,8 +14,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from egt_gda_sync import __main__ as launcher
-from egt_gda_sync.ports import vite_port
-from egt_gda_sync.server import create_app
+from egt_gda_sync.app.ports import vite_port
+from egt_gda_sync.app.server import create_app
 from scripts import dev
 
 ROOT = Path(__file__).resolve().parents[1]

@@ -5,7 +5,7 @@ import json
 import pytest
 from playwright.sync_api import expect
 
-from egt_gda_sync.library import Library
+from egt_gda_sync.workspace.library import Library
 from tests.e2e.conftest import BUILD, Backend
 from tests.test_rss_sync import write_example
 

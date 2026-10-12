@@ -23,21 +23,21 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import TypeVar
 
-from .dds import SUPPORTED_DDS_FORMATS, decode_dds, read_dds_info
-from .demo import seed_demo
-from .errors import AppError, error_message
-from .asset_report import AssetReports, inventory
-from .fonts import FONT_EXTENSIONS, describe_font
-from .png import PNG_SIGNATURE
-from . import backups
-from .rss_edit import parse as parse_json_source, remove_declarations, set_view_positions
-from .rss_jobs import SyncJobs
-from .image_cache import CACHE_FILE
-from .paths import PLACEHOLDER, contract, expand, expand_fields, global_paths
-from .rss_sync import DEFAULT_EXTENSIONS, DEFAULT_MATCH_THRESHOLD, Config, declared_files
-from .view_text import DEFAULT_SAMPLE
-from .views import THUMBNAIL_WIDTH, read_view, render_text, render_view, view_layout, view_root
-from .rtf import RTF_EXTENSION, rtf_layout
+from egt_gda_sync.images.dds import SUPPORTED_DDS_FORMATS, decode_dds, read_dds_info
+from egt_gda_sync.workspace.demo import seed_demo
+from egt_gda_sync.app.errors import AppError, error_message
+from egt_gda_sync.workspace.asset_report import AssetReports, inventory
+from egt_gda_sync.assets.fonts import FONT_EXTENSIONS, describe_font
+from egt_gda_sync.images.png import PNG_SIGNATURE
+from egt_gda_sync.workspace import backups
+from egt_gda_sync.sync.rss_edit import parse as parse_json_source, remove_declarations, set_view_positions
+from egt_gda_sync.sync.rss_jobs import SyncJobs
+from egt_gda_sync.images.image_cache import CACHE_FILE
+from egt_gda_sync.workspace.paths import PLACEHOLDER, contract, expand, expand_fields, global_paths
+from egt_gda_sync.sync.rss_sync import DEFAULT_EXTENSIONS, DEFAULT_MATCH_THRESHOLD, Config, declared_files
+from egt_gda_sync.assets.view_text import DEFAULT_SAMPLE
+from egt_gda_sync.assets.views import THUMBNAIL_WIDTH, read_view, render_text, render_view, view_layout, view_root
+from egt_gda_sync.assets.rtf import RTF_EXTENSION, rtf_layout
 
 MAX_ASSETS = 10_000
 MAX_PREVIEW_BYTES = 64 * 1024 * 1024

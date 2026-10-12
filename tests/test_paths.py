@@ -1,4 +1,4 @@
-"""Global paths in workspace.json (egt_gda_sync.paths): {name} in a *_path field stands for a top-level or config
+"""Global paths in workspace.json (egt_gda_sync.workspace.paths): {name} in a *_path field stands for a top-level or config
 *_path field, and a folder entered in the settings is written with the global path it is inside."""
 
 import json
@@ -8,9 +8,9 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from egt_gda_sync.library import Library
-from egt_gda_sync.paths import contract, expand, expand_fields, global_paths
-from egt_gda_sync.server import create_app
+from egt_gda_sync.workspace.library import Library
+from egt_gda_sync.workspace.paths import contract, expand, expand_fields, global_paths
+from egt_gda_sync.app.server import create_app
 from tests.conftest import session_headers
 
 

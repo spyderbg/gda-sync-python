@@ -11,10 +11,10 @@ implementation differs from the proposal. The code is in:
 
 | Module | Responsibility |
 | --- | --- |
-| `egt_gda_sync/image_compare.py` | Decoding, features, candidates, verification, scoring (`ImageMatcher`) |
-| `egt_gda_sync/image_cache.py` | The SQLite cache of file hashes, features, embeddings and pair results |
-| `egt_gda_sync/image_gpu.py` | The GPU algorithms: CLIP and DINOv2 embeddings and their nearest-neighbour search |
-| `egt_gda_sync/rss_sync.py` | The GDA sync, which runs the image matching after it classifies every file |
+| `egt_gda_sync/images/image_compare.py` | Decoding, features, candidates, verification, scoring (`ImageMatcher`) |
+| `egt_gda_sync/images/image_cache.py` | The SQLite cache of file hashes, features, embeddings and pair results |
+| `egt_gda_sync/images/image_gpu.py` | The GPU algorithms: CLIP and DINOv2 embeddings and their nearest-neighbour search |
+| `egt_gda_sync/sync/rss_sync.py` | The GDA sync, which runs the image matching after it classifies every file |
 
 The matching adds information to the report. It does not change any resource's status: a resource is still
 **identical**, **different** or **missing** by its file name and SHA-256, as before. What it changes is the GDA file
@@ -289,7 +289,7 @@ shows its probability and match type.
 The copy request sends each image's chosen candidate (`gdaFiles` of `POST /api/rss-sync/copy`, `gdaFile` of each
 resource of `POST /api/rss-sync/apply`). The backend refuses a candidate that the image does not have in the current
 report, or one with the game file's contents. Without a choice, it copies the most likely candidate that differs from
-the game file, by the same rule as the page (`image_candidates` in `egt_gda_sync/library.py`). Sequences, RTFs, other
+the game file, by the same rule as the page (`image_candidates` in `egt_gda_sync/workspace/library.py`). Sequences, RTFs, other
 files and reports from before version 6 are copied from their closest same-named GDA file, as before.
 
 ## Caching
@@ -336,7 +336,7 @@ SIFT (the same font in every image). Measured on a 32-core CPU with an RTX 4080 
 | The same, with `use_gpu` | 18 to 23 s with an empty cache, 5 s warm (2.5 s of it loading the models): about 13,000 candidate pairs, since every image is alike to the embeddings. Edited copies from 90.3 %; no unrelated GDA image above 50 %; 3 pairs of the game's own drawings at 58.3 % |
 | 200 images; GDA: copies rotated up to 30°, scaled 0.7 to 1.3 times and cropped up to 15 %, 100 of the same name and 100 renamed | Same name: 70 found, 67 of them as `transformed_duplicate`; renamed: 8 found without the GPU and 56 with it; no wrong match without the GPU, one with it |
 
-To tune the matching for your own images, change the constants at the top of `egt_gda_sync/image_compare.py`.
+To tune the matching for your own images, change the constants at the top of `egt_gda_sync/images/image_compare.py`.
 Increase `VERSION` when you change decoding, preprocessing or how an algorithm computes its value, so cached features
 and pair results are computed again.
 

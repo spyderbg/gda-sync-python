@@ -24,11 +24,11 @@ from collections.abc import Callable
 from dataclasses import asdict
 from pathlib import Path
 
-from .fonts import FONT_EXTENSIONS, describe_font
-from .rss_jobs import ReportFolder, _now
-from .rss_sync import COMMON_DIR, GUESSED_FRAME_TIME, GUESSED_LOOP_COUNT, NUMBERED_NAME, Config, Use, expand_path, gather, required_by, row_id
-from .rtf import RTF_EXTENSION, describe_rtf
-from .views import describe_view, is_view, view_root
+from egt_gda_sync.assets.fonts import FONT_EXTENSIONS, describe_font
+from egt_gda_sync.sync.rss_jobs import ReportFolder, _now
+from egt_gda_sync.sync.rss_sync import COMMON_DIR, GUESSED_FRAME_TIME, GUESSED_LOOP_COUNT, NUMBERED_NAME, Config, Use, expand_path, gather, required_by, row_id
+from egt_gda_sync.assets.rtf import RTF_EXTENSION, describe_rtf
+from egt_gda_sync.assets.views import describe_view, is_view, view_root
 
 # Version 2 reports fonts as their own type, with their names, the samples they draw and their coverage of each Font
 # entry's characters. Version 3 reports RTFs (RTF Tool projects) as their own type: an RTF's folder is one asset with

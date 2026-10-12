@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 """Build standalone executables: dist/egt-gda-sync (Linux) and dist/egt-gda-sync.exe (Windows).
 
 Each executable contains the Python runtime, the backend, its dependencies and the built Vue interface.

@@ -16,7 +16,7 @@ import threading
 import uuid
 from datetime import datetime, timezone
 
-from .rss_sync import Progress, compare_settings, run_in_process
+from egt_gda_sync.sync.rss_sync import Progress, compare_settings, run_in_process
 
 # Version 7 compares views, the .json files of the game's v folder, with the facts of what they and their GDA files
 # draw (view, gdaView). Version 6 matches images by their contents (docs/image_compare/implementation.md): each compared image has an imageMatch

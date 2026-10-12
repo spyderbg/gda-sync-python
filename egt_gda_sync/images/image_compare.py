@@ -36,9 +36,9 @@ from typing import Any, Iterator
 import cv2
 import numpy as np
 
-from .dds import decode_dds_rgba
-from .image_cache import CompareCache, FileHashes, batches
-from .image_gpu import MODELS
+from egt_gda_sync.images.dds import decode_dds_rgba
+from egt_gda_sync.images.image_cache import CompareCache, FileHashes, batches
+from egt_gda_sync.images.image_gpu import MODELS
 
 IMAGE_EXTENSIONS = frozenset({".dds", ".png", ".jpg", ".jpeg", ".webp", ".bmp"})
 # The version of decoding, preprocessing and the algorithms: cached features and pair results of another are ignored.
@@ -526,7 +526,7 @@ class ImageMatcher:
         }
 
     def _embedder(self):
-        from .image_gpu import load_embedder
+        from egt_gda_sync.images.image_gpu import load_embedder
         started = time.perf_counter()
         embedder, reason = load_embedder()
         self.seconds["loadingModels"] += time.perf_counter() - started

@@ -42,10 +42,10 @@ from typing import Any
 import cv2
 import numpy as np
 
-from .dds import read_dds_info
-from .image_compare import decode_image
-from .rtf import describe_rtf
-from .view_text import font_problem, sample_for, shrink_matrix, text_image
+from egt_gda_sync.images.dds import read_dds_info
+from egt_gda_sync.images.image_compare import decode_image
+from egt_gda_sync.assets.rtf import describe_rtf
+from egt_gda_sync.assets.view_text import font_problem, sample_for, shrink_matrix, text_image
 
 VIEW_FOLDER = "v"
 VIEW_SUFFIX = ".json"
@@ -145,7 +145,7 @@ def _descriptor_files(game_dir: Path) -> list[Path]:
 def load_resources(game_dir: Path) -> Resources:
     """The resources of a game folder's descriptors, kept until a descriptor changes. A descriptor that cannot be read
     leaves the resources of the others, and its error."""
-    from .rss_sync import load_documents  # rss_sync lists views, so it is imported here
+    from egt_gda_sync.sync.rss_sync import load_documents  # rss_sync lists views, so it is imported here
 
     game_dir = game_dir.resolve()
     with _resources_lock:
@@ -260,7 +260,7 @@ class Drawing:
 
 def resolve(element: dict, resources: Resources, resolution: tuple[int, int]) -> Drawing:
     """What an element draws, with its size, or why it draws nothing."""
-    from .rss_sync import expand_path  # rss_sync lists views, so it is imported here
+    from egt_gda_sync.sync.rss_sync import expand_path  # rss_sync lists views, so it is imported here
 
     kind = element.get("type")
     keys = element_keys(element)

@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 """Development mode: the Vite dev server with hot reload, plus the backend in development mode.
 
 The browser opens the configured Vite port, which proxies /api to the configured backend port.
@@ -24,10 +26,10 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from egt_gda_sync.__main__ import _port, workspace_config_path  # noqa: E402
-from egt_gda_sync.desktop import application_data_home  # noqa: E402
-from egt_gda_sync.library import Library  # noqa: E402
-from egt_gda_sync.ports import vite_port  # noqa: E402
-from egt_gda_sync.runtime import bind_local_socket, is_address_in_use  # noqa: E402
+from egt_gda_sync.app.desktop import application_data_home  # noqa: E402
+from egt_gda_sync.workspace.library import Library  # noqa: E402
+from egt_gda_sync.app.ports import vite_port  # noqa: E402
+from egt_gda_sync.app.runtime import bind_local_socket, is_address_in_use  # noqa: E402
 
 FRONTEND = ROOT / "frontend"
 STATE_FILE = "dev.json"

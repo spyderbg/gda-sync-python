@@ -5,8 +5,8 @@ from typing import TypedDict
 
 import numpy as np
 
-from .bc7 import decode_bc7_blocks
-from .png import encode_png
+from egt_gda_sync.images.bc7 import decode_bc7_blocks
+from egt_gda_sync.images.png import encode_png
 
 MAX_PIXELS = 16_777_216
 SUPPORTED_DDS_FORMATS = frozenset({"DXT1", "DXT3", "DXT5", "RGB24", "RGB32", "BC7_UNORM", "BC7_UNORM_SRGB"})

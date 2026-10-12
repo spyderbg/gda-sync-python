@@ -8,14 +8,14 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from egt_gda_sync.library import Library
+from egt_gda_sync.workspace.library import Library
 import re
 
-from egt_gda_sync.rss_jobs import SyncJobs, report_name
-from egt_gda_sync.rss_sync import (
+from egt_gda_sync.sync.rss_jobs import SyncJobs, report_name
+from egt_gda_sync.sync.rss_sync import (
     DDS_HEADER_END, Config, compare, declared_path_lines, load_documents, make_config, mip_chain_only_differs,
 )
-from egt_gda_sync.server import create_app
+from egt_gda_sync.app.server import create_app
 from tests.conftest import session_headers
 from tests.fixtures.bc7_dds import create_bc7_dds
 from tests.fixtures.png_reader import read_png

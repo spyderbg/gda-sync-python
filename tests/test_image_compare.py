@@ -1,4 +1,4 @@
-"""Image matching for the GDA sync (egt_gda_sync.image_compare), as docs/image_compare/implementation.md describes it."""
+"""Image matching for the GDA sync (egt_gda_sync.images.image_compare), as docs/image_compare/implementation.md describes it."""
 
 import json
 import os
@@ -9,15 +9,15 @@ import cv2
 import numpy as np
 import pytest
 
-from egt_gda_sync import image_cache, image_compare, image_gpu
-from egt_gda_sync.demo import to_dds
-from egt_gda_sync.image_cache import CompareCache
-from egt_gda_sync.image_compare import (
+from egt_gda_sync.images import image_cache, image_compare, image_gpu
+from egt_gda_sync.workspace.demo import to_dds
+from egt_gda_sync.images.image_cache import CompareCache
+from egt_gda_sync.images.image_compare import (
     SIFT_MIN_COVERAGE, decode_image, difference_hash, fitted, gray_image, hamming, judge, perceptual_hash, sift_features,
     sift_match, ssim,
 )
-from egt_gda_sync.png import encode_png
-from egt_gda_sync.rss_sync import Config, compare, make_config
+from egt_gda_sync.images.png import encode_png
+from egt_gda_sync.sync.rss_sync import Config, compare, make_config
 
 
 def drawing(seed: int, size: int = 320) -> np.ndarray:
@@ -400,8 +400,8 @@ def test_the_real_gpu_algorithms(tmp_path, monkeypatch):
 def sync_api(tmp_path: Path):
     """A library of one workspace with images to sync, compared, and a client of its API."""
     from fastapi.testclient import TestClient
-    from egt_gda_sync.library import Library
-    from egt_gda_sync.server import create_app
+    from egt_gda_sync.workspace.library import Library
+    from egt_gda_sync.app.server import create_app
     from tests.conftest import session_headers
 
     play, logo, coins = drawing(110), drawing(111), drawing(112)

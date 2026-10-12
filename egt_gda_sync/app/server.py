@@ -19,15 +19,15 @@ from starlette.datastructures import Headers
 from starlette.exceptions import HTTPException
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
-from . import APP_ID, __version__
-from .desktop import open_in_code, open_on_desktop, platform_label
-from .errors import AppError
-from .fonts import FONT_EXTENSIONS, facts_header
-from .library import Library
-from .lifetime import PAGE_CLOSE_GRACE_SECONDS, PageLifetime
-from .ports import dev_ui_url
+from egt_gda_sync import APP_ID, __version__
+from egt_gda_sync.app.desktop import open_in_code, open_on_desktop, platform_label
+from egt_gda_sync.app.errors import AppError
+from egt_gda_sync.assets.fonts import FONT_EXTENSIONS, facts_header
+from egt_gda_sync.workspace.library import Library
+from egt_gda_sync.app.lifetime import PAGE_CLOSE_GRACE_SECONDS, PageLifetime
+from egt_gda_sync.app.ports import dev_ui_url
 
-STATIC_DIR = Path(__file__).with_name("static")
+STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 BODY_LIMIT = 128 * 1024
 LOCAL_HOSTS = {"127.0.0.1", "localhost", "[::1]"}
 APP_CSP = (

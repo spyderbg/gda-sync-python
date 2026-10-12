@@ -5,7 +5,7 @@ from pathlib import Path
 
 import numpy as np
 
-from egt_gda_sync.png import encode_png
+from egt_gda_sync.images.png import encode_png
 from tests.fixtures.bc7_dds import create_bc7_dds
 
 

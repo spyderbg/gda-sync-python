@@ -3,8 +3,8 @@ import os
 
 import pytest
 
-from egt_gda_sync.errors import AppError
-from egt_gda_sync.library import Library, safe_path
+from egt_gda_sync.app.errors import AppError
+from egt_gda_sync.workspace.library import Library, safe_path
 from tests.fixtures.bc7_dds import create_bc7_dds
 from tests.fixtures.png_reader import read_png
 

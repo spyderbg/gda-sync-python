@@ -5,9 +5,9 @@ from pathlib import Path
 
 import pytest
 
-from egt_gda_sync import image_gpu
+from egt_gda_sync.images import image_gpu
 from egt_gda_sync.__main__ import main
-from egt_gda_sync.library import Library
+from egt_gda_sync.workspace.library import Library
 from tests.test_rss_sync import write_example
 
 

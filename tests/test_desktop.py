@@ -3,9 +3,9 @@ import os
 
 import pytest
 
-from egt_gda_sync.desktop import application_data_home, child_environment, desktop_command, open_in_code
-from egt_gda_sync.errors import AppError
-from egt_gda_sync.library import asset_id
+from egt_gda_sync.app.desktop import application_data_home, child_environment, desktop_command, open_in_code
+from egt_gda_sync.app.errors import AppError
+from egt_gda_sync.workspace.library import asset_id
 
 
 @pytest.mark.parametrize("platform, executable, file", [
@@ -25,20 +25,20 @@ def test_code_opener_passes_file_and_line_as_one_literal_argument(monkeypatch, p
     def which(name):
         lookups.append(name)
         return executable
-    monkeypatch.setattr("egt_gda_sync.desktop.sys.platform", platform)
-    monkeypatch.setattr("egt_gda_sync.desktop.shutil.which", which)
-    monkeypatch.setattr("egt_gda_sync.desktop.subprocess.Popen", launch)
+    monkeypatch.setattr("egt_gda_sync.app.desktop.sys.platform", platform)
+    monkeypatch.setattr("egt_gda_sync.app.desktop.shutil.which", which)
+    monkeypatch.setattr("egt_gda_sync.app.desktop.subprocess.Popen", launch)
     open_in_code(file, 163)
     assert lookups == ["code"]
     assert commands[0][0] == [executable, "--reuse-window", "--goto", f"{file}:163"]
     assert not commands[0][1].get("shell", False)
-    monkeypatch.setattr("egt_gda_sync.desktop.shutil.which", lambda name: None)
+    monkeypatch.setattr("egt_gda_sync.app.desktop.shutil.which", lambda name: None)
     with pytest.raises(AppError, match="not available on PATH"):
         open_in_code(file, 163)
 
 
 def test_windows_code_cmd_fallback_is_resolved_from_path(monkeypatch):
-    monkeypatch.setattr("egt_gda_sync.desktop.sys.platform", "win32")
+    monkeypatch.setattr("egt_gda_sync.app.desktop.sys.platform", "win32")
     lookups, commands = [], []
     executable = r"C:\Tools\VS Code\bin\code.cmd"
     def which(name):
@@ -50,8 +50,8 @@ def test_windows_code_cmd_fallback_is_resolved_from_path(monkeypatch):
     def launch(command, **kwargs):
         commands.append(command)
         return Process()
-    monkeypatch.setattr("egt_gda_sync.desktop.shutil.which", which)
-    monkeypatch.setattr("egt_gda_sync.desktop.subprocess.Popen", launch)
+    monkeypatch.setattr("egt_gda_sync.app.desktop.shutil.which", which)
+    monkeypatch.setattr("egt_gda_sync.app.desktop.subprocess.Popen", launch)
     open_in_code(r"D:\Games\Resources\RssImagesData.json", 163)
     assert lookups == ["code", "code.cmd"]
     assert commands == [[executable, "--reuse-window", "--goto", r"D:\Games\Resources\RssImagesData.json:163"]]

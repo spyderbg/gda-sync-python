@@ -81,6 +81,7 @@ def load_embedder() -> tuple[Embedder | None, str | None]:
     try:
         import torch
         import transformers
+        import huggingface_hub
     except ImportError as error:
         return None, f'torch and transformers are not installed (pip install -e ".[gpu]"): {error}'
     if not torch.cuda.is_available():
@@ -89,7 +90,6 @@ def load_embedder() -> tuple[Embedder | None, str | None]:
     os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
     transformers.utils.logging.set_verbosity_error()
     transformers.utils.logging.disable_progress_bar()
-    import huggingface_hub
     huggingface_hub.utils.logging.set_verbosity_error()
     # transformers 5 renamed torch_dtype to dtype.
     dtype = {"dtype" if int(transformers.__version__.split(".")[0]) >= 5 else "torch_dtype": torch.float16}

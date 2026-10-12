@@ -16,8 +16,8 @@ from json.decoder import scanstring
 from pathlib import Path
 from typing import Any
 
-from .rss_schemas import DOCUMENT_TYPES, parse_dataclass
-from .rss_sync import expand_path
+from egt_gda_sync.sync.rss_schemas import DOCUMENT_TYPES, parse_dataclass
+from egt_gda_sync.sync.rss_sync import expand_path
 
 WHITESPACE = re.compile(r"[ \t\n\r]*")
 NUMBER = re.compile(r"-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][-+]?\d+)?")

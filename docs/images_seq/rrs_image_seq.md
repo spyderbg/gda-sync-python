@@ -12,7 +12,7 @@ It wasn't a parse issue. The `{00-70}` range is read correctly, and all 71 frame
   - Frames load only when the card scrolls into view.
 - **In sync page and search:** a sequence is one table row with its GDA files grouped by folder. Search also matches the sequence id.
 
-The main logic is in [rss_sync.py](egt_gda_sync/rss_sync.py), the copy in [library.py](egt_gda_sync/library.py), and the player in [SequencePreview.vue](frontend/src/components/SequencePreview.vue). I also updated the README and the tests.
+The main logic is in [rss_sync.py](egt_gda_sync/sync/rss_sync.py), the copy in [library.py](egt_gda_sync/workspace/library.py), and the player in [SequencePreview.vue](frontend/src/components/SequencePreview.vue). I also updated the README and the tests.
 
 **Choices I made that you may want to change:**
 - **`loopTo`:** about a third of your sequences have it (e.g. `loopTo: 16`). I play it as "after the first loop, restart at frame 16". If that's not what it means, tell me and I'll change it.

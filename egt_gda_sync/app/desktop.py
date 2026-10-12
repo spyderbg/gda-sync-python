@@ -8,7 +8,7 @@ import subprocess
 import sys
 from collections.abc import Mapping
 
-from .errors import AppError
+from egt_gda_sync.app.errors import AppError
 
 NO_FILE_MANAGER = "A desktop file manager is not available. You can copy the folder path instead."
 OPEN_FAILED = "Could not open the folder in your desktop session. You can copy the path instead."
@@ -61,7 +61,7 @@ def open_on_desktop(target: str, wait_seconds: float = 10.0) -> None:
     command = desktop_command(target)
     if command is None:
         try:
-            os.startfile(target)  # type: ignore[attr-defined]  # Windows only
+            getattr(os, "startfile")(target)  # Windows only; other platforms have no os.startfile
         except OSError as error:
             raise AppError(OPEN_FAILED, 503) from error
         return

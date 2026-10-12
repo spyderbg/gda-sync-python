@@ -7,8 +7,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from egt_gda_sync import __main__ as launcher
-from egt_gda_sync.library import Library
-from egt_gda_sync.server import create_app
+from egt_gda_sync.workspace.library import Library
+from egt_gda_sync.app.server import create_app
 from tests.conftest import session_headers
 
 TEMPLATE = Path(__file__).resolve().parents[1] / "config" / "workspace.json.template"

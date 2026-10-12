@@ -28,6 +28,7 @@ dev = [
   "pytest>=8",
   "playwright>=1.50",
   "pyinstaller>=6.10",
+  "pylint>=3.3",
 ]
 
 [project.scripts]
@@ -46,3 +47,7 @@ egt_gda_sync = ["static/**/*"]
 testpaths = ["tests"]
 pythonpath = ["."]
 markers = ["e2e: browser tests that need the built frontend and Playwright Chromium"]
+
+[tool.pylint.typecheck]
+# OpenCV builds cv2 at import time, so its functions and constants are absent from Pylint's module inference.
+generated-members = ["cv2.*"]

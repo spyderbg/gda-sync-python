@@ -8,14 +8,14 @@ import threading
 import urllib.request
 from pathlib import Path
 
-from . import APP_ID
-from .desktop import application_data_home, open_on_desktop
-from .errors import error_message
-from .library import Library
-from .ports import backend_port as _port, dev_ui_url
-from .report import main as report_main, parse_args as parse_report_args
-from .runtime import AppServer, bind_local_socket, is_address_in_use
-from .server import create_app
+from egt_gda_sync import APP_ID
+from egt_gda_sync.app.desktop import application_data_home, open_on_desktop
+from egt_gda_sync.app.errors import error_message
+from egt_gda_sync.workspace.library import Library
+from egt_gda_sync.app.ports import backend_port as _port, dev_ui_url
+from egt_gda_sync.workspace.report import main as report_main, parse_args as parse_report_args
+from egt_gda_sync.app.runtime import AppServer, bind_local_socket, is_address_in_use
+from egt_gda_sync.app.server import create_app
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
