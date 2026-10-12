@@ -1,28 +1,37 @@
 #!/usr/bin/env python3
 
-"""Development mode with the React interface: the Vite dev server of frontend_react, plus the backend.
+"""Development mode with the React interface: the Vite dev server of frontend_react.
 
-It is scripts/dev.py with frontend_react in place of the Vue frontend, and shares its session:
-the same ports, the same record of running processes, and the same `stop` action. Before
-starting, it checks that frontend_react does not use any file of frontend. Use `check` to run
-only that check.
+It starts only the interface, on its own port (5175 by default), so it can run beside the Vue
+interface (scripts/dev.py, or Vite in frontend/) and both can be compared against one backend.
+Start that backend separately, for example with the "Development: backend" launch configuration;
+the interface proxies /api to its port, resolved as the backend does (workspace.json or PORT).
+Before starting, it checks that frontend_react does not use any file of frontend.
+End the session with Ctrl+C.
 
-The action is start, to run a session, stop, to end a session started by an earlier run, or
-check, to verify that frontend_react is independent of frontend.
+The action is start, to run the interface, or check, to verify that frontend_react is
+independent of frontend.
 """
 
 import argparse
 import json
 import os
 import re
+import shutil
+import subprocess
 import sys
+import urllib.request
 from pathlib import Path
 
 import dev
+from egt_gda_sync.__main__ import _port, workspace_config_path
+from egt_gda_sync.app.desktop import application_data_home
+from egt_gda_sync.workspace.library import Library
 
 ROOT = dev.ROOT
 FRONTEND = ROOT / "frontend"
 FRONTEND_REACT = ROOT / "frontend_react"
+REACT_PORT = 5175
 
 SKIPPED_DIRECTORIES = {"node_modules", "dist", ".vite"}
 TEXT_SUFFIXES = {".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".json", ".html", ".css", ".scss", ".sass", ".svg", ".vue", ".md"}
@@ -118,18 +127,61 @@ def check() -> int:
     return 0
 
 
+def _backend_running(port: int) -> bool:
+    # Talk to loopback directly, even when an HTTP proxy is configured.
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    try:
+        with opener.open(f"http://127.0.0.1:{port}/api/health", timeout=2):
+            return True
+    except OSError:
+        return False
+
+
+def start(ui_port: int) -> int:
+    """Run the Vite dev server of frontend_react until it ends."""
+    node, npm = shutil.which("node"), shutil.which("npm")
+    if not node or not npm:
+        raise SystemExit("Node.js 20.19+ and npm are required for development mode.")
+    data_home = os.path.abspath(application_data_home())
+    library = Library(data_home, config_path=workspace_config_path(data_home))
+    library.init()
+    port = _port(library.config)
+    if ui_port == port:
+        raise SystemExit(f"The React interface port and the backend port must be different, both are {port}. Use --port to choose another port.")
+    if dev._port_in_use(ui_port):
+        raise SystemExit(f"Port {ui_port} is in use by another application. Use --port to choose another port.")
+    if not _backend_running(port):
+        print(f"Warning: no backend answers on port {port}. Start it, for example with the \"Development: backend\" launch configuration.", flush=True)
+    env = {**os.environ, "PORT": str(port), "VITE_PORT": str(ui_port), "EGT_GDA_SYNC_DEV": "1"}
+    subprocess.run([npm, "ci"], cwd=FRONTEND_REACT, check=True)
+    print(f"React interface: http://127.0.0.1:{ui_port} (backend on port {port})", flush=True)
+    # Run Vite directly rather than through npm, so stopping it stops a single process on every platform.
+    vite = subprocess.Popen([node, str(FRONTEND_REACT / "node_modules" / "vite" / "bin" / "vite.js")], cwd=FRONTEND_REACT, env=env)
+    try:
+        return vite.wait()
+    except KeyboardInterrupt:
+        return 0
+    finally:
+        if vite.poll() is None:
+            vite.terminate()
+            try:
+                vite.wait(10)
+            except subprocess.TimeoutExpired:
+                vite.kill()
+
+
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0], epilog="Other options are passed to the backend, for example --no-open.")
-    parser.add_argument("action", nargs="?", default="start", choices=["start", "stop", "check"], help="start or stop development mode, or check the independence of frontend_react; start is the default")
-    args, arguments = parser.parse_known_args(sys.argv[1:] if argv is None else argv)
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("action", nargs="?", default="start", choices=["start", "check"], help="start the interface, or check the independence of frontend_react; start is the default")
+    parser.add_argument("--port", type=int, default=REACT_PORT, help=f"port of the React interface; {REACT_PORT} is the default")
+    args = parser.parse_args(sys.argv[1:] if argv is None else argv)
+    if not 1 <= args.port <= 65535:
+        parser.error("--port must be between 1 and 65535")
     if args.action == "check":
         return check()
-    data_home = os.path.abspath(dev.application_data_home())
-    if args.action == "stop":
-        return dev.stop(data_home)
     if check():
         raise SystemExit("Fix these before starting the React interface.")
-    return dev.start(data_home, arguments, FRONTEND_REACT)
+    return start(args.port)
 
 
 if __name__ == "__main__":
