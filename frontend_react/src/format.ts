@@ -1,0 +1,312 @@
+import type { AssetCategory, AssetDeclaration, AssetSection, AssetSequence, AssetStatus, AssetType, ImageAlgorithms, ImageCandidate, ViewFacts, ImageEvaluation, ImageMatchType, PreviewFrame, ReportAsset, RssCategory, RssResource, RssRtfDirectory, RssSequence, RssSyncWorkspace, RtfChange, RtfFacts } from './types';
+
+export const ASSET_TYPES = ['texture', 'model', 'material', 'audio', 'font', 'rtf', 'view'] as const;
+export const typeIcons: Record<AssetType, string> = {
+  texture: 'mdi-image-outline', model: 'mdi-cube-outline', material: 'mdi-layers-outline', audio: 'mdi-waveform', font: 'mdi-format-font',
+  rtf: 'mdi-book-open-page-variant-outline', view: 'mdi-view-dashboard-outline', other: 'mdi-file-outline',
+};
+export const typeNames: Record<AssetType, string> = {
+  texture: 'Textures', model: 'Models', material: 'Materials', audio: 'Audio', font: 'Fonts', rtf: 'RTFs', view: 'Views', other: 'Other files',
+};
+// The Asset library's sections, in the sidebar's order, as asset_section in egt_gda_sync/asset_report.py assigns them.
+export const ASSET_SECTIONS = ['image', 'sequence', 'audio', 'font', 'rtf', 'view'] as const;
+export const sectionIcons: Record<AssetSection, string> = {
+  ...typeIcons, image: 'mdi-image-outline', sequence: 'mdi-animation-outline',
+};
+export const sectionNames: Record<AssetSection, string> = { ...typeNames, image: 'Images', sequence: 'ImagesSeq', view: 'ElementsList' };
+/** The library section of an asset: an image sequence, any other texture as an image, or else its type. */
+export const assetSection = (row: { type: AssetType; sequence?: unknown }): AssetSection => (row.sequence ? 'sequence' : row.type === 'texture' ? 'image' : row.type);
+export const statusNames: Record<AssetStatus, string> = { new: 'New asset', modified: 'Modified', synced: 'In sync' };
+export const statusBadges: Record<AssetStatus, string> = { new: 'badge-info', modified: 'badge-warning', synced: 'badge-success' };
+
+export const plural = (count: number) => (count === 1 ? '' : 's');
+export const number = (value: number) => value.toLocaleString();
+export const percent = (part: number, whole: number) => (whole ? Math.round(part / whole * 100) : 0);
+
+export function size(bytes: number) {
+  return bytes < 1024 ? `${bytes} B` : bytes < 1048576 ? `${(bytes / 1024).toFixed(1)} KB` : `${(bytes / 1048576).toFixed(1)} MB`;
+}
+
+export function time(value: string) {
+  return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(value));
+}
+
+const relative = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' });
+const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [['day', 86_400_000], ['hour', 3_600_000], ['minute', 60_000]];
+
+export function ago(value: string, now = Date.now()) {
+  const elapsed = new Date(value).getTime() - now;
+  for (const [unit, length] of UNITS) {
+    if (Math.abs(elapsed) >= length) return relative.format(Math.round(elapsed / length), unit);
+  }
+  return relative.format(0, 'minute');
+}
+
+// The asset types of the GDA sync report's files, grouped like ASSET_TYPES in egt_gda_sync/library.py.
+const TYPE_EXTENSIONS: [AssetType, string[]][] = [
+  ['texture', ['png', 'jpg', 'jpeg', 'webp', 'svg', 'dds', 'tga', 'bmp', 'exr', 'tif', 'tiff']],
+  ['model', ['obj', 'fbx', 'glb', 'gltf', 'blend']],
+  ['material', ['mat', 'mtl', 'material']],
+  ['audio', ['wav', 'ogg', 'mp3', 'flac']],
+  ['font', ['ttf', 'otf']],
+  ['rtf', ['rtf']],
+  // The GDA sync report compares a .json file only when it is a view.
+  ['view', ['json']],
+];
+/** The image files the backend previews: DDS textures, which it decodes, and the formats a browser shows as they are. */
+export const PREVIEW_EXTENSIONS = ['dds', 'png', 'jpg', 'jpeg', 'webp', 'svg', 'bmp'];
+
+export const extensionOf = (name: string) => (name.lastIndexOf('.') > 0 ? name.slice(name.lastIndexOf('.') + 1).toLowerCase() : '');
+export const fileType = (extension: string): AssetType => TYPE_EXTENSIONS.find(([, extensions]) => extensions.includes(extension))?.[0] ?? 'other';
+/** A path's file name and its folder, which is "Root" for a file at the top. */
+export function splitPath(path: string) {
+  const index = path.lastIndexOf('/');
+  return { name: path.slice(index + 1), folder: index < 0 ? 'Root' : path.slice(0, index) };
+}
+
+/** Whether a row of the GDA sync report matches a lowercase search: its path, a GDA path, an image sequence's id or
+ * frame paths, or the path of a file in an RTF's folder. */
+export function rowMatches(row: RssResource, needle: string) {
+  return !needle || row.resource.toLowerCase().includes(needle) || row.gdaFiles.some(file => file.path.toLowerCase().includes(needle)) ||
+    !!row.sequence && (!!row.sequence.id?.toLowerCase().includes(needle) || row.sequence.paths.some(path => path.toLowerCase().includes(needle))) ||
+    !!row.directory && row.directory.files.some(file => file.path.toLowerCase().includes(needle));
+}
+
+/** What syncing an RTF does to each of its files, by name and badge. */
+export const rtfChangeNames: Record<RtfChange, string> = { identical: 'identical', changed: 'changed', added: 'only in the GDA', removed: 'only in the game' };
+export const rtfChangeBadges: Record<RtfChange, string> = { identical: 'badge-success', changed: 'badge-danger', added: 'badge-info', removed: 'badge-warning' };
+/** How many of an RTF's files syncing copies because they changed or only the GDA has them, and deletes because only the
+ * game has them, for example "1 changed, 76 added, 12 deleted". */
+export function rtfChangeSummary(directory: RssRtfDirectory) {
+  const count = (change: RtfChange) => directory.files.filter(file => file.change === change).length;
+  return [[count('changed'), 'changed'], [count('added'), 'added'], [count('removed'), 'deleted']]
+    .filter(([value]) => value).map(([value, label]) => `${number(value as number)} ${label}`).join(', ');
+}
+
+/** What sequenceName and sequenceSummary read of a sequence of the GDA sync report or of the asset report. */
+type SequenceTiming = Pick<RssSequence, 'id' | 'frameTime' | 'loopCount'> & { frames: unknown[] };
+
+/** A sequence's id, or what a guessed one is. */
+export const sequenceName = (sequence: Pick<RssSequence, 'id'>) => sequence.id ?? 'Guessed sequence';
+
+/** How an image sequence plays, for example "71 frames · 42 ms · loops forever". */
+export function sequenceSummary(sequence: SequenceTiming) {
+  const count = sequence.frames.length;
+  const loops = sequence.loopCount === 0 ? 'loops forever' : sequence.loopCount === 1 ? 'plays once' : `plays ${sequence.loopCount} times`;
+  return `${number(count)} frame${plural(count)} · ${sequence.frameTime} ms · ${loops}`;
+}
+
+export const rssStatusNames: Record<RssCategory, string> = {
+  identical: 'in sync', different: 'different', missing: 'missing', invalid: 'invalid', supplementary: 'supplementary',
+};
+export const rssBadges: Record<RssCategory, string> = {
+  identical: 'badge-success', different: 'badge-danger', missing: 'badge-warning', invalid: 'badge-dark', supplementary: 'badge-info',
+};
+export const assetBadges: Record<AssetCategory, string> = {
+  available: 'badge-success', missing: 'badge-warning', invalid: 'badge-dark', supplementary: 'badge-info',
+};
+
+/** An asset report sequence's frames as SequencePreview plays them: each frame's file, when it exists. */
+export const assetFrames = (sequence: AssetSequence): PreviewFrame[] => sequence.frames.map(frame => ({
+  file: frame.category === 'available' || frame.category === 'supplementary' ? frame.resourcePath : null, source: frame.source,
+}));
+
+/** A descriptor entry that loads a file, for example "Image LOGO · RssImagesData.json:12", or "Font FONT_MAIN 25 px · …";
+ * a GDA sync report from an earlier version knows only its descriptor and line. */
+export const declarationLabel = (use: AssetDeclaration) => (use.type
+  ? `${use.type}${use.id ? ` ${use.id}` : ''}${use.size ? ` ${use.size} px` : ''} · ${use.descriptor}:${use.line}`
+  : `${use.descriptor}:${use.line}`);
+
+/** Whether an asset matches a lowercase search: by its path, the sequence's id and paths, a declaring entry's id, or
+ * the path of a file in an RTF's folder. */
+export function assetMatches(row: ReportAsset, needle: string) {
+  return !needle || row.resource.toLowerCase().includes(needle) || row.requiredBy.some(use => !!use.id?.toLowerCase().includes(needle)) ||
+    !!row.sequence && row.sequence.paths.some(path => path.toLowerCase().includes(needle)) ||
+    !!row.directory && row.directory.files.some(file => file.path.toLowerCase().includes(needle));
+}
+
+/** What applying a resource of the GDA sync report does: copy its GDA file over the game file, remove the descriptor
+ * entries that declare it, or delete its game files. A missing resource, and an invalid one that only the workspace's
+ * resource_paths declare, has none. */
+export type ResourceAction = 'sync' | 'remove' | 'delete';
+export function resourceAction(row: RssResource): ResourceAction | null {
+  if (row.category === 'different') return row.gdaFiles.length ? 'sync' : null;
+  if (row.category === 'invalid') return row.requiredBy.length ? 'remove' : null;
+  return row.category === 'supplementary' ? 'delete' : null;
+}
+/** The one action of the given resources, "mixed" when they have several, or null when there are none. */
+export function commonAction(rows: RssResource[]): ResourceAction | 'mixed' | null {
+  const actions = new Set(rows.map(resourceAction));
+  return actions.size > 1 ? 'mixed' : (rows.length ? resourceAction(rows[0]) : null);
+}
+export const resourceActionIcons: Record<ResourceAction | 'mixed', string> = {
+  sync: 'mdi-sync', remove: 'mdi-playlist-remove', delete: 'mdi-delete-outline', mixed: 'mdi-playlist-check',
+};
+
+/** The folder of an absolute path the backend reported, keeping its native separators and a POSIX or Windows drive root. */
+export function directoryOf(path: string) {
+  const end = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
+  return path.slice(0, end + (end === 0 || path[end - 1] === ':' ? 1 : 0));
+}
+/** The file name of an absolute path the backend reported, whatever its separators. */
+export const baseName = (path: string) => path.slice(Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\')) + 1);
+
+/** A sequence's frames as SequencePreview plays them: the game files, or each frame's matching or closest GDA file. */
+export function previewFrames(sequence: RssSequence, side: 'game' | 'gda'): PreviewFrame[] {
+  return sequence.frames.map(frame => ({
+    file: side === 'gda' ? frame.gdaFiles[0]?.absolutePath ?? null : frame.category === 'invalid' ? null : frame.resourcePath,
+    source: frame.source,
+  }));
+}
+
+/** The preview of a file the GDA sync report names, by its absolute path; revision is the report it came from. */
+export const reportPreviewURL = (file: string, revision: string) =>
+  `/api/rss-sync/preview?file=${encodeURIComponent(file)}&v=${encodeURIComponent(revision)}`;
+
+
+/** The page of an RTF that its preview shows first: the first page that has a background. */
+export const firstRtfPage = (facts: RtfFacts) => Math.max(0, facts.pages.findIndex(page => page.found));
+
+/** A code point as Unicode writes it, for example "U+20AC". */
+export const codePoint = (point: number) => `U+${point.toString(16).toUpperCase().padStart(4, '0')}`;
+
+/** Whether a character is drawn: not a control character, a surrogate or an unassigned code point, as the backend checks
+ * a Font entry's characters. */
+const drawn = (point: number) => !/[\p{Cc}\p{Cs}\p{Cn}]/u.test(String.fromCodePoint(point));
+
+/** The characters a Font entry declares, such as "[U+0020-U+00FF][U+20AC]", by range: a label, its first characters
+ * that are drawn, up to limit, and how many it has in all. */
+export function characterRanges(chars: string, limit = 96) {
+  const ranges = [...chars.matchAll(/\[U\+([0-9A-Fa-f]{1,6})(?:-U\+([0-9A-Fa-f]{1,6}))?\]/g)].map(([, start, end]) => {
+    const first = parseInt(start, 16);
+    const last = parseInt(end ?? start, 16);
+    return [Math.min(first, last), Math.min(Math.max(first, last), 0x10ffff)];
+  });
+  return ranges.map(([first, last]) => {
+    const points: number[] = [];
+    let count = 0;
+    for (let point = first; point <= last; point++) {
+      // Spaces are drawn, but show nothing.
+      if (!drawn(point) || /\s/u.test(String.fromCodePoint(point))) continue;
+      count++;
+      if (points.length < limit) points.push(point);
+    }
+    return { label: first === last ? codePoint(first) : `${codePoint(first)}–${codePoint(last)}`, points, count };
+  }).filter(range => range.count);
+}
+
+// The image matching of the GDA sync report (docs/image_compare/implementation.md).
+export const matchTypeNames: Record<ImageMatchType, string> = {
+  exact_file: 'exact file', exact_pixels: 'same pixels', near_duplicate: 'near duplicate', transformed_duplicate: 'transformed copy',
+  visually_similar: 'visually similar', semantically_similar: 'semantically similar', different: 'another picture', uncertain: 'uncertain',
+};
+/** A pair's probability and type, such as "97.8 % · near duplicate"; a probability is unknown when an image cannot be decoded. */
+export const matchText = (evaluation: Pick<ImageEvaluation, 'probability' | 'matchType'>) =>
+  `${evaluation.probability === null ? 'unknown' : `${evaluation.probability.toFixed(1)} %`} · ${matchTypeNames[evaluation.matchType]}`;
+/** Each algorithm that ran on a pair, with its value and the probability it gives alone. */
+export function algorithmValues(algorithms: ImageAlgorithms): { name: string; value: string; probability?: number }[] {
+  const values: { name: string; value: string; probability?: number }[] = [{ name: 'SHA-256', value: algorithms.sha256.equal ? 'equal' : 'different' }];
+  const { pixels, phash, dhash, ssim, sift, clip, dinov2 } = algorithms;
+  if (pixels) values.push({ name: 'Pixels', value: pixels.ddsMipsOnly ? 'equal (DDS mip levels differ)' : pixels.equal ? 'equal' : pixels.size && pixels.gdaSize && pixels.size.join() !== pixels.gdaSize.join() ? `different, ${pixels.size.join(' × ')} and ${pixels.gdaSize.join(' × ')}` : 'different' });
+  if (phash) values.push({ name: 'pHash', value: `Hamming ${phash.hamming}`, probability: phash.probability });
+  if (dhash) values.push({ name: 'dHash', value: `Hamming ${dhash.hamming}`, probability: dhash.probability });
+  if (ssim) values.push({ name: 'SSIM', value: ssim.value.toFixed(4), probability: ssim.probability });
+  if (sift) {
+    values.push(sift.applicable === false
+      ? { name: 'SIFT', value: `too few keypoints (${sift.keypoints.join(' and ')})` }
+      : { name: 'SIFT', value: `${sift.inliers} inliers of ${sift.goodMatches} matches, ${((sift.coverage ?? 0) * 100).toFixed(1)} % of the image`, probability: sift.probability });
+  }
+  if (clip) values.push({ name: 'CLIP', value: `cosine ${clip.cosine.toFixed(4)}`, probability: clip.probability });
+  if (dinov2) values.push({ name: 'DINOv2', value: `cosine ${dinov2.cosine.toFixed(4)}`, probability: dinov2.probability });
+  return values;
+}
+/** The algorithms of a pair on one line each, for a tooltip. */
+export const algorithmTitle = (evaluation: ImageEvaluation) => algorithmValues(evaluation.algorithms)
+  .map(item => `${item.name}: ${item.value}${item.probability === undefined ? '' : ` (${item.probability.toFixed(1)} %)`}`).join('\n');
+/** A run's image matching settings, such as "possible matches from 50.0 % · multithreading · GPU algorithms"; reports
+ * from before version 6 have none. */
+export const imageSettings = (workspace: RssSyncWorkspace) => (workspace.image_match_threshold === undefined ? null
+  : [`possible matches from ${workspace.image_match_threshold.toFixed(1)} %`, workspace.multithreading ? 'multithreading' : 'one thread',
+    workspace.use_gpu ? 'GPU algorithms' : 'CPU algorithms only'].join(' · '));
+/** A pair's badge: likely matches stand out. */
+export const matchBadge = (evaluation: Pick<ImageEvaluation, 'probability'>) => (evaluation.probability === null ? 'badge-light'
+  : evaluation.probability >= 80 ? 'badge-success' : evaluation.probability >= 50 ? 'badge-info' : 'badge-light');
+
+/** A GDA image that an image resource can be synced from. One with the game file's contents (an exact file) changes
+ * nothing when it is copied, so it cannot be chosen. */
+export interface GdaCandidate extends ImageCandidate { syncable: boolean }
+/** The GDA images that may show the same picture as a different or missing image: its possible matches by content, and
+ * its same-named GDA files whatever their probability, most likely first; on a tie, a same-named one first. Sequences,
+ * RTFs, other files and reports from before version 6 have none. The same rule as image_candidates in
+ * egt_gda_sync/library.py. */
+export function imageCandidates(row: RssResource): GdaCandidate[] {
+  const match = row.imageMatch;
+  if (!match || row.sequence || row.directory || (row.category !== 'different' && row.category !== 'missing')) return [];
+  const found = new Map<string, ImageCandidate>(match.matches.map(candidate => [candidate.absolutePath, candidate]));
+  for (const file of row.gdaFiles) {
+    if (file.match && !found.has(file.absolutePath)) found.set(file.absolutePath, { ...file, ...file.match, sameName: true, foundBy: ['name'] });
+  }
+  return [...found.values()]
+    .map(candidate => ({ ...candidate, syncable: candidate.matchType !== 'exact_file' }))
+    .sort((a, b) => (b.probability ?? -1) - (a.probability ?? -1) || Number(b.sameName) - Number(a.sameName));
+}
+/** The GDA image to sync when none is chosen: the most likely one that changes the game file. */
+export const defaultCandidate = (candidates: GdaCandidate[]) => candidates.find(candidate => candidate.syncable) ?? null;
+
+/** The URL of a view composed as an image, as wide as width, with its hidden elements, and cropped to what it draws, on
+ * request. */
+/** How many times each view, by its file, was saved since the page loaded: its renders are asked for again. */
+/** Bumped after a view is saved so its render URLs are requested again. */
+export const viewSaves: Record<string, number> = {};
+/** A view's render; its Text elements draw the sample text, the backend's default one unless it is given. */
+export const viewRenderURL = (file: string, revision: string, width: number, hidden = false, crop = false, text?: string) =>
+  `${reportPreviewURL(file, revision)}&width=${width}${hidden ? '&hidden=true' : ''}${crop ? '&crop=true' : ''}`
+  + `${text !== undefined ? `&text=${encodeURIComponent(text)}` : ''}${viewSaves[file] ? `&saved=${viewSaves[file]}` : ''}`;
+/** A Text element's sample text alone, at its own size, for a preview to draw a moved one. */
+export const viewTextURL = (file: string, revision: string, index: number, text: string) =>
+  `/api/rss-sync/view-text?file=${encodeURIComponent(file)}&index=${index}&text=${encodeURIComponent(text)}&v=${encodeURIComponent(revision)}`
+  + `${viewSaves[file] ? `&saved=${viewSaves[file]}` : ''}`;
+/** A view's elements by type, such as "6 images · 1 anim". */
+export const viewSummary = (facts: ViewFacts) => Object.entries(facts.types)
+  .map(([type, count]) => `${number(count)} ${type.toLowerCase()}${count === 1 ? '' : type === 'Dummy' ? '' : 's'}`).join(' · ');
+/** The facts of a view, as the details' tables list them. */
+export const viewTable = (facts: ViewFacts) => [
+  { label: 'File format', value: 'View (JSON)' },
+  { label: 'Name', value: facts.name },
+  { label: 'Screen', value: `${facts.resolution.width} × ${facts.resolution.height}` },
+  { label: 'Elements', value: `${number(facts.elements)}${facts.elements ? `: ${viewSummary(facts)}` : ''}` },
+  { label: 'Hidden elements', value: facts.hidden ? number(facts.hidden) : 'None' },
+  { label: 'Images drawn', value: number(facts.images) },
+  { label: 'Missing resources', value: facts.missingCount ? number(facts.missingCount) : 'None', warn: !!facts.missingCount },
+];
+
+// Global paths of workspace.json, as egt_gda_sync/paths.py replaces and writes them.
+const PLACEHOLDER = /\{([A-Za-z0-9_]+)\}/g;
+const windowsPath = (path: string) => /^[A-Za-z]:[\\/]|^\\\\/.test(path);
+const pathKey = (path: string, windows: boolean) => {
+  const normalized = path.replace(/[\\/]+/g, '/').replace(/\/$/, '');
+  return windows ? normalized.toLowerCase() : normalized;
+};
+/** A path with each {name} replaced by its global path, and the names that are not defined. */
+export function expandPath(path: string, paths: Record<string, string>) {
+  const unknown: string[] = [];
+  const expanded = path.replace(PLACEHOLDER, (match, name: string) => {
+    if (name in paths) return paths[name];
+    unknown.push(name);
+    return match;
+  });
+  return { expanded, unknown };
+}
+/** The form workspace.json writes a path in: as it is when it uses a global path, otherwise inside a global path with
+ * its {name}, the longest global path first. The same rule as contract in egt_gda_sync/paths.py. */
+export function contractPath(path: string, paths: Record<string, string>) {
+  if (/\{[A-Za-z0-9_]+\}/.test(path)) return path;
+  const windows = windowsPath(path);
+  const key = pathKey(path, windows);
+  for (const [name, root] of Object.entries(paths).sort((a, b) => b[1].length - a[1].length)) {
+    const rootKey = pathKey(root, windows);
+    if (key === rootKey) return `{${name}}`;
+    if (key.startsWith(`${rootKey}/`)) return `{${name}}/${path.replace(/[\\/]+/g, '/').replace(/\/$/, '').slice(rootKey.length + 1)}`;
+  }
+  return path;
+}

@@ -1,0 +1,3 @@
+Generated with the built-in imagegen tool.
+
+Use case: logo-brand. Asset type: square app icon for EGT GDA Sync, a local game asset synchronization app. Create a polished minimal icon: two interlocking directional sync arrows framing a small stack of asset tiles. Bold white and mint shapes on a deep cobalt rounded-square tile, suited to the existing blue sidebar. Flat vector-like geometry, strong silhouette readable at 32 pixels, centered with tight margins. Transparent outside the rounded tile. No text, no letters, no watermark.

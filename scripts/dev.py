@@ -202,8 +202,8 @@ def _warn_about_ports(data_home: str, state: dict) -> None:
         print(f"Warning: port {port} is still in use. Another program may have taken the {label} port. Set {variable} to choose another port.", flush=True)
 
 
-def start(data_home: str, arguments: list[str]) -> int:
-    """Run a session until it ends, recording the processes so a later run can stop them."""
+def start(data_home: str, arguments: list[str], frontend: Path = FRONTEND) -> int:
+    """Run a session of the given frontend until it ends, recording the processes so a later run can stop them."""
     node, npm = shutil.which("node"), shutil.which("npm")
     if not node or not npm:
         raise SystemExit("Node.js 20.19+ and npm are required for development mode.")
@@ -220,9 +220,9 @@ def start(data_home: str, arguments: list[str]) -> int:
     if _port_in_use(ui_port):
         raise SystemExit(f"Port {ui_port} is in use by another application. Set vite_port in workspace.json or VITE_PORT to choose another port.")
     env = {**os.environ, "PORT": str(port), "VITE_PORT": str(ui_port), "EGT_GDA_SYNC_DEV": "1"}
-    subprocess.run([npm, "ci"], cwd=FRONTEND, check=True)
+    subprocess.run([npm, "ci"], cwd=frontend, check=True)
     # Run Vite directly rather than through npm, so stopping it stops a single process on every platform.
-    vite = subprocess.Popen([node, str(FRONTEND / "node_modules" / "vite" / "bin" / "vite.js")], cwd=FRONTEND, env=env)
+    vite = subprocess.Popen([node, str(frontend / "node_modules" / "vite" / "bin" / "vite.js")], cwd=frontend, env=env)
     backend = None
     recorded = False
     try:
