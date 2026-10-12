@@ -1,8 +1,11 @@
 import base64
 import os
+import shutil
+import subprocess
 
 import pytest
 
+from egt_gda_sync.app import desktop
 from egt_gda_sync.app.desktop import application_data_home, child_environment, desktop_command, open_in_code
 from egt_gda_sync.app.errors import AppError
 from egt_gda_sync.workspace.library import asset_id
@@ -88,3 +91,81 @@ def test_native_folder_separators_produce_the_same_asset_id_as_the_portable_demo
     portable = "models/props/wooden_crate.obj"
     expected = base64.urlsafe_b64encode(portable.encode()).rstrip(b"=").decode()
     assert asset_id(os.path.join("models", "props", "wooden_crate.obj")) == expected
+
+
+class _Launched:
+    def __init__(self, commands, code=0):
+        self.commands, self.code = commands, code
+
+    def __call__(self, command, **kwargs):
+        self.commands.append(command)
+        return self
+
+    def wait(self, timeout):
+        return self.code
+
+
+@pytest.mark.parametrize("platform, executable, supported", [
+    ("linux", "/usr/bin/google-chrome-stable", True),
+    ("linux", "/snap/bin/firefox", True),
+    ("linux", "/usr/bin/chromium-browser", True),
+    ("linux", "/usr/bin/epiphany", False),
+    ("win32", r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe", True),
+    ("win32", r"C:\Program Files\Mozilla Firefox\firefox.exe", True),
+    ("win32", r"C:\Program Files\Internet Explorer\iexplore.exe", False),
+])
+def test_only_browsers_that_take_a_new_window_flag_are_used_for_new_windows(monkeypatch, platform, executable, supported):
+    monkeypatch.setattr(desktop, "_linux_default_browser", lambda: executable)
+    monkeypatch.setattr(desktop, "_windows_default_browser", lambda: executable)
+    assert desktop.default_browser(platform) == (executable if supported else None)
+
+
+def test_macos_falls_back_to_the_default_opener():
+    assert desktop.default_browser("darwin") is None
+
+
+def test_the_page_opens_in_a_new_window_of_the_default_browser(monkeypatch):
+    commands = []
+    monkeypatch.setattr(desktop, "default_browser", lambda: "/usr/bin/google-chrome")
+    monkeypatch.setattr(subprocess, "Popen", _Launched(commands))
+    desktop.open_in_new_window("http://127.0.0.1:3456")
+    assert commands == [["/usr/bin/google-chrome", "--new-window", "http://127.0.0.1:3456"]]
+
+
+def test_an_unknown_browser_or_a_failing_launch_falls_back_to_the_default_opener(monkeypatch):
+    opened = []
+    monkeypatch.setattr(desktop, "open_on_desktop", opened.append)
+    monkeypatch.setattr(desktop, "default_browser", lambda: None)
+    desktop.open_in_new_window("http://127.0.0.1:1")
+    monkeypatch.setattr(desktop, "default_browser", lambda: "/usr/bin/firefox")
+    monkeypatch.setattr(subprocess, "Popen", _Launched([], code=1))
+    desktop.open_in_new_window("http://127.0.0.1:2")
+    def missing(*args, **kwargs):
+        raise OSError
+    monkeypatch.setattr(subprocess, "Popen", missing)
+    desktop.open_in_new_window("http://127.0.0.1:3")
+    assert opened == ["http://127.0.0.1:1", "http://127.0.0.1:2", "http://127.0.0.1:3"]
+
+
+def test_the_default_browser_is_found_from_its_desktop_entry(monkeypatch, tmp_path):
+    (tmp_path / "applications").mkdir()
+    (tmp_path / "applications" / "web.desktop").write_text("[Desktop Entry]\nExec=env BAMBOO=1 /bin/sh --private %U\n")
+    monkeypatch.setattr(subprocess, "run", lambda *a, **k: subprocess.CompletedProcess(a, 0, "web.desktop\n"))
+    assert desktop._linux_default_browser({"XDG_DATA_HOME": str(tmp_path)}) == shutil.which("/bin/sh")
+
+
+def test_kiosk_mode_adds_the_kiosk_flag_before_the_url(monkeypatch):
+    commands = []
+    monkeypatch.setattr(desktop, "default_browser", lambda: "/usr/bin/firefox")
+    monkeypatch.setattr(subprocess, "Popen", _Launched(commands))
+    desktop.open_in_new_window("http://127.0.0.1:3456", kiosk=True)
+    assert commands == [["/usr/bin/firefox", "--new-window", "--kiosk", "http://127.0.0.1:3456"]]
+
+
+def test_kiosk_mode_with_an_unknown_browser_says_so_and_opens_the_page_normally(monkeypatch, capsys):
+    opened = []
+    monkeypatch.setattr(desktop, "default_browser", lambda: None)
+    monkeypatch.setattr(desktop, "open_on_desktop", opened.append)
+    desktop.open_in_new_window("http://127.0.0.1:3456", kiosk=True)
+    assert opened == ["http://127.0.0.1:3456"]
+    assert "Kiosk mode needs" in capsys.readouterr().out

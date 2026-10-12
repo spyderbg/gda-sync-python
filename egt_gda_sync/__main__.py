@@ -1,4 +1,4 @@
-"""Launcher: start the local backend and open EGT GDA Sync in the default browser."""
+"""Launcher: start the local backend and open EGT GDA Sync in a new window of the default browser."""
 
 import json
 import os
@@ -9,7 +9,7 @@ import urllib.request
 from pathlib import Path
 
 from egt_gda_sync import APP_ID
-from egt_gda_sync.app.desktop import application_data_home, open_on_desktop
+from egt_gda_sync.app.desktop import application_data_home, open_in_new_window
 from egt_gda_sync.app.errors import error_message
 from egt_gda_sync.workspace.library import Library
 from egt_gda_sync.app.ports import backend_port as _port, dev_ui_url
@@ -39,9 +39,9 @@ def _running_instance(port: int) -> dict | None:
         return None
 
 
-def _open_browser(url: str) -> None:
+def _open_browser(url: str, kiosk: bool) -> None:
     try:
-        open_on_desktop(url)
+        open_in_new_window(url, kiosk)
     except Exception as error:
         print(f"{error_message(error)}\nOpen {url} in your browser.", flush=True)
 
@@ -51,6 +51,7 @@ def run(argv: list[str]) -> int:
     dev = os.environ.get("EGT_GDA_SYNC_DEV") == "1"
     # The packaged application opens the browser itself. Development mode only starts
     # Vite and the backend; the developer opens the development UI (the Vite port) manually.
+    kiosk = "--kiosk" in argv
     should_open = not dev and "--no-open" not in argv and os.environ.get("EGT_GDA_SYNC_NO_OPEN") != "1"
     library = Library(data_home, config_path=workspace_config_path(data_home))
     library.init()
@@ -65,7 +66,7 @@ def run(argv: list[str]) -> int:
         if (_running_instance(port) or {}).get("app") != APP_ID:
             raise RuntimeError(f"Port {port} is in use by another application. Set PORT to choose another port.") from None
         if should_open:
-            open_on_desktop(url)
+            open_in_new_window(url, kiosk)
         print(f"EGT GDA Sync is already running at {url}", flush=True)
         return 0
 
@@ -88,7 +89,7 @@ def run(argv: list[str]) -> int:
     app = create_app(library, dev=dev, on_shutdown=None if dev else shutdown)
     server = AppServer(app)
     if should_open:
-        threading.Thread(target=_open_browser, args=(url,), daemon=True).start()
+        threading.Thread(target=_open_browser, args=(url, kiosk), daemon=True).start()
     # uvicorn re-raises the signal that stopped it after its graceful shutdown; by then nothing is left to do.
     for stop_signal in (signal.SIGINT, signal.SIGTERM):
         signal.signal(stop_signal, lambda *_: None)

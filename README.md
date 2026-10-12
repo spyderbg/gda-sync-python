@@ -9,7 +9,7 @@ A local-first studio asset sync application for Ubuntu and Windows: a **Python**
 | Linux x64 (Ubuntu 24.04+, glibc 2.39+) | `dist/egt-gda-sync` | `./dist/egt-gda-sync` |
 | Windows 10/11 x64 | `dist/egt-gda-sync.exe` | Double-click, or `.\dist\egt-gda-sync.exe` in PowerShell |
 
-Both start the backend on the configured port (default **http://127.0.0.1:3456**) and open your default browser. Each executable is a single file containing the Python runtime, the backend and its libraries, the Vue interface, and its fonts. Python, Node.js, and npm are not required on the user's machine. Linux opens the browser and folders with `xdg-open`; Windows uses the shell's default handler. The Windows executable is unsigned, so SmartScreen may ask for confirmation on first launch; it uses a console window that closes when the backend exits.
+Both start the backend on the configured port (default **http://127.0.0.1:3456**) and open the app in a new window of your default browser (a Chromium-based browser or Firefox; any other browser opens it the usual way). Each executable is a single file containing the Python runtime, the backend and its libraries, the Vue interface, and its fonts. Python, Node.js, and npm are not required on the user's machine. Linux opens the browser and folders with `xdg-open`; Windows uses the shell's default handler. The Windows executable is unsigned, so SmartScreen may ask for confirmation on first launch; it uses a console window that closes when the backend exits.
 
 To add **EGT GDA Sync** to your Ubuntu application menu and `~/.local/bin`:
 
@@ -376,12 +376,13 @@ Executables are built with PyInstaller from `bundle/egt-gda-sync.spec`, as one f
 
 ```bash
 ./dist/egt-gda-sync --no-open
+./dist/egt-gda-sync --kiosk
 EGT_GDA_SYNC_HOME=/path/to/app-data ./dist/egt-gda-sync
 PORT=4567 ./dist/egt-gda-sync
 EGT_GDA_SYNC_NO_OPEN=1 python scripts/dev.py
 ```
 
-Launching a second instance reopens the running app on the same port. If another application occupies the port, EGT GDA Sync exits with an explanation. With `--no-open`, the backend waits for its first page before the page-close shutdown applies. The configured port and `PORT` override apply to both production and development; `scripts/dev.py` passes the resolved backend port to Vite's API proxy. The development UI, browser URL, and backend redirect use `vite_port` (or the `VITE_PORT` override).
+`--kiosk` opens the window full screen without browser controls (`--kiosk` of the default browser, which must be Chromium-based or Firefox; otherwise the page opens normally). Leave kiosk mode with Alt+F4, and closing the window stops the backend as usual. Launching a second instance reopens the running app on the same port. If another application occupies the port, EGT GDA Sync exits with an explanation. With `--no-open`, the backend waits for its first page before the page-close shutdown applies. The configured port and `PORT` override apply to both production and development; `scripts/dev.py` passes the resolved backend port to Vite's API proxy. The development UI, browser URL, and backend redirect use `vite_port` (or the `VITE_PORT` override).
 
 On Windows, set environment overrides in PowerShell:
 
