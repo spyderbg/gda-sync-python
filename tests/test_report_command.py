@@ -106,3 +106,11 @@ def test_rejects_a_threshold_that_is_not_a_percentage(tmp_path, monkeypatch, cap
     with pytest.raises(SystemExit) as exit_info:
         main(["report", "--match-threshold", threshold])
     assert exit_info.value.code == 2 and "not a percentage from 0.0 to 100.0" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("flag", ["--help", "-h"])
+def test_help_lists_the_options_without_starting_anything(flag, capsys, monkeypatch):
+    monkeypatch.setattr("egt_gda_sync.__main__.Library", lambda *a, **k: pytest.fail("the app must not start"))
+    assert main([flag]) == 0
+    output = capsys.readouterr().out
+    assert all(option in output for option in ("--new-window", "--kiosk", "--no-open", "--help", "report"))

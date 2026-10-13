@@ -1,4 +1,4 @@
-"""Launcher: start the local backend and open EGT GDA Sync in a new window of the default browser."""
+"""Launcher: start the local backend and open EGT GDA Sync in the default browser."""
 
 import json
 import os
@@ -9,7 +9,7 @@ import urllib.request
 from pathlib import Path
 
 from egt_gda_sync import APP_ID
-from egt_gda_sync.app.desktop import application_data_home, open_in_new_window
+from egt_gda_sync.app.desktop import application_data_home, open_page
 from egt_gda_sync.app.errors import error_message
 from egt_gda_sync.workspace.library import Library
 from egt_gda_sync.app.ports import backend_port as _port, dev_ui_url
@@ -39,11 +39,33 @@ def _running_instance(port: int) -> dict | None:
         return None
 
 
-def _open_browser(url: str, kiosk: bool) -> None:
+def _open_browser(url: str, new_window: bool, kiosk: bool) -> None:
     try:
-        open_in_new_window(url, kiosk)
+        open_page(url, new_window, kiosk)
     except Exception as error:
         print(f"{error_message(error)}\nOpen {url} in your browser.", flush=True)
+
+
+USAGE = """Usage: egt-gda-sync [options]
+       egt-gda-sync report [ID ... | --all] [options]
+
+Start the local backend and open EGT GDA Sync in the default browser.
+
+Options:
+  --new-window  open the app in a new window of the default browser
+  --kiosk       open the app in a new full-screen window without browser controls
+  --no-open     start the backend without opening a browser
+  -h, --help    show this help and exit
+
+Commands:
+  report        run the GDA sync from the command line, without the app
+                (egt-gda-sync report --help lists its options)
+
+Environment:
+  PORT                   backend port
+  EGT_GDA_SYNC_HOME      folder of the application data
+  EGT_GDA_SYNC_NO_OPEN=1 same as --no-open
+"""
 
 
 def run(argv: list[str]) -> int:
@@ -51,6 +73,7 @@ def run(argv: list[str]) -> int:
     dev = os.environ.get("EGT_GDA_SYNC_DEV") == "1"
     # The packaged application opens the browser itself. Development mode only starts
     # Vite and the backend; the developer opens the development UI (the Vite port) manually.
+    new_window = "--new-window" in argv
     kiosk = "--kiosk" in argv
     should_open = not dev and "--no-open" not in argv and os.environ.get("EGT_GDA_SYNC_NO_OPEN") != "1"
     library = Library(data_home, config_path=workspace_config_path(data_home))
@@ -66,7 +89,7 @@ def run(argv: list[str]) -> int:
         if (_running_instance(port) or {}).get("app") != APP_ID:
             raise RuntimeError(f"Port {port} is in use by another application. Set PORT to choose another port.") from None
         if should_open:
-            open_in_new_window(url, kiosk)
+            open_page(url, new_window, kiosk)
         print(f"EGT GDA Sync is already running at {url}", flush=True)
         return 0
 
@@ -89,7 +112,7 @@ def run(argv: list[str]) -> int:
     app = create_app(library, dev=dev, on_shutdown=None if dev else shutdown)
     server = AppServer(app)
     if should_open:
-        threading.Thread(target=_open_browser, args=(url, kiosk), daemon=True).start()
+        threading.Thread(target=_open_browser, args=(url, new_window, kiosk), daemon=True).start()
     # uvicorn re-raises the signal that stopped it after its graceful shutdown; by then nothing is left to do.
     for stop_signal in (signal.SIGINT, signal.SIGTERM):
         signal.signal(stop_signal, lambda *_: None)
@@ -128,6 +151,9 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args[:1] == ["report"]:
             return report(args[1:])
+        if "--help" in args or "-h" in args:
+            print(USAGE, end="")
+            return 0
         return run(args)
     except KeyboardInterrupt:
         return 0

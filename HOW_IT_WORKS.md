@@ -209,7 +209,7 @@ in `pyproject.toml`; frontend dependencies are resolved by the frontend lockfile
 | Your GDA and game folders | The folders referenced by the settings; packaging does not copy them into the executable. |
 | Activity history, backups, GDA sync reports, and generated demo files | The application data directory. |
 | Web browser | The user's installed default browser. |
-| Desktop integration | The page opens with `--new-window` in the default browser when it is Chromium-based or Firefox, found from `xdg-settings` on Linux and the registry on Windows. Otherwise, and for folders, Linux uses the system's `xdg-open` and Windows its shell handler. |
+| Desktop integration | The page opens in the already open browser through the system's default opener. With `--new-window` (and `--kiosk`) it opens with `--new-window` (and `--kiosk`) in the default browser instead when it is Chromium-based or Firefox, found from `xdg-settings` on Linux and the registry on Windows. Otherwise, and for folders, Linux uses the system's `xdg-open` and Windows its shell handler. |
 | Operating-system libraries | The executable still requires a compatible OS and architecture. |
 
 Node.js, npm, Wine, the Vite development server, and a browser engine are not
@@ -263,7 +263,7 @@ See [PyInstaller's Linux compatibility guidance](https://pyinstaller.org/en/stab
    port in `config.port` of `workspace.json` (`3456` when it is not set), or the
    port set by `PORT`. A second launch on the same port reopens the existing
    EGT GDA Sync instance; a different application occupying the port causes an error.
-4. **Open the interface.** The launcher opens a new window of the default browser, every start (a second launch opens another window on the running app). With `--kiosk` that window is a full-screen kiosk window.
+4. **Open the interface.** The launcher opens the page in the currently open browser, every start (a second launch opens it again on the running app). With `--new-window` it opens a new browser window, and with `--kiosk` a new full-screen kiosk window.
    `egt_gda_sync/app/server.py` reads the bundled static files and serves them
    together with `/api/...` endpoints. Vue runs in the browser and calls this
    local API. Use `--no-open` or `EGT_GDA_SYNC_NO_OPEN=1` to open the page manually.

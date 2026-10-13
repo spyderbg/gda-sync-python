@@ -124,27 +124,39 @@ def test_macos_falls_back_to_the_default_opener():
     assert desktop.default_browser("darwin") is None
 
 
-def test_the_page_opens_in_a_new_window_of_the_default_browser(monkeypatch):
-    commands = []
-    monkeypatch.setattr(desktop, "default_browser", lambda: "/usr/bin/google-chrome")
-    monkeypatch.setattr(subprocess, "Popen", _Launched(commands))
-    desktop.open_in_new_window("http://127.0.0.1:3456")
-    assert commands == [["/usr/bin/google-chrome", "--new-window", "http://127.0.0.1:3456"]]
-
-
-def test_an_unknown_browser_or_a_failing_launch_falls_back_to_the_default_opener(monkeypatch):
-    opened = []
+def _launch(monkeypatch, browser="/usr/bin/firefox", code=0, **options):
+    commands, opened = [], []
+    monkeypatch.setattr(desktop, "default_browser", lambda: browser)
     monkeypatch.setattr(desktop, "open_on_desktop", opened.append)
-    monkeypatch.setattr(desktop, "default_browser", lambda: None)
-    desktop.open_in_new_window("http://127.0.0.1:1")
-    monkeypatch.setattr(desktop, "default_browser", lambda: "/usr/bin/firefox")
-    monkeypatch.setattr(subprocess, "Popen", _Launched([], code=1))
-    desktop.open_in_new_window("http://127.0.0.1:2")
+    monkeypatch.setattr(subprocess, "Popen", _Launched(commands, code=code))
+    desktop.open_page("http://127.0.0.1:3456", **options)
+    return commands, opened
+
+
+def test_the_page_opens_in_the_open_browser_by_default(monkeypatch):
+    assert _launch(monkeypatch) == ([], ["http://127.0.0.1:3456"])
+
+
+def test_a_new_window_opens_without_kiosk_mode(monkeypatch):
+    assert _launch(monkeypatch, new_window=True) == ([["/usr/bin/firefox", "--new-window", "http://127.0.0.1:3456"]], [])
+
+
+def test_kiosk_mode_opens_a_new_window_with_the_kiosk_flag_before_the_url(monkeypatch):
+    assert _launch(monkeypatch, kiosk=True) == ([["/usr/bin/firefox", "--new-window", "--kiosk", "http://127.0.0.1:3456"]], [])
+
+
+def test_an_unknown_browser_or_a_failing_launch_falls_back_to_the_default_opener(monkeypatch, capsys):
+    assert _launch(monkeypatch, browser=None, kiosk=True)[1] == ["http://127.0.0.1:3456"]
+    assert "--kiosk needs" in capsys.readouterr().out
+    assert _launch(monkeypatch, code=1, new_window=True)[1] == ["http://127.0.0.1:3456"]
+    assert "--new-window needs" in capsys.readouterr().out
     def missing(*args, **kwargs):
         raise OSError
+    opened = []
+    monkeypatch.setattr(desktop, "open_on_desktop", opened.append)
     monkeypatch.setattr(subprocess, "Popen", missing)
-    desktop.open_in_new_window("http://127.0.0.1:3")
-    assert opened == ["http://127.0.0.1:1", "http://127.0.0.1:2", "http://127.0.0.1:3"]
+    desktop.open_page("http://127.0.0.1:3456", new_window=True)
+    assert opened == ["http://127.0.0.1:3456"]
 
 
 def test_the_default_browser_is_found_from_its_desktop_entry(monkeypatch, tmp_path):
@@ -152,20 +164,3 @@ def test_the_default_browser_is_found_from_its_desktop_entry(monkeypatch, tmp_pa
     (tmp_path / "applications" / "web.desktop").write_text("[Desktop Entry]\nExec=env BAMBOO=1 /bin/sh --private %U\n")
     monkeypatch.setattr(subprocess, "run", lambda *a, **k: subprocess.CompletedProcess(a, 0, "web.desktop\n"))
     assert desktop._linux_default_browser({"XDG_DATA_HOME": str(tmp_path)}) == shutil.which("/bin/sh")
-
-
-def test_kiosk_mode_adds_the_kiosk_flag_before_the_url(monkeypatch):
-    commands = []
-    monkeypatch.setattr(desktop, "default_browser", lambda: "/usr/bin/firefox")
-    monkeypatch.setattr(subprocess, "Popen", _Launched(commands))
-    desktop.open_in_new_window("http://127.0.0.1:3456", kiosk=True)
-    assert commands == [["/usr/bin/firefox", "--new-window", "--kiosk", "http://127.0.0.1:3456"]]
-
-
-def test_kiosk_mode_with_an_unknown_browser_says_so_and_opens_the_page_normally(monkeypatch, capsys):
-    opened = []
-    monkeypatch.setattr(desktop, "default_browser", lambda: None)
-    monkeypatch.setattr(desktop, "open_on_desktop", opened.append)
-    desktop.open_in_new_window("http://127.0.0.1:3456", kiosk=True)
-    assert opened == ["http://127.0.0.1:3456"]
-    assert "Kiosk mode needs" in capsys.readouterr().out

@@ -145,27 +145,30 @@ def default_browser(platform: str = sys.platform) -> str | None:
     return executable if any(browser in name for browser in NEW_WINDOW_BROWSERS) else None
 
 
-def open_in_new_window(url: str, kiosk: bool = False) -> None:
-    """Open a URL in a new window of the default browser, full screen without browser controls in kiosk mode.
+def open_page(url: str, new_window: bool = False, kiosk: bool = False) -> None:
+    """Open a URL with the desktop's default opener, in the browser that is already open.
 
-    Falls back to open_on_desktop when the default browser is unknown, which cannot show kiosk mode.
+    A new window of the default browser is opened instead with new_window, or full screen without
+    browser controls with kiosk. Both fall back to the default opener when the default browser is
+    unknown, which cannot open a new window or show kiosk mode.
     """
-    browser = default_browser()
-    if browser:
-        try:
-            process = subprocess.Popen(
-                [browser, "--new-window", *(["--kiosk"] if kiosk else []), url], env=child_environment(), stdin=subprocess.DEVNULL,
-                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=os.name != "nt",
-            )
+    if new_window or kiosk:
+        browser = default_browser()
+        if browser:
             try:
-                if process.wait(NEW_WINDOW_WAIT_SECONDS) == 0:
-                    return
-            except subprocess.TimeoutExpired:
-                return  # A browser that was not running stays attached to its first window.
-        except OSError:
-            pass
-    if kiosk:
-        print("Kiosk mode needs a Chromium-based browser or Firefox as the default browser; opening the page normally.", flush=True)
+                process = subprocess.Popen(
+                    [browser, "--new-window", *(["--kiosk"] if kiosk else []), url], env=child_environment(), stdin=subprocess.DEVNULL,
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=os.name != "nt",
+                )
+                try:
+                    if process.wait(NEW_WINDOW_WAIT_SECONDS) == 0:
+                        return
+                except subprocess.TimeoutExpired:
+                    return  # A browser that was not running stays attached to its first window.
+            except OSError:
+                pass
+        flag = "--kiosk" if kiosk else "--new-window"
+        print(f"{flag} needs a Chromium-based browser or Firefox as the default browser; opening the page normally.", flush=True)
     open_on_desktop(url)
 
 
