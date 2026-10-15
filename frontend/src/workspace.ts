@@ -1,7 +1,7 @@
 // Application state shared by the layout and the views, and the actions that talk to the backend.
 import { computed, reactive, ref, watch } from 'vue';
 import { commonAction, plural, resourceAction, viewSaves, type GdaCandidate } from './format';
-import type { Asset, AssetSection, LibraryResponse, RestoreResult, RssFileDetails, RssResource, RssSyncHistory, RssSyncStatus, Session, SyncResult, View, ViewLayout, WorkspaceConfig } from './types';
+import type { Asset, AssetSection, DeclarationKind, DeclarationOptions, LibraryResponse, RestoreResult, RssFileDetails, RssResource, RssSyncHistory, RssSyncStatus, Session, SyncResult, View, ViewLayout, WorkspaceConfig } from './types';
 
 const INVALID_SESSION = 'Invalid session. Reload the application.';
 const RSS_POLL_MS = 1000;
@@ -27,7 +27,7 @@ export const reportState = computed<'unknown' | 'creating' | 'none' | 'failed' |
 export const session = reactive({ token: '', version: '', platform: '' });
 export const loadError = ref('');
 export const stopped = ref(false);
-export const busy = ref<'' | 'scan' | 'sync' | 'report' | 'settings' | 'shutdown' | 'delete-report' | 'restore'>('');
+export const busy = ref<'' | 'scan' | 'sync' | 'report' | 'settings' | 'shutdown' | 'delete-report' | 'restore' | 'declare'>('');
 /** What the GDA sync report resources being applied do, while busy is "sync" for them. */
 export const applying = ref<ReturnType<typeof commonAction>>(null);
 export const toast = ref<{ text: string; error?: boolean } | null>(null);
@@ -296,6 +296,27 @@ export async function saveViewPositions(file: string, name: string, revision: st
     notify((e as Error).message, true);
     return null;
   }
+}
+
+/** How an asset of the asset report that no descriptor declares can be declared. */
+export function declarationOptions(asset: string) {
+  return getJSON<DeclarationOptions>(`/api/asset-report/declaration?asset=${encodeURIComponent(asset)}`);
+}
+
+/** Add an entry that declares an asset of the asset report to a descriptor of the game, which then gets a new asset
+ * report; the asset's details follow it. Returns whether it was declared. */
+export async function declareAsset(body: { asset: string; kind: DeclarationKind; descriptor: string } & Record<string, unknown>) {
+  busy.value = 'declare';
+  try {
+    const result = await api<{ library: LibraryResponse; asset: string | null; descriptor: string; line: number }>('asset-report/declaration', 'POST', body);
+    applyLibrary(result.library);
+    if (result.asset) ui.inspecting = result.asset;
+    notify(`Declared ${typeof body.id === 'string' ? body.id : 'the asset'} in ${result.descriptor}:${result.line}.`);
+    return true;
+  } catch (e) {
+    notify((e as Error).message, true);
+    return false;
+  } finally { busy.value = ''; }
 }
 
 export async function openDeclaration(descriptor: string, line: number) {

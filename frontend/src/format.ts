@@ -15,6 +15,10 @@ export const sectionIcons: Record<AssetSection, string> = {
   ...typeIcons, image: 'mdi-image-outline', sequence: 'mdi-animation-outline',
 };
 export const sectionNames: Record<AssetSection, string> = { ...typeNames, image: 'Images', sequence: 'ImagesSeq', view: 'ElementsList' };
+/** What one asset of each library section is. */
+export const sectionSingular: Record<AssetSection, string> = {
+  image: 'Image', sequence: 'Image sequence', audio: 'Audio', font: 'Font', rtf: 'RTF', view: 'View', model: 'Model', material: 'Material', other: 'Other file',
+};
 /** The library section of an asset: an image sequence, any other texture as an image, or else its type. */
 export const assetSection = (row: { type: AssetType; sequence?: unknown }): AssetSection => (row.sequence ? 'sequence' : row.type === 'texture' ? 'image' : row.type);
 export const statusNames: Record<AssetStatus, string> = { new: 'New asset', modified: 'Modified', synced: 'In sync' };

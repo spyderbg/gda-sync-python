@@ -983,6 +983,22 @@ button.nav-link {
   padding: 0.5rem;
 }
 
+// A dialog over another one, such as the declaration of an asset over its details.
+.modal.modal-stacked {
+  z-index: 1060;
+}
+
+.modal-backdrop.modal-stacked {
+  z-index: 1055;
+}
+
+// The dialog that creates an asset's RSS key: its fields beside the entry they write.
+@media (min-width: 992px) {
+  .modal-dialog.declare-dialog {
+    max-width: 900px;
+  }
+}
+
 .sync-summary {
   display: flex;
   align-items: center;

@@ -104,3 +104,89 @@ def test_the_sidebar_lists_images_and_image_sequences_apart(new_context, details
     expect(page.locator('.asset-card')).to_have_count(3)
     expect(page.locator('.asset-card').filter(has_text='SPIN')).to_have_count(0)
     assert errors == []
+
+
+def test_an_asset_that_no_descriptor_declares_is_declared_from_its_details(new_context, details_backend):
+    backend, game = details_backend
+    # Half of the images have a resolution, so a new one starts with it; a language is only suggested.
+    (game / 'RssImagesData.json').write_text(json.dumps({'images': [
+        {'id': 'BANNER', 'path': 'banner.dds', 'resolution': '1920x1080'}, {'id': 'GONE', 'path': 'gone.dds', 'language': 'en-GB'}]}, indent=2))
+    page = new_context().new_page()
+    errors = []
+    page.on('pageerror', lambda error: errors.append(str(error)))
+    page.goto(backend.url)
+    page.get_by_role('list', name='Workspaces').get_by_role('button', name='Example', exact=True).click()
+    page.get_by_role('button', name='Asset library', exact=True).click()
+    page.get_by_role('region', name='Workspace summary').get_by_role('button', name='Rescan', exact=True).click()
+    page.get_by_role('button', name='Inspect leftover.png', exact=True).click()
+    details = page.get_by_role('dialog', name='leftover.png')
+    expect(details.locator('.details-type')).to_have_text('Image · PNG')
+    expect(details.get_by_text('No JSON descriptor')).to_be_visible()
+    details.get_by_role('button', name='Create', exact=True).click()
+
+    declare = page.get_by_role('dialog', name='Create RssKey leftover.png')
+    preview = declare.locator('.declare-preview')
+    expect(declare.get_by_label('Declare as')).to_have_value('Image')
+    expect(declare.locator('.declare-heading')).to_contain_text('RssImagesData.json')
+    key = declare.get_by_label('RSS key')
+    expect(key).to_have_value('LEFTOVER')
+    expect(key).to_be_focused()
+    # The part of the entry that the field being edited writes is highlighted.
+    expect(preview.locator('.is-focused')).to_have_text(['    "id": "LEFTOVER",'])
+    key.fill('BANNER')
+    expect(declare.get_by_text('Another Image entry has this key')).to_be_visible()
+    key.fill('IMAGE_LEFTOVER')
+    resolution = declare.get_by_label('Resolution', exact=True)
+    expect(resolution).to_have_value('1920x1080')
+    resolution.focus()
+    expect(preview.locator('.is-focused')).to_have_text(['    "resolution": "1920x1080"'])
+    resolution.select_option(label='Other…')
+    declare.get_by_label('Other resolution').fill('1440x900')
+    expect(preview).to_contain_text('"resolution": "1440x900"')
+    resolution.select_option('1920x1080')
+    # The form has every field of the kind; a dropdown's Not specified leaves it out, and another optional one can be removed and added again from the list.
+    expect(declare.get_by_label('Add field')).to_have_count(0)
+    language = declare.get_by_label('Language', exact=True)
+    language.select_option('en-GB')
+    language.focus()
+    expect(preview.locator('.is-focused')).to_have_text(['    "language": "en-GB"'])
+    language.select_option(label='Not specified')
+    expect(preview).not_to_contain_text('language')
+    declare.get_by_label('Source x').fill('4')
+    # Without the image's size there is no default width and height; the empty y is 0.
+    expect(declare.get_by_role('button', name='Create', exact=True)).to_be_disabled()
+    declare.get_by_label('Source w').fill('10')
+    declare.get_by_label('Source h').fill('8')
+    expect(declare.get_by_role('button', name='Create', exact=True)).to_be_enabled()
+    expect(preview).to_contain_text('"x": 4')
+    expect(preview).to_contain_text('"y": 0')
+    declare.get_by_role('button', name='Reset Source').click()
+    expect(declare.get_by_label('Source x')).to_have_value('')
+    expect(declare.get_by_role('button', name='Create', exact=True)).to_be_enabled()
+    # A font's characters are groups, each from the list or typed as plain text, and the help shows the characters.
+    declare.get_by_label('Declare as').select_option('Font')
+    declare.get_by_label('Characters group 1').select_option('[U+0030-U+0039]')
+    declare.get_by_role('button', name='Add group').click()
+    # A group that another has is not offered again.
+    expect(declare.get_by_label('Characters group 2').locator('option[value="[U+0030-U+0039]"]')).to_have_count(0)
+    declare.get_by_label('Characters group 2').select_option(label='Other…')
+    declare.get_by_label('Other characters, group 2').fill('€$')
+    expect(preview).to_contain_text('[U+0030-U+0039][U+0024][U+20AC]')
+    expect(declare.locator('.declare-glyphs')).to_have_text('0123456789$€')
+    # Escape closes only the dialog on top.
+    page.keyboard.press('Escape')
+    expect(declare).to_have_count(0)
+    expect(details).to_be_visible()
+    details.get_by_role('button', name='Create', exact=True).click()
+    declare.get_by_label('RSS key').fill('IMAGE_LEFTOVER')
+    declare.get_by_role('button', name='Create', exact=True).click()
+
+    expect(page.get_by_role('status')).to_contain_text('Declared IMAGE_LEFTOVER in RssImagesData.json:15.')
+    expect(declare).to_have_count(0)
+    expect(details.get_by_text('Loaded by the game.')).to_be_visible()
+    expect(details.locator('.details-declaration')).to_have_text(['RssImagesData.json:15ImageIMAGE_LEFTOVER'])
+    assert json.loads((game / 'RssImagesData.json').read_text())['images'][-1] == {
+        'id': 'IMAGE_LEFTOVER', 'path': 'leftover.png', 'resolution': '1920x1080'}
+    page.keyboard.press('Escape')
+    expect(page.get_by_role('dialog')).to_have_count(0)
+    assert errors == []

@@ -106,6 +106,24 @@ export interface ReportAsset extends FileFacts {
   /** The path of the report folder the asset is in; reports from before version 5 have none. */
   folder?: string;
 }
+/** The kinds of *Data.json entries that can declare an asset, as rss_declare.KINDS in egt_gda_sync/sync names them. */
+export type DeclarationKind = 'Image' | 'ImageSequence' | 'AudioEvent' | 'Font' | 'Rtf' | 'Element' | 'Movie' | 'RawFile';
+export type DeclarationValue = string | number | boolean;
+/** How the game declares a kind of entries: the descriptors of the game folder that can hold a new one, the fields of an
+ * entry in the order the descriptors write them, the ids its entries have and one for the new entry, and for each other
+ * field, how many entries have it, its values, the most common first, and its default. */
+export interface DeclarationKindOptions {
+  kind: DeclarationKind; list: string; fields: string[]; required: string[]; entries: number; descriptors: string[];
+  ids: string[]; id: string | null;
+  values: Record<string, { default: DeclarationValue | null; used: number; values: [DeclarationValue, number][] }>;
+}
+/** How an asset that no descriptor declares can be declared: the paths its entry names, and the kinds that can, the
+ * usual one first. */
+export interface DeclarationOptions {
+  paths: string[]; kinds: DeclarationKindOptions[];
+  /** The resolutions and languages that the game's entries of every kind use, with how many, the most common first. */
+  choices: Record<'resolution' | 'language' | 'integration', [string, number][]>;
+}
 /** A folder the assets of an asset report are in: the game folder, another folder directly in the resources folder
  * that holds declared files, such as ../common, or one outside the resources folder. relative is its path from the game
  * folder. */

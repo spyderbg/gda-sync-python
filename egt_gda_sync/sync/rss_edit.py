@@ -2,7 +2,7 @@
 
 Remove declarations from the *Data.json resource descriptors. A declaration is a member of a list: the entry that holds
 a path, the image sequence that holds a frame, or one sample of an audio event, and removing it keeps the separators of
-the others. Set the positions of a view's elements: their x and y numbers are replaced, and an element without a
+the others. Add a declaration: a new entry after the last member of a descriptor's list, laid out like the others. Set the positions of a view's elements: their x and y numbers are replaced, and an element without a
 position gets one after its last member, in the layout of its other members."""
 
 from __future__ import annotations
@@ -164,6 +164,38 @@ def remove_declarations(descriptor: Path, text: str, rows: list[dict], game_dir:
     result = without(text, root, removed)
     parse_dataclass(cls, json.loads(result), str(descriptor))
     return result, {row_id: len(row_keys) for row_id, row_keys in keys.items()}
+
+
+def add_declaration(text: str, list_name: str, entry: dict) -> tuple[str, int]:
+    """A descriptor's text with an entry added after the last member of its list_name list (the last such list, which
+    the game reads), laid out like the list's members: on lines of their own, indented like them, or on the list's line.
+    Returns the text and the line the entry starts on. ValueError for a descriptor without that list."""
+    root = parse(text)
+    lists = [node for key, node in root.members if key == list_name] if root.kind == "object" else []
+    if not lists or lists[-1].kind != "list":
+        raise ValueError(f"the descriptor has no {list_name} list")
+    node = lists[-1]
+    newline = "\r\n" if "\r\n" in text else "\n"
+    outer = _indent(text, node.start)
+    if node.members:
+        first, last = node.members[0][1], node.members[-1][1]
+        if "\n" not in text[node.start:first.start]:
+            start, prefix, value, suffix = last.end, ", ", json.dumps(entry, ensure_ascii=False), ""
+        else:
+            inner = _indent(text, first.start)
+            step = inner[len(outer):] if inner.startswith(outer) and len(inner) > len(outer) else "    "
+            start, prefix, suffix = last.end, "," + newline + inner, ""
+            value = json.dumps(entry, indent=step, ensure_ascii=False).replace("\n", newline + inner)
+        end = start
+    else:
+        # An empty list gets the entry on a line of its own, one step in from the list's line.
+        step = outer[len(_indent(text, root.start)):] or "    "
+        inner = outer + step
+        start, end, prefix, suffix = node.start, node.end, "[" + newline + inner, newline + outer + "]"
+        value = json.dumps(entry, indent=step, ensure_ascii=False).replace("\n", newline + inner)
+    result = text[:start] + prefix + value + suffix + text[end:]
+    json.loads(result)
+    return result, result.count("\n", 0, start + len(prefix)) + 1
 
 
 def number_text(value: float) -> str:

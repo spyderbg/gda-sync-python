@@ -30,11 +30,13 @@ from egt_gda_sync.workspace.asset_report import AssetReports, inventory
 from egt_gda_sync.assets.fonts import FONT_EXTENSIONS, describe_font
 from egt_gda_sync.images.png import PNG_SIGNATURE
 from egt_gda_sync.workspace import backups
-from egt_gda_sync.sync.rss_edit import parse as parse_json_source, remove_declarations, set_view_positions
+from egt_gda_sync.sync.rss_declare import KINDS, asset_files, asset_kinds, asset_name, build_entry, descriptor_targets, entry_paths, kind_options, used_values
+from egt_gda_sync.sync.rss_edit import add_declaration, parse as parse_json_source, remove_declarations, set_view_positions
 from egt_gda_sync.sync.rss_jobs import SyncJobs
 from egt_gda_sync.images.image_cache import CACHE_FILE
 from egt_gda_sync.workspace.paths import PLACEHOLDER, contract, expand, expand_fields, global_paths
-from egt_gda_sync.sync.rss_sync import DEFAULT_EXTENSIONS, DEFAULT_MATCH_THRESHOLD, Config, declared_files
+from egt_gda_sync.sync.rss_schemas import DOCUMENT_TYPES, parse_dataclass
+from egt_gda_sync.sync.rss_sync import DEFAULT_EXTENSIONS, DEFAULT_MATCH_THRESHOLD, Config, declared_files, load_documents
 from egt_gda_sync.assets.view_text import DEFAULT_SAMPLE
 from egt_gda_sync.assets.views import THUMBNAIL_WIDTH, read_view, render_text, render_view, view_layout, view_root
 from egt_gda_sync.assets.rtf import RTF_EXTENSION, rtf_layout
@@ -781,20 +783,116 @@ class Library:
         """Write a new asset report of the selected workspace's game, which the asset library then shows."""
         def operation() -> dict:
             self.require_folders("destination")
-            workspace_id, entry = self._active_workspace()
-            workspace, settings = self._comparison(workspace_id, entry)
-            started = iso_time()
-            try:
-                config = Config(resources_dir=Path(settings["resources_dir"]).resolve(), gda_dir=Path(settings["gda_dir"]),
-                                extensions=frozenset(extension.lower() for extension in settings["extensions"]),
-                                game=settings["game"], resource_paths=tuple(settings["resource_paths"]))
-                result = inventory(config, asset_facts)
-            except (OSError, ValueError, TypeError, AttributeError) as error:
-                raise AppError(f"The asset report could not be generated: {error_message(error)}") from error
-            self.asset_reports.save(workspace_id, workspace, started, result)
-            count = result["summary"]["assets"]
+            count = self._write_asset_report()["summary"]["assets"]
             self._record("report", f"Generated an asset report of {count} asset{'' if count == 1 else 's'}")
             return self.scan()
+
+        return self._exclusive(operation)
+
+    @staticmethod
+    def _asset_game(settings: dict) -> Path:
+        """The game folder as the asset report resolves it, which the report's paths are relative to."""
+        return Path(settings["resources_dir"]).resolve() / settings["game"]
+
+    def _write_asset_report(self) -> dict:
+        """Generate and save an asset report of the selected workspace's game, and return it."""
+        workspace_id, entry = self._active_workspace()
+        workspace, settings = self._comparison(workspace_id, entry)
+        started = iso_time()
+        try:
+            config = Config(resources_dir=Path(settings["resources_dir"]).resolve(), gda_dir=Path(settings["gda_dir"]),
+                            extensions=frozenset(extension.lower() for extension in settings["extensions"]),
+                            game=settings["game"], resource_paths=tuple(settings["resource_paths"]))
+            result = inventory(config, asset_facts)
+        except (OSError, ValueError, TypeError, AttributeError) as error:
+            raise AppError(f"The asset report could not be generated: {error_message(error)}") from error
+        self.asset_reports.save(workspace_id, workspace, started, result)
+        return result
+
+    def _undeclared_asset(self, asset: str) -> tuple[dict, Path, dict[Path, object]]:
+        """An asset of the newest asset report that no descriptor declares and whose files exist, the game folder, and
+        the game's descriptors as they are now."""
+        workspace_id, entry = self._active_workspace()
+        settings = self._comparison(workspace_id, entry)[1]
+        report = self.asset_reports.report(workspace_id)
+        if report is None:
+            raise AppError("This workspace has no asset report yet. Click Rescan in the Asset library to create one.", 404)
+        row = next((row for row in json.loads(report).get("assets", []) if row["id"] == asset), None)
+        if row is None:
+            raise AppError("The asset is no longer in the asset report. Rescan and try again.", 404)
+        if row["requiredBy"]:
+            raise AppError("A descriptor declares this asset already", 409)
+        if row["category"] not in ("available", "supplementary"):
+            raise AppError("Only an asset whose files exist can be declared", 409)
+        game = self._asset_game(settings)
+        try:
+            documents = load_documents(game, required=False)
+        except (OSError, ValueError, TypeError) as error:
+            raise AppError(f"The descriptors cannot be read: {error_message(error)}") from error
+        return row, game, documents
+
+    def declaration_options(self, asset: str) -> dict:
+        """How an asset that no descriptor declares can be declared: the paths its entry names, for each kind of entry
+        that can declare it, the descriptors that can hold it and the ids and values the game's entries use, and the
+        resolutions and languages that the game's entries of every kind use."""
+        row, game, documents = self._undeclared_asset(asset)
+        paths = entry_paths(row, game)
+        name = asset_name(row)
+        return {"paths": paths, "kinds": [kind_options(kind, documents, game, paths, name) for kind in asset_kinds(row)],
+                "choices": {field: used_values(documents, field) for field in ("resolution", "language", "integration")}}
+
+    def declare_asset(self, asset: str, kind: str, descriptor: str, values: dict) -> dict:
+        """Add an entry of the given kind that declares an asset of the newest asset report, which no descriptor declares,
+        to one of the game folder's descriptors that hold that kind (relative to the game folder), keeping the rest of its
+        text; the descriptor it replaces is saved in the backups. Then generate the asset report again. Returns the
+        library, the asset's id in the new report, and where the entry is."""
+        def operation() -> dict:
+            self.require_folders("destination")
+            workspace_id, entry = self._active_workspace()
+            row, game, documents = self._undeclared_asset(asset)
+            if kind not in asset_kinds(row):
+                raise AppError(f"{kind} entries cannot declare this asset")
+            files = asset_files(row)
+            if not all(file.is_file() for file in files):
+                raise AppError("Its file does not exist any more. Rescan to update the report.", 409)
+            try:
+                declared = declared_files(game) if documents else set()
+            except (OSError, ValueError, TypeError) as error:
+                raise AppError(f"The descriptors cannot be read: {error_message(error)}") from error
+            if any(file in declared for file in files):
+                raise AppError("A descriptor declares it now. Rescan to update the report.", 409)
+            targets = {path.relative_to(game).as_posix(): path for path in descriptor_targets(documents, KINDS[kind], game)}
+            if descriptor not in targets:
+                raise AppError(f"{descriptor} is not a descriptor of the game that holds {KINDS[kind].list}", 400)
+            resources = os.path.realpath(self._comparison(workspace_id, entry)[1]["resources_dir"])
+            relative = os.path.relpath(targets[descriptor], resources)
+            target = safe_path(resources, relative)
+            try:
+                new_entry = build_entry(kind, entry_paths(row, game), values)
+                data = Path(target).read_bytes()
+                bom = data.startswith(b"\xef\xbb\xbf")
+                text, line = add_declaration(data[3 if bom else 0:].decode("utf-8"), KINDS[kind].list, new_entry)
+                parse_dataclass(DOCUMENT_TYPES[Path(target).name], json.loads(text), descriptor)
+            except (UnicodeDecodeError, ValueError) as error:
+                raise AppError(error_message(error), 400) from error
+            folder = backups.new_operation(self.backup_path)
+            backup = os.path.join(folder, relative)
+            os.makedirs(os.path.dirname(backup), exist_ok=True)
+            _copy_exclusive(target, backup)
+            _write_file(target, (b"\xef\xbb\xbf" if bom else b"") + text.encode("utf-8"))
+            label = new_entry.get("id") or os.path.basename(row["resource"])
+            message = f"Declared {label} in {descriptor}, as {kind}"
+            self._record("edit", message, [_portable(relative)])
+            backups.write_manifest(folder, action="edit", message=message,
+                                   workspace={"id": workspace_id, "name": entry.get("name", workspace_id)}, root=resources)
+            # The asset keeps its id, except a guessed sequence, which becomes the sequence that the entry declares. The
+            # report gives the entry the line of its path, as it does every declaration.
+            rows = self._write_asset_report()["assets"]
+            found = next(((item, use) for item in rows for use in item["requiredBy"]
+                          if _portable(use["descriptor"]) == descriptor and use["type"] == kind and use.get("id") == new_entry.get("id")
+                          and (item["id"] == row["id"] or item.get("sequence") or item["resourcePath"] == row["resourcePath"])), None)
+            return {"library": self.scan(), "asset": found[0]["id"] if found else None, "descriptor": descriptor,
+                    "line": found[1]["line"] if found else line}
 
         return self._exclusive(operation)
 

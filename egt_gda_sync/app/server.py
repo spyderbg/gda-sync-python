@@ -132,6 +132,39 @@ class OpenViewElementBody(ResourceFileBody):
     index: Annotated[int, Field(strict=True, ge=0, le=2_147_483_647)]
 
 
+Value = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
+
+
+class Area(_Body):
+    x: Annotated[int, Field(strict=True, ge=0, le=65535)]
+    y: Annotated[int, Field(strict=True, ge=0, le=65535)]
+    w: Annotated[int, Field(strict=True, ge=1, le=65535)]
+    h: Annotated[int, Field(strict=True, ge=1, le=65535)]
+
+
+class DeclarationBody(_Body):
+    """A new descriptor entry for an asset of the asset report that no descriptor declares: its kind, the descriptor
+    that holds it, relative to the game folder, and the values of its fields; those its kind does not have are refused."""
+    asset: Text4K
+    kind: Literal["Image", "ImageSequence", "AudioEvent", "Font", "Rtf", "Element", "Movie", "RawFile"]
+    descriptor: Text4K
+    id: Value | None = None
+    resolution: Value | None = None
+    language: Value | None = None
+    integration: Value | None = None
+    source: Area | None = None
+    frameTime: Annotated[int, Field(strict=True, ge=1, le=600_000)] | None = None
+    loopCount: Annotated[int, Field(strict=True, ge=0, le=1_000_000)] | None = None
+    loopTo: Annotated[int, Field(strict=True, ge=0, le=1_000_000)] | None = None
+    polyphonyGroup: Value | None = None
+    loop: bool | None = None
+    fadeIn: Annotated[float, Field(allow_inf_nan=False, ge=0, le=3600)] | None = None
+    fadeOut: Annotated[float, Field(allow_inf_nan=False, ge=0, le=3600)] | None = None
+    chars: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=4096)] | None = None
+    size: Annotated[int, Field(strict=True, ge=1, le=4096)] | None = None
+    movieFormat: Value | None = None
+
+
 class ResourceFilesBody(_Body):
     files: Annotated[list[Text4K], Field(min_length=1, max_length=1000)]
     # The character lists of the Font entries that declare a font, to check each font file against.
@@ -404,6 +437,15 @@ def create_app(
     @app.post("/api/asset-report")
     def generate_asset_report() -> dict:
         return library.generate_asset_report()
+
+    @app.get("/api/asset-report/declaration")
+    def declaration_options(asset: Annotated[str, Query(max_length=4096)]) -> dict:
+        return library.declaration_options(asset)
+
+    @app.post("/api/asset-report/declaration")
+    def declare_asset(body: DeclarationBody) -> dict:
+        values = body.model_dump(exclude_none=True, exclude={"asset", "kind", "descriptor"})
+        return library.declare_asset(body.asset, body.kind, body.descriptor, values)
 
     @app.get("/{path:path}", include_in_schema=False)
     async def frontend_file(path: str) -> Response:

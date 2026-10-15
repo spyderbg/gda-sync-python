@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 
-// wide is a large dialog, and xl an extra large one whose body scrolls between a fixed header and footer.
-defineProps<{ title: string; wide?: boolean; xl?: boolean }>();
+// wide is a large dialog, and xl an extra large one whose body scrolls between a fixed header and footer. A stacked
+// dialog opens over another one, which its backdrop covers. dialogClass sizes or styles the dialog itself.
+defineProps<{ title: string; wide?: boolean; xl?: boolean; stacked?: boolean; dialogClass?: string }>();
 const emit = defineEmits<{ close: [] }>();
 const dialog = ref<HTMLDivElement>();
 let previous: HTMLElement | null = null;
@@ -25,14 +26,15 @@ onMounted(() => {
 });
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', onKeydown);
-  document.body.classList.remove('modal-open');
+  // A dialog under this one keeps the page from scrolling.
+  if (document.querySelectorAll('.modal').length <= 1) document.body.classList.remove('modal-open');
   previous?.focus();
 });
 </script>
 
 <template>
-  <div class="modal fade show d-block" role="dialog" aria-modal="true" :aria-label="title" @mousedown.self="emit('close')">
-    <div ref="dialog" :class="['modal-dialog', 'modal-dialog-centered', { 'modal-lg': wide, 'modal-xl modal-dialog-scrollable': xl }]" role="document">
+  <div :class="['modal', 'fade', 'show', 'd-block', { 'modal-stacked': stacked }]" role="dialog" aria-modal="true" :aria-label="title" @mousedown.self="emit('close')">
+    <div ref="dialog" :class="['modal-dialog', 'modal-dialog-centered', { 'modal-lg': wide, 'modal-xl modal-dialog-scrollable': xl }, dialogClass]" role="document">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title">{{ title }}</h5>
@@ -42,5 +44,5 @@ onBeforeUnmount(() => {
       </div>
     </div>
   </div>
-  <div class="modal-backdrop fade show" />
+  <div :class="['modal-backdrop', 'fade', 'show', { 'modal-stacked': stacked }]" />
 </template>

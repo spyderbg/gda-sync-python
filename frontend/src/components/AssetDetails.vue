@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { assetBadges, assetFrames, baseName, codePoint, extensionOf, fileType, firstRtfPage, number, plural, sequenceName, size, splitPath, time, typeIcons, viewTable } from '../format';
+import { assetBadges, assetFrames, assetSection, baseName, codePoint, extensionOf, fileType, firstRtfPage, number, plural, sectionIcons, sectionSingular, sequenceName, size, splitPath, time, typeIcons, viewTable } from '../format';
 import type { FileFacts, ReportAsset } from '../types';
 import { copy, openDeclaration, openResourceFolder } from '../workspace';
 import AppModal from './AppModal.vue';
 import AudioPreview from './AudioPreview.vue';
+import DeclareAsset from './DeclareAsset.vue';
 import FontPreview from './FontPreview.vue';
 import ReportThumbnail from './ReportThumbnail.vue';
 import RtfPreview from './RtfPreview.vue';
@@ -19,12 +20,18 @@ import ViewPreview from './ViewPreview.vue';
 // names and glyph count, and for each Font entry, which of its declared characters the font has. An RTF is its folder,
 // named by it: it draws its pages, in each of its languages, with its tool version, its pages, each of which the table
 // shows on the preview, the images and videos its pages draw that are missing, and every file of the folder; its folder
-// button opens the RTF's folder itself. Escape closes the dialog.
+// button opens the RTF's folder itself. Its type is shown with its name, and an asset that no descriptor declares, whose
+// files exist, can be declared: Create opens a dialog over this one that adds its entry to a descriptor. Escape closes
+// the dialog on top.
 const props = defineProps<{ row: ReportAsset; revision: string }>();
 const emit = defineEmits<{ close: [] }>();
 // A view's elements can be moved; closing with moves that are not saved asks first.
 const unsaved = ref(false);
+// The dialog that declares the asset, over this one.
+const declaring = ref(false);
+watch(() => props.row.id, () => { declaring.value = false; });
 function close() {
+  if (declaring.value) return;
   if (unsaved.value && !window.confirm('Discard the elements you moved without saving them?')) return;
   emit('close');
 }
@@ -32,6 +39,12 @@ function close() {
 const sequence = computed(() => props.row.sequence);
 const name = computed(() => splitPath(props.row.resource).name);
 const readable = computed(() => props.row.category === 'available' || props.row.category === 'supplementary');
+const section = computed(() => assetSection(props.row));
+// The asset's type, and the format of its files.
+const typeLabel = computed(() => {
+  const format = props.row.type === 'rtf' || props.row.type === 'view' ? '' : extensionOf(baseName(props.row.sequence?.frames[0]?.resourcePath ?? props.row.resourcePath)).toUpperCase();
+  return `${sectionSingular[section.value]}${format ? ` · ${format}` : ''}`;
+});
 const isAudio = computed(() => fileType(extensionOf(baseName(props.row.resourcePath))) === 'audio');
 const frames = computed(() => (sequence.value ? assetFrames(sequence.value) : []));
 // The Font entries that declare characters of a font, and the one whose characters the preview draws.
@@ -179,6 +192,7 @@ const scope = computed(() => ({ game: '', common: 'A common resource, shared wit
         <section class="details-summary" aria-label="Status">
           <span :class="['badge', 'details-status', assetBadges[row.category]]">{{ row.status }}</span>
           <h5 class="details-name" :title="row.resourcePath">{{ name }}</h5>
+          <p class="details-type text-muted"><i aria-hidden="true" :class="['mdi', sectionIcons[section]]" /> {{ typeLabel }}</p>
           <p class="details-folder text-muted"><i aria-hidden="true" class="mdi mdi-folder-outline" /> {{ splitPath(row.resource).folder }}</p>
           <div :class="['details-note', note.tone]">
             <i aria-hidden="true" :class="['mdi', note.icon]" />
@@ -190,7 +204,10 @@ const scope = computed(() => ({ game: '', common: 'A common resource, shared wit
           <p v-if="row.viewError" class="details-scope text-muted"><i aria-hidden="true" class="mdi mdi-alert-outline" /> {{ row.viewError }}</p>
 
           <h6 class="details-heading">Loaded by</h6>
-          <p v-if="!row.requiredBy.length" class="text-muted details-small">No JSON descriptor</p>
+          <p v-if="!row.requiredBy.length" class="details-small details-undeclared">
+            <span class="text-muted">No JSON descriptor</span>
+            <button v-if="readable" type="button" class="btn btn-sm btn-outline-primary" title="Add an entry that declares it to a descriptor of the game" @click="declaring = true">Create</button>
+          </p>
           <ul v-else class="details-list">
             <li v-for="use in row.requiredBy" :key="`${use.descriptor}:${use.line}`" class="details-declaration">
               <span class="details-code">{{ use.descriptor }}:{{ use.line }}</span>
@@ -312,9 +329,13 @@ const scope = computed(() => ({ game: '', common: 'A common resource, shared wit
       <button type="button" class="btn btn-light" @click="close">Close</button>
     </div>
   </AppModal>
+  <DeclareAsset v-if="declaring" :row="row" @close="declaring = false" />
 </template>
 
 <style scoped>
+.details-type { margin: 0 0 2px; font-size: 0.8125rem; }
+.details-undeclared { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.details-undeclared .btn { padding: 2px 10px; }
 .details-declaration { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; margin-bottom: 8px; }
 .details-coverage { font-size: 12px; }
 .details-coverage i { margin-right: 3px; }
