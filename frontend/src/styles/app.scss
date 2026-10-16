@@ -701,7 +701,8 @@ button.nav-link {
 .details-columns { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 28px; }
 .details-status { max-width: 100%; white-space: normal; text-align: left; line-height: 1.3; }
 .details-name { margin: 10px 0 4px; font-weight: 500; word-break: break-word; }
-.details-folder { margin-bottom: 1rem; font-size: 0.8125rem; overflow-wrap: anywhere; }
+// A flex row keeps the text beside its icon, and wraps under the first letter of the text.
+.details-folder, .details-scope { display: flex; gap: 0.3em; margin: 0 0 2px; font-size: 0.8125rem; overflow-wrap: anywhere; }
 .details-note { display: flex; align-items: flex-start; margin-bottom: 1rem; padding: 12px 14px; border-radius: 3px; background: rgba(255, 175, 0, 0.12); }
 .details-note i { margin-right: 12px; color: #e69d00; font-size: 20px; line-height: 1; }
 .details-note p { margin: 0; font-weight: 500; }
@@ -714,7 +715,6 @@ button.nav-link {
 .details-note.is-invalid i { color: #252c46; }
 .details-note.is-supplementary { background: rgba(136, 98, 224, 0.1); }
 .details-note.is-supplementary i { color: #8862e0; }
-.details-scope { font-size: 0.8125rem; }
 .details-heading { margin: 1.25rem 0 0.5rem; color: #6c757d; font-size: 11px; font-weight: 500; letter-spacing: 0.8px; text-transform: uppercase; }
 .details-small { margin: 0; font-size: 0.8125rem; }
 .details-list { margin: 0; padding: 0; list-style: none; }
@@ -981,6 +981,13 @@ button.nav-link {
   min-width: 0;
   overflow-wrap: anywhere;
   font-weight: 500;
+}
+
+// The note of a details dialog, beside the name of the file.
+.modal-header .details-note {
+  flex: 0 1 auto;
+  max-width: 55%;
+  margin: 0 0 0 auto;
 }
 
 .modal-header .close {

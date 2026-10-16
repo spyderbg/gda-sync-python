@@ -180,11 +180,17 @@ const note = computed(() => {
     };
   }
 });
-const scope = computed(() => ({ game: '', common: 'A common resource, shared with other games.', outside: 'Outside the game folder.' })[props.row.scope]);
+const scope = computed(() => ({ game: 'Belongs to this game only.', common: 'A common resource, shared with other games.', outside: 'Outside the game folder.' })[props.row.scope]);
 </script>
 
 <template>
   <AppModal :title="name" xl @close="close">
+    <template #header>
+      <div :class="['details-note', note.tone]">
+        <i aria-hidden="true" :class="['mdi', note.icon]" />
+        <p>{{ note.title }}<small>{{ note.text }}</small></p>
+      </div>
+    </template>
     <div class="modal-body details-dialog asset-details">
       <div class="details-previews">
         <figure class="details-preview">
@@ -209,14 +215,10 @@ const scope = computed(() => ({ game: '', common: 'A common resource, shared wit
       <div class="details-columns">
         <section class="details-summary" aria-label="Status">
           <span :class="['badge', 'details-status', assetBadges[row.category]]">{{ row.status }}</span>
-          <h5 class="details-name" :title="row.resourcePath">{{ name }}</h5>
+          <h6 class="details-heading">Asset type</h6>
           <p class="details-type text-muted"><i aria-hidden="true" :class="['mdi', sectionIcons[section]]" /> {{ typeLabel }}</p>
           <p class="details-folder text-muted"><i aria-hidden="true" class="mdi mdi-folder-outline" /> {{ splitPath(row.resource).folder }}</p>
-          <div :class="['details-note', note.tone]">
-            <i aria-hidden="true" :class="['mdi', note.icon]" />
-            <p>{{ note.title }}<small>{{ note.text }}</small></p>
-          </div>
-          <p v-if="scope" class="details-scope text-muted"><i aria-hidden="true" class="mdi mdi-share-variant-outline" /> {{ scope }}</p>
+          <p v-if="scope" class="details-scope text-muted"><i aria-hidden="true" :class="['mdi', row.scope === 'game' ? 'mdi-gamepad-variant-outline' : row.scope === 'common' ? 'mdi-share-variant-outline' : 'mdi-folder-arrow-right-outline']" /> {{ scope }}</p>
           <p v-if="row.previewError" class="details-scope text-muted"><i aria-hidden="true" class="mdi mdi-image-off-outline" /> {{ row.previewError }}</p>
           <p v-if="row.rtfError" class="details-scope text-muted"><i aria-hidden="true" class="mdi mdi-book-alert-outline" /> {{ row.rtfError }}</p>
           <p v-if="row.viewError" class="details-scope text-muted"><i aria-hidden="true" class="mdi mdi-alert-outline" /> {{ row.viewError }}</p>

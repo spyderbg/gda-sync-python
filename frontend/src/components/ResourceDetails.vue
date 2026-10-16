@@ -328,6 +328,12 @@ function sync() {
 
 <template>
   <AppModal :title="name" xl @close="emit('close')">
+    <template #header>
+      <div :class="['details-note', note.tone]">
+        <i aria-hidden="true" :class="['mdi', note.icon]" />
+        <p>{{ note.title }}<small>{{ note.text }}</small></p>
+      </div>
+    </template>
     <div class="modal-body details-dialog">
       <div :class="['details-previews', { 'is-paired': pairedPreview }]">
         <figure class="details-preview">
@@ -367,10 +373,6 @@ function sync() {
           <span :class="['badge', 'details-status', rssBadges[row.category]]">{{ row.category === 'missing' ? 'missing: no GDA file' : row.status }}</span>
           <h5 class="details-name" :title="row.resourcePath">{{ name }}</h5>
           <p class="details-folder text-muted"><i aria-hidden="true" class="mdi mdi-folder-outline" /> {{ splitPath(row.resource).folder }}</p>
-          <div :class="['details-note', note.tone]">
-            <i aria-hidden="true" :class="['mdi', note.icon]" />
-            <p>{{ note.title }}<small>{{ note.text }}</small></p>
-          </div>
           <p v-if="scope" class="details-scope text-muted"><i aria-hidden="true" class="mdi mdi-share-variant-outline" /> {{ scope }}</p>
 
           <p v-if="fontsUnchecked" class="details-scope text-muted">

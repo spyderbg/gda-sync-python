@@ -2,7 +2,8 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 
 // wide is a large dialog, and xl an extra large one whose body scrolls between a fixed header and footer. A stacked
-// dialog opens over another one, which its backdrop covers. dialogClass sizes or styles the dialog itself.
+// dialog opens over another one, which its backdrop covers. dialogClass sizes or styles the dialog itself. The header slot
+// puts content between the title and the close button.
 defineProps<{ title: string; wide?: boolean; xl?: boolean; stacked?: boolean; dialogClass?: string }>();
 const emit = defineEmits<{ close: [] }>();
 const dialog = ref<HTMLDivElement>();
@@ -38,6 +39,7 @@ onBeforeUnmount(() => {
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title">{{ title }}</h5>
+          <slot name="header" />
           <button type="button" class="close" aria-label="Close dialog" @click="emit('close')"><span aria-hidden="true">&times;</span></button>
         </div>
         <slot />
