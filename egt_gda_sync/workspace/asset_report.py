@@ -8,7 +8,8 @@ when it does not, and "invalid" when its path leads outside the resources folder
 status of its frames, the first of invalid, missing and available that any of its files has; supplementary numbered
 images are guessed to be sequences. An RTF, a project of the RTF Tool, is one asset with every file of its folder, named
 by the folder: it takes the status of its .rtf file, and the files in its folder are not assets of their own unless a
-descriptor declares them. A declared .json file in a v folder is a view, in the game folder or any other.
+descriptor declares them. A declared .json file in a v folder is a view, in the game folder or any other. A movie, such as
+a .mov file that RssMoviesData.json declares, has the facts that OpenCV reads of it (egt_gda_sync.assets.movies).
 
 Each asset is in one of the report's folders: the game folder, or another folder of the resources folder, the one that
 directly holds it (such as ../common, for the files of a feature the game includes from ../common/features/taxation,
@@ -36,8 +37,9 @@ from egt_gda_sync.assets.views import describe_view, is_view, view_root
 # Version 4 reports views (the .json files of the game's v folder) as their own type, with what they draw.
 # Version 5 lists the folders the assets are in, with each asset's, and reports the declared views of other folders, such
 # as those of the features the game includes, as views. Version 6 counts the assets by the library's sections, which
-# list images and image sequences apart.
-ASSET_REPORT_VERSION = 6
+# list images and image sequences apart. Version 7 reports movies as their own type, with their frame size, frame rate,
+# frames, duration and codec, and the format of each Movie entry that declares one.
+ASSET_REPORT_VERSION = 7
 CATEGORIES = ("available", "missing", "invalid", "supplementary")
 # The status a sequence takes from its frames: the first of these that any of its files has.
 SEQUENCE_PRECEDENCE = ("invalid", "missing", "available")

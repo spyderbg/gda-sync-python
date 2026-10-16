@@ -80,7 +80,7 @@ class ImageSequence:
 class Movie:
     id: str
     path: str
-    movieFormat: str
+    movieFormat: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

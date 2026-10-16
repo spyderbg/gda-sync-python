@@ -1,4 +1,4 @@
-export type AssetType = 'texture' | 'model' | 'material' | 'audio' | 'font' | 'rtf' | 'view' | 'other';
+export type AssetType = 'texture' | 'model' | 'material' | 'audio' | 'font' | 'rtf' | 'view' | 'movie' | 'other';
 /** The Asset library's sections: textures are listed as images and image sequences, any other asset by its type. */
 export type AssetSection = 'image' | 'sequence' | Exclude<AssetType, 'texture'>;
 export type AssetStatus = 'new' | 'modified' | 'synced';
@@ -58,7 +58,11 @@ export type AssetCategory = 'available' | 'missing' | 'invalid' | 'supplementary
 /** A descriptor entry that loads a file: where it is, the entry's type (Image, ImageSequence, AudioEvent…) and id, and a
  * Font entry's declared characters and size in pixels. In the asset report, a Font entry of a font file also has how
  * many of its characters the font has. GDA sync reports from earlier versions have only the descriptor and line. */
-export interface AssetDeclaration { descriptor: string; line: number; type?: string; id?: string; chars?: string; size?: number; coverage?: FontCoverage }
+export interface AssetDeclaration {
+  descriptor: string; line: number; type?: string; id?: string; chars?: string; size?: number; coverage?: FontCoverage;
+  /** How a Movie entry's movie is encoded, such as valpha, whose frames stack the picture over its alpha. */
+  movieFormat?: string;
+}
 /** Of the characters a Font entry declares, without the ones that are never drawn: how many the font has, and the
  * code points of the first ones it misses. */
 export interface FontCoverage { declared: number; covered: number; missing: number[]; missingCount: number }
@@ -87,8 +91,10 @@ export interface RtfFacts {
 export interface FileFacts {
   size?: number; modifiedAt?: string; dimensions?: { width: number; height: number; format: string; mipmaps?: number };
   preview?: boolean; previewError?: string; font?: FontFacts; fontError?: string; rtf?: RtfFacts; rtfError?: string;
-  view?: ViewFacts; viewError?: string;
+  view?: ViewFacts; viewError?: string; movie?: MovieFacts; movieError?: string;
 }
+/** What OpenCV reads of a movie: its frame size, frame rate, frames, duration in seconds and codec. */
+export interface MovieFacts { width: number; height: number; fps: number; frames: number; duration: number; codec?: string }
 export interface AssetFrame extends FileFacts { category: AssetCategory; status: string; resource: string; resourcePath: string; source?: RssRectangle }
 export interface AssetSequence {
   id: string | null; guessed?: boolean; frameTime: number; loopCount: number; loopTo: number | null; paths: string[]; frames: AssetFrame[];
@@ -210,6 +216,11 @@ export interface ImageAlgorithms {
     transform?: 'homography' | 'similarity'; probability?: number };
   clip?: { cosine: number; probability: number };
   dinov2?: { cosine: number; probability: number };
+  /** A movie's: the offset in seconds at which the GDA movie's frames best match, with how many frames overlap there,
+   * the mean gray difference of those frames, and how much the durations differ. */
+  alignment?: { offset: number; frames: number; gdaFrames: number };
+  mad?: { value: number; probability: number };
+  duration?: { difference: number; seconds: number; gdaSeconds: number; probability: number };
 }
 /** A pair's probability of matching, 0.0 to 100.0 (null when an image cannot be decoded), its type, its algorithms, and
  * the algorithm whose result ended the comparison early. */
@@ -218,7 +229,7 @@ export interface ImageEvaluation {
 }
 /** A GDA image that may be the same picture as a game image, and what found it. */
 export interface ImageCandidate extends RssGdaFile, ImageEvaluation {
-  sameName: boolean; foundBy: ('name' | 'sha256' | 'pixels' | 'phash' | 'clip' | 'dinov2')[];
+  sameName: boolean; foundBy: ('name' | 'sha256' | 'pixels' | 'phash' | 'clip' | 'dinov2' | 'frames')[];
 }
 /** A compared image's best probability and type among the GDA images verified, and its possible matches: those from the
  * run's threshold, most likely first. */
@@ -236,6 +247,8 @@ export interface RssResource {
   requiredBy: AssetDeclaration[]; mipOnly?: boolean;
   /** An image's matching with the GDA's images by their contents. */
   imageMatch?: ImageMatch;
+  /** A compared movie's matching with the GDA's movies, in the shape of an image's (egt_gda_sync/assets/movies.py). */
+  movieMatch?: ImageMatch;
   /** An image sequence is one resource: resource is its first frame path, often a {N-M} range, and its status is
    * that of its frames. Its gdaFiles are the GDA file of each frame that has one. */
   sequence?: RssSequence;
@@ -260,13 +273,14 @@ export interface RssRectangle { x: number; y: number; w: number; h: number }
 /** One frame of an image sequence: one file of its range. A frame whose file is not compared is "skipped". */
 export interface RssFrame {
   category: RssCategory | 'skipped'; status: string; resource: string; resourcePath: string; gdaFiles: RssGdaFile[];
-  mipOnly?: boolean; source?: RssRectangle; imageMatch?: ImageMatch;
+  mipOnly?: boolean; source?: RssRectangle; imageMatch?: ImageMatch; movieMatch?: ImageMatch;
 }
 /** A file the GDA sync report names, as POST /api/rss-sync/details describes it: only an error when it does not exist.
  * A font also has its coverage of each character list the request named. */
 export interface RssFileDetails {
   size?: number; modifiedAt?: string; dimensions?: { width: number; height: number; format: string; mipmaps?: number };
   dimensionsError?: string; error?: string; font?: FontFacts; fontError?: string; coverage?: FontCoverage[];
+  movie?: MovieFacts; movieError?: string;
 }
 /** A frame as SequencePreview plays it: the absolute path of its image, null when it has none, and the part it shows. */
 export interface PreviewFrame { file: string | null; source?: RssRectangle }

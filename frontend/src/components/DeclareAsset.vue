@@ -32,7 +32,7 @@ const FIELDS: Record<string, { label: string; input: Input; hint: string }> = {
   chars: { label: 'Characters', input: 'chars', hint: 'The groups of characters it draws; Other types them as plain text, such as 0123456789.' },
   size: { label: 'Size', input: 'integer', hint: 'Pixels.' },
   dataType: { label: 'Data type', input: 'choice', hint: 'The type that reads the file, such as Egt::Game::AlphaFamily::InfoViewConfig.' },
-  movieFormat: { label: 'Movie format', input: 'text', hint: 'How the movie is encoded, such as valpha.' },
+  movieFormat: { label: 'Movie format', input: 'choice', hint: 'How the movie is encoded: valpha and halpha carry the alpha beside the picture, noalpha has none. Not specified for the game\'s default.' },
 };
 // The fields whose x button empties them instead of taking them from the form.
 const RESET = ['source', 'fadeIn', 'fadeOut'];
@@ -46,7 +46,10 @@ const GROUP = /\[U\+[0-9a-f]+(?:-U\+[0-9a-f]+)?\]/gi;
 // What a dropdown's typed value looks like.
 const PLACEHOLDERS: Record<string, string> = {
   resolution: '1920x1080', language: 'en-GB', integration: 'ares', polyphonyGroup: 'reels', dataType: 'Egt::Game::AlphaFamily::InfoViewConfig',
+  movieFormat: 'valpha',
 };
+// The values that a dropdown has besides those the game's entries use.
+const PRESETS: Record<string, string[]> = { movieFormat: ['valpha', 'halpha', 'noalpha'] };
 const RESOLUTION = /(?<!\d)\d{3,5}x\d{3,5}(?!\d)/g;
 
 const options = ref<DeclarationOptions | null>(null);
@@ -138,6 +141,7 @@ function choices(field: string): [string, number][] {
   const result = new Map<string, number>();
   for (const [value, count] of kind.value?.values[field]?.values ?? []) result.set(String(value), counts.get(String(value)) ?? count);
   for (const [value, count] of counts) if (!result.has(value)) result.set(value, count);
+  for (const preset of PRESETS[field] ?? []) if (!result.has(preset)) result.set(preset, 0);
   if (field === 'resolution') for (const token of paths.value.flatMap(path => path.match(RESOLUTION) ?? [])) if (!result.has(token)) result.set(token, 0);
   return [...result];
 }

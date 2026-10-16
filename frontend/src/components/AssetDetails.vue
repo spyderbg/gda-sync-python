@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { TEXT_EXTENSIONS, assetBadges, assetFrames, assetSection, baseName, codePoint, extensionOf, fileType, firstRtfPage, number, plural, sectionIcons, sectionSingular, sequenceName, size, splitPath, time, typeIcons, viewTable } from '../format';
+import { TEXT_EXTENSIONS, assetBadges, assetFrames, assetSection, baseName, codePoint, extensionOf, fileType, firstRtfPage, movieTable, number, plural, sectionIcons, sectionSingular, sequenceName, size, splitPath, stackedAlpha, time, typeIcons, viewTable } from '../format';
 import type { FileFacts, ReportAsset } from '../types';
 import { copy, openDeclaration, openResourceFolder } from '../workspace';
 import AppModal from './AppModal.vue';
 import AudioPreview from './AudioPreview.vue';
 import DeclareAsset from './DeclareAsset.vue';
 import FontPreview from './FontPreview.vue';
+import MoviePreview from './MoviePreview.vue';
 import ReportThumbnail from './ReportThumbnail.vue';
 import RtfPreview from './RtfPreview.vue';
 import TextEditor from './TextEditor.vue';
@@ -22,8 +23,9 @@ import ViewPreview from './ViewPreview.vue';
 // named by it: it draws its pages, in each of its languages, with its tool version, its pages, each of which the table
 // shows on the preview, the images and videos its pages draw that are missing, and every file of the folder; its folder
 // button opens the RTF's folder itself. Its type is shown with its name, and an asset that no descriptor declares, whose
-// files exist, can be declared: Create opens a dialog over this one that adds its entry to a descriptor. Escape closes
-// the dialog on top.
+// files exist, can be declared: Create opens a dialog over this one that adds its entry to a descriptor. A movie plays
+// in the dialog, and only there, with its frame size, codec, frame rate, frames and duration; one that a Movie entry
+// declares as valpha shows its picture with the alpha stacked under it. Escape closes the dialog on top.
 const props = defineProps<{ row: ReportAsset; revision: string }>();
 const emit = defineEmits<{ close: [] }>();
 // A view's elements can be moved, and a text file edited; closing with changes that are not saved asks first.
@@ -49,6 +51,8 @@ const typeLabel = computed(() => {
 // A text file, such as a .csv, .json or .txt, is edited in the dialog.
 const isText = computed(() => readable.value && !sequence.value && !props.row.directory && !props.row.view && TEXT_EXTENSIONS.includes(extensionOf(baseName(props.row.resourcePath))));
 const isAudio = computed(() => fileType(extensionOf(baseName(props.row.resourcePath))) === 'audio');
+const isMovie = computed(() => props.row.type === 'movie');
+const stacked = computed(() => stackedAlpha(props.row.requiredBy));
 const frames = computed(() => (sequence.value ? assetFrames(sequence.value) : []));
 // The Font entries that declare characters of a font, and the one whose characters the preview draws.
 const isFont = computed(() => props.row.type === 'font');
@@ -102,6 +106,15 @@ const table = computed(() => {
   if (props.row.type === 'view') {
     return [
       ...(view.value ? viewTable(view.value) : [{ label: 'View', value: props.row.viewError ?? (readable.value ? 'Rescan to read its elements' : '—') }]),
+      { label: 'File size', value: props.row.size !== undefined ? size(props.row.size) : '—' },
+      { label: 'Last modified', value: props.row.modifiedAt ? time(props.row.modifiedAt) : '—' },
+    ];
+  }
+  if (isMovie.value) {
+    return [
+      { label: 'File format', value: extensionOf(name.value).toUpperCase() || '—' },
+      ...(props.row.movie ? movieTable(props.row.movie, stacked.value)
+        : [{ label: 'Movie', value: props.row.movieError ?? (readable.value ? 'Rescan to read it' : '—') }]),
       { label: 'File size', value: props.row.size !== undefined ? size(props.row.size) : '—' },
       { label: 'Last modified', value: props.row.modifiedAt ? time(props.row.modifiedAt) : '—' },
     ];
@@ -176,19 +189,20 @@ const scope = computed(() => ({ game: '', common: 'A common resource, shared wit
       <div class="details-previews">
         <figure class="details-preview">
           <figcaption>
-            {{ sequence ? 'Game frames' : rtf ? 'Pages' : view ? 'View, as the game draws it' : isText ? 'Text file' : 'Game file' }}<small v-if="sequence">Click to play again</small>
+            {{ sequence ? 'Game frames' : rtf ? 'Pages' : view ? 'View, as the game draws it' : isText ? 'Text file' : isMovie && readable ? 'Movie' : 'Game file' }}<small v-if="sequence">Click to play again</small>
             <span v-if="isFont && fontUses.length > 1" class="btn-group btn-group-sm" role="group" aria-label="Characters of the Font entry">
               <button v-for="(use, index) in fontUses" :key="`${use.descriptor}:${use.line}`" type="button" :class="['btn', 'btn-secondary', { active: index === chosen }]" :aria-pressed="index === chosen" @click="chosen = index">{{ use.id ?? `${use.descriptor}:${use.line}` }}</button>
             </span>
           </figcaption>
           <SequencePreview v-if="sequence" :frames="frames" :frame-time="sequence.frameTime" :loop-count="sequence.loopCount" :loop-to="sequence.loopTo" :name="sequence.id ?? name" :revision="revision" />
           <AudioPreview v-else-if="isAudio && readable" :file="row.resourcePath" :name="name" :revision="revision" autoplay />
+          <MoviePreview v-else-if="isMovie && readable" :file="row.resourcePath" :name="name" :revision="revision" :stacked="stacked" />
           <FontPreview v-else-if="isFont && readable" :file="row.resourcePath" :name="name" :revision="revision" large
                        :chars="fontUse?.chars" :size="fontUse?.size" :missing="fontUse?.coverage?.missing" />
           <RtfPreview v-else-if="rtf" v-model:page="rtfPage" :file="file" :name="name" :revision="revision" :facts="rtf" large />
           <ViewPreview v-else-if="view" :file="file" :name="name" :revision="revision" :facts="view" large editable @dirty="unsaved = $event" />
           <TextEditor v-else-if="isText" :file="row.resourcePath" :name="name" @dirty="unsaved = $event" />
-          <ReportThumbnail v-else :file="file" :name="baseName(file)" :revision="revision" :preview="readable && row.preview !== false" />
+          <ReportThumbnail v-else :file="file" :name="baseName(file)" :revision="revision" :preview="readable && row.preview !== false" :stacked="stacked" />
         </figure>
       </div>
 

@@ -5,7 +5,8 @@ docs/image_compare/implementation.md describes the three levels of docs/image_co
 - files: each file's SHA-256 by path, reused while its size and times are unchanged, for at most REHASH_AFTER;
 - features and embeddings: an image's features by the SHA-256 of its contents, the version of the algorithms, and the
   model of an embedding, so a renamed or copied file reuses them;
-- pairs: the SSIM and SIFT results of two images by the SHA-256 of both.
+- pairs: the SSIM and SIFT results of two images by the SHA-256 of both;
+- movies: a movie's fingerprint (egt_gda_sync.assets.movies) by the SHA-256 of its contents and the fingerprint's version.
 
 Only the thread that runs the comparison reads and writes the database. A cache that cannot be opened or written is
 replaced by one in memory, and the report notes the error: a run never fails because of its cache.
@@ -39,6 +40,8 @@ CREATE TABLE IF NOT EXISTS embeddings (
 CREATE TABLE IF NOT EXISTS pairs (
     first TEXT NOT NULL, second TEXT NOT NULL, algorithm TEXT NOT NULL, version INTEGER NOT NULL, data TEXT NOT NULL,
     PRIMARY KEY (first, second, algorithm, version));
+CREATE TABLE IF NOT EXISTS movies (
+    sha256 TEXT NOT NULL, version INTEGER NOT NULL, data TEXT NOT NULL, PRIMARY KEY (sha256, version));
 """
 
 
@@ -165,6 +168,17 @@ class CompareCache:
         self._write("INSERT OR REPLACE INTO pairs VALUES (?, ?, ?, ?, ?)",
                     [(first, second, algorithm, version, json.dumps(data, separators=(",", ":")))
                      for (first, second, algorithm), data in items.items()])
+
+    def movies(self, digests: list[str], version: int) -> dict[str, dict]:
+        rows = self._select("SELECT sha256, data FROM movies WHERE version = ? AND sha256 IN ({marks})", digests, version)
+        found = {digest: json.loads(data) for digest, data in rows}
+        self.hits["movies"] += len(found)
+        self.misses["movies"] += len(set(digests) - found.keys())
+        return found
+
+    def store_movies(self, items: dict[str, dict], version: int) -> None:
+        self._write("INSERT OR REPLACE INTO movies VALUES (?, ?, ?)",
+                    [(digest, version, json.dumps(data, separators=(",", ":"))) for digest, data in items.items()])
 
     def report(self) -> dict:
         """The cache's file, and the hits and misses of each level, as the report lists them."""

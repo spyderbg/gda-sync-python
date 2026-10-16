@@ -1,23 +1,23 @@
 import { reactive } from 'vue';
-import type { AssetCategory, AssetDeclaration, AssetSection, AssetSequence, AssetStatus, AssetType, ImageAlgorithms, ImageCandidate, ViewFacts, ImageEvaluation, ImageMatchType, PreviewFrame, ReportAsset, RssCategory, RssResource, RssRtfDirectory, RssSequence, RssSyncWorkspace, RtfChange, RtfFacts } from './types';
+import type { AssetCategory, AssetDeclaration, AssetSection, AssetSequence, AssetStatus, AssetType, ImageAlgorithms, ImageCandidate, ViewFacts, ImageEvaluation, ImageMatchType, MovieFacts, PreviewFrame, ReportAsset, RssCategory, RssResource, RssRtfDirectory, RssSequence, RssSyncWorkspace, RtfChange, RtfFacts } from './types';
 
-export const ASSET_TYPES = ['texture', 'model', 'material', 'audio', 'font', 'rtf', 'view'] as const;
+export const ASSET_TYPES = ['texture', 'model', 'material', 'audio', 'font', 'rtf', 'view', 'movie'] as const;
 export const typeIcons: Record<AssetType, string> = {
   texture: 'mdi-image-outline', model: 'mdi-cube-outline', material: 'mdi-layers-outline', audio: 'mdi-waveform', font: 'mdi-format-font',
-  rtf: 'mdi-book-open-page-variant-outline', view: 'mdi-view-dashboard-outline', other: 'mdi-file-outline',
+  rtf: 'mdi-book-open-page-variant-outline', view: 'mdi-view-dashboard-outline', movie: 'mdi-movie-open-outline', other: 'mdi-file-outline',
 };
 export const typeNames: Record<AssetType, string> = {
-  texture: 'Textures', model: 'Models', material: 'Materials', audio: 'Audio', font: 'Fonts', rtf: 'RTFs', view: 'Views', other: 'Other files',
+  texture: 'Textures', model: 'Models', material: 'Materials', audio: 'Audio', font: 'Fonts', rtf: 'RTFs', view: 'Views', movie: 'Movies', other: 'Other files',
 };
 // The Asset library's sections, in the sidebar's order, as asset_section in egt_gda_sync/asset_report.py assigns them.
-export const ASSET_SECTIONS = ['image', 'sequence', 'audio', 'font', 'rtf', 'view'] as const;
+export const ASSET_SECTIONS = ['image', 'sequence', 'movie', 'audio', 'font', 'rtf', 'view'] as const;
 export const sectionIcons: Record<AssetSection, string> = {
   ...typeIcons, image: 'mdi-image-outline', sequence: 'mdi-animation-outline',
 };
 export const sectionNames: Record<AssetSection, string> = { ...typeNames, image: 'Images', sequence: 'ImagesSeq', view: 'ElementsList' };
 /** What one asset of each library section is. */
 export const sectionSingular: Record<AssetSection, string> = {
-  image: 'Image', sequence: 'Image sequence', audio: 'Audio', font: 'Font', rtf: 'RTF', view: 'View', model: 'Model', material: 'Material', other: 'Other file',
+  image: 'Image', sequence: 'Image sequence', movie: 'Movie', audio: 'Audio', font: 'Font', rtf: 'RTF', view: 'View', model: 'Model', material: 'Material', other: 'Other file',
 };
 /** The library section of an asset: an image sequence, any other texture as an image, or else its type. */
 export const assetSection = (row: { type: AssetType; sequence?: unknown }): AssetSection => (row.sequence ? 'sequence' : row.type === 'texture' ? 'image' : row.type);
@@ -55,6 +55,7 @@ const TYPE_EXTENSIONS: [AssetType, string[]][] = [
   ['audio', ['wav', 'ogg', 'mp3', 'flac']],
   ['font', ['ttf', 'otf']],
   ['rtf', ['rtf']],
+  ['movie', ['mov', 'mp4', 'm4v', 'webm']],
   // The GDA sync report compares a .json file only when it is a view.
   ['view', ['json']],
 ];
@@ -171,6 +172,23 @@ export const reportPreviewURL = (file: string, revision: string) =>
   `/api/rss-sync/preview?file=${encodeURIComponent(file)}&v=${encodeURIComponent(revision)}`;
 
 
+/** The thumbnail of a movie: its middle frame, with its alpha when its frames stack the picture over it (valpha). */
+export const movieFrameURL = (file: string, revision: string, stacked = false) =>
+  `/api/rss-sync/movie-frame?file=${encodeURIComponent(file)}${stacked ? '&stacked=true' : ''}&v=${encodeURIComponent(revision)}`;
+/** Whether a Movie entry that declares a file says its frames stack the picture over its alpha. */
+export const stackedAlpha = (uses: AssetDeclaration[]) => uses.some(use => use.movieFormat === 'valpha');
+/** Seconds as "3.00 s", or "2:05" from a minute on. */
+export const clock = (seconds: number) => (seconds < 60 ? `${seconds.toFixed(2)} s`
+  : `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`);
+/** The facts of a movie, as the details' tables list them. */
+export const movieTable = (facts: MovieFacts, stacked: boolean) => [
+  { label: 'Frame size', value: `${facts.width} × ${facts.height}${stacked ? `, ${facts.width} × ${Math.floor(facts.height / 2)} with its alpha below` : ''}` },
+  { label: 'Codec', value: facts.codec ?? '—' },
+  { label: 'Frame rate', value: facts.fps ? `${Number(facts.fps.toFixed(3))} frames per second` : '—' },
+  { label: 'Frames', value: number(facts.frames) },
+  { label: 'Duration', value: clock(facts.duration) },
+];
+
 /** The page of an RTF that its preview shows first: the first page that has a background. */
 export const firstRtfPage = (facts: RtfFacts) => Math.max(0, facts.pages.findIndex(page => page.found));
 
@@ -213,8 +231,11 @@ export const matchText = (evaluation: Pick<ImageEvaluation, 'probability' | 'mat
 /** Each algorithm that ran on a pair, with its value and the probability it gives alone. */
 export function algorithmValues(algorithms: ImageAlgorithms): { name: string; value: string; probability?: number }[] {
   const values: { name: string; value: string; probability?: number }[] = [{ name: 'SHA-256', value: algorithms.sha256.equal ? 'equal' : 'different' }];
-  const { pixels, phash, dhash, ssim, sift, clip, dinov2 } = algorithms;
+  const { pixels, alignment, mad, phash, dhash, ssim, sift, clip, dinov2, duration } = algorithms;
   if (pixels) values.push({ name: 'Pixels', value: pixels.ddsMipsOnly ? 'equal (DDS mip levels differ)' : pixels.equal ? 'equal' : pixels.size && pixels.gdaSize && pixels.size.join() !== pixels.gdaSize.join() ? `different, ${pixels.size.join(' × ')} and ${pixels.gdaSize.join(' × ')}` : 'different' });
+  // A movie's frames are aligned in time, then compared.
+  if (alignment) values.push({ name: 'Alignment', value: `${number(alignment.frames)} frames overlap, the GDA movie ${alignment.offset >= 0 ? '+' : '−'}${Math.abs(alignment.offset).toFixed(2)} s` });
+  if (mad) values.push({ name: 'Pixel difference', value: `${mad.value.toFixed(2)} gray levels`, probability: mad.probability });
   if (phash) values.push({ name: 'pHash', value: `Hamming ${phash.hamming}`, probability: phash.probability });
   if (dhash) values.push({ name: 'dHash', value: `Hamming ${dhash.hamming}`, probability: dhash.probability });
   if (ssim) values.push({ name: 'SSIM', value: ssim.value.toFixed(4), probability: ssim.probability });
@@ -225,6 +246,7 @@ export function algorithmValues(algorithms: ImageAlgorithms): { name: string; va
   }
   if (clip) values.push({ name: 'CLIP', value: `cosine ${clip.cosine.toFixed(4)}`, probability: clip.probability });
   if (dinov2) values.push({ name: 'DINOv2', value: `cosine ${dinov2.cosine.toFixed(4)}`, probability: dinov2.probability });
+  if (duration) values.push({ name: 'Duration', value: `${clock(duration.seconds)} and ${clock(duration.gdaSeconds)}`, probability: duration.probability });
   return values;
 }
 /** The algorithms of a pair on one line each, for a tooltip. */
@@ -242,12 +264,12 @@ export const matchBadge = (evaluation: Pick<ImageEvaluation, 'probability'>) => 
 /** A GDA image that an image resource can be synced from. One with the game file's contents (an exact file) changes
  * nothing when it is copied, so it cannot be chosen. */
 export interface GdaCandidate extends ImageCandidate { syncable: boolean }
-/** The GDA images that may show the same picture as a different or missing image: its possible matches by content, and
- * its same-named GDA files whatever their probability, most likely first; on a tie, a same-named one first. Sequences,
- * RTFs, other files and reports from before version 6 have none. The same rule as image_candidates in
- * egt_gda_sync/library.py. */
+/** The GDA images that may show the same picture as a different or missing image, or the GDA movies that may be the
+ * same clip as a movie: its possible matches by content, and its same-named GDA files whatever their probability, most
+ * likely first; on a tie, a same-named one first. Sequences, RTFs, other files and reports from before version 6 (8 for
+ * movies) have none. The same rule as image_candidates in egt_gda_sync/library.py. */
 export function imageCandidates(row: RssResource): GdaCandidate[] {
-  const match = row.imageMatch;
+  const match = row.imageMatch ?? row.movieMatch;
   if (!match || row.sequence || row.directory || (row.category !== 'different' && row.category !== 'missing')) return [];
   const found = new Map<string, ImageCandidate>(match.matches.map(candidate => [candidate.absolutePath, candidate]));
   for (const file of row.gdaFiles) {

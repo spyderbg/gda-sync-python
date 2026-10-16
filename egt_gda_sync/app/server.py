@@ -13,7 +13,7 @@ from typing import Annotated, Literal
 import anyio.to_thread
 from fastapi import FastAPI, Query, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 from starlette.datastructures import Headers
 from starlette.exceptions import HTTPException
@@ -23,6 +23,7 @@ from egt_gda_sync import APP_ID, __version__
 from egt_gda_sync.app.desktop import open_in_code, open_on_desktop, platform_label
 from egt_gda_sync.app.errors import AppError
 from egt_gda_sync.assets.fonts import FONT_EXTENSIONS, facts_header
+from egt_gda_sync.assets.movies import is_movie
 from egt_gda_sync.workspace.library import Library
 from egt_gda_sync.app.lifetime import PAGE_CLOSE_GRACE_SECONDS, PageLifetime
 from egt_gda_sync.app.ports import dev_ui_url
@@ -380,12 +381,22 @@ def create_app(
             split = tuple(int(index) for index in cuts.split(",") if index) if cuts is not None else None
             return Response(library.view_preview(file, width, hidden, crop, segment, split, text), media_type="image/png",
                             headers={"Content-Security-Policy": PREVIEW_CSP})
+        # A movie streams as it is, in the ranges the browser asks for as it plays and seeks.
+        if is_movie(file):
+            path, mime = library.movie_file(file)
+            return FileResponse(path, media_type=mime, headers={"Content-Security-Policy": PREVIEW_CSP})
         data, mime = library.resource_preview(file)
         headers = {"Content-Security-Policy": PREVIEW_CSP}
         # A font comes with its names and the samples it can draw, for the page that draws text with it.
         if mime in FONT_EXTENSIONS.values() and (facts := facts_header(data)):
             headers["X-Font-Facts"] = facts
         return Response(data, media_type=mime, headers=headers)
+
+    @app.get("/api/rss-sync/movie-frame")
+    def rss_sync_movie_frame(file: Annotated[str, Query(max_length=4096)], stacked: bool = False) -> Response:
+        # A movie's thumbnail: its middle frame, with the alpha that a valpha movie stacks under its picture.
+        data, mime = library.movie_thumbnail(file, stacked)
+        return Response(data, media_type=mime, headers={"Content-Security-Policy": PREVIEW_CSP})
 
     @app.get("/api/rss-sync/view")
     def rss_sync_view(file: Annotated[str, Query(max_length=4096)], text: Annotated[str | None, Query(max_length=200)] = None) -> dict:

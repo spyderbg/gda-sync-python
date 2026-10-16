@@ -16,7 +16,7 @@ const CATEGORIES: { key: RssCategory; label: string; badge: string; hint: string
 ];
 const PHASES = {
   descriptors: 'Reading the *Data.json descriptors', index: 'Indexing the GDA folder', hashing: 'Hashing files', compare: 'Comparing files',
-  images: 'Reading images', matches: 'Matching images',
+  images: 'Reading images', matches: 'Matching images', movies: 'Reading movies', movieMatches: 'Matching movies',
 };
 
 const { report, loadError } = useSyncReport();

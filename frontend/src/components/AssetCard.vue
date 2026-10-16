@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { assetBadges, assetFrames, baseName, declarationLabel, number, plural, sequenceName, sequenceSummary, size, splitPath, typeIcons, viewSummary } from '../format';
+import { assetBadges, assetFrames, baseName, clock, declarationLabel, number, plural, sequenceName, sequenceSummary, size, splitPath, stackedAlpha, typeIcons, viewSummary } from '../format';
 import type { ReportAsset } from '../types';
 import CheckBox from './CheckBox.vue';
 import ReportThumbnail from './ReportThumbnail.vue';
@@ -13,7 +13,8 @@ import ViewPreview from './ViewPreview.vue';
 // clicking its preview plays it again from the first frame. An RTF is its folder, named by it: it shows its pages, its
 // languages, how many files the folder has, and how many of the files its pages draw are missing. A view, a .json file of
 // the game's v folder, shows itself as the game draws it, its name, its elements by type, and how many of them name
-// resources that cannot be found. Clicking the card emits open, and its remove button, which an asset of the game folder has, emits remove. A view can also be selected with
+// resources that cannot be found. A movie shows its middle frame, and its duration, frames, frame rate and codec; it
+// plays only in the details. Clicking the card emits open, and its remove button, which an asset of the game folder has, emits remove. A view can also be selected with
 // its check box, which emits toggle, to show it with other views in one dialog; a selected view shows its place in the
 // drawing order (layer).
 const props = withDefaults(defineProps<{
@@ -46,7 +47,7 @@ const file = computed(() => props.row.directory?.project ?? props.row.resourcePa
       <RtfPreview v-if="rtf" :file="file" :name="resource.name" :revision="revision" :facts="rtf" />
       <ViewPreview v-else-if="view" :file="file" :name="resource.name" :revision="revision" :facts="view" />
       <button v-else-if="!sequence" type="button" class="report-asset-preview" :aria-label="`Inspect ${resource.name}`">
-        <ReportThumbnail :file="file" :name="baseName(file)" :revision="revision" :preview="readable && row.preview !== false" />
+        <ReportThumbnail :file="file" :name="baseName(file)" :revision="revision" :preview="readable && row.preview !== false" :stacked="stackedAlpha(row.requiredBy)" />
       </button>
       <div class="card-body">
         <p class="asset-name"><i aria-hidden="true" :class="['mdi', sequence ? 'mdi-animation-outline' : typeIcons[row.type]]" /><span :title="row.resourcePath">{{ resource.name }}</span></p>
@@ -58,6 +59,8 @@ const file = computed(() => props.row.directory?.project ?? props.row.resourcePa
           <template v-if="rtf">{{ number(rtf.pages.length) }} page{{ plural(rtf.pages.length) }}<template v-if="rtf.languages.length"> · {{ rtf.languages.join(', ') }}</template> · </template>
           <template v-if="row.directory">{{ number(row.directory.files.length) }} file{{ plural(row.directory.files.length) }}</template>
         </p>
+        <p v-if="row.movie" class="report-asset-sequence">{{ clock(row.movie.duration) }} · {{ number(row.movie.frames) }} frame{{ plural(row.movie.frames) }} · {{ Number(row.movie.fps.toFixed(2)) }} fps<template v-if="row.movie.codec"> · {{ row.movie.codec }}</template></p>
+        <p v-else-if="row.movieError" class="report-asset-warning"><i aria-hidden="true" class="mdi mdi-alert-outline" />{{ row.movieError }}</p>
         <p v-if="view" class="report-asset-sequence" :title="viewSummary(view)"><span class="report-asset-sequence-id">{{ view.name }}</span>{{ viewSummary(view) }}</p>
         <div class="asset-footer"><span :class="['badge', 'report-asset-status', assetBadges[row.category]]">{{ row.status }}</span><small v-if="dimensions">{{ dimensions }}</small></div>
         <div class="report-asset-declared">

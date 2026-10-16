@@ -39,7 +39,7 @@ KINDS: dict[str, Kind] = {
     "Font": Kind("fonts", "RssFontsData.json", ("id", "path", "chars", "size", "resolution"), frozenset({"id", "chars", "size"})),
     "Rtf": Kind("rtfs", "RssRtfsData.json", ("id", "path", "integration"), frozenset({"id"})),
     "Element": Kind("elements", "RssElementsListData.json", ("id", "path", "resolution", "integration"), frozenset({"id"})),
-    "Movie": Kind("movies", "RssMoviesData.json", ("id", "path", "movieFormat"), frozenset({"id", "movieFormat"})),
+    "Movie": Kind("movies", "RssMoviesData.json", ("id", "path", "movieFormat"), frozenset({"id"})),
     "IData": Kind("idatas", "RssIData.json", ("id", "dataType", "path", "resolution", "integration"), frozenset({"id", "dataType"})),
     "RawFile": Kind("rawFiles", "RssRawData.json", ("path",), frozenset()),
 }
@@ -51,7 +51,6 @@ UNSUGGESTED = frozenset({"id", "source"})
 # which a new entry is not unless asked, the frame a sequence loops to is its own, a sound is in a polyphony group only
 # when it is meant to be, and the data type of an IData entry is the one that reads the file.
 UNDEFAULTED = frozenset({"integration", "language", "loopTo", "polyphonyGroup", "dataType"})
-MOVIE_EXTENSIONS = frozenset({".mov"})
 # How the games name the ids of a kind, for a game that has none of its entries yet: a prefix, and the case of the rest.
 ID_STYLES = {"Image": ("IMAGE_", "upper"), "ImageSequence": ("ANIM_", "upper"), "AudioEvent": ("SOUND_", "upper"),
              "Font": ("FONT_", "upper"), "Rtf": ("rtf_", "lower"), "Element": ("", "keep"), "Movie": ("ANIM_", "upper"), "IData": ("", "keep")}
@@ -66,13 +65,11 @@ def asset_kinds(row: dict) -> list[str]:
         return ["ImageSequence"]
     if row["type"] in ("rtf", "view"):
         return ["Rtf" if row["type"] == "rtf" else "Element"]
-    kinds = {"texture": ["Image", "Font"], "audio": ["AudioEvent"], "font": ["Font"]}.get(row["type"])
+    kinds = {"texture": ["Image", "Font"], "audio": ["AudioEvent"], "font": ["Font"], "movie": ["Movie"]}.get(row["type"])
     # A .json file of the game's idata folder is data that RssIData.json declares.
     if kinds is None and row["resource"].replace("\\", "/").startswith(f"{IDATA_FOLDER}/") and Path(row["resourcePath"]).suffix.lower() == ".json":
         kinds = ["IData"]
-    if kinds is None:
-        kinds = ["Movie"] if Path(row["resourcePath"]).suffix.lower() in MOVIE_EXTENSIONS else []
-    return [*kinds, "RawFile"]
+    return [*(kinds or []), "RawFile"]
 
 
 def asset_files(row: dict) -> list[Path]:

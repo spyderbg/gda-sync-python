@@ -8,7 +8,8 @@ image sequences. An RTF, a project of the RTF Tool, is one resource: its folder,
 that holds a .rtf file of the same name. It returns JSON-ready data instead of a Markdown report, lists identical files
 too, and reports progress so it can run as a background job. Images are also matched with the GDA's images by their
 contents, as egt_gda_sync.images.image_compare describes: each compared image has the probability that each GDA image is the same
-picture, and its possible matches. A view, a .json file in the game's v folder that the game's view elements draw, is
+picture, and its possible matches. Movies are matched with the GDA's movies the same way, by the hashes of frames sampled
+across them, as egt_gda_sync.assets.movies describes. A view, a .json file in the game's v folder that the game's view elements draw, is
 compared like any file, with the facts of what it draws (egt_gda_sync.assets.views); other .json files, such as the *Data.json
 descriptors, are not compared.
 """
@@ -31,6 +32,7 @@ from typing import Any, NamedTuple
 from egt_gda_sync.images.image_cache import CompareCache, FileHashes
 from egt_gda_sync.images.image_compare import IMAGE_EXTENSIONS, ImageMatcher, Query, Settings, Target, workers
 from egt_gda_sync.sync.rss_schemas import DOCUMENT_TYPES, Frame, ImageSequence, parse_dataclass
+from egt_gda_sync.assets.movies import MovieMatcher, is_movie
 from egt_gda_sync.assets.rtf import describe_rtf
 from egt_gda_sync.assets.views import DESCRIPTOR_SUFFIX, VIEW_SUFFIX, describe_view, is_view
 
@@ -347,19 +349,22 @@ def status_category(status: str) -> str:
 
 
 class Use(NamedTuple):
-    """A descriptor entry that declares a file: where it is, its type and id, and a Font's characters and size."""
+    """A descriptor entry that declares a file: where it is, its type and id, a Font's characters and size, and a Movie's
+    format."""
     descriptor: str
     line: int
     type: str
     id: str | None = None
     chars: str | None = None
     size: int | None = None
+    movieFormat: str | None = None
 
 
 def required_by(uses: Iterable[Use]) -> list[dict]:
     """The entries that declare a file as a report lists them, by descriptor and line."""
     return [{"descriptor": use.descriptor, "line": use.line, "type": use.type,
-             **{key: value for key, value in (("id", use.id), ("chars", use.chars), ("size", use.size)) if value is not None}}
+             **{key: value for key, value in (("id", use.id), ("chars", use.chars), ("size", use.size), ("movieFormat", use.movieFormat))
+                if value is not None}}
             for use in sorted(set(uses))]
 
 
@@ -439,7 +444,8 @@ def gather(config: Config, required: bool = True) -> Declarations:
             templates.add(template)
             for relative in relatives:
                 uses[(game_dir / relative).resolve()].add(Use(document_name, line, type(entry).__name__, getattr(entry, "id", None),
-                                                              getattr(entry, "chars", None), getattr(entry, "size", None)))
+                                                              getattr(entry, "chars", None), getattr(entry, "size", None),
+                                                              getattr(entry, "movieFormat", None)))
         descriptors.append({"name": document_name, "path": str(document_path), "type": type(document).__name__,
                             "declarations": declarations, "resources": resources})
     descriptors.sort(key=lambda item: item["name"])
@@ -484,8 +490,10 @@ def classify_resources(config: Config, progress: Progress | None, hashes: FileHa
         if config.common_gda_dir is not None else None
     common_dir = config.resources_dir / COMMON_DIR
     checked: dict[Path, dict | None] = {}
-    # The image matching of each compared image: its imageMatch, and the evaluation of each same-named GDA file.
+    # The image matching of each compared image: its imageMatch, and the evaluation of each same-named GDA file; and the
+    # movie matching of each compared movie, its movieMatch.
     images: dict[Path, dict] = {}
+    movies: dict[Path, dict] = {}
 
     def trees_of(source: Path) -> tuple:
         return (common_gda, game_gda) if common_gda and source.is_relative_to(common_dir) else (game_gda,)
@@ -534,9 +542,9 @@ def classify_resources(config: Config, progress: Progress | None, hashes: FileHa
 
     def file_entry(source: Path, result: dict | None) -> dict:
         """A game file as a row or a sequence frame shows it; a frame that is not compared is "skipped". A compared image
-        has its imageMatch, and the evaluation of each same-named GDA file as its match."""
+        has its imageMatch, a compared movie its movieMatch, and the evaluation of each same-named GDA file as its match."""
         status = result["status"] if result else "not compared"
-        matched = images.get(source) if result else None
+        matched = (images.get(source) or movies.get(source)) if result else None
         named = matched["named"] if matched else {}
         return {
             "category": status_category(status) if result else "skipped", "status": status,
@@ -545,7 +553,7 @@ def classify_resources(config: Config, progress: Progress | None, hashes: FileHa
                           **({"match": named[path]} if path in named else {})}
                          for tree, root, path in (result["located"] if result else ())],
             **({"mipOnly": result["mipOnly"]} if result and "mipOnly" in result else {}),
-            **({"imageMatch": matched["imageMatch"]} if matched else {}),
+            **{key: matched[key] for key in ("imageMatch", "movieMatch") if matched and key in matched},
         }
 
     def scope(source: Path) -> str:
@@ -701,6 +709,32 @@ def classify_resources(config: Config, progress: Progress | None, hashes: FileHa
                                                          -((matched["named"].get(item[2]) or {}).get("probability") or -1)))
         return matcher.report()
 
+    def match_movies() -> dict:
+        """Match every compared game movie with the GDA movies, as match_images does images. Return the run's
+        movieCompare; an error leaves the rows without movie matches."""
+        queries = []
+        for source, result in checked.items():
+            if result is None or not is_movie(source) or status_category(result["status"]) not in ("identical", "different", "missing"):
+                continue
+            named = [path for _tree, _root, path in result["located"]]
+            identical = result["status"] == "identical"
+            queries.append(Query(source, tuple(tree for tree, _root, _index in trees_of(source)), named, named[0] if identical else None))
+        targets = [Target(path, tree, root) for tree, root, by_name in filter(None, (game_gda, common_gda))
+                   for paths in by_name.values() for path in paths if is_movie(path)]
+        matcher = MovieMatcher(config.image_match_threshold, hashes.cache, hashes, map_function, report)
+        try:
+            movies.update(matcher.run(queries, targets))
+        except Exception as error:  # The status of every resource stands without the movie matching.
+            movies.clear()
+            return {**matcher.report(), "error": f"{type(error).__name__}: {error}"}
+        for source, matched in movies.items():
+            result = checked[source]
+            if status_category(result["status"]) == "different":
+                display = os.path.relpath(source, game_dir)
+                result["located"].sort(key=lambda item: (-path_overlap(display, item[2].relative_to(item[1]).as_posix()),
+                                                         -((matched["named"].get(item[2]) or {}).get("probability") or -1)))
+        return matcher.report()
+
     rows: list[dict] = [file_row(source, SUPPLEMENTARY) for source in found.supplementary]
     rows.extend(guessed_sequence_row(files) for files in found.guessed)
     seen: set[Path] = set()
@@ -732,6 +766,7 @@ def classify_resources(config: Config, progress: Progress | None, hashes: FileHa
         done += len(files)
         report("compare", done, total)
     image_compare = match_images()
+    movie_compare = match_movies()
     for relative in relatives:
         source = (game_dir / relative).resolve()
         if source in seen:
@@ -761,6 +796,8 @@ def classify_resources(config: Config, progress: Progress | None, hashes: FileHa
         },
         # The image matching's settings, algorithms, counts, cache and times.
         "imageCompare": image_compare,
+        # The movie matching's settings, algorithms, counts and times.
+        "movieCompare": movie_compare,
         "differences": differences,
         "identical": identical,
     }

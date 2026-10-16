@@ -9,7 +9,7 @@ import ButtonTooltip from '../components/ButtonTooltip.vue';
 import ReportThumbnail from '../components/ReportThumbnail.vue';
 import WorkspaceHeader from '../components/WorkspaceHeader.vue';
 import { useAssetReport } from '../composables/useAssetReport';
-import { assetBadges, assetMatches, assetSection, baseName, declarationLabel, number, plural, size, splitPath } from '../format';
+import { assetBadges, assetMatches, assetSection, baseName, declarationLabel, number, plural, size, splitPath, stackedAlpha } from '../format';
 import type { AssetCategory, AssetFolder, ReportAsset } from '../types';
 import { assetReport, busy, generateAssetReport, ui } from '../workspace';
 
@@ -49,7 +49,7 @@ const FILTERS: { key: Filter; label: string; hint: string }[] = [
 ];
 const PAGE_SIZE = 200;
 // The asset report version this release writes, ASSET_REPORT_VERSION in egt_gda_sync/asset_report.py.
-const REPORT_VERSION = 6;
+const REPORT_VERSION = 7;
 
 const { report, loadError } = useAssetReport();
 const filter = ref<Filter>('all');
@@ -61,9 +61,10 @@ const revision = computed(() => report.value?.summary.finishedAt ?? '');
 const outdated = computed(() => !!assetReport.value?.reportPath && (assetReport.value.version ?? 1) < REPORT_VERSION);
 // What an earlier version did not report: fonts before version 2, RTFs before version 3, views before version 4, the
 // views of other folders and the folders the assets are in before version 5, and the counts of the sidebar's Images and
-// ImagesSeq before version 6.
+// ImagesSeq before version 6, and movies before version 7.
 const outdatedNote = computed(() => {
   const version = assetReport.value?.version ?? 1;
+  if (version >= 6) return 'This report was written by an earlier version, which listed movies as other files and did not read them. Rescan to update it.';
   if (version >= 5) return 'This report was written by an earlier version, which did not count images and image sequences apart, so the sidebar counts image sequences as images. Rescan to update it.';
   const types = version < 2 ? 'fonts, RTFs and views' : version < 3 ? 'RTFs and views' : version < 4 ? 'views' : 'views outside the game folder';
   return `This report was written by an earlier version, which counted ${types} as other files and did not read them, and did not list the folders its assets are in. Rescan to update it.`;
@@ -193,7 +194,7 @@ const folderName = computed(() => folders.value.find(item => item.path === folde
               </td>
               <td>
                 <button type="button" class="asset-hit-target" :aria-label="`Inspect ${splitPath(row.resource).name}`" @click="ui.inspecting = row.id">
-                  <ReportThumbnail :file="listFile(row).resourcePath" :name="splitPath(listFile(row).resource).name" :revision="revision" :preview="readable(listFile(row))" />
+                  <ReportThumbnail :file="listFile(row).resourcePath" :name="splitPath(listFile(row).resource).name" :revision="revision" :preview="readable(listFile(row))" :stacked="stackedAlpha(row.requiredBy)" />
                   <span class="asset-name">{{ splitPath(row.resource).name }}</span>
                 </button>
               </td>

@@ -28,6 +28,7 @@ from egt_gda_sync.workspace.demo import seed_demo
 from egt_gda_sync.app.errors import AppError, error_message
 from egt_gda_sync.workspace.asset_report import AssetReports, inventory
 from egt_gda_sync.assets.fonts import FONT_EXTENSIONS, describe_font
+from egt_gda_sync.assets.movies import MOVIE_EXTENSIONS, describe_movie, movie_thumbnail
 from egt_gda_sync.images.png import PNG_SIGNATURE
 from egt_gda_sync.workspace import backups
 from egt_gda_sync.sync.rss_declare import KINDS, asset_files, asset_kinds, asset_name, build_entry, descriptor_targets, entry_paths, kind_options, used_values
@@ -57,6 +58,7 @@ ASSET_TYPES = (
     ("audio", {"wav", "ogg", "mp3", "flac"}),
     ("font", set(FONT_EXTENSIONS)),
     ("rtf", {RTF_EXTENSION}),
+    ("movie", set(MOVIE_EXTENSIONS)),
 )
 # The text files that the asset details edit, and the largest one they open.
 TEXT_EXTENSIONS = frozenset({"csv", "json", "txt", "ini", "xml", "md", "log", "tsv", "yaml", "yml", "cfg"})
@@ -149,10 +151,11 @@ def image_dimensions(file: str, extension: str) -> dict | None:
 
 
 def file_facts(file: str, extension: str) -> dict:
-    """A file's size, time and image dimensions, and whether the browser can preview it: an image, or a font it draws."""
+    """A file's size, time and image dimensions, and whether the browser can preview it: an image, a font it draws, or a
+    movie, whose thumbnail is a frame."""
     info = os.stat(file)
     facts: dict = {"size": info.st_size, "modifiedAt": iso_time(info.st_mtime_ns),
-                   "preview": extension in IMAGE_PREVIEWS or extension in FONT_EXTENSIONS}
+                   "preview": extension in IMAGE_PREVIEWS or extension in FONT_EXTENSIONS or extension in MOVIE_EXTENSIONS}
     try:
         dimensions = image_dimensions(file, extension)
     except ValueError as error:
@@ -169,14 +172,18 @@ def file_facts(file: str, extension: str) -> dict:
 
 
 def asset_facts(path: Path, readable: bool) -> dict:
-    """The facts of a file of the asset report: its type, and, when it is a readable file, its size, time and image facts."""
+    """The facts of a file of the asset report: its type, and, when it is a readable file, its size, time and image facts,
+    and a movie's frame size, frame rate, frames, duration and codec."""
     extension = path.suffix[1:].lower()
     facts = {"type": type_for(extension)}
     if readable:
         try:
             facts.update(file_facts(str(path), extension))
         except OSError:
-            pass
+            return facts
+        if extension in MOVIE_EXTENSIONS:
+            facts.update(describe_movie(str(path)))
+            facts["preview"] = "movie" in facts
     return facts
 
 
@@ -187,12 +194,12 @@ def _copy_exclusive(source: str, target: str) -> None:
 
 
 def image_candidates(row: dict) -> list[dict]:
-    """The GDA images that may show the same picture as a different or missing image of the GDA sync report: its possible
-    matches by content, and its same-named GDA files whatever their probability, most likely first, on a tie a same-named
-    one first. Each is syncable unless it has the game file's contents, since copying it would change nothing. Sequences,
-    RTFs, other files and reports from before version 6 have none. The same rule as imageCandidates in
-    frontend/src/format.ts."""
-    match = row.get("imageMatch")
+    """The GDA images that may show the same picture as a different or missing image of the GDA sync report, or the GDA
+    movies that may be the same clip as a movie: its possible matches by content, and its same-named GDA files whatever
+    their probability, most likely first, on a tie a same-named one first. Each is syncable unless it has the game file's
+    contents, since copying it would change nothing. Sequences, RTFs, other files and reports from before version 6 (8 for
+    movies) have none. The same rule as imageCandidates in frontend/src/format.ts."""
+    match = row.get("imageMatch") or row.get("movieMatch")
     if not match or "sequence" in row or "directory" in row or row["category"] not in ("different", "missing"):
         return []
     found = {candidate["absolutePath"]: candidate for candidate in match["matches"]}
@@ -356,7 +363,8 @@ class Library:
         self.config: dict = {}
         self.activity: list[dict] = []
         self._operation = threading.Lock()
-        self._previews: OrderedDict[str, bytes] = OrderedDict()
+        # Decoded DDS textures, and movie thumbnails with their type.
+        self._previews: OrderedDict[str, bytes | tuple[bytes, str]] = OrderedDict()
         self._previews_lock = threading.Lock()
         self.reports = SyncJobs(os.path.join(self.home, "sync-reports"))
         self.asset_reports = AssetReports(os.path.join(self.home, "asset-reports"))
@@ -1393,6 +1401,10 @@ class Library:
             extension = os.path.splitext(path)[1][1:].lower()
             if extension in FONT_EXTENSIONS:
                 entry.update(describe_font(path, chars))
+            if extension in MOVIE_EXTENSIONS:
+                entry.update(describe_movie(path))
+                details[file] = entry
+                continue
             try:
                 dimensions = image_dimensions(path, extension)
             except (OSError, ValueError) as error:
@@ -1591,6 +1603,37 @@ class Library:
             return self._media(file, extension)
         except FileNotFoundError as error:
             raise AppError("File not found", 404) from error
+
+    def movie_file(self, file: str) -> tuple[str, str]:
+        """A movie inside the active workspace's resources and GDA folders, to stream as it is, and the type the browser
+        plays it as."""
+        path = self._resource_path(file)
+        extension = os.path.splitext(path)[1][1:].lower()
+        if extension not in MOVIE_EXTENSIONS:
+            raise AppError("No preview for this file", 415)
+        if not os.path.isfile(path):
+            raise AppError("File not found", 404)
+        return path, MOVIE_EXTENSIONS[extension]
+
+    def movie_thumbnail(self, file: str, stacked: bool = False) -> tuple[bytes, str]:
+        """The frame in the middle of a movie, with the alpha of a valpha one when stacked, cached by file, time and
+        size like decoded DDS textures."""
+        path, _mime = self.movie_file(file)
+        info = os.stat(path)
+        key = f"{path}:{info.st_mtime_ns}:{info.st_size}:{'stacked' if stacked else 'frame'}"
+        with self._previews_lock:
+            cached = self._previews.get(key)
+        if cached is not None:
+            return cached
+        try:
+            result = movie_thumbnail(path, stacked)
+        except ValueError as error:
+            raise AppError(error_message(error), 415) from error
+        with self._previews_lock:
+            while len(self._previews) >= PREVIEW_CACHE_SIZE:
+                self._previews.popitem(last=False)
+            self._previews[key] = result
+        return result
 
     def _media(self, file: str, extension: str) -> tuple[bytes, str]:
         """An image file as the browser can show it, an audio or font file as it is, or an RTF's pages as JSON:

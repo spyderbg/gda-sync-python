@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { algorithmValues, baseName, viewTable, type GdaCandidate, declarationLabel, directoryOf, extensionOf, fileType, matchBadge, matchText, number, plural, previewFrames, rssBadges, rtfChangeBadges, rtfChangeNames, rtfChangeSummary, sequenceName, size, splitPath, time } from '../format';
+import { algorithmValues, baseName, viewTable, type GdaCandidate, declarationLabel, directoryOf, extensionOf, fileType, matchBadge, matchText, number, plural, previewFrames, rssBadges, rtfChangeBadges, rtfChangeNames, rtfChangeSummary, sequenceName, size, splitPath, stackedAlpha, time } from '../format';
 import type { RssFileDetails, RssResource, RtfFacts } from '../types';
 import { busy, copy, data, openDeclaration, openResourceFolder, requestResourceSync, resourceDetails, rssSync } from '../workspace';
 import AppModal from './AppModal.vue';
 import AudioPreview from './AudioPreview.vue';
 import FontPreview from './FontPreview.vue';
+import MoviePreview from './MoviePreview.vue';
 import ReportThumbnail from './ReportThumbnail.vue';
 import RtfPreview from './RtfPreview.vue';
 import SequencePreview from './SequencePreview.vue';
@@ -57,6 +58,11 @@ const choosePage = (facts: RtfFacts, index: number | undefined) => { rtfPage.val
 // An RTF's files that Sync copies or deletes first, then the identical ones.
 const rtfFiles = computed(() => [...(directory.value?.files ?? [])].sort((a, b) => Number(!a.change || a.change === 'identical') - Number(!b.change || b.change === 'identical')));
 const isAudio = (path: string) => fileType(extensionOf(baseName(path))) === 'audio';
+// A movie and its GDA movie play side by side, only while the details are open; a valpha one with its alpha.
+const isMovie = (path: string) => fileType(extensionOf(baseName(path))) === 'movie';
+const stacked = computed(() => stackedAlpha(props.row.requiredBy));
+// What the resource and its candidates are, as the labels name them.
+const noun = computed(() => (isMovie(props.row.resourcePath) ? 'movie' : 'image'));
 // The GDA image an image is compared with: the given candidate, or else, in a report without candidates on the card, its
 // closest same-named GDA file. Its evaluation by the image matching is listed, when it has one.
 const gdaShown = computed(() => props.candidate ?? props.row.gdaFiles[0] ?? null);
@@ -94,7 +100,7 @@ const gdaFiles = computed(() => (directory.value ? [] : sequence.value
 const hasGda = computed(() => (directory.value ? !!directory.value.gdaProject : gdaFiles.value.length > 0));
 const gdaLabel = computed(() => (sequence.value ? 'GDA frames'
   : directory.value ? (props.row.category === 'different' ? 'GDA folder, copied on sync' : 'Matching GDA folder')
-    : props.candidate ? (props.candidate.syncable ? 'GDA image, copied on sync' : 'GDA image, the same file')
+    : props.candidate ? (props.candidate.syncable ? `GDA ${noun.value}, copied on sync` : `GDA ${noun.value}, the same file`)
       : props.row.category === 'different' ? 'GDA file, copied on sync' : 'Matching GDA file'));
 // Computed once per row: SequencePreview loads its frames again whenever it gets other ones.
 const gameFrames = computed(() => (sequence.value ? previewFrames(sequence.value, 'game') : []));
@@ -298,7 +304,7 @@ const note = computed(() => {
         : 'Sync copies the GDA file over the game file, and keeps the replaced file in your backups.',
     };
     case 'missing': return props.candidate
-      ? { icon: 'mdi-file-search-outline', tone: 'is-pending', title: 'Not in the GDA folder by name.', text: 'No GDA file has this name, but GDA images may show the same picture. Sync copies the one shown over the game file, and keeps the replaced file in your backups.' }
+      ? { icon: 'mdi-file-search-outline', tone: 'is-pending', title: 'Not in the GDA folder by name.', text: `No GDA file has this name, but GDA ${noun.value === 'movie' ? 'movies may be the same clip' : 'images may show the same picture'}. Sync copies the one shown over the game file, and keeps the replaced file in your backups.` }
       : { icon: 'mdi-file-search-outline', tone: 'is-pending', title: 'Not in the GDA folder.', text: `No GDA file has ${many ? 'the name of these files' : 'this name'}, so there is nothing to copy.` };
     case 'invalid': return { icon: 'mdi-alert-circle-outline', tone: 'is-invalid', title: 'The declared path cannot be used.', text: props.row.status.replace(/^invalid: /, '') };
     default: return {
@@ -337,7 +343,8 @@ function sync() {
           <FontPreview v-else-if="isFont && row.category !== 'invalid'" v-model:text="fontText" :file="row.resourcePath" :name="name" :revision="revision" large
                        :chars="fontUse?.chars" :size="fontUse?.size" :missing="coverageOf(row.resourcePath)?.missing" />
           <ViewPreview v-else-if="row.view" :file="row.resourcePath" :name="name" :revision="revision" :facts="row.view" large />
-          <ReportThumbnail v-else :file="directory?.project ?? row.resourcePath" :name="directory ? baseName(directory.project) : name" :revision="revision" :preview="row.category !== 'invalid'" />
+          <MoviePreview v-else-if="isMovie(row.resourcePath) && row.category !== 'invalid'" :file="row.resourcePath" :name="name" :revision="revision" :stacked="stacked" />
+          <ReportThumbnail v-else :file="directory?.project ?? row.resourcePath" :name="directory ? baseName(directory.project) : name" :revision="revision" :preview="row.category !== 'invalid'" :stacked="stacked" />
         </figure>
         <figure v-if="pairedPreview" class="details-preview">
           <figcaption>
@@ -350,7 +357,8 @@ function sync() {
           <AudioPreview v-else-if="isAudio(gdaShown!.path)" :file="gdaShown!.absolutePath" :name="baseName(gdaShown!.path)" :revision="revision" />
           <FontPreview v-else-if="isFont" v-model:text="fontText" :file="gdaShown!.absolutePath" :name="baseName(gdaShown!.path)" :revision="revision" large
                        :chars="fontUse?.chars" :size="fontUse?.size" :missing="coverageOf(gdaShown!.absolutePath)?.missing" />
-          <ReportThumbnail v-else :file="gdaShown!.absolutePath" :name="baseName(gdaShown!.path)" :revision="revision" />
+          <MoviePreview v-else-if="isMovie(gdaShown!.path)" :file="gdaShown!.absolutePath" :name="baseName(gdaShown!.path)" :revision="revision" :stacked="stacked" />
+          <ReportThumbnail v-else :file="gdaShown!.absolutePath" :name="baseName(gdaShown!.path)" :revision="revision" :stacked="stacked" />
         </figure>
       </div>
 
@@ -392,7 +400,7 @@ function sync() {
             </div>
           </template>
           <template v-else-if="candidate">
-            <h6 class="details-heading">GDA image</h6>
+            <h6 class="details-heading">GDA {{ noun }}</h6>
             <div class="details-path">
               <span class="details-code" :title="candidate.absolutePath">{{ gdaPath(candidate.absolutePath) }}</span>
               <button type="button" class="details-icon" :aria-label="`Copy the GDA path ${candidate.path}`" title="Copy the GDA path" @click="copy(candidate.absolutePath)"><i aria-hidden="true" class="mdi mdi-content-copy" /></button>
@@ -427,9 +435,9 @@ function sync() {
             </tbody>
           </table>
 
-          <template v-if="evaluated.length || row.imageMatch?.error">
-            <h6 class="details-heading">Image matching</h6>
-            <p v-if="row.imageMatch?.error" class="text-muted details-small">This image could not be decoded: {{ row.imageMatch.error }}</p>
+          <template v-if="evaluated.length || row.imageMatch?.error || row.movieMatch?.error">
+            <h6 class="details-heading">{{ row.movieMatch ? 'Movie matching' : 'Image matching' }}</h6>
+            <p v-if="row.imageMatch?.error || row.movieMatch?.error" class="text-muted details-small">This {{ noun }} could not be decoded: {{ row.imageMatch?.error ?? row.movieMatch?.error }}</p>
             <div v-for="item in evaluated" :key="item.absolutePath" class="details-match">
               <p class="details-match-title">
                 <span class="details-code" :title="item.absolutePath">{{ item.path }}</span>
