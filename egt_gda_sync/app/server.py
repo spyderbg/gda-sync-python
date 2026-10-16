@@ -24,12 +24,16 @@ from egt_gda_sync.app.desktop import open_in_code, open_on_desktop, platform_lab
 from egt_gda_sync.app.errors import AppError
 from egt_gda_sync.assets.fonts import FONT_EXTENSIONS, facts_header
 from egt_gda_sync.assets.movies import is_movie
-from egt_gda_sync.workspace.library import Library
+from egt_gda_sync.workspace.library import MAX_TEXT_BYTES, Library
 from egt_gda_sync.app.lifetime import PAGE_CLOSE_GRACE_SECONDS, PageLifetime
 from egt_gda_sync.app.ports import dev_ui_url
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 BODY_LIMIT = 128 * 1024
+# A text file that the asset details save comes whole: up to MAX_TEXT_BYTES of UTF-8, each byte of which JSON escapes
+# as at most six bytes (\u001f); the rest of the body fits in BODY_LIMIT.
+TEXT_BODY_LIMIT = 6 * MAX_TEXT_BYTES + BODY_LIMIT
+BODY_LIMITS = {"/api/asset-report/text": TEXT_BODY_LIMIT}
 LOCAL_HOSTS = {"127.0.0.1", "localhost", "[::1]"}
 APP_CSP = (
     "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self'; "
@@ -146,7 +150,7 @@ class Area(_Body):
 class TextFileBody(_Body):
     """The new text of a text file of the game's resources, and the revision of the file it was edited from."""
     file: Text4K
-    text: Annotated[str, Field(max_length=1_048_576)]
+    text: Annotated[str, Field(max_length=MAX_TEXT_BYTES)]
     revision: Annotated[str, Field(min_length=1, max_length=64)]
 
 
@@ -211,7 +215,7 @@ class LocalGuard:
             if scope["method"] not in ("GET", "HEAD") and not hmac.compare_digest(token, self.token):
                 return 403, INVALID_SESSION
         length = headers.get("content-length", "")
-        if length.isdigit() and int(length) > BODY_LIMIT:
+        if length.isdigit() and int(length) > BODY_LIMITS.get(scope["path"], BODY_LIMIT):
             return 413, "Request body is too large"
         return None
 

@@ -28,7 +28,7 @@ OUTPUT = ROOT / "docs" / "openapi.yaml"
 sys.path.insert(0, str(ROOT))
 
 from egt_gda_sync import __version__  # noqa: E402 pylint: disable=wrong-import-position
-from egt_gda_sync.app.server import create_app  # noqa: E402 pylint: disable=wrong-import-position
+from egt_gda_sync.app.server import BODY_LIMIT, BODY_LIMITS, create_app  # noqa: E402 pylint: disable=wrong-import-position
 from egt_gda_sync.workspace.library import Library  # noqa: E402 pylint: disable=wrong-import-position
 
 TITLE = "EGT GDA Sync API"
@@ -51,6 +51,25 @@ SECTIONS: dict[str, tuple[str, ...]] = {
     "Asset library": ("/api/asset-report",),
 }
 OTHER = "Other"
+
+# The errors the app answers with, all as {"error": message}, by response name: an invalid request (invalid_request in
+# server.py, in place of FastAPI's 422 and its validation details), the requests LocalGuard rejects, and a failed
+# operation (the OSError and Exception handlers).
+ERROR_SCHEMA = {
+    "properties": {"error": {"type": "string", "title": "Error"}},
+    "type": "object",
+    "required": ["error"],
+    "title": "Error",
+}
+ERROR_RESPONSES = {
+    "InvalidRequest": "Invalid request",
+    "Forbidden": (
+        "Not a same-site request to a loopback host or, for a method other than GET and HEAD, "
+        "no valid X-GDA-Token header"
+    ),
+    "ContentTooLarge": f"The request body is larger than {BODY_LIMIT // 1024} KiB",  # The routes not in BODY_LIMITS.
+    "ServerError": "The operation could not be completed",
+}
 
 
 def _section(path: str) -> str:
@@ -85,7 +104,48 @@ def build_schema() -> dict:
     for path, item in schema.get("paths", {}).items():
         for operation in item.values():
             operation.setdefault("tags", [_section(path)])
+    _use_error_responses(schema)
     return schema
+
+
+# These return a new object each time: PyYAML writes a shared one as anchors, which clash between the paths dumped
+# separately.
+def _error_response(name: str) -> dict:
+    return {"$ref": f"#/components/responses/{name}"}
+
+
+def _error_content() -> dict:
+    return {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}
+
+
+def _use_error_responses(schema: dict) -> None:
+    """Document the errors the app actually returns: 400 in place of FastAPI's 422, and 403, 413 and 500."""
+    for path, item in schema.get("paths", {}).items():
+        for operation in item.values():
+            responses = operation.setdefault("responses", {})
+            if responses.pop("422", None) is not None:
+                responses["400"] = _error_response("InvalidRequest")
+            responses["403"] = _error_response("Forbidden")
+            # LocalGuard checks the Content-Length of any request, but only one with a body can exceed the limit.
+            if "requestBody" in operation:
+                limit = BODY_LIMITS.get(path)
+                responses["413"] = _error_response("ContentTooLarge") if limit is None else {
+                    "description": f"The request body is larger than {limit // 1024} KiB", "content": _error_content(),
+                }
+            responses["500"] = _error_response("ServerError")
+            operation["responses"] = dict(sorted(responses.items()))
+
+    components = schema.setdefault("components", {})
+    # Only the 422 responses refer to the validation schemas.
+    schemas = components.setdefault("schemas", {})
+    for name in ("HTTPValidationError", "ValidationError"):
+        schemas.pop(name, None)
+    schemas["Error"] = ERROR_SCHEMA
+    components["schemas"] = dict(sorted(schemas.items()))
+    components["responses"] = {
+        name: {"description": description, "content": _error_content()}
+        for name, description in ERROR_RESPONSES.items()
+    }
 
 # ---------------------------------------------------------------------------
 # Export helpers
