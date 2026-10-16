@@ -237,7 +237,7 @@ const folderName = computed(() => folders.value.find(item => item.path === folde
 .library-status-filter { flex-wrap: wrap; }
 .library-status-filter .btn { white-space: nowrap; }
 .library-filter-count { margin-left: 4px; opacity: 0.7; }
-.library-use { max-width: 320px; font-family: monospace; font-size: 11px; overflow-wrap: anywhere; }
+.library-use { max-width: 320px; white-space: normal; font-family: monospace; font-size: 11px; overflow-wrap: anywhere; }
 .library-outdated { display: flex; align-items: center; gap: 8px; }
 .library-views-selection { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-left: auto; font-size: 13px; }
 .library-views-selection .mdi { color: #2196f3; }
