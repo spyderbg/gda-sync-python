@@ -58,7 +58,7 @@ def test_the_library_shows_an_rtf_with_its_pages(new_context, rtf_backend):
     expect(page.locator('.asset-row img')).to_have_attribute('alt', 'background.dds preview')
     page.get_by_role('button', name='Grid view').click()
 
-    card.get_by_role('button', name='Show details for help').click()
+    card.locator('.asset-hit-target').click()
     details = page.get_by_role('dialog', name='help')
     expect(details.get_by_role('row', name='Pages 3, 1366 × 768, 1920 × 1080')).to_be_visible()
     expect(details.get_by_role('row', name='Missing files 2')).to_be_visible()

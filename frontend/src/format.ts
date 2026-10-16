@@ -61,6 +61,8 @@ const TYPE_EXTENSIONS: [AssetType, string[]][] = [
 /** The image files the backend previews: DDS textures, which it decodes, and the formats a browser shows as they are. */
 export const PREVIEW_EXTENSIONS = ['dds', 'png', 'jpg', 'jpeg', 'webp', 'svg', 'bmp'];
 
+/** The text files that the asset details edit, as TEXT_EXTENSIONS in egt_gda_sync/workspace/library.py names them. */
+export const TEXT_EXTENSIONS = ['csv', 'json', 'txt', 'ini', 'xml', 'md', 'log', 'tsv', 'yaml', 'yml', 'cfg'];
 export const extensionOf = (name: string) => (name.lastIndexOf('.') > 0 ? name.slice(name.lastIndexOf('.') + 1).toLowerCase() : '');
 export const fileType = (extension: string): AssetType => TYPE_EXTENSIONS.find(([, extensions]) => extensions.includes(extension))?.[0] ?? 'other';
 /** A path's file name and its folder, which is "Root" for a file at the top. */

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { assetBadges, assetFrames, assetSection, baseName, codePoint, extensionOf, fileType, firstRtfPage, number, plural, sectionIcons, sectionSingular, sequenceName, size, splitPath, time, typeIcons, viewTable } from '../format';
+import { TEXT_EXTENSIONS, assetBadges, assetFrames, assetSection, baseName, codePoint, extensionOf, fileType, firstRtfPage, number, plural, sectionIcons, sectionSingular, sequenceName, size, splitPath, time, typeIcons, viewTable } from '../format';
 import type { FileFacts, ReportAsset } from '../types';
 import { copy, openDeclaration, openResourceFolder } from '../workspace';
 import AppModal from './AppModal.vue';
@@ -9,6 +9,7 @@ import DeclareAsset from './DeclareAsset.vue';
 import FontPreview from './FontPreview.vue';
 import ReportThumbnail from './ReportThumbnail.vue';
 import RtfPreview from './RtfPreview.vue';
+import TextEditor from './TextEditor.vue';
 import SequencePreview from './SequencePreview.vue';
 import ViewPreview from './ViewPreview.vue';
 
@@ -25,14 +26,14 @@ import ViewPreview from './ViewPreview.vue';
 // the dialog on top.
 const props = defineProps<{ row: ReportAsset; revision: string }>();
 const emit = defineEmits<{ close: [] }>();
-// A view's elements can be moved; closing with moves that are not saved asks first.
+// A view's elements can be moved, and a text file edited; closing with changes that are not saved asks first.
 const unsaved = ref(false);
 // The dialog that declares the asset, over this one.
 const declaring = ref(false);
 watch(() => props.row.id, () => { declaring.value = false; });
 function close() {
   if (declaring.value) return;
-  if (unsaved.value && !window.confirm('Discard the elements you moved without saving them?')) return;
+  if (unsaved.value && !window.confirm('Discard your changes without saving them?')) return;
   emit('close');
 }
 
@@ -45,6 +46,8 @@ const typeLabel = computed(() => {
   const format = props.row.type === 'rtf' || props.row.type === 'view' ? '' : extensionOf(baseName(props.row.sequence?.frames[0]?.resourcePath ?? props.row.resourcePath)).toUpperCase();
   return `${sectionSingular[section.value]}${format ? ` · ${format}` : ''}`;
 });
+// A text file, such as a .csv, .json or .txt, is edited in the dialog.
+const isText = computed(() => readable.value && !sequence.value && !props.row.directory && !props.row.view && TEXT_EXTENSIONS.includes(extensionOf(baseName(props.row.resourcePath))));
 const isAudio = computed(() => fileType(extensionOf(baseName(props.row.resourcePath))) === 'audio');
 const frames = computed(() => (sequence.value ? assetFrames(sequence.value) : []));
 // The Font entries that declare characters of a font, and the one whose characters the preview draws.
@@ -173,7 +176,7 @@ const scope = computed(() => ({ game: '', common: 'A common resource, shared wit
       <div class="details-previews">
         <figure class="details-preview">
           <figcaption>
-            {{ sequence ? 'Game frames' : rtf ? 'Pages' : view ? 'View, as the game draws it' : 'Game file' }}<small v-if="sequence">Click to play again</small>
+            {{ sequence ? 'Game frames' : rtf ? 'Pages' : view ? 'View, as the game draws it' : isText ? 'Text file' : 'Game file' }}<small v-if="sequence">Click to play again</small>
             <span v-if="isFont && fontUses.length > 1" class="btn-group btn-group-sm" role="group" aria-label="Characters of the Font entry">
               <button v-for="(use, index) in fontUses" :key="`${use.descriptor}:${use.line}`" type="button" :class="['btn', 'btn-secondary', { active: index === chosen }]" :aria-pressed="index === chosen" @click="chosen = index">{{ use.id ?? `${use.descriptor}:${use.line}` }}</button>
             </span>
@@ -184,6 +187,7 @@ const scope = computed(() => ({ game: '', common: 'A common resource, shared wit
                        :chars="fontUse?.chars" :size="fontUse?.size" :missing="fontUse?.coverage?.missing" />
           <RtfPreview v-else-if="rtf" v-model:page="rtfPage" :file="file" :name="name" :revision="revision" :facts="rtf" large />
           <ViewPreview v-else-if="view" :file="file" :name="name" :revision="revision" :facts="view" large editable @dirty="unsaved = $event" />
+          <TextEditor v-else-if="isText" :file="row.resourcePath" :name="name" @dirty="unsaved = $event" />
           <ReportThumbnail v-else :file="file" :name="baseName(file)" :revision="revision" :preview="readable && row.preview !== false" />
         </figure>
       </div>

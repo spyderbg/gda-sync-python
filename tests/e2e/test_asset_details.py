@@ -72,7 +72,7 @@ def test_library_shows_the_generated_asset_report_and_opens_an_asset_in_a_dialog
     expect(page.get_by_role('dialog')).to_have_count(0)
 
     # A sequence lists its frames in the dialog.
-    spin.get_by_role('button', name='Show details for spin_{0-2}.dds').click()
+    spin.locator('.asset-hit-target').click()
     details = page.get_by_role('dialog', name='spin_{0-2}.dds')
     expect(details.locator('.details-frames tbody tr')).to_have_count(3)
     expect(details.get_by_role('row', name='Files 3 of 3 found')).to_be_visible()
@@ -165,7 +165,12 @@ def test_an_asset_that_no_descriptor_declares_is_declared_from_its_details(new_c
     expect(declare.get_by_role('button', name='Create', exact=True)).to_be_enabled()
     # A font's characters are groups, each from the list or typed as plain text, and the help shows the characters.
     declare.get_by_label('Declare as').select_option('Font')
-    declare.get_by_label('Characters group 1').select_option('[U+0030-U+0039]')
+    # It starts with the digits and the English letters.
+    expect(declare.get_by_label('Characters group 1')).to_have_value('[U+0030-U+0039]')
+    expect(declare.get_by_label('Characters group 2')).to_have_value('[U+0041-U+005A]')
+    expect(declare.get_by_label('Characters group 3')).to_have_value('[U+0061-U+007A]')
+    declare.get_by_role('button', name='Remove group 3').click()
+    declare.get_by_role('button', name='Remove group 2').click()
     declare.get_by_role('button', name='Add group').click()
     # A group that another has is not offered again.
     expect(declare.get_by_label('Characters group 2').locator('option[value="[U+0030-U+0039]"]')).to_have_count(0)
@@ -189,4 +194,57 @@ def test_an_asset_that_no_descriptor_declares_is_declared_from_its_details(new_c
         'id': 'IMAGE_LEFTOVER', 'path': 'leftover.png', 'resolution': '1920x1080'}
     page.keyboard.press('Escape')
     expect(page.get_by_role('dialog')).to_have_count(0)
+    assert errors == []
+
+
+def test_an_asset_is_removed_after_a_confirmation_with_its_rsskey_and_the_backup_keeps_them(new_context, details_backend):
+    backend, game = details_backend
+    page = new_context().new_page()
+    errors = []
+    page.on('pageerror', lambda error: errors.append(str(error)))
+    page.goto(backend.url)
+    page.get_by_role('list', name='Workspaces').get_by_role('button', name='Example', exact=True).click()
+    page.get_by_role('button', name='Asset library', exact=True).click()
+    page.get_by_role('region', name='Workspace summary').get_by_role('button', name='Rescan', exact=True).click()
+    page.get_by_role('button', name='Remove banner.dds', exact=True).click()
+    dialog = page.get_by_role('dialog', name='Remove banner.dds?')
+    expect(dialog).to_contain_text('Delete this file from the game folder')
+    expect(dialog).to_contain_text('Image BANNER · RssImagesData.json')
+    # Cancelling changes nothing.
+    dialog.get_by_role('button', name='Cancel').click()
+    expect(dialog).to_have_count(0)
+    assert (game / 'banner.dds').is_file()
+    page.get_by_role('button', name='Remove banner.dds', exact=True).click()
+    dialog.get_by_role('button', name='Remove', exact=True).click()
+    expect(page.get_by_role('status')).to_contain_text('Removed banner.dds: 1 entry and 1 file.')
+    expect(dialog).to_have_count(0)
+    assert not (game / 'banner.dds').exists()
+    assert [item['id'] for item in json.loads((game / 'RssImagesData.json').read_text())['images']] == ['GONE']
+    assert errors == []
+
+
+def test_a_text_file_is_edited_in_its_details_and_saved_into_the_backups(new_context, details_backend):
+    backend, game = details_backend
+    (game / 'notes.csv').write_text('a,b\r\n1,2\r\n')
+    page = new_context().new_page()
+    errors = []
+    page.on('pageerror', lambda error: errors.append(str(error)))
+    page.goto(backend.url)
+    page.get_by_role('list', name='Workspaces').get_by_role('button', name='Example', exact=True).click()
+    page.get_by_role('button', name='Asset library', exact=True).click()
+    page.get_by_role('region', name='Workspace summary').get_by_role('button', name='Rescan', exact=True).click()
+    page.get_by_role('button', name='Inspect notes.csv', exact=True).click()
+    details = page.get_by_role('dialog', name='notes.csv')
+    editor = details.get_by_label('Text of notes.csv')
+    expect(editor).to_have_value('a,b\n1,2\n')
+    expect(details.get_by_role('button', name='Save', exact=True)).to_be_disabled()
+    editor.fill('a,b\n1,2\n3,4\n')
+    expect(details.get_by_role('status')).to_contain_text('Unsaved changes')
+    details.get_by_role('button', name='Revert').click()
+    expect(editor).to_have_value('a,b\n1,2\n')
+    editor.fill('a,b\n1,2\n3,4\n')
+    details.get_by_role('button', name='Save', exact=True).click()
+    expect(page.get_by_role('status').filter(has_text='Saved notes.csv.')).to_be_visible()
+    assert (game / 'notes.csv').read_bytes() == b'a,b\r\n1,2\r\n3,4\r\n'
+    expect(details.get_by_role('status')).to_contain_text('Saved')
     assert errors == []

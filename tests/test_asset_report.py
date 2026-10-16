@@ -98,6 +98,24 @@ def test_lists_each_asset_with_the_descriptor_entries_that_load_it(tmp_path):
         "RssAudioData.json", "RssImagesData.json", "RssImagesSeqData.json", "RssRawData.json"]
 
 
+def test_json_files_of_the_idata_folder_are_supplementary_unless_a_descriptor_declares_them(tmp_path):
+    game = write_game(tmp_path)
+    (game / "idata" / "1920x1080").mkdir(parents=True)
+    for name in ("DeclaredView.json", "LeftoverView.json"):
+        (game / "idata" / "1920x1080" / name).write_text("{}")
+    (game / "elsewhere").mkdir()
+    (game / "elsewhere" / "Other.json").write_text("{}")
+    (game / "RssIData.json").write_text(json.dumps({"idatas": [{"id": "A", "dataType": "T", "path": "idata/1920x1080/DeclaredView.json"}]}))
+    config = Config(resources_dir=game.parent.resolve(), gda_dir=game.parent, extensions=frozenset({".dds", ".png", ".wav", ".json"}), game=game.name)
+    rows = {row["resource"]: row for row in inventory(config, asset_facts)["assets"]}
+    assert rows["idata/1920x1080/LeftoverView.json"]["category"] == "supplementary"
+    assert rows["idata/1920x1080/DeclaredView.json"]["category"] == "available"
+    # Another .json file is listed only when it is a view or declared.
+    assert "elsewhere/Other.json" not in rows
+    # Without .json among the compared extensions, none is listed.
+    assert "idata/1920x1080/LeftoverView.json" not in {row["resource"] for row in inventory(config_for(game), asset_facts)["assets"]}
+
+
 def test_a_game_without_descriptors_has_only_supplementary_assets(tmp_path):
     game = tmp_path / "resources" / "example"
     game.mkdir(parents=True)

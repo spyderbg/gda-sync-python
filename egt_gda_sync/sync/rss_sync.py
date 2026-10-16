@@ -32,12 +32,14 @@ from egt_gda_sync.images.image_cache import CompareCache, FileHashes
 from egt_gda_sync.images.image_compare import IMAGE_EXTENSIONS, ImageMatcher, Query, Settings, Target, workers
 from egt_gda_sync.sync.rss_schemas import DOCUMENT_TYPES, Frame, ImageSequence, parse_dataclass
 from egt_gda_sync.assets.rtf import describe_rtf
-from egt_gda_sync.assets.views import VIEW_SUFFIX, describe_view, is_view
+from egt_gda_sync.assets.views import DESCRIPTOR_SUFFIX, VIEW_SUFFIX, describe_view, is_view
 
 RANGE_PATTERN = re.compile(r"\{(\d+)-(\d+)\}")
 JSON_STRING_PATTERN = re.compile(r'"(?:\\.|[^"\\])*"')
 EXTENSION_PATTERN = re.compile(r"\.[A-Za-z0-9]+")
 COMMON_DIR = "common"  # folder under resources_dir that holds assets shared between games
+# The game folder that holds the data files that RssIData.json declares.
+IDATA_FOLDER = "idata"
 DEFAULT_EXTENSIONS = (".csv", ".dds", ".ini", ".json", ".mov", ".png", ".rtf", ".ttf", ".wav")
 # DDS header layout: magic, then a 124 byte header (height and width at 12..20, pixel format at 76..108 with the
 # fourcc at 84, caps2 at 112) and, for fourcc DX10, a 20 byte extension (dimension 132, misc flags 136, array size 140).
@@ -229,6 +231,14 @@ def compared_file(path: Path, game_dir: Path, extensions: frozenset[str]) -> boo
     """Whether a file's extension is compared: a .json file is compared only when it is a view of the game."""
     suffix = path.suffix.lower()
     return suffix in extensions and (suffix != VIEW_SUFFIX or is_view(path, game_dir))
+
+
+def unlisted_file(path: Path, game_dir: Path, extensions: frozenset[str]) -> bool:
+    """Whether a game file that nothing declares is listed as supplementary: a compared file, or a .json file of the
+    game's idata folder, which holds the data that RssIData.json declares, though it is not a view."""
+    suffix = path.suffix.lower()
+    return compared_file(path, game_dir, extensions) or (
+        suffix == VIEW_SUFFIX and suffix in extensions and not path.name.endswith(DESCRIPTOR_SUFFIX) and path.is_relative_to(game_dir / IDATA_FOLDER))
 
 
 def declared_files(game_dir: Path, resource_paths: tuple[str, ...] = ()) -> set[Path]:
@@ -440,7 +450,7 @@ def gather(config: Config, required: bool = True) -> Declarations:
     # The game files that nothing declares are supplementary: the game does not load them. Files with an extension that
     # is not compared are left out. Descriptor paths additionally bring in shared assets outside the game folder.
     declared_files = frame_files | {(game_dir / relative).resolve() for template in templates for relative in expand_path(template)}
-    unlisted = {path.resolve() for path in game_dir.rglob("*") if path.is_file() and compared_file(path.resolve(), game_dir, config.extensions)} - declared_files
+    unlisted = {path.resolve() for path in game_dir.rglob("*") if path.is_file() and unlisted_file(path.resolve(), game_dir, config.extensions)} - declared_files
     # An RTF is its whole folder, when .rtf files are compared: the folder of a declared .rtf file, or of one that nothing
     # declares.
     projects = [path for path in declared_files | unlisted if path.suffix.lower() == RTF_SUFFIX] if RTF_SUFFIX in config.extensions else []

@@ -25,14 +25,17 @@ const FIELDS: Record<string, { label: string; input: Input; hint: string }> = {
   frameTime: { label: 'Frame time', input: 'integer', hint: 'Milliseconds per frame.' },
   loopCount: { label: 'Loop count', input: 'integer', hint: 'How many times it plays; 0 loops forever.' },
   loopTo: { label: 'Loop to', input: 'integer', hint: 'The frame that later loops start at. Empty for the first.' },
-  polyphonyGroup: { label: 'Polyphony group', input: 'text', hint: 'The group of sounds that it plays in.' },
+  polyphonyGroup: { label: 'Polyphony group', input: 'choice', hint: 'The group of sounds that it plays in. Not specified for none.' },
   loop: { label: 'Loop', input: 'boolean', hint: 'Plays again when it ends.' },
   fadeIn: { label: 'Fade in', input: 'number', hint: 'Seconds.' },
   fadeOut: { label: 'Fade out', input: 'number', hint: 'Seconds.' },
   chars: { label: 'Characters', input: 'chars', hint: 'The groups of characters it draws; Other types them as plain text, such as 0123456789.' },
   size: { label: 'Size', input: 'integer', hint: 'Pixels.' },
+  dataType: { label: 'Data type', input: 'choice', hint: 'The type that reads the file, such as Egt::Game::AlphaFamily::InfoViewConfig.' },
   movieFormat: { label: 'Movie format', input: 'text', hint: 'How the movie is encoded, such as valpha.' },
 };
+// The fields whose x button empties them instead of taking them from the form.
+const RESET = ['source', 'fadeIn', 'fadeOut'];
 // The fields that the asset's files fill in.
 const FILE_FIELDS = ['path', 'frames', 'samples'];
 const AREA = ['x', 'y', 'w', 'h'] as const;
@@ -40,6 +43,10 @@ const AREA = ['x', 'y', 'w', 'h'] as const;
 const OTHER = '__other__';
 // A group of characters: a code point or a range of them.
 const GROUP = /\[U\+[0-9a-f]+(?:-U\+[0-9a-f]+)?\]/gi;
+// What a dropdown's typed value looks like.
+const PLACEHOLDERS: Record<string, string> = {
+  resolution: '1920x1080', language: 'en-GB', integration: 'ares', polyphonyGroup: 'reels', dataType: 'Egt::Game::AlphaFamily::InfoViewConfig',
+};
 const RESOLUTION = /(?<!\d)\d{3,5}x\d{3,5}(?!\d)/g;
 
 const options = ref<DeclarationOptions | null>(null);
@@ -87,7 +94,7 @@ function choose(next: DeclarationKind) {
 /** A field back at its default, or empty. */
 function clear(field: string) {
   if (field === 'chars') {
-    groups.value = [...new Set(String(kind.value?.values.chars?.default ?? '').match(GROUP) ?? [''])].map(value => ({ value, typed: false }));
+    groups.value = DEFAULT_CHARS.map(value => ({ value, typed: false }));
     return;
   }
   const value = kind.value?.values[field]?.default ?? null;
@@ -111,9 +118,10 @@ async function add(field: string) {
   await nextTick();
   body.value?.querySelector<HTMLElement>(`#declare-${field}, #declare-${field}-x`)?.focus();
 }
-/** The source back to the whole image: its values emptied, the field kept. */
-function reset() {
-  for (const axis of AREA) area[axis] = '';
+/** A field back to nothing, and the field kept: the source's values emptied, or a fade's seconds. */
+function reset(field: string) {
+  if (field === 'source') for (const axis of AREA) area[axis] = '';
+  else clear(field);
 }
 function remove(field: string) {
   shown.value = shown.value.filter(item => item !== field);
@@ -122,7 +130,7 @@ function remove(field: string) {
   focused.value = '';
 }
 
-/** The values of a resolution, language or integration dropdown: the kind's, then those of the game's other entries, and for a
+/** The values of a dropdown such as the resolution, language or integration: the kind's, then those of the game's other entries, and for a
  * resolution, one in the asset's path, each with how many entries have it; for characters, then the presets. */
 function choices(field: string): [string, number][] {
   const counts = new Map<string, number>();
@@ -155,6 +163,8 @@ function codePoints(text: string) {
   return ranges.join('');
 }
 
+// The groups that a new font starts with: the digits and the English letters.
+const DEFAULT_CHARS = ['[U+0030-U+0039]', '[U+0041-U+005A]', '[U+0061-U+007A]'];
 // Groups of characters that a font can be given besides those the game's fonts have: digits, their separators and
 // currencies, and the Latin alphabets with the other scripts the games use.
 const CHAR_PRESETS = [
@@ -177,12 +187,14 @@ function glyphs(notation: string, limit: number) {
   return result;
 }
 
-/** The groups of characters a font can have: those in the sets of the game's fonts, then the presets. */
+/** The groups of characters a font can have: those in the sets of the game's fonts, then the presets, the ranges before
+ * the single characters. */
 const groupChoices = computed(() => {
   const result = new Set<string>();
   for (const [value] of kind.value?.values.chars?.values ?? []) for (const group of String(value).match(GROUP) ?? []) result.add(group);
   for (const preset of CHAR_PRESETS) result.add(preset);
-  return [...result];
+  const groups = [...result];
+  return [...groups.filter(group => group.includes('-')), ...groups.filter(group => !group.includes('-'))];
 });
 /** The groups of characters that a group of the font is. */
 const tokensOf = (group: { value: string; typed: boolean }) => (group.typed ? codePoints(group.value) : group.value).match(GROUP) ?? [];
@@ -380,7 +392,7 @@ async function create() {
                 <option :value="OTHER">Other…</option>
               </select>
               <input v-if="typed[field]" :id="`declare-${field}-typed`" v-model="form[field]" :class="['form-control', 'form-control-sm', 'declare-code']"
-                     :aria-label="`Other ${FIELDS[field].label.toLowerCase()}`" :placeholder="field === 'resolution' ? '1920x1080' : field === 'language' ? 'en-GB' : 'ares'" spellcheck="false" autocomplete="off">
+                     :aria-label="`Other ${FIELDS[field].label.toLowerCase()}`" :placeholder="PLACEHOLDERS[field]" spellcheck="false" autocomplete="off">
             </div>
             <template v-else>
               <input :id="`declare-${field}`" v-model="form[field]" :type="FIELDS[field].input === 'text' ? 'text' : 'number'" min="0"
@@ -390,7 +402,7 @@ async function create() {
                 <option v-for="[value, count] in suggestions(field)" :key="String(value)" :value="String(value)">{{ number(count) }} entr{{ count === 1 ? 'y' : 'ies' }}</option>
               </datalist>
             </template>
-            <button v-if="FIELDS[field].input === 'area'" type="button" class="details-icon declare-remove" :aria-label="`Reset ${FIELDS[field].label}`" :title="`Reset ${FIELDS[field].label}`" @click="reset"><i aria-hidden="true" class="mdi mdi-close" /></button>
+            <button v-if="RESET.includes(field)" type="button" class="details-icon declare-remove" :aria-label="`Reset ${FIELDS[field].label}`" :title="`Reset ${FIELDS[field].label}`" @click="reset(field)"><i aria-hidden="true" class="mdi mdi-close" /></button>
             <button v-else-if="!required(field) && FIELDS[field].input !== 'choice'" type="button" class="details-icon declare-remove" :aria-label="`Remove ${FIELDS[field].label}`" :title="`Remove ${FIELDS[field].label}`" @click="remove(field)"><i aria-hidden="true" class="mdi mdi-close" /></button>
           </div>
 

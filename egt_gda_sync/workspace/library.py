@@ -31,7 +31,7 @@ from egt_gda_sync.assets.fonts import FONT_EXTENSIONS, describe_font
 from egt_gda_sync.images.png import PNG_SIGNATURE
 from egt_gda_sync.workspace import backups
 from egt_gda_sync.sync.rss_declare import KINDS, asset_files, asset_kinds, asset_name, build_entry, descriptor_targets, entry_paths, kind_options, used_values
-from egt_gda_sync.sync.rss_edit import add_declaration, parse as parse_json_source, remove_declarations, set_view_positions
+from egt_gda_sync.sync.rss_edit import add_declaration, declaration_keys, parse as parse_json_source, remove_declarations, set_view_positions, walk
 from egt_gda_sync.sync.rss_jobs import SyncJobs
 from egt_gda_sync.images.image_cache import CACHE_FILE
 from egt_gda_sync.workspace.paths import PLACEHOLDER, contract, expand, expand_fields, global_paths
@@ -58,6 +58,9 @@ ASSET_TYPES = (
     ("font", set(FONT_EXTENSIONS)),
     ("rtf", {RTF_EXTENSION}),
 )
+# The text files that the asset details edit, and the largest one they open.
+TEXT_EXTENSIONS = frozenset({"csv", "json", "txt", "ini", "xml", "md", "log", "tsv", "yaml", "yml", "cfg"})
+MAX_TEXT_BYTES = 1024 * 1024
 FOLDER_NAMES = {"source": "GDA", "destination": "Game"}
 # The selected workspace's fields that the configuration repeats at its top level: its folders expanded, and as written.
 WORKSPACE_KEYS = ("name", "source", "destination", "templates", "demo")
@@ -236,6 +239,13 @@ def _delete_with_backup(target: str, backup: str) -> None:
     if file_hash(backup) != file_hash(target):
         raise AppError("The backup does not match the game file, so it was kept")
     os.unlink(target)
+
+
+def _asset_files(row: dict) -> list[str]:
+    """The files of an asset of the asset report, each once: a sequence's frames, an RTF's folder's files, or its file."""
+    files = [frame["resourcePath"] for frame in row["sequence"]["frames"]] if "sequence" in row \
+        else [file["resourcePath"] for file in row["directory"]["files"]] if "directory" in row else [row["resourcePath"]]
+    return list(dict.fromkeys(files))
 
 
 def _remove_empty_folders(folder: str, top: str) -> None:
@@ -692,12 +702,21 @@ class Library:
             source_root = os.path.join(self.backup_path, operation_id)
             folder = backups.new_operation(self.backup_path)
             restored, skipped, failures = [], [], []
+            entries: dict[str, list[dict]] = {}
+            for item in record.get("declarations", []):
+                entries.setdefault(item["path"], []).append(item)
             for path in chosen:
                 try:
                     source = safe_path(source_root, path)
                     if by_path[path]["now"] == "same":
                         skipped.append(path)
                         continue
+                    if by_path[path]["now"] == "changed" and path in entries:
+                        # A descriptor that entries were removed from gets them back, as they were, in its text as it is
+                        # now, which keeps what was changed in it since.
+                        if self._restore_entries(root, path, entries[path], folder):
+                            restored.append(path)
+                            continue
                     _replace_file(source, root, path, os.path.join(folder, *path.split("/")), create_parents=True)
                     restored.append(path)
                 except Exception as error:
@@ -714,6 +733,28 @@ class Library:
             return {"restored": restored, "skipped": skipped, "failures": failures, "library": self.scan()}
 
         return self._exclusive(operation)
+
+    def _restore_entries(self, root: str, relative: str, declarations: list[dict], folder: str) -> bool:
+        """Add the entries that a backup removed from a descriptor back to it, each at the end of its list as it was and
+        unless the list has it already; the descriptor as it was is saved in folder first. False when that cannot be done
+        (the descriptor has no such list, or is not valid), and the caller restores the whole file."""
+        target = safe_path(root, relative)
+        try:
+            data = Path(target).read_bytes()
+            bom = data.startswith(b"\xef\xbb\xbf")
+            text = data[3 if bom else 0:].decode("utf-8")
+            for item in declarations:
+                if item["entry"] not in (json.loads(text).get(item["list"]) or []):
+                    text, _line = add_declaration(text, item["list"], item["entry"])
+            parse_dataclass(DOCUMENT_TYPES[Path(target).name], json.loads(text), relative)
+        except (OSError, UnicodeDecodeError, ValueError, TypeError, KeyError, AttributeError):
+            return False
+        if text.encode("utf-8") != data[3 if bom else 0:]:
+            backup = os.path.join(folder, *relative.split("/"))
+            os.makedirs(os.path.dirname(backup), exist_ok=True)
+            _copy_exclusive(target, backup)
+            _write_file(target, (b"\xef\xbb\xbf" if bom else b"") + text.encode("utf-8"))
+        return True
 
     def delete_rss_report(self, name: str) -> dict:
         """Delete one GDA sync report of the active workspace, by its file name. The Sync page then shows the newest
@@ -893,6 +934,92 @@ class Library:
                           and (item["id"] == row["id"] or item.get("sequence") or item["resourcePath"] == row["resourcePath"])), None)
             return {"library": self.scan(), "asset": found[0]["id"] if found else None, "descriptor": descriptor,
                     "line": found[1]["line"] if found else line}
+
+        return self._exclusive(operation)
+
+    def remove_asset(self, asset: str) -> dict:
+        """Remove an asset of the newest asset report from the game folder: the entries that declare it, from the
+        descriptors that the report says declare it, and its files, an RTF's with its folder when it is left empty. A file
+        that a descriptor still declares stays. Each descriptor and file it changes is saved in one backup, which also
+        records each removed entry, so that restoring it puts the same entry back. Then generate the asset report again.
+        Returns the library and what was removed."""
+        def operation() -> dict:
+            self.require_folders("destination")
+            workspace_id, entry = self._active_workspace()
+            settings = self._comparison(workspace_id, entry)[1]
+            report = self.asset_reports.report(workspace_id)
+            if report is None:
+                raise AppError("This workspace has no asset report yet. Click Rescan in the Asset library to create one.", 404)
+            row = next((row for row in json.loads(report).get("assets", []) if row["id"] == asset), None)
+            if row is None:
+                raise AppError("The asset is no longer in the asset report. Rescan and try again.", 404)
+            if row["scope"] != "game":
+                raise AppError("Only an asset of the game folder can be removed; this one is shared with other games or outside it", 409)
+            resources, game = os.path.realpath(settings["resources_dir"]), self._asset_game(settings)
+            files = [file for file in _asset_files(row) if os.path.lexists(file)]
+            for file in files:
+                if not contained(str(game), file):
+                    raise AppError("Its files are outside the game folder")
+                if not stat.S_ISREG(os.lstat(file).st_mode):
+                    raise AppError("The game file is not a regular file")
+            # The descriptors' text without the entries, before anything is written.
+            edits: list[tuple[str, str, bool, str]] = []
+            declarations: list[dict] = []
+            for descriptor in dict.fromkeys(use["descriptor"] for use in row["requiredBy"]):
+                relative = os.path.relpath(os.path.normpath(os.path.join(game, descriptor)), resources)
+                path = safe_path(resources, relative)
+                try:
+                    data = Path(path).read_bytes()
+                    bom = data.startswith(b"\xef\xbb\xbf")
+                    text = data[3 if bom else 0:].decode("utf-8")
+                    root = parse_json_source(text)
+                    nodes = dict(walk(root))
+                    keys = declaration_keys(root, row, game)
+                    result, _counts = remove_declarations(Path(path), text, [row], game)
+                except (OSError, UnicodeDecodeError, ValueError, TypeError) as error:
+                    raise AppError(f"{descriptor}: {error_message(error)}", 400) from error
+                if result == text:
+                    continue
+                declarations.extend({"path": _portable(relative), "list": key[-2], "entry": json.loads(text[nodes[key].start:nodes[key].end])}
+                                    for key in keys if nodes[key].kind == "object" and len(key) >= 2 and isinstance(key[-2], str))
+                edits.append((relative, path, bom, result))
+            if row["requiredBy"] and not edits:
+                raise AppError("Its declaration is not in the descriptors any more. Rescan to update the report.", 409)
+            if not edits and not files:
+                raise AppError("It has nothing to remove: no descriptor declares it and its files do not exist. Rescan to update the report.", 409)
+            folder = backups.new_operation(self.backup_path)
+            for relative, path, bom, result in edits:
+                backup = os.path.join(folder, relative)
+                os.makedirs(os.path.dirname(backup), exist_ok=True)
+                _copy_exclusive(path, backup)
+                _write_file(path, (b"\xef\xbb\xbf" if bom else b"") + result.encode("utf-8"))
+            try:
+                declared = declared_files(game, tuple(settings["resource_paths"])) if files else set()
+            except (OSError, ValueError) as error:
+                raise AppError(f"The descriptors cannot be read: {error_message(error)}") from error
+            deleted, kept = [], []
+            for file in files:
+                if Path(file) in declared:
+                    kept.append(os.path.relpath(file, game))
+                    continue
+                _delete_with_backup(file, os.path.join(folder, os.path.relpath(file, resources)))
+                deleted.append(os.path.relpath(file, resources))
+                if "directory" in row:
+                    _remove_empty_folders(os.path.dirname(file), os.path.dirname(row["resourcePath"]))
+            name = os.path.basename(row["resource"])
+            parts = []
+            if declarations:
+                parts.append(f"its {len(declarations)} entr{'y' if len(declarations) == 1 else 'ies'}")
+            if deleted:
+                parts.append(f"{len(deleted)} file{'' if len(deleted) == 1 else 's'}")
+            message = f"Removed {name}: {' and '.join(parts) or 'nothing'}"
+            self._record("cleanup", message, [_portable(item) for item in [*(item[0] for item in edits), *deleted]])
+            backups.write_manifest(folder, action="cleanup", message=message, workspace={"id": workspace_id, "name": entry.get("name", workspace_id)},
+                                   root=resources, declarations=declarations)
+            self._write_asset_report()
+            if not self.reports.status(workspace_id)["running"]:
+                self.start_comparison()
+            return {"library": self.scan(), "name": name, "entries": len(declarations), "files": len(deleted), "kept": kept}
 
         return self._exclusive(operation)
 
@@ -1355,6 +1482,71 @@ class Library:
             except (OSError, ValueError, RecursionError) as error:
                 raise AppError(error_message(error), 415) from error
             return {"layout": layout, "library": self.scan()}
+
+        return self._exclusive(operation)
+
+    @staticmethod
+    def _text_data(path: str) -> bytes:
+        """The bytes of a text file that the asset details edit: of a kind of text file, not too large, and UTF-8."""
+        if os.path.splitext(path)[1][1:].lower() not in TEXT_EXTENSIONS:
+            raise AppError("This is not a kind of text file that can be edited", 415)
+        try:
+            if os.path.getsize(path) > MAX_TEXT_BYTES:
+                raise AppError(f"The file is larger than {MAX_TEXT_BYTES // 1024} KB, too large to edit here", 413)
+            data = Path(path).read_bytes()
+        except FileNotFoundError as error:
+            raise AppError("File not found", 404) from error
+        try:
+            data[3 if data.startswith(b"\xef\xbb\xbf") else 0:].decode("utf-8")
+        except UnicodeDecodeError as error:
+            raise AppError("The file is not UTF-8 text", 415) from error
+        return data
+
+    def text_file(self, file: str) -> dict:
+        """A text file of the active workspace's resources, game or GDA, as the asset details edit it: its text, and its
+        revision, which saving it must give back."""
+        data = self._text_data(self._resource_path(file))
+        bom = data.startswith(b"\xef\xbb\xbf")
+        return {"text": data[3 if bom else 0:].decode("utf-8"), "revision": hashlib.sha256(data).hexdigest()[:16]}
+
+    def save_text_file(self, file: str, text: str, revision: str) -> dict:
+        """Replace the text of a text file of the game's resources, keeping its byte order mark, and save the file it replaces
+        in the backups. revision is the file the text was edited from: a file changed since is refused. A .json file must
+        stay valid JSON, and a descriptor a valid descriptor. Then generate the asset report again. Returns the new
+        revision and the library."""
+        def operation() -> dict:
+            self.require_folders("destination")
+            path = self._resource_path(file)
+            workspace_id, entry = self._active_workspace()
+            resources = os.path.realpath(self._comparison(workspace_id, entry)[1]["resources_dir"])
+            if not contained(resources, path):
+                raise AppError("Only the files of the game's resources can be edited", 403)
+            data = self._text_data(path)
+            if hashlib.sha256(data).hexdigest()[:16] != revision:
+                raise AppError("The file changed on disk since it was opened. Open it again to edit it.", 409)
+            relative = os.path.relpath(path, resources)
+            if path.lower().endswith(".json"):
+                try:
+                    document = json.loads(text)
+                    if (cls := DOCUMENT_TYPES.get(os.path.basename(path))) is not None:
+                        parse_dataclass(cls, document, relative)
+                except (ValueError, TypeError, RecursionError) as error:
+                    raise AppError(f"Not saved: {error_message(error)}", 400) from error
+            result = (b"\xef\xbb\xbf" if data.startswith(b"\xef\xbb\xbf") else b"") + text.encode("utf-8")
+            if len(result) > MAX_TEXT_BYTES:
+                raise AppError(f"The text is larger than {MAX_TEXT_BYTES // 1024} KB", 413)
+            if result != data:
+                folder = backups.new_operation(self.backup_path)
+                backup = os.path.join(folder, relative)
+                os.makedirs(os.path.dirname(backup), exist_ok=True)
+                _copy_exclusive(path, backup)
+                _write_file(path, result)
+                message = f"Edited {os.path.basename(path)}"
+                self._record("edit", message, [_portable(relative)])
+                backups.write_manifest(folder, action="edit", message=message,
+                                       workspace={"id": workspace_id, "name": entry.get("name", workspace_id)}, root=resources)
+                self._write_asset_report()
+            return {"revision": hashlib.sha256(result).hexdigest()[:16], "library": self.scan()}
 
         return self._exclusive(operation)
 

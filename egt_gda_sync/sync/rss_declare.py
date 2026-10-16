@@ -18,7 +18,7 @@ from dataclasses import dataclass, fields as dataclass_fields, is_dataclass
 from pathlib import Path
 from typing import Any
 
-from egt_gda_sync.sync.rss_sync import NUMBERED_NAME, expand_path
+from egt_gda_sync.sync.rss_sync import IDATA_FOLDER, NUMBERED_NAME, expand_path
 
 
 @dataclass(frozen=True, slots=True)
@@ -40,6 +40,7 @@ KINDS: dict[str, Kind] = {
     "Rtf": Kind("rtfs", "RssRtfsData.json", ("id", "path", "integration"), frozenset({"id"})),
     "Element": Kind("elements", "RssElementsListData.json", ("id", "path", "resolution", "integration"), frozenset({"id"})),
     "Movie": Kind("movies", "RssMoviesData.json", ("id", "path", "movieFormat"), frozenset({"id", "movieFormat"})),
+    "IData": Kind("idatas", "RssIData.json", ("id", "dataType", "path", "resolution", "integration"), frozenset({"id", "dataType"})),
     "RawFile": Kind("rawFiles", "RssRawData.json", ("path",), frozenset()),
 }
 # The fields that the asset's files fill in: a single path, the frames of a sequence, or the samples of an audio event.
@@ -47,12 +48,13 @@ FILE_FIELDS = frozenset({"path", "frames", "samples"})
 # The fields whose values are not suggested: an image's area is its own.
 UNSUGGESTED = frozenset({"id", "source"})
 # The fields whose values are suggested but not a default: an integration or a language picks a variant of an entry,
-# which a new entry is not unless asked, and the frame a sequence loops to is its own.
-UNDEFAULTED = frozenset({"integration", "language", "loopTo"})
+# which a new entry is not unless asked, the frame a sequence loops to is its own, a sound is in a polyphony group only
+# when it is meant to be, and the data type of an IData entry is the one that reads the file.
+UNDEFAULTED = frozenset({"integration", "language", "loopTo", "polyphonyGroup", "dataType"})
 MOVIE_EXTENSIONS = frozenset({".mov"})
 # How the games name the ids of a kind, for a game that has none of its entries yet: a prefix, and the case of the rest.
 ID_STYLES = {"Image": ("IMAGE_", "upper"), "ImageSequence": ("ANIM_", "upper"), "AudioEvent": ("SOUND_", "upper"),
-             "Font": ("FONT_", "upper"), "Rtf": ("rtf_", "lower"), "Element": ("", "keep"), "Movie": ("ANIM_", "upper")}
+             "Font": ("FONT_", "upper"), "Rtf": ("rtf_", "lower"), "Element": ("", "keep"), "Movie": ("ANIM_", "upper"), "IData": ("", "keep")}
 ID_PREFIX = re.compile(r"^[A-Za-z]+_")
 RESOLUTION = re.compile(r"(?<!\d)\d{3,5}x\d{3,5}(?!\d)")
 SUGGESTED_VALUES = 20
@@ -65,6 +67,9 @@ def asset_kinds(row: dict) -> list[str]:
     if row["type"] in ("rtf", "view"):
         return ["Rtf" if row["type"] == "rtf" else "Element"]
     kinds = {"texture": ["Image", "Font"], "audio": ["AudioEvent"], "font": ["Font"]}.get(row["type"])
+    # A .json file of the game's idata folder is data that RssIData.json declares.
+    if kinds is None and row["resource"].replace("\\", "/").startswith(f"{IDATA_FOLDER}/") and Path(row["resourcePath"]).suffix.lower() == ".json":
+        kinds = ["IData"]
     if kinds is None:
         kinds = ["Movie"] if Path(row["resourcePath"]).suffix.lower() in MOVIE_EXTENSIONS else []
     return [*kinds, "RawFile"]

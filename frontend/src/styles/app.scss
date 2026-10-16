@@ -615,6 +615,12 @@ button.nav-link {
   .asset-menu:focus-visible {
     opacity: 1;
   }
+
+  .asset-remove:hover,
+  .asset-remove:focus-visible {
+    background: $danger;
+    color: $white;
+  }
 }
 
 .asset-list {

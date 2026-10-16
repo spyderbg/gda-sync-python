@@ -1,6 +1,6 @@
 // Application state shared by the layout and the views, and the actions that talk to the backend.
 import { computed, reactive, ref, watch } from 'vue';
-import { commonAction, plural, resourceAction, viewSaves, type GdaCandidate } from './format';
+import { commonAction, plural, resourceAction, splitPath, viewSaves, type GdaCandidate } from './format';
 import type { Asset, AssetSection, DeclarationKind, DeclarationOptions, LibraryResponse, RestoreResult, RssFileDetails, RssResource, RssSyncHistory, RssSyncStatus, Session, SyncResult, View, ViewLayout, WorkspaceConfig } from './types';
 
 const INVALID_SESSION = 'Invalid session. Reload the application.';
@@ -27,7 +27,7 @@ export const reportState = computed<'unknown' | 'creating' | 'none' | 'failed' |
 export const session = reactive({ token: '', version: '', platform: '' });
 export const loadError = ref('');
 export const stopped = ref(false);
-export const busy = ref<'' | 'scan' | 'sync' | 'report' | 'settings' | 'shutdown' | 'delete-report' | 'restore' | 'declare'>('');
+export const busy = ref<'' | 'scan' | 'sync' | 'report' | 'settings' | 'shutdown' | 'delete-report' | 'restore' | 'declare' | 'remove'>('');
 /** What the GDA sync report resources being applied do, while busy is "sync" for them. */
 export const applying = ref<ReturnType<typeof commonAction>>(null);
 export const toast = ref<{ text: string; error?: boolean } | null>(null);
@@ -312,6 +312,42 @@ export async function declareAsset(body: { asset: string; kind: DeclarationKind;
     applyLibrary(result.library);
     if (result.asset) ui.inspecting = result.asset;
     notify(`Declared ${typeof body.id === 'string' ? body.id : 'the asset'} in ${result.descriptor}:${result.line}.`);
+    return true;
+  } catch (e) {
+    notify((e as Error).message, true);
+    return false;
+  } finally { busy.value = ''; }
+}
+
+/** A text file of the game's resources, as the asset details edit it: its text, and the revision that saving it gives back. */
+export function readTextFile(file: string) {
+  return getJSON<{ text: string; revision: string }>(`/api/asset-report/text?file=${encodeURIComponent(file)}`);
+}
+
+/** Save the text of a text file, whose previous version is saved in the backups, and generate the asset report again.
+ * Returns the file's new revision, or null when it was not saved. */
+export async function saveTextFile(file: string, text: string, revision: string) {
+  try {
+    const result = await api<{ revision: string; library: LibraryResponse }>('asset-report/text', 'POST', { file, text, revision });
+    applyLibrary(result.library);
+    notify(`Saved ${splitPath(file).name}.`);
+    return result.revision;
+  } catch (e) {
+    notify((e as Error).message, true);
+    return null;
+  }
+}
+
+/** Remove an asset of the asset report from the game: the entries that declare it and its files, which are saved in the
+ * backups first. The asset report is generated again. Returns whether it was removed. */
+export async function removeAsset(asset: string) {
+  busy.value = 'remove';
+  try {
+    const result = await api<{ library: LibraryResponse; name: string; entries: number; files: number; kept: string[] }>('asset-report/remove', 'POST', { asset });
+    applyLibrary(result.library);
+    if (ui.inspecting === asset) ui.inspecting = null;
+    const parts = [result.entries ? `${result.entries} entr${result.entries === 1 ? 'y' : 'ies'}` : '', result.files ? `${result.files} file${plural(result.files)}` : ''].filter(Boolean);
+    notify(`Removed ${result.name}${parts.length ? `: ${parts.join(' and ')}` : ''}.${result.kept.length ? ` ${result.kept.length} file${plural(result.kept.length)} kept, still declared.` : ''}`);
     return true;
   } catch (e) {
     notify((e as Error).message, true);

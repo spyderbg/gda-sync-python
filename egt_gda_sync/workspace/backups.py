@@ -3,7 +3,9 @@
 Each operation that changes game files saves the files it replaces or deletes in a folder of its own,
 <backups>/<operation id>/, at their paths relative to the folder it changed (root): the resources folder of the
 workspace, or for the asset library's older sync its game folder. Beside the folder, <operation id>.json records the
-operation: when, its action and message, the workspace, root, and each file with whether it was replaced or deleted.
+operation: when, its action and message, the workspace, root, and each file with whether it was replaced or deleted. An operation that removed descriptor entries
+also records each of them (declarations): the descriptor's path relative to root, the list the entry was in and the
+entry as it was, so that restoring the operation can put the same entry back.
 Backups from before these records are listed too: when their files' paths all start with the game folder of a
 workspace, they are that workspace's, relative to its resources folder; otherwise where they belong is not known, and
 they cannot be restored.
@@ -54,19 +56,29 @@ def _files(folder: str) -> list[str]:
     return sorted(found)
 
 
-def write_manifest(folder: str, *, action: str, message: str, workspace: dict, root: str, date: str | None = None) -> None:
+def write_manifest(folder: str, *, action: str, message: str, workspace: dict, root: str, date: str | None = None,
+                   declarations: list[dict] | None = None) -> None:
     """Record an operation whose backups are in folder, if it saved any: each file was replaced when root still has it,
-    deleted when it does not."""
+    deleted when it does not. declarations are the descriptor entries that it removed."""
     if not os.path.isdir(folder):
         return
     files = [{"path": path, "change": "replaced" if os.path.isfile(os.path.join(root, *path.split("/"))) else "deleted"}
              for path in _files(folder)]
     record = {"version": MANIFEST_VERSION, "id": os.path.basename(folder), "date": date or _time(datetime.now(timezone.utc).timestamp()),
               "action": action, "message": message, "workspace": workspace, "root": root, "files": files}
+    if declarations:
+        record["declarations"] = declarations
     temporary = f"{folder}.json.{uuid.uuid4()}.tmp"
     with open(temporary, "w", encoding="utf-8") as handle:
         json.dump(record, handle, indent=2, ensure_ascii=False)
     os.replace(temporary, f"{folder}.json")
+
+
+def _declarations(value: object) -> list[dict]:
+    """The removed descriptor entries a record lists, those that have a path, a list name and an entry."""
+    return [{"path": item["path"], "list": item["list"], "entry": item["entry"]} for item in value
+            if isinstance(item, dict) and isinstance(item.get("path"), str) and isinstance(item.get("list"), str)
+            and isinstance(item.get("entry"), dict)] if isinstance(value, list) else []
 
 
 def _record(backup_path: str, operation_id: str, resolve: Resolver) -> dict | None:
@@ -83,13 +95,13 @@ def _record(backup_path: str, operation_id: str, resolve: Resolver) -> dict | No
     except (OSError, ValueError):
         found = resolve(paths)
         newest = max((os.path.getmtime(os.path.join(folder, *path.split("/"))) for path in paths), default=os.path.getmtime(folder))
-        return {"id": operation_id, "date": _time(newest), "action": "backup", "message": "", "legacy": True,
+        return {"id": operation_id, "date": _time(newest), "action": "backup", "message": "", "legacy": True, "declarations": [],
                 "workspace": found[0] if found else None, "root": found[1] if found else None,
                 "files": [{"path": path, "change": "replaced"} for path in paths]}
     changes = {item.get("path"): item.get("change") for item in record["files"] if isinstance(item, dict)}
     # The folder's files are the backups, whatever the record lists.
     return {"id": operation_id, "date": str(record.get("date") or ""), "action": str(record.get("action") or "backup"),
-            "message": str(record.get("message") or ""), "legacy": False,
+            "message": str(record.get("message") or ""), "legacy": False, "declarations": _declarations(record.get("declarations")),
             "workspace": record.get("workspace") if isinstance(record.get("workspace"), dict) else None, "root": record["root"],
             "files": [{"path": path, "change": changes.get(path) if changes.get(path) in ("replaced", "deleted") else "replaced"} for path in paths]}
 
@@ -107,7 +119,7 @@ def list_operations(backup_path: str, resolve: Resolver) -> list[dict]:
             continue
         folder = os.path.join(backup_path, name)
         size = sum(os.path.getsize(os.path.join(folder, *item["path"].split("/"))) for item in record["files"])
-        operations.append({**{key: value for key, value in record.items() if key != "files"}, "fileCount": len(record["files"]),
+        operations.append({**{key: value for key, value in record.items() if key not in ("files", "declarations")}, "fileCount": len(record["files"]),
                            "size": size, "restorable": record["root"] is not None})
     return sorted(operations, key=lambda item: item["date"], reverse=True)
 

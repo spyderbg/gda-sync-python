@@ -142,11 +142,23 @@ class Area(_Body):
     h: Annotated[int, Field(strict=True, ge=1, le=65535)]
 
 
+class TextFileBody(_Body):
+    """The new text of a text file of the game's resources, and the revision of the file it was edited from."""
+    file: Text4K
+    text: Annotated[str, Field(max_length=1_048_576)]
+    revision: Annotated[str, Field(min_length=1, max_length=64)]
+
+
+class RemoveAssetBody(_Body):
+    """An asset of the asset report to remove from the game: its declarations and its files."""
+    asset: Text4K
+
+
 class DeclarationBody(_Body):
     """A new descriptor entry for an asset of the asset report that no descriptor declares: its kind, the descriptor
     that holds it, relative to the game folder, and the values of its fields; those its kind does not have are refused."""
     asset: Text4K
-    kind: Literal["Image", "ImageSequence", "AudioEvent", "Font", "Rtf", "Element", "Movie", "RawFile"]
+    kind: Literal["Image", "ImageSequence", "AudioEvent", "Font", "Rtf", "Element", "Movie", "IData", "RawFile"]
     descriptor: Text4K
     id: Value | None = None
     resolution: Value | None = None
@@ -163,6 +175,7 @@ class DeclarationBody(_Body):
     chars: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=4096)] | None = None
     size: Annotated[int, Field(strict=True, ge=1, le=4096)] | None = None
     movieFormat: Value | None = None
+    dataType: Value | None = None
 
 
 class ResourceFilesBody(_Body):
@@ -446,6 +459,18 @@ def create_app(
     def declare_asset(body: DeclarationBody) -> dict:
         values = body.model_dump(exclude_none=True, exclude={"asset", "kind", "descriptor"})
         return library.declare_asset(body.asset, body.kind, body.descriptor, values)
+
+    @app.post("/api/asset-report/remove")
+    def remove_asset(body: RemoveAssetBody) -> dict:
+        return library.remove_asset(body.asset)
+
+    @app.get("/api/asset-report/text")
+    def text_file(file: Annotated[str, Query(max_length=4096)]) -> dict:
+        return library.text_file(file)
+
+    @app.post("/api/asset-report/text")
+    def save_text_file(body: TextFileBody) -> dict:
+        return library.save_text_file(body.file, body.text, body.revision)
 
     @app.get("/{path:path}", include_in_schema=False)
     async def frontend_file(path: str) -> Response:

@@ -59,7 +59,7 @@ def client(tmp_path):
     (game / "song.wav").write_bytes(b"RIFF")
     gda = tmp_path / "gda"
     gda.mkdir()
-    entry = {"id": "example", "game_name": "Example", "game_path": str(game), "gda_path": str(gda), "extensions": [".dds", ".png", ".wav"]}
+    entry = {"id": "example", "game_name": "Example", "game_path": str(game), "gda_path": str(gda), "extensions": [".dds", ".png", ".wav", ".json"]}
     config = tmp_path / "workspace.json"
     config.write_text(json.dumps({"config": {"port": 3457}, "defaultWorkspace": "example", "workspaces": [entry]}))
     library = Library(str(tmp_path / "app"), config_path=str(config))
@@ -136,3 +136,65 @@ def test_a_declaration_is_refused_for_another_kind_or_descriptor_or_a_missing_va
     assert post(kind="AudioEvent", descriptor="RssAudioData.json", id="SOUND_SONG", loop=True, fadeOut=0.8).status_code == 200
     assert json.loads((client.game / "RssAudioData.json").read_text())["audioEvents"][-1] == {
         "id": "SOUND_SONG", "samples": ["song.wav"], "loop": True, "fadeOut": 0.8}
+
+
+def test_removing_a_declared_asset_removes_its_entries_and_file_into_one_backup_that_restores_them(client):
+    row = asset(client, "logo.dds")
+    result = client.post("/api/asset-report/remove", json={"asset": row["id"]}).json()
+    assert result["name"] == "logo.dds" and result["entries"] == 2 and result["files"] == 1 and result["kept"] == []
+    assert not (client.game / "logo.dds").exists()
+    assert [item["id"] for item in json.loads((client.game / "RssImagesData.json").read_text())["images"]] == ["GONE", "SHARED"]
+    assert not any(item["resource"] == "logo.dds" and item["category"] == "available" for item in client.get("/api/asset-report").json()["assets"])
+    # Both entries are stored in the backup, with the descriptor and the file.
+    operation = result["library"]["activity"][0]
+    assert operation["message"] == "Removed logo.dds: its 2 entries and 1 file"
+    backups = client.get("/api/backups").json()["backups"]
+    detail = client.get(f"/api/backups/{backups[0]['id']}").json()
+    assert sorted(item["path"] for item in detail["files"]) == ["example/RssImagesData.json", "example/logo.dds"]
+    assert [item["entry"] for item in detail["declarations"]] == [{"id": "LOGO", "path": "logo.dds"}, {"id": "LOGO_HD", "path": "logo.dds", "resolution": "1920x1080"}]
+    # Restoring puts the same entries back into the descriptor as it is now, which keeps what changed in it since.
+    other = asset(client, "unlisted.dds")
+    client.post("/api/asset-report/declaration", json={"asset": other["id"], "kind": "Image", "descriptor": "RssImagesData.json", "id": "IMAGE_UNLISTED"})
+    restored = client.post("/api/backups/restore", json={"id": backups[0]["id"]}).json()
+    assert sorted(restored["restored"]) == ["example/RssImagesData.json", "example/logo.dds"] and restored["failures"] == []
+    images = json.loads((client.game / "RssImagesData.json").read_text())["images"]
+    assert [item["id"] for item in images] == ["GONE", "SHARED", "IMAGE_UNLISTED", "LOGO", "LOGO_HD"]
+    assert images[-1] == {"id": "LOGO_HD", "path": "logo.dds", "resolution": "1920x1080"}
+    assert (client.game / "logo.dds").is_file()
+
+
+def test_removing_an_undeclared_asset_deletes_only_its_files_and_a_shared_one_is_refused(client):
+    row = asset(client, "unlisted.dds")
+    result = client.post("/api/asset-report/remove", json={"asset": row["id"]}).json()
+    assert result["entries"] == 0 and result["files"] == 1 and not (client.game / "unlisted.dds").exists()
+    shared = asset(client, "../common/shared.png")
+    refused = client.post("/api/asset-report/remove", json={"asset": shared["id"]})
+    assert refused.status_code == 409 and "shared with other games" in refused.json()["error"]
+    assert client.post("/api/asset-report/remove", json={"asset": "nothing"}).status_code == 404
+
+
+def test_a_json_file_of_the_idata_folder_is_declared_as_idata_with_the_games_data_types(client):
+    (client.game / "idata" / "1920x1080").mkdir(parents=True)
+    for name in ("DeclaredView.json", "AresInfoView.json"):
+        (client.game / "idata" / "1920x1080" / name).write_text("{}")
+    (client.game / "RssIData.json").write_text(json.dumps({"idatas": [
+        {"id": "InfoViewConfig", "dataType": "Egt::Game::AlphaFamily::InfoViewConfig", "path": "idata/1920x1080/DeclaredView.json", "resolution": "1920x1080"}]}, indent=2))
+    client.post("/api/asset-report")
+    row = asset(client, "idata/1920x1080/AresInfoView.json")
+    options = client.get("/api/asset-report/declaration", params={"asset": row["id"]}).json()
+    assert options["paths"] == ["idata/1920x1080/AresInfoView.json"] and [kind["kind"] for kind in options["kinds"]] == ["IData", "RawFile"]
+    idata = options["kinds"][0]
+    assert idata["fields"] == ["id", "dataType", "path", "resolution", "integration"] and idata["required"] == ["dataType", "id"]
+    assert idata["descriptors"] == ["RssIData.json"] and idata["id"] == "AresInfoView"
+    assert idata["values"]["dataType"]["default"] is None and idata["values"]["dataType"]["values"] == [["Egt::Game::AlphaFamily::InfoViewConfig", 1]]
+    assert idata["values"]["resolution"]["default"] == "1920x1080"
+    missing = client.post("/api/asset-report/declaration", json={"asset": row["id"], "kind": "IData", "descriptor": "RssIData.json", "id": "InfoViewConfig"})
+    assert missing.json()["error"] == "IData entries need dataType"
+    result = client.post("/api/asset-report/declaration", json={
+        "asset": row["id"], "kind": "IData", "descriptor": "RssIData.json", "id": "InfoViewConfig", "dataType": "Egt::Game::AlphaFamily::InfoViewConfig",
+        "resolution": "1920x1080", "integration": "ares"}).json()
+    assert json.loads((client.game / "RssIData.json").read_text())["idatas"][-1] == {
+        "id": "InfoViewConfig", "dataType": "Egt::Game::AlphaFamily::InfoViewConfig", "path": "idata/1920x1080/AresInfoView.json",
+        "resolution": "1920x1080", "integration": "ares"}
+    declared = asset(client, "idata/1920x1080/AresInfoView.json")
+    assert declared["category"] == "available" and declared["requiredBy"][0]["type"] == "IData" and result["asset"] == declared["id"]

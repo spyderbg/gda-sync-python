@@ -64,7 +64,7 @@ def test_the_library_draws_a_font_with_its_declared_characters_and_marks_the_mis
     BUILD.mkdir(exist_ok=True)
     page.screenshot(path=str(BUILD / 'font-library-desktop.png'))
 
-    main.get_by_role('button', name='Show details for main.ttf').click()
+    main.locator('.asset-hit-target').click()
     details = page.get_by_role('dialog', name='main.ttf')
     expect(details.get_by_role('row', name='Family DejaVu Sans')).to_be_visible()
     expect(details.locator('.details-coverage')).to_have_text('102 of 105 declared characters')

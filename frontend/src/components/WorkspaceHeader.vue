@@ -36,8 +36,10 @@ const problems = computed(() => (summary.value ? summary.value.missing + summary
       <div class="workspace-header-intro">
         <p class="workspace-subtitle">
           <span>Asset report:</span>
-          <span class="workspace-sync-data-path">{{ assetReport?.reportPath || 'None yet' }}</span>
-          <button v-if="assetReport?.reportPath" type="button" class="workspace-sync-data-copy" aria-label="Copy asset report path" title="Copy asset report path" @click="copy(assetReport.reportPath)"><i aria-hidden="true" class="mdi mdi-content-copy" /></button>
+          <span class="workspace-subtitle-path">
+            <span class="workspace-sync-data-path">{{ assetReport?.reportPath || 'None yet' }}</span>
+            <button v-if="assetReport?.reportPath" type="button" class="workspace-sync-data-copy" aria-label="Copy asset report path" title="Copy asset report path" @click="copy(assetReport.reportPath)"><i aria-hidden="true" class="mdi mdi-content-copy" /></button>
+          </span>
         </p>
       </div>
       <div class="workspace-header-actions">
@@ -86,8 +88,8 @@ const problems = computed(() => (summary.value ? summary.value.missing + summary
 .workspace-header { margin-bottom: 22px; }
 .workspace-header-top { display: flex; align-items: center; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
 .workspace-header-intro { min-width: 0; }
-.workspace-subtitle { display: flex; align-items: center; gap: 4px; margin: 0; color: #87909b; font-size: 12px; line-height: 1.5; }
-.workspace-subtitle > span:first-child { flex-shrink: 0; }
+.workspace-subtitle { display: flex; flex-direction: column; align-items: flex-start; gap: 0; margin: 0; color: #87909b; font-size: 12px; line-height: 1.5; }
+.workspace-subtitle-path { display: flex; align-items: center; gap: 4px; min-width: 0; }
 .workspace-sync-data-path { min-width: 0; font-family: monospace; overflow-wrap: anywhere; }
 .workspace-sync-data-copy { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 4px; background: transparent; color: #87909b; font-size: 16px; cursor: pointer; }
 .workspace-sync-data-copy:hover { background: #edf7ff; color: #2196f3; }

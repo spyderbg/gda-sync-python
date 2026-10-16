@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import AssetCard from '../components/AssetCard.vue';
 import AssetDetails from '../components/AssetDetails.vue';
+import RemoveAsset from '../components/RemoveAsset.vue';
 import CheckBox from '../components/CheckBox.vue';
 import ViewsDetails from '../components/ViewsDetails.vue';
 import ButtonTooltip from '../components/ButtonTooltip.vue';
@@ -87,6 +88,8 @@ const visible = computed(() => rows.value.slice(0, shown.value));
 watch([filter, folder, () => ui.query, () => ui.category, report], () => { shown.value = PAGE_SIZE; });
 
 // Clicking an asset shows its details; a new report that no longer lists it closes them.
+// The asset whose removal waits for confirmation.
+const removing = ref<ReportAsset | null>(null);
 const detailsRow = computed(() => (ui.inspecting ? assets.value.find(row => row.id === ui.inspecting) ?? null : null));
 
 // Views can be selected to show them together in one dialog, as the game draws several at once, in the order they were
@@ -174,7 +177,7 @@ const folderName = computed(() => folders.value.find(item => item.path === folde
     <div v-if="rows.length && ui.layout === 'grid'" class="row asset-grid">
       <div v-for="row in visible" :key="row.id" class="col-sm-6 col-xl-4 grid-margin stretch-card">
         <AssetCard :row="row" :revision="revision" :inspected="ui.inspecting === row.id" :selectable="stackable(row)" :selected="stacked.includes(row.id)"
-                   :layer="layerOf(row)" @open="ui.inspecting = row.id" @toggle="toggleView(row)" />
+                   :layer="layerOf(row)" @open="ui.inspecting = row.id" @toggle="toggleView(row)" @remove="removing = row" />
       </div>
     </div>
     <div v-else-if="rows.length" class="card asset-list grid-margin">
@@ -219,6 +222,7 @@ const folderName = computed(() => folders.value.find(item => item.path === folde
     </div>
   </template>
 
+  <RemoveAsset v-if="removing" :row="removing" @close="removing = null" />
   <AssetDetails v-if="detailsRow" :row="detailsRow" :revision="revision" @close="ui.inspecting = null" />
   <ViewsDetails v-if="viewsOpen && stackRows.length > 1" :rows="stackRows" :revision="revision" @close="viewsOpen = false" />
 </template>

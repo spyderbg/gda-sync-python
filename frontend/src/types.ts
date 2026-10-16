@@ -107,7 +107,7 @@ export interface ReportAsset extends FileFacts {
   folder?: string;
 }
 /** The kinds of *Data.json entries that can declare an asset, as rss_declare.KINDS in egt_gda_sync/sync names them. */
-export type DeclarationKind = 'Image' | 'ImageSequence' | 'AudioEvent' | 'Font' | 'Rtf' | 'Element' | 'Movie' | 'RawFile';
+export type DeclarationKind = 'Image' | 'ImageSequence' | 'AudioEvent' | 'Font' | 'Rtf' | 'Element' | 'Movie' | 'IData' | 'RawFile';
 export type DeclarationValue = string | number | boolean;
 /** How the game declares a kind of entries: the descriptors of the game folder that can hold a new one, the fields of an
  * entry in the order the descriptors write them, the ids its entries have and one for the new entry, and for each other
