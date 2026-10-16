@@ -1,0 +1,1455 @@
+openapi: 3.1.0
+info:
+  title: EGT GDA Sync API
+  description: The local HTTP API of EGT GDA Sync. It answers only requests to a loopback
+    host; requests other than GET and HEAD need the session token that GET /api/session
+    returns, in the X-GDA-Token header.
+  version: 1.0.0
+components:
+  schemas:
+    Area:
+      properties:
+        x:
+          type: integer
+          maximum: 65535.0
+          minimum: 0.0
+          title: X
+        y:
+          type: integer
+          maximum: 65535.0
+          minimum: 0.0
+          title: Y
+        w:
+          type: integer
+          maximum: 65535.0
+          minimum: 1.0
+          title: W
+        h:
+          type: integer
+          maximum: 65535.0
+          minimum: 1.0
+          title: H
+      additionalProperties: false
+      type: object
+      required:
+      - x
+      - y
+      - w
+      - h
+      title: Area
+    DeclarationBody:
+      properties:
+        asset:
+          type: string
+          maxLength: 4096
+          title: Asset
+        kind:
+          type: string
+          enum:
+          - Image
+          - ImageSequence
+          - AudioEvent
+          - Font
+          - Rtf
+          - Element
+          - Movie
+          - IData
+          - RawFile
+          title: Kind
+        descriptor:
+          type: string
+          maxLength: 4096
+          title: Descriptor
+        id:
+          anyOf:
+          - type: string
+            maxLength: 200
+            minLength: 1
+          - type: 'null'
+          title: Id
+        resolution:
+          anyOf:
+          - type: string
+            maxLength: 200
+            minLength: 1
+          - type: 'null'
+          title: Resolution
+        language:
+          anyOf:
+          - type: string
+            maxLength: 200
+            minLength: 1
+          - type: 'null'
+          title: Language
+        integration:
+          anyOf:
+          - type: string
+            maxLength: 200
+            minLength: 1
+          - type: 'null'
+          title: Integration
+        source:
+          anyOf:
+          - $ref: '#/components/schemas/Area'
+          - type: 'null'
+        frameTime:
+          anyOf:
+          - type: integer
+            maximum: 600000.0
+            minimum: 1.0
+          - type: 'null'
+          title: Frametime
+        loopCount:
+          anyOf:
+          - type: integer
+            maximum: 1000000.0
+            minimum: 0.0
+          - type: 'null'
+          title: Loopcount
+        loopTo:
+          anyOf:
+          - type: integer
+            maximum: 1000000.0
+            minimum: 0.0
+          - type: 'null'
+          title: Loopto
+        polyphonyGroup:
+          anyOf:
+          - type: string
+            maxLength: 200
+            minLength: 1
+          - type: 'null'
+          title: Polyphonygroup
+        loop:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Loop
+        fadeIn:
+          anyOf:
+          - type: number
+            maximum: 3600.0
+            minimum: 0.0
+          - type: 'null'
+          title: Fadein
+        fadeOut:
+          anyOf:
+          - type: number
+            maximum: 3600.0
+            minimum: 0.0
+          - type: 'null'
+          title: Fadeout
+        chars:
+          anyOf:
+          - type: string
+            maxLength: 4096
+            minLength: 1
+          - type: 'null'
+          title: Chars
+        size:
+          anyOf:
+          - type: integer
+            maximum: 4096.0
+            minimum: 1.0
+          - type: 'null'
+          title: Size
+        movieFormat:
+          anyOf:
+          - type: string
+            maxLength: 200
+            minLength: 1
+          - type: 'null'
+          title: Movieformat
+        dataType:
+          anyOf:
+          - type: string
+            maxLength: 200
+            minLength: 1
+          - type: 'null'
+          title: Datatype
+      additionalProperties: false
+      type: object
+      required:
+      - asset
+      - kind
+      - descriptor
+      title: DeclarationBody
+      description: 'A new descriptor entry for an asset of the asset report that no
+        descriptor declares: its kind, the descriptor
+
+        that holds it, relative to the game folder, and the values of its fields;
+        those its kind does not have are refused.'
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    OpenDeclarationBody:
+      properties:
+        descriptor:
+          type: string
+          maxLength: 4096
+          title: Descriptor
+        line:
+          type: integer
+          maximum: 2147483647.0
+          minimum: 1.0
+          title: Line
+      additionalProperties: false
+      type: object
+      required:
+      - descriptor
+      - line
+      title: OpenDeclarationBody
+    OpenFolderBody:
+      properties:
+        folder:
+          type: string
+          enum:
+          - source
+          - destination
+          title: Folder
+      additionalProperties: false
+      type: object
+      required:
+      - folder
+      title: OpenFolderBody
+    OpenViewElementBody:
+      properties:
+        file:
+          type: string
+          maxLength: 4096
+          title: File
+        index:
+          type: integer
+          maximum: 2147483647.0
+          minimum: 0.0
+          title: Index
+      additionalProperties: false
+      type: object
+      required:
+      - file
+      - index
+      title: OpenViewElementBody
+    RemoveAssetBody:
+      properties:
+        asset:
+          type: string
+          maxLength: 4096
+          title: Asset
+        confirmUsed:
+          type: boolean
+          title: Confirmused
+          default: false
+      additionalProperties: false
+      type: object
+      required:
+      - asset
+      title: RemoveAssetBody
+      description: 'An asset of the asset report to remove from the game: its declarations
+        and its files. One whose RssKeys views use
+
+        is removed only with confirmUsed.'
+    ReportFileBody:
+      properties:
+        file:
+          type: string
+          maxLength: 512
+          minLength: 6
+          pattern: ^[^/\\]+\.json$
+          title: File
+      additionalProperties: false
+      type: object
+      required:
+      - file
+      title: ReportFileBody
+    ResourceAction:
+      properties:
+        id:
+          type: string
+          maxLength: 4096
+          title: Id
+        category:
+          type: string
+          enum:
+          - different
+          - invalid
+          - supplementary
+          title: Category
+        gdaFile:
+          anyOf:
+          - type: string
+            maxLength: 4096
+          - type: 'null'
+          title: Gdafile
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - category
+      title: ResourceAction
+    ResourceActionsBody:
+      properties:
+        resources:
+          items:
+            $ref: '#/components/schemas/ResourceAction'
+          type: array
+          maxItems: 10000
+          minItems: 1
+          title: Resources
+      additionalProperties: false
+      type: object
+      required:
+      - resources
+      title: ResourceActionsBody
+    ResourceFilesBody:
+      properties:
+        files:
+          items:
+            type: string
+            maxLength: 4096
+          type: array
+          maxItems: 1000
+          minItems: 1
+          title: Files
+        chars:
+          items:
+            type: string
+            maxLength: 4096
+          type: array
+          maxItems: 20
+          title: Chars
+          default: []
+      additionalProperties: false
+      type: object
+      required:
+      - files
+      title: ResourceFilesBody
+    ResourceFolderBody:
+      properties:
+        file:
+          type: string
+          maxLength: 4096
+          title: File
+        isFolder:
+          type: boolean
+          title: Isfolder
+          default: false
+      additionalProperties: false
+      type: object
+      required:
+      - file
+      title: ResourceFolderBody
+    RestoreBody:
+      properties:
+        id:
+          type: string
+          pattern: ^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$
+          title: Id
+        files:
+          anyOf:
+          - items:
+              type: string
+              maxLength: 4096
+            type: array
+            maxItems: 100000
+          - type: 'null'
+          title: Files
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      title: RestoreBody
+    SettingsBody:
+      properties:
+        name:
+          type: string
+          maxLength: 80
+          title: Name
+        source:
+          type: string
+          maxLength: 4096
+          title: Source
+        destination:
+          type: string
+          maxLength: 4096
+          title: Destination
+      additionalProperties: false
+      type: object
+      required:
+      - name
+      - source
+      - destination
+      title: SettingsBody
+    SyncBody:
+      properties:
+        ids:
+          items:
+            type: string
+            maxLength: 4096
+          type: array
+          maxItems: 10000
+          minItems: 1
+          title: Ids
+        gdaFiles:
+          additionalProperties:
+            type: string
+            maxLength: 4096
+          propertyNames:
+            maxLength: 4096
+          type: object
+          maxProperties: 10000
+          title: Gdafiles
+          default: {}
+      additionalProperties: false
+      type: object
+      required:
+      - ids
+      title: SyncBody
+    TextFileBody:
+      properties:
+        file:
+          type: string
+          maxLength: 4096
+          title: File
+        text:
+          type: string
+          maxLength: 1048576
+          title: Text
+        revision:
+          type: string
+          maxLength: 64
+          minLength: 1
+          title: Revision
+      additionalProperties: false
+      type: object
+      required:
+      - file
+      - text
+      - revision
+      title: TextFileBody
+      description: The new text of a text file of the game's resources, and the revision
+        of the file it was edited from.
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+    ViewPosition:
+      properties:
+        index:
+          type: integer
+          maximum: 100000.0
+          minimum: 0.0
+          title: Index
+        x:
+          type: number
+          maximum: 1000000.0
+          minimum: -1000000.0
+          title: X
+        y:
+          type: number
+          maximum: 1000000.0
+          minimum: -1000000.0
+          title: Y
+      additionalProperties: false
+      type: object
+      required:
+      - index
+      - x
+      - y
+      title: ViewPosition
+    ViewPositionsBody:
+      properties:
+        file:
+          type: string
+          maxLength: 4096
+          title: File
+        revision:
+          type: string
+          maxLength: 64
+          minLength: 1
+          title: Revision
+        positions:
+          items:
+            $ref: '#/components/schemas/ViewPosition'
+          type: array
+          maxItems: 10000
+          minItems: 1
+          title: Positions
+      additionalProperties: false
+      type: object
+      required:
+      - file
+      - revision
+      - positions
+      title: ViewPositionsBody
+    WorkspaceBody:
+      properties:
+        id:
+          type: string
+          maxLength: 4096
+          title: Id
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      title: WorkspaceBody
+
+paths:
+
+  # ─── Session ────────────────────────────────────────────────────────
+  /api/session:
+    get:
+      summary: Session
+      operationId: session_api_session_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      tags:
+      - Session
+  /api/lifecycle:
+    get:
+      summary: Lifecycle
+      operationId: lifecycle_api_lifecycle_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      tags:
+      - Session
+  /api/shutdown:
+    post:
+      summary: Shutdown
+      operationId: shutdown_api_shutdown_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Shutdown Api Shutdown Post
+      tags:
+      - Session
+  /api/health:
+    get:
+      summary: Health
+      operationId: health_api_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Health Api Health Get
+      tags:
+      - Session
+
+  # ─── Workspace ──────────────────────────────────────────────────────
+  /api/library:
+    get:
+      summary: Library View
+      operationId: library_view_api_library_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Library View Api Library Get
+      tags:
+      - Workspace
+  /api/dashboard:
+    get:
+      summary: Dashboard View
+      operationId: dashboard_view_api_dashboard_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Dashboard View Api Dashboard Get
+      tags:
+      - Workspace
+  /api/scan:
+    post:
+      summary: Rescan
+      operationId: rescan_api_scan_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Rescan Api Scan Post
+      tags:
+      - Workspace
+  /api/sync:
+    post:
+      summary: Sync
+      operationId: sync_api_sync_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncBody'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Sync Api Sync Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      tags:
+      - Workspace
+  /api/settings:
+    put:
+      summary: Settings
+      operationId: settings_api_settings_put
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SettingsBody'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Settings Api Settings Put
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      tags:
+      - Workspace
+  /api/workspace:
+    put:
+      summary: Select Workspace
+      operationId: select_workspace_api_workspace_put
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkspaceBody'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Select Workspace Api Workspace Put
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      tags:
+      - Workspace
+  /api/open-folder:
+    post:
+      summary: Open Folder
+      operationId: open_folder_api_open_folder_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OpenFolderBody'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Open Folder Api Open Folder Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      tags:
+      - Workspace
+
+  # ─── GDA sync ───────────────────────────────────────────────────────
+  /api/rss-sync:
+    get:
+      summary: Rss Sync Status
+      operationId: rss_sync_status_api_rss_sync_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Rss Sync Status Api Rss Sync Get
+      tags:
+      - GDA sync
+  /api/rss-sync/history:
+    get:
+      summary: Rss Sync History
+      operationId: rss_sync_history_api_rss_sync_history_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Rss Sync History Api Rss Sync History Get
+      tags:
+      - GDA sync
+  /api/rss-sync/report:
+    get:
+      summary: Rss Sync Report
+      operationId: rss_sync_report_api_rss_sync_report_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      tags:
+      - GDA sync
+  /api/rss-sync/delete-report:
+    post:
+      summary: Delete Rss Report
+      operationId: delete_rss_report_api_rss_sync_delete_report_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportFileBody'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Delete Rss Report Api Rss Sync Delete Report Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      tags:
+      - GDA sync
+  /api/rss-sync/preview:
+    get:
+      summary: Rss Sync Preview
+      operationId: rss_sync_preview_api_rss_sync_preview_get
+      parameters:
+      - name: file
+        in: query
+        required: true
+        schema:
+          type: string
+          maxLength: 4096
+          title: File
+      - name: width
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+            maximum: 8192
+            minimum: 16
+          - type: 'null'
+          title: Width
+      - name: hidden
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Hidden
+      - name: crop
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Crop
+      - name: segment
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+            maximum: 100000
+            minimum: 0
+          - type: 'null'
+          title: Segment
+      - name: cuts
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 8192
+            pattern: ^(\d{1,6}(,\d{1,6})*)?$
+          - type: 'null'
+          title: Cuts
+      - name: text
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 200
+          - type: 'null'
+          title: Text
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      tags:
+      - GDA sync
+  /api/rss-sync/movie-frame:
+    get:
+      summary: Rss Sync Movie Frame
+      operationId: rss_sync_movie_frame_api_rss_sync_movie_frame_get
+      parameters:
+      - name: file
+        in: query
+        required: true
+        schema:
+          type: string
+          maxLength: 4096
+          title: File
+      - name: stacked
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Stacked
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      tags:
+      - GDA sync
+  /api/rss-sync/view:
+    get:
+      summary: Rss Sync View
+      operationId: rss_sync_view_api_rss_sync_view_get
+      parameters:
+      - name: file
+        in: query
+        required: true
+        schema:
+          type: string
+          maxLength: 4096
+          title: File
+      - name: text
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 200
+          - type: 'null'
+          title: Text
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Rss Sync View Api Rss Sync View Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      tags:
+      - GDA sync
+  /api/rss-sync/view-text:
+    get:
+      summary: Rss Sync View Text
+      operationId: rss_sync_view_text_api_rss_sync_view_text_get
+      parameters:
+      - name: file
+        in: query
+        required: true
+        schema:
+          type: string
+          maxLength: 4096
+          title: File
+      - name: index
+        in: query
+        required: true
+        schema:
+          type: integer
+          maximum: 100000
+          minimum: 0
+          title: Index
+      - name: text
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 200
+          - type: 'null'
+          title: Text
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      tags:
+      - GDA sync
+  /api/rss-sync/copy:
+    post:
+      summary: Rss Sync Copy
+      operationId: rss_sync_copy_api_rss_sync_copy_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncBody'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Rss Sync Copy Api Rss Sync Copy Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      tags:
+      - GDA sync
+  /api/rss-sync/apply:
+    post:
+      summary: Rss Sync Apply
+      operationId: rss_sync_apply_api_rss_sync_apply_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResourceActionsBody'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Rss Sync Apply Api Rss Sync Apply Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      tags:
+      - GDA sync
+  /api/rss-sync/details:
+    post:
+      summary: Rss Sync Details
+      operationId: rss_sync_details_api_rss_sync_details_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResourceFilesBody'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Rss Sync Details Api Rss Sync Details Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      tags:
+      - GDA sync
+  /api/rss-sync/open-folder:
+    post:
+      summary: Open Resource Folder
+      operationId: open_resource_folder_api_rss_sync_open_folder_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResourceFolderBody'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Open Resource Folder Api Rss Sync Open Folder Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      tags:
+      - GDA sync
+  /api/rss-sync/open-declaration:
+    post:
+      summary: Open Declaration
+      operationId: open_declaration_api_rss_sync_open_declaration_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OpenDeclarationBody'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Open Declaration Api Rss Sync Open Declaration Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      tags:
+      - GDA sync
+  /api/rss-sync/view-positions:
+    post:
+      summary: Save View Positions
+      operationId: save_view_positions_api_rss_sync_view_positions_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ViewPositionsBody'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Save View Positions Api Rss Sync View Positions Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      tags:
+      - GDA sync
+  /api/rss-sync/open-view-element:
+    post:
+      summary: Open View Element
+      operationId: open_view_element_api_rss_sync_open_view_element_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OpenViewElementBody'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Open View Element Api Rss Sync Open View Element Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      tags:
+      - GDA sync
+
+  # ─── Backups ────────────────────────────────────────────────────────
+  /api/backups:
+    get:
+      summary: List Backups
+      operationId: list_backups_api_backups_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response List Backups Api Backups Get
+      tags:
+      - Backups
+  /api/backups/{backup_id}:
+    get:
+      summary: Backup Files
+      operationId: backup_files_api_backups__backup_id__get
+      parameters:
+      - name: backup_id
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: ^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$
+          title: Backup Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Backup Files Api Backups  Backup Id  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      tags:
+      - Backups
+  /api/backups/restore:
+    post:
+      summary: Restore Backup
+      operationId: restore_backup_api_backups_restore_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RestoreBody'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Restore Backup Api Backups Restore Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      tags:
+      - Backups
+
+  # ─── Asset library ──────────────────────────────────────────────────
+  /api/asset-report:
+    get:
+      summary: Asset Report
+      operationId: asset_report_api_asset_report_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      tags:
+      - Asset library
+    post:
+      summary: Generate Asset Report
+      operationId: generate_asset_report_api_asset_report_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Generate Asset Report Api Asset Report Post
+      tags:
+      - Asset library
+  /api/asset-report/declaration:
+    get:
+      summary: Declaration Options
+      operationId: declaration_options_api_asset_report_declaration_get
+      parameters:
+      - name: asset
+        in: query
+        required: true
+        schema:
+          type: string
+          maxLength: 4096
+          title: Asset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Declaration Options Api Asset Report Declaration Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      tags:
+      - Asset library
+    post:
+      summary: Declare Asset
+      operationId: declare_asset_api_asset_report_declaration_post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeclarationBody'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Declare Asset Api Asset Report Declaration Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      tags:
+      - Asset library
+  /api/asset-report/uses:
+    get:
+      summary: Asset Uses
+      operationId: asset_uses_api_asset_report_uses_get
+      parameters:
+      - name: asset
+        in: query
+        required: true
+        schema:
+          type: string
+          maxLength: 4096
+          title: Asset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Asset Uses Api Asset Report Uses Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      tags:
+      - Asset library
+  /api/asset-report/remove:
+    post:
+      summary: Remove Asset
+      operationId: remove_asset_api_asset_report_remove_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RemoveAssetBody'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Remove Asset Api Asset Report Remove Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      tags:
+      - Asset library
+  /api/asset-report/text:
+    get:
+      summary: Text File
+      operationId: text_file_api_asset_report_text_get
+      parameters:
+      - name: file
+        in: query
+        required: true
+        schema:
+          type: string
+          maxLength: 4096
+          title: File
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Text File Api Asset Report Text Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      tags:
+      - Asset library
+    post:
+      summary: Save Text File
+      operationId: save_text_file_api_asset_report_text_post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TextFileBody'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Save Text File Api Asset Report Text Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      tags:
+      - Asset library

@@ -29,6 +29,8 @@ dev = [
   "playwright>=1.50",
   "pyinstaller>=6.10",
   "pylint>=3.3",
+  # scripts/export_openapi.py writes the OpenAPI spec as YAML.
+  "pyyaml>=6",
 ]
 
 [project.scripts]

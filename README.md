@@ -21,6 +21,16 @@ The Linux installer works entirely in your user account, with no `sudo`, and cop
 
 **The backend stops when you close the page.** The page keeps an event-stream connection to the backend; closing or navigating away from the last EGT GDA Sync page stops the backend after a two-second grace period. Refreshing reconnects during that grace period, and another open EGT GDA Sync tab keeps the app running. Switching tabs or minimizing the browser keeps it running. Active file copies finish before shutdown. You can also use Workspace settings → Stop application to quit immediately.
 
+## Direct debug start 
+
+```bash
+npm --prefix frontend ci
+```
+
+```bash
+PORT=3457 VITE_PORT=5174 npm --prefix frontend run dev -- --debug
+```
+
 ## Try the demo
 
 The app opens on the **Dashboard**, with a short guide to selecting a workspace, comparing its resources, and copying updated GDA files to the Game folder. Its totals, trend lines, charts, and file lists combine the GDA folders of every configured workspace, each file compared with the Game folder's file at the same relative path: GDA changes and synced files over time (1D, 1W, 1M, or all), the file-format mix, storage per workspace and folder, sync coverage per asset type, files waiting for sync, the largest assets, recent changes, and sync activity. Inspecting a file opens its owning workspace. Unavailable workspace folders or files are listed beside the statistics.
