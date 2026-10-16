@@ -4,7 +4,7 @@ import AppModal from '../components/AppModal.vue';
 import CheckBox from '../components/CheckBox.vue';
 import PageHeader from '../components/PageHeader.vue';
 import { ago, number, plural, size, time } from '../format';
-import type { BackupFile, BackupList, BackupOperation } from '../types';
+import type { BackupDeclaration, BackupFile, BackupList, BackupOperation } from '../types';
 import { busy, config, copy, restoreBackup } from '../workspace';
 
 // The backups: the files that syncs, cleanups, view edits and restores replaced or deleted, one operation each, newest
@@ -49,12 +49,15 @@ const others = computed(() => (list.value?.backups.length ?? 0) - operations.val
 // The files of each opened operation, read when it opens and again after a restore.
 const opened = reactive(new Set<string>());
 const files = reactive(new Map<string, BackupFile[] | string>());
+// The descriptor entries, RssKeys, that each opened operation removed, which restoring it puts back.
+const declarations = reactive(new Map<string, BackupDeclaration[]>());
 async function loadFiles(id: string) {
   try {
     const response = await fetch(`/api/backups/${encodeURIComponent(id)}`, { cache: 'no-store' });
     const body = await response.json();
     if (!response.ok) throw new Error(body.error || 'Request failed');
     files.set(id, body.files as BackupFile[]);
+    declarations.set(id, (body.declarations ?? []) as BackupDeclaration[]);
   } catch (e) {
     files.set(id, (e as Error).message);
   }
@@ -65,6 +68,8 @@ function toggle(item: BackupOperation) {
   void loadFiles(item.id);
 }
 const filesOf = (id: string) => (Array.isArray(files.get(id)) ? files.get(id) as BackupFile[] : []);
+// An entry's fields other than its id, as the descriptor writes them.
+const fields = (entry: Record<string, unknown>) => JSON.stringify(Object.fromEntries(Object.entries(entry).filter(([key]) => key !== 'id')));
 
 // A restore waits in a dialog for confirmation: an operation's files, all of them or one.
 const restoring = ref<{ operation: BackupOperation; files: string[] | null } | null>(null);
@@ -156,6 +161,16 @@ const actionOf = (item: BackupOperation) => ACTIONS[item.action] ?? ACTIONS.back
                             :aria-label="`Restore ${file.path}`" :title="file.now === 'same' ? 'The file is the same as its backup' : `Restore ${file.path}`"
                             @click="restoring = { operation: item, files: [file.path] }">Restore</button>
                   </td>
+                </tr>
+              </tbody>
+            </table>
+            <table v-if="declarations.get(item.id)?.length" class="table table-sm mb-0 mt-3 backup-declarations" :aria-label="`RssKeys removed by the backup of ${time(item.date)}`">
+              <thead><tr><th scope="col">RssKey</th><th scope="col">Descriptor</th><th scope="col">Fields, restored with it</th></tr></thead>
+              <tbody>
+                <tr v-for="(declaration, index) in declarations.get(item.id)" :key="index">
+                  <td class="backups-file-path">{{ declaration.entry.id ?? '—' }}</td>
+                  <td class="backups-file-path">{{ declaration.path }} <span class="text-muted">· {{ declaration.list }}</span></td>
+                  <td class="backups-file-path text-muted">{{ fields(declaration.entry) }}</td>
                 </tr>
               </tbody>
             </table>

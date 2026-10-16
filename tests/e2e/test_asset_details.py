@@ -1,6 +1,7 @@
 """The asset library shows the newest asset report, and clicking an asset opens its details in a dialog."""
 
 import json
+import re
 
 import pytest
 from playwright.sync_api import expect
@@ -220,6 +221,60 @@ def test_an_asset_is_removed_after_a_confirmation_with_its_rsskey_and_the_backup
     expect(dialog).to_have_count(0)
     assert not (game / 'banner.dds').exists()
     assert [item['id'] for item in json.loads((game / 'RssImagesData.json').read_text())['images']] == ['GONE']
+    assert errors == []
+
+
+def test_an_asset_whose_rsskey_a_view_uses_is_removed_after_a_second_confirmation_that_links_the_view(new_context, details_backend):
+    backend, game = details_backend
+    (game / 'v' / '1920x1080').mkdir(parents=True)
+    (game / 'v' / '1920x1080' / 'Main.json').write_text(json.dumps({'name': 'MainView', 'elements': [{'id': 'banner', 'type': 'Image', 'rssKey': 'BANNER'}]}))
+    page = new_context().new_page()
+    errors = []
+    page.on('pageerror', lambda error: errors.append(str(error)))
+    page.goto(backend.url)
+    page.get_by_role('list', name='Workspaces').get_by_role('button', name='Example', exact=True).click()
+    page.get_by_role('button', name='Asset library', exact=True).click()
+    page.get_by_role('region', name='Workspace summary').get_by_role('button', name='Rescan', exact=True).click()
+    page.get_by_role('button', name='Remove banner.dds', exact=True).click()
+    dialog = page.get_by_role('dialog', name='Remove banner.dds?')
+    expect(dialog).to_contain_text('1 view uses it.')
+    dialog.get_by_role('button', name='Remove', exact=True).click()
+    # A second confirmation lists the views, each opening its details.
+    used = page.get_by_role('dialog', name='BANNER is in use')
+    expect(used).to_contain_text('This view uses the RssKey of banner.dds. Removing banner.dds leaves it without that resource')
+    expect(used).to_contain_text('v/1920x1080/Main.json')
+    expect(used).to_contain_text('banner (Image)')
+    BUILD.mkdir(exist_ok=True)
+    page.screenshot(path=str(BUILD / 'remove-used-asset.png'))
+    used.get_by_role('button', name='Back').click()
+    expect(dialog).to_be_visible()
+    dialog.get_by_role('button', name='Remove', exact=True).click()
+    used.get_by_role('button', name='MainView').click()
+    expect(page.get_by_role('dialog', name='Main.json')).to_be_visible()
+    expect(used).to_have_count(0)
+    assert (game / 'banner.dds').is_file()
+    page.keyboard.press('Escape')
+    # The list layout has the button too.
+    page.get_by_role('button', name='List view').click()
+    expect(page.locator('tr.asset-row')).to_have_count(5)
+    page.locator('tr.asset-row').filter(has_text='banner.dds').get_by_role('button', name='Remove banner.dds', exact=True).click()
+    dialog.get_by_role('button', name='Remove', exact=True).click()
+    used.get_by_role('button', name='Remove anyway').click()
+    expect(page.get_by_role('status')).to_contain_text('Removed banner.dds: 1 entry and 1 file.')
+    assert not (game / 'banner.dds').exists()
+    # The backup keeps the RssKey with its fields, which restoring it puts back.
+    page.get_by_role('navigation', name='Main navigation').get_by_role('button', name='Backups', exact=True).click()
+    removal = page.locator('article.backup-operation').first
+    expect(removal).to_contain_text('Removed banner.dds: its 1 entry and 1 file')
+    removal.get_by_role('button', name='Files').click()
+    keys = removal.get_by_role('table', name=re.compile('RssKeys removed'))
+    expect(keys).to_contain_text('BANNER')
+    expect(keys).to_contain_text('{"path":"banner.dds"}')
+    removal.get_by_role('button', name='Restore all').click()
+    page.get_by_role('dialog', name=re.compile('Restore')).get_by_role('button', name='Restore', exact=True).click()
+    expect(page.get_by_role('status').filter(has_text='Restored')).to_be_visible()
+    assert (game / 'banner.dds').is_file()
+    assert json.loads((game / 'RssImagesData.json').read_text())['images'][-1] == {'id': 'BANNER', 'path': 'banner.dds'}
     assert errors == []
 
 

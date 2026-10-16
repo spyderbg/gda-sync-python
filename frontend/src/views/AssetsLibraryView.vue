@@ -185,7 +185,7 @@ const folderName = computed(() => folders.value.find(item => item.path === folde
       <div class="table-responsive">
         <table class="table table-hover mb-0">
           <thead>
-            <tr><th class="library-check"><span class="sr-only">Select views</span></th><th>Asset</th><th class="d-none d-md-table-cell">Folder</th><th>Status</th><th class="d-none d-lg-table-cell">Loaded by</th><th class="text-right">Size</th></tr>
+            <tr><th class="library-check"><span class="sr-only">Select views</span></th><th>Asset</th><th class="d-none d-md-table-cell">Folder</th><th>Status</th><th class="d-none d-lg-table-cell">Loaded by</th><th class="text-right">Size</th><th class="library-remove"><span class="sr-only">Remove</span></th></tr>
           </thead>
           <tbody>
             <tr v-for="row in visible" :key="row.id" :class="['asset-card', 'asset-row', { inspected: ui.inspecting === row.id }]">
@@ -204,6 +204,11 @@ const folderName = computed(() => folders.value.find(item => item.path === folde
                 {{ row.requiredBy.length ? declarationLabel(row.requiredBy[0]) + (row.requiredBy.length > 1 ? ` +${row.requiredBy.length - 1}` : '') : '—' }}
               </td>
               <td class="text-right text-nowrap">{{ row.size !== undefined ? size(row.size) : '—' }}</td>
+              <td class="library-remove">
+                <button type="button" class="btn btn-link btn-sm text-muted asset-remove-row" :aria-label="`Remove ${splitPath(row.resource).name}`" title="Remove" @click="removing = row">
+                  <i aria-hidden="true" class="mdi mdi-trash-can-outline" />
+                </button>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -242,6 +247,8 @@ const folderName = computed(() => folders.value.find(item => item.path === folde
 .library-views-selection { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-left: auto; font-size: 13px; }
 .library-views-selection .mdi { color: #2196f3; }
 .library-check { width: 36px; }
+.library-remove { width: 40px; padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; text-align: right; }
+.asset-remove-row:hover, .asset-remove-row:focus-visible { color: #d2453c !important; }
 .library-check :deep(.form-check) { margin: 0; }
 .library-more { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; }
 </style>

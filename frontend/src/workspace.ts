@@ -1,7 +1,7 @@
 // Application state shared by the layout and the views, and the actions that talk to the backend.
 import { computed, reactive, ref, watch } from 'vue';
 import { commonAction, plural, resourceAction, splitPath, viewSaves, type GdaCandidate } from './format';
-import type { Asset, AssetSection, DeclarationKind, DeclarationOptions, LibraryResponse, RestoreResult, RssFileDetails, RssResource, RssSyncHistory, RssSyncStatus, Session, SyncResult, View, ViewLayout, WorkspaceConfig } from './types';
+import type { Asset, AssetSection, AssetUse, DeclarationKind, DeclarationOptions, LibraryResponse, RestoreResult, RssFileDetails, RssResource, RssSyncHistory, RssSyncStatus, Session, SyncResult, View, ViewLayout, WorkspaceConfig } from './types';
 
 const INVALID_SESSION = 'Invalid session. Reload the application.';
 const RSS_POLL_MS = 1000;
@@ -338,16 +338,25 @@ export async function saveTextFile(file: string, text: string, revision: string)
   }
 }
 
-/** Remove an asset of the asset report from the game: the entries that declare it and its files, which are saved in the
- * backups first. The asset report is generated again. Returns whether it was removed. */
-export async function removeAsset(asset: string) {
+/** The views that use the RssKeys of an asset of the asset report. */
+export async function assetUses(asset: string) {
+  return (await getJSON<{ views: AssetUse[] }>(`/api/asset-report/uses?asset=${encodeURIComponent(asset)}`)).views;
+}
+
+/** Remove an asset of the asset report from the game: the entries that declare it and its files in the game folder,
+ * which are saved in the backups first; one whose RssKeys views use only with confirmUsed. The asset report is
+ * generated again. Returns whether it was removed. */
+export async function removeAsset(asset: string, confirmUsed = false) {
   busy.value = 'remove';
   try {
-    const result = await api<{ library: LibraryResponse; name: string; entries: number; files: number; kept: string[] }>('asset-report/remove', 'POST', { asset });
+    const result = await api<{ library: LibraryResponse; name: string; entries: number; files: number; kept: string[]; shared: string[] }>(
+      'asset-report/remove', 'POST', { asset, confirmUsed });
     applyLibrary(result.library);
     if (ui.inspecting === asset) ui.inspecting = null;
     const parts = [result.entries ? `${result.entries} entr${result.entries === 1 ? 'y' : 'ies'}` : '', result.files ? `${result.files} file${plural(result.files)}` : ''].filter(Boolean);
-    notify(`Removed ${result.name}${parts.length ? `: ${parts.join(' and ')}` : ''}.${result.kept.length ? ` ${result.kept.length} file${plural(result.kept.length)} kept, still declared.` : ''}`);
+    const kept = [result.kept.length ? ` ${result.kept.length} file${plural(result.kept.length)} kept, still declared.` : '',
+      result.shared.length ? ` ${result.shared.length} shared file${plural(result.shared.length)} kept.` : ''].join('');
+    notify(`Removed ${result.name}${parts.length ? `: ${parts.join(' and ')}` : ''}.${kept}`);
     return true;
   } catch (e) {
     notify((e as Error).message, true);

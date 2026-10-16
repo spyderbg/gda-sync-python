@@ -151,8 +151,10 @@ class TextFileBody(_Body):
 
 
 class RemoveAssetBody(_Body):
-    """An asset of the asset report to remove from the game: its declarations and its files."""
+    """An asset of the asset report to remove from the game: its declarations and its files. One whose RssKeys views use
+    is removed only with confirmUsed."""
     asset: Text4K
+    confirmUsed: bool = False
 
 
 class DeclarationBody(_Body):
@@ -471,9 +473,13 @@ def create_app(
         values = body.model_dump(exclude_none=True, exclude={"asset", "kind", "descriptor"})
         return library.declare_asset(body.asset, body.kind, body.descriptor, values)
 
+    @app.get("/api/asset-report/uses")
+    def asset_uses(asset: Annotated[str, Query(max_length=4096)]) -> dict:
+        return library.asset_uses(asset)
+
     @app.post("/api/asset-report/remove")
     def remove_asset(body: RemoveAssetBody) -> dict:
-        return library.remove_asset(body.asset)
+        return library.remove_asset(body.asset, body.confirmUsed)
 
     @app.get("/api/asset-report/text")
     def text_file(file: Annotated[str, Query(max_length=4096)]) -> dict:

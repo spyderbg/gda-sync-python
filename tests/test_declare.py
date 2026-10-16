@@ -8,6 +8,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from egt_gda_sync.app.server import create_app
+from egt_gda_sync.assets.views import Resources, key_uses
 from egt_gda_sync.sync.rss_declare import build_entry, suggested_id
 from egt_gda_sync.sync.rss_edit import add_declaration
 from egt_gda_sync.workspace.library import Library
@@ -163,14 +164,56 @@ def test_removing_a_declared_asset_removes_its_entries_and_file_into_one_backup_
     assert (client.game / "logo.dds").is_file()
 
 
-def test_removing_an_undeclared_asset_deletes_only_its_files_and_a_shared_one_is_refused(client):
+def test_removing_an_undeclared_asset_deletes_only_its_files_into_a_backup_of_its_path(client):
     row = asset(client, "unlisted.dds")
     result = client.post("/api/asset-report/remove", json={"asset": row["id"]}).json()
     assert result["entries"] == 0 and result["files"] == 1 and not (client.game / "unlisted.dds").exists()
-    shared = asset(client, "../common/shared.png")
-    refused = client.post("/api/asset-report/remove", json={"asset": shared["id"]})
-    assert refused.status_code == 409 and "shared with other games" in refused.json()["error"]
+    detail = client.get(f"/api/backups/{client.get('/api/backups').json()['backups'][0]['id']}").json()
+    assert detail["files"] == [{**detail["files"][0], "path": "example/unlisted.dds", "change": "deleted"}] and detail["declarations"] == []
+    client.post("/api/backups/restore", json={"id": detail["id"]})
+    assert (client.game / "unlisted.dds").read_bytes() == b"x"
     assert client.post("/api/asset-report/remove", json={"asset": "nothing"}).status_code == 404
+
+
+def test_removing_a_shared_asset_removes_its_rsskey_and_keeps_the_file_that_other_games_share(client):
+    shared = asset(client, "../common/shared.png")
+    result = client.post("/api/asset-report/remove", json={"asset": shared["id"]}).json()
+    assert (result["entries"], result["files"], result["shared"]) == (1, 0, ["../common/shared.png"])
+    assert (client.game.parent / "common" / "shared.png").is_file()
+    assert [item["id"] for item in json.loads((client.game / "RssImagesData.json").read_text())["images"]] == ["LOGO", "LOGO_HD", "GONE"]
+
+
+def write_views(game: Path) -> None:
+    (game / "v" / "1920x1080").mkdir(parents=True)
+    (game / "v" / "1920x1080" / "Main.json").write_text(json.dumps({"name": "MainView", "elements": [
+        {"id": "logo", "type": "Image", "rssKey": "LOGO"}, {"id": "play", "type": "Button", "rssKeys": ["PLAY", "LOGO_HD"]},
+        {"id": "anim", "type": "Anim", "rssKey": "LOGO"}, {"id": "win", "type": "Text", "rssStyleId": "WIN"}]}))
+    (game / "v" / "1920x1080" / "Other.json").write_text(json.dumps({"name": "OtherView", "elements": [{"id": "click", "type": "Image", "rssKey": "CLICK"}]}))
+
+
+def test_the_views_that_use_an_assets_rsskeys_are_listed_and_its_removal_waits_for_a_confirmation(client):
+    write_views(client.game)
+    client.post("/api/asset-report")
+    row, view = asset(client, "logo.dds"), asset(client, "v/1920x1080/Main.json")
+    uses = client.get("/api/asset-report/uses", params={"asset": row["id"]}).json()["views"]
+    # An Anim names a sequence or a movie, not an image, and CLICK is an audio event.
+    assert uses == [{"asset": view["id"], "path": view["resourcePath"], "resource": "v/1920x1080/Main.json", "name": "MainView", "elements": [
+        {"index": 0, "id": "logo", "type": "Image", "keys": ["LOGO"]}, {"index": 1, "id": "play", "type": "Button", "keys": ["LOGO_HD"]}]}]
+    assert client.get("/api/asset-report/uses", params={"asset": asset(client, "click.wav")["id"]}).json()["views"] == []
+    assert client.get("/api/asset-report/uses", params={"asset": asset(client, "unlisted.dds")["id"]}).json()["views"] == []
+    refused = client.post("/api/asset-report/remove", json={"asset": row["id"]})
+    assert refused.status_code == 409 and refused.json()["error"] == "1 view uses its RssKey; confirm to remove it anyway"
+    assert (client.game / "logo.dds").is_file()
+    result = client.post("/api/asset-report/remove", json={"asset": row["id"], "confirmUsed": True}).json()
+    assert result["entries"] == 2 and not (client.game / "logo.dds").exists()
+
+
+def test_a_text_element_uses_the_font_of_its_style(tmp_path):
+    write_views(tmp_path)
+    resources = Resources(tmp_path)
+    resources.styles["WIN"].append({"id": "WIN", "font_id": "FONT_WIN", "size": 40})
+    assert key_uses(tmp_path / "v" / "1920x1080" / "Main.json", {("Font", "FONT_WIN"), ("ImageSequence", "LOGO")}, resources) == [
+        {"index": 2, "id": "anim", "type": "Anim", "keys": ["LOGO"]}, {"index": 3, "id": "win", "type": "Text", "keys": ["FONT_WIN"]}]
 
 
 def test_a_json_file_of_the_idata_folder_is_declared_as_idata_with_the_games_data_types(client):

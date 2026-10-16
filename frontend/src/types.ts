@@ -38,6 +38,9 @@ export interface BackupOperation {
 /** A file of an operation's backups: what the operation did to it, and how it is now: the same as its backup, changed
  * since, or missing (deleted, or not restored yet). */
 export interface BackupFile { path: string; change: 'replaced' | 'deleted'; size: number; now: 'same' | 'changed' | 'missing' | 'unknown'; currentPath?: string }
+/** A descriptor entry that an operation removed, which restoring it puts back: the descriptor's path relative to the
+ * operation's root, the list it was in, and the entry with its fields. */
+export interface BackupDeclaration { path: string; list: string; entry: Record<string, unknown> }
 export interface BackupList { backups: BackupOperation[]; backupPath: string; workspaceId: string }
 export interface RestoreResult { restored: string[]; skipped: string[]; failures: { name: string; message: string }[]; library: LibraryResponse }
 
@@ -129,6 +132,12 @@ export interface DeclarationOptions {
   paths: string[]; kinds: DeclarationKindOptions[];
   /** The resolutions and languages that the game's entries of every kind use, with how many, the most common first. */
   choices: Record<'resolution' | 'language' | 'integration', [string, number][]>;
+}
+/** A view that uses the RssKeys of an asset: its asset id in the asset report (null when the report does not list it),
+ * its path, name, and the elements that use them, each with the ids it uses. */
+export interface AssetUse {
+  asset: string | null; path: string; resource: string; name: string;
+  elements: { index: number; id: string; type: string; keys: string[] }[];
 }
 /** A folder the assets of an asset report are in: the game folder, another folder directly in the resources folder
  * that holds declared files, such as ../common, or one outside the resources folder. relative is its path from the game

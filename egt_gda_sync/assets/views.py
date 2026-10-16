@@ -235,6 +235,24 @@ def element_keys(element: dict) -> list[str]:
     return [str(element["rssKey"])] if element.get("rssKey") else []
 
 
+# The kinds of descriptor entries (their types in rss_schemas) that an element of each type names by its rssKey or rssKeys.
+ELEMENT_KINDS = {"Image": ("Image",), "Button": ("Image",), "ToggleButton": ("Image",), "Anim": ("ImageSequence", "Movie"), "Rtf": ("Rtf",)}
+
+
+def key_uses(path: Path, keys: set[tuple[str, str]], resources: Resources) -> list[dict]:
+    """The elements of a view that use one of keys, (kind, id) pairs of descriptor entries: by its rssKey or rssKeys, or
+    for a Text element, by the font of its text style. Each element with its index, id, type and the ids it uses."""
+    used = []
+    for index, element in enumerate(read_view(path)["elements"]):
+        kind = str(element.get("type") or "")
+        named = {(entry_kind, key) for key in element_keys(element) for entry_kind in ELEMENT_KINDS.get(kind, ())}
+        if kind == "Text" and element.get("rssStyleId"):
+            named |= {("Font", str(style.get("font_id"))) for style in resources.styles.get(str(element["rssStyleId"]), ())}
+        if found := sorted({key for _kind, key in named & keys}):
+            used.append({"index": index, "id": str(element.get("id") or ""), "type": kind, "keys": found})
+    return used
+
+
 def image_size(path: Path) -> tuple[int, int]:
     """An image file's width and height, from its header when it has one."""
     with path.open("rb") as handle:

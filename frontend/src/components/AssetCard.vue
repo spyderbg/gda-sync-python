@@ -14,7 +14,7 @@ import ViewPreview from './ViewPreview.vue';
 // languages, how many files the folder has, and how many of the files its pages draw are missing. A view, a .json file of
 // the game's v folder, shows itself as the game draws it, its name, its elements by type, and how many of them name
 // resources that cannot be found. A movie shows its middle frame, and its duration, frames, frame rate and codec; it
-// plays only in the details. Clicking the card emits open, and its remove button, which an asset of the game folder has, emits remove. A view can also be selected with
+// plays only in the details. Clicking the card emits open, and its remove button emits remove. A view can also be selected with
 // its check box, which emits toggle, to show it with other views in one dialog; a selected view shows its place in the
 // drawing order (layer).
 const props = withDefaults(defineProps<{
@@ -89,7 +89,7 @@ const file = computed(() => props.row.directory?.project ?? props.row.resourcePa
     </details>
     <CheckBox v-if="selectable" class="asset-check" :checked="selected" :label="`Select ${resource.name} to show with other views`" @change="emit('toggle')" />
     <span v-if="selected && layer" class="badge badge-primary report-asset-layer" :title="`Drawn as layer ${layer}, over the views selected before it`">{{ layer }}</span>
-    <button v-if="row.scope === 'game'" type="button" class="asset-menu asset-remove" :aria-label="`Remove ${resource.name}`" title="Remove" @click="emit('remove')"><i aria-hidden="true" class="mdi mdi-trash-can-outline" /></button>
+    <button type="button" class="asset-menu asset-remove" :aria-label="`Remove ${resource.name}`" title="Remove" @click="emit('remove')"><i aria-hidden="true" class="mdi mdi-trash-can-outline" /></button>
   </article>
 </template>
 

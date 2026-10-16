@@ -39,7 +39,7 @@ from egt_gda_sync.workspace.paths import PLACEHOLDER, contract, expand, expand_f
 from egt_gda_sync.sync.rss_schemas import DOCUMENT_TYPES, parse_dataclass
 from egt_gda_sync.sync.rss_sync import DEFAULT_EXTENSIONS, DEFAULT_MATCH_THRESHOLD, Config, declared_files, load_documents
 from egt_gda_sync.assets.view_text import DEFAULT_SAMPLE
-from egt_gda_sync.assets.views import THUMBNAIL_WIDTH, read_view, render_text, render_view, view_layout, view_root
+from egt_gda_sync.assets.views import THUMBNAIL_WIDTH, VIEW_FOLDER, is_view, key_uses, load_resources, read_view, render_text, render_view, view_layout, view_root
 from egt_gda_sync.assets.rtf import RTF_EXTENSION, rtf_layout
 
 MAX_ASSETS = 10_000
@@ -945,29 +945,69 @@ class Library:
 
         return self._exclusive(operation)
 
-    def remove_asset(self, asset: str) -> dict:
-        """Remove an asset of the newest asset report from the game folder: the entries that declare it, from the
-        descriptors that the report says declare it, and its files, an RTF's with its folder when it is left empty. A file
-        that a descriptor still declares stays. Each descriptor and file it changes is saved in one backup, which also
-        records each removed entry, so that restoring it puts the same entry back. Then generate the asset report again.
-        Returns the library and what was removed."""
+    def _report_asset(self, workspace_id: str, asset: str) -> tuple[dict, list[dict]]:
+        """An asset of the workspace's newest asset report, and every asset of the report."""
+        report = self.asset_reports.report(workspace_id)
+        if report is None:
+            raise AppError("This workspace has no asset report yet. Click Rescan in the Asset library to create one.", 404)
+        rows = json.loads(report).get("assets", [])
+        row = next((row for row in rows if row["id"] == asset), None)
+        if row is None:
+            raise AppError("The asset is no longer in the asset report. Rescan and try again.", 404)
+        return row, rows
+
+    @staticmethod
+    def _key_uses(row: dict, rows: list[dict], game: Path) -> list[dict]:
+        """The views that use the RssKeys of an asset of the asset report, the ids of the entries that declare it: the
+        views of the game's v folder and the views the report lists, each with its asset id in the report (None when the
+        report does not list it), path, name and the elements that use them."""
+        keys = {(use["type"], use["id"]) for use in row["requiredBy"] if use.get("id")}
+        if not keys:
+            return []
+        listed = {os.path.normpath(item["resourcePath"]): item for item in rows if item["type"] == "view"}
+        views = dict.fromkeys([*sorted(os.path.normpath(path) for path in (game / VIEW_FOLDER).rglob("*.json") if is_view(path, game)), *sorted(listed)])
+        resources = load_resources(game)
+        found = []
+        for path in views:
+            try:
+                elements = key_uses(Path(path), keys, resources)
+                name = read_view(Path(path))["name"]
+            except (OSError, ValueError, RecursionError):
+                continue
+            if elements:
+                item = listed.get(path)
+                found.append({"asset": item["id"] if item else None, "path": path, "resource": item["resource"] if item else os.path.relpath(path, game),
+                              "name": name, "elements": elements})
+        return found
+
+    def asset_uses(self, asset: str) -> dict:
+        """The views that use the RssKeys of an asset of the newest asset report, which removing it would leave without
+        their resources."""
+        workspace_id, entry = self._active_workspace()
+        settings = self._comparison(workspace_id, entry)[1]
+        row, rows = self._report_asset(workspace_id, asset)
+        return {"views": self._key_uses(row, rows, self._asset_game(settings))}
+
+    def remove_asset(self, asset: str, confirm_used: bool = False) -> dict:
+        """Remove an asset of the newest asset report: the entries that declare it, from the descriptors that the report
+        says declare it, and its files in the game folder, an RTF's with its folder when it is left empty. A file that a
+        descriptor still declares stays, and so does one outside the game folder, such as in the common folder, which other
+        games share. An asset whose RssKeys views use is removed only when confirm_used says so. Each descriptor and file it
+        changes is saved in one backup, which also records each removed entry, so that restoring it puts the same entry
+        back. Then generate the asset report again. Returns the library and what was removed."""
         def operation() -> dict:
             self.require_folders("destination")
             workspace_id, entry = self._active_workspace()
             settings = self._comparison(workspace_id, entry)[1]
-            report = self.asset_reports.report(workspace_id)
-            if report is None:
-                raise AppError("This workspace has no asset report yet. Click Rescan in the Asset library to create one.", 404)
-            row = next((row for row in json.loads(report).get("assets", []) if row["id"] == asset), None)
-            if row is None:
-                raise AppError("The asset is no longer in the asset report. Rescan and try again.", 404)
-            if row["scope"] != "game":
-                raise AppError("Only an asset of the game folder can be removed; this one is shared with other games or outside it", 409)
+            row, rows = self._report_asset(workspace_id, asset)
             resources, game = os.path.realpath(settings["resources_dir"]), self._asset_game(settings)
-            files = [file for file in _asset_files(row) if os.path.lexists(file)]
+            if not confirm_used and (views := self._key_uses(row, rows, game)):
+                raise AppError(f"{len(views)} {'view uses' if len(views) == 1 else 'views use'} its RssKey; confirm to remove it anyway", 409)
+            existing = [file for file in _asset_files(row) if os.path.lexists(file)]
+            # Only the files of the game folder are deleted: the others are shared with other games.
+            files = [file for file in existing if contained(str(game), file)]
+            shared = [os.path.relpath(file, game) for file in existing if file not in files]
             for file in files:
-                if not contained(str(game), file):
-                    raise AppError("Its files are outside the game folder")
                 if not stat.S_ISREG(os.lstat(file).st_mode):
                     raise AppError("The game file is not a regular file")
             # The descriptors' text without the entries, before anything is written.
@@ -994,7 +1034,7 @@ class Library:
             if row["requiredBy"] and not edits:
                 raise AppError("Its declaration is not in the descriptors any more. Rescan to update the report.", 409)
             if not edits and not files:
-                raise AppError("It has nothing to remove: no descriptor declares it and its files do not exist. Rescan to update the report.", 409)
+                raise AppError("It has nothing to remove: no descriptor declares it and its files do not exist in the game folder. Rescan to update the report.", 409)
             folder = backups.new_operation(self.backup_path)
             for relative, path, bom, result in edits:
                 backup = os.path.join(folder, relative)
@@ -1027,7 +1067,7 @@ class Library:
             self._write_asset_report()
             if not self.reports.status(workspace_id)["running"]:
                 self.start_comparison()
-            return {"library": self.scan(), "name": name, "entries": len(declarations), "files": len(deleted), "kept": kept}
+            return {"library": self.scan(), "name": name, "entries": len(declarations), "files": len(deleted), "kept": kept, "shared": shared}
 
         return self._exclusive(operation)
 
