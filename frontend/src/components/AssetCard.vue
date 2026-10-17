@@ -14,13 +14,14 @@ import ViewPreview from './ViewPreview.vue';
 // languages, how many files the folder has, and how many of the files its pages draw are missing. A view, a .json file of
 // the game's v folder, shows itself as the game draws it, its name, its elements by type, and how many of them name
 // resources that cannot be found. A movie shows its middle frame, and its duration, frames, frame rate and codec; it
-// plays only in the details. Clicking the card emits open, and its remove button emits remove. A view can also be selected with
+// plays only in the details. Clicking the card emits open; the move and remove buttons emit their own actions.
+// A view can also be selected with
 // its check box, which emits toggle, to show it with other views in one dialog; a selected view shows its place in the
 // drawing order (layer).
 const props = withDefaults(defineProps<{
   row: ReportAsset; revision: string; inspected?: boolean; selectable?: boolean; selected?: boolean; layer?: number | null;
 }>(), { inspected: false, selectable: false, selected: false, layer: null });
-const emit = defineEmits<{ open: []; toggle: []; remove: [] }>();
+const emit = defineEmits<{ open: []; toggle: []; move: []; remove: [] }>();
 
 const resource = computed(() => splitPath(props.row.resource));
 const sequence = computed(() => props.row.sequence);
@@ -89,12 +90,15 @@ const file = computed(() => props.row.directory?.project ?? props.row.resourcePa
     </details>
     <CheckBox v-if="selectable" class="asset-check" :checked="selected" :label="`Select ${resource.name} to show with other views`" @change="emit('toggle')" />
     <span v-if="selected && layer" class="badge badge-primary report-asset-layer" :title="`Drawn as layer ${layer}, over the views selected before it`">{{ layer }}</span>
+    <button type="button" class="asset-menu asset-move" :aria-label="`Move ${resource.name}`" title="Move" @click.stop="emit('move')"><i aria-hidden="true" class="mdi mdi-folder-move-outline" /></button>
     <button type="button" class="asset-menu asset-remove" :aria-label="`Remove ${resource.name}`" title="Remove" @click="emit('remove')"><i aria-hidden="true" class="mdi mdi-trash-can-outline" /></button>
   </article>
 </template>
 
 <style scoped>
 .report-asset { position: relative; display: flex; flex-direction: column; min-width: 0; width: 100%; }
+.report-asset .asset-move { right: 44px; }
+.report-asset .asset-move:hover, .report-asset .asset-move:focus-visible { background: #4b49ac; color: #fff; }
 .report-asset-layer { position: absolute; top: 12px; left: 38px; z-index: 2; }
 .report-asset-preview { display: block; width: 100%; padding: 0; border: 0; background: transparent; text-align: left; cursor: pointer; }
 .report-asset-preview:focus-visible { outline-offset: -2px; }

@@ -8,9 +8,11 @@ import { assetReport, busy, config, copy, generateAssetReport, openFolder, openR
 // filter the library when clicked, and the folders its assets are in, each on its own line, which filter the library
 // when clicked too. A report from before version 5 lists no folders, so only the game path is shown.
 const props = defineProps<{ filter: 'all' | AssetCategory; folder: string | null; folders: AssetFolder[] }>();
-const emit = defineEmits<{ 'update:filter': ['all' | AssetCategory]; 'update:folder': [string | null] }>();
+const emit = defineEmits<{ 'update:filter': ['all' | AssetCategory]; 'update:folder': [string | null]; move: [AssetFolder] }>();
 const FOLDER_KINDS: Record<AssetFolder['kind'], { label: string; icon: string; hint: string }> = {
   game: { label: 'Game path', icon: 'mdi-folder-outline', hint: 'The game folder' },
+  common: { label: 'Common', icon: 'mdi-folder-network-outline', hint: 'Common assets shared by games' },
+  'other-game': { label: 'Other game', icon: 'mdi-alert-outline', hint: 'Files from another game; copying them into this game removes that dependency' },
   shared: { label: 'Shared', icon: 'mdi-folder-network-outline', hint: 'A folder of the resources folder that holds files the game declares, such as the features it includes' },
   outside: { label: 'Outside', icon: 'mdi-folder-alert-outline', hint: 'A folder outside the resources folder, which the game cannot load from' },
 };
@@ -73,6 +75,7 @@ const problems = computed(() => (summary.value ? summary.value.missing + summary
           <span class="workspace-folder-path">{{ shownPath(item) }}</span>
           <span v-if="item.assets >= 0" class="workspace-folder-count">{{ number(item.assets) }} asset{{ plural(item.assets) }}</span>
         </button>
+        <button v-if="item.kind === 'other-game'" type="button" class="btn btn-sm btn-outline-warning" :disabled="!!busy" @click="emit('move', item)">Copy all into this game…</button>
         <button v-if="filtering" type="button" class="workspace-folder-open" :title="`Open ${item.path}`"
                 :aria-label="item.kind === 'game' ? 'Open Game folder' : `Open ${item.relative} folder`" @click="open(item)">
           <i class="mdi mdi-open-in-new" aria-hidden="true" />
@@ -134,5 +137,10 @@ button.workspace-folder-open:hover { background: #dfe6d6; color: #29383b; }
   .workspace-folder-label { grid-column: 2; grid-row: 1; }
   .workspace-folder-path { grid-column: 2 / 4; grid-row: 2; }
   .workspace-folder-count { grid-column: 3; grid-row: 1; }
+}
+@media (max-width: 767px) {
+  .workspace-folder-line { flex-wrap: wrap; }
+  .workspace-folder { min-width: calc(100% - 40px); grid-template-columns: 28px 60px minmax(0, 1fr) auto; gap: 6px; }
+  .workspace-folder-line > .btn { order: 2; margin-left: 34px; }
 }
 </style>

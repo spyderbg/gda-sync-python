@@ -153,7 +153,7 @@ def load_documents(game_dir: Path, required: bool = True) -> dict[Path, Any]:
         cls = DOCUMENT_TYPES.get(path.name)
         if cls is None:
             raise ValueError(f"unsupported resource descriptor: {path}")
-        document = parse_dataclass(cls, json.loads(path.read_text(encoding="utf-8")), str(path))
+        document = parse_dataclass(cls, json.loads(path.read_text(encoding="utf-8-sig")), str(path))
         documents[path] = document
         for included in getattr(document, "include", ()):
             load(path.parent / included)
@@ -197,7 +197,7 @@ def declared_entries(path: Path, document: Any) -> Iterator[tuple[str, int, Imag
     expected = Counter(value for value, _sequence, _entry in declarations)
     if not expected:
         return
-    raw = path.read_text(encoding="utf-8")
+    raw = path.read_text(encoding="utf-8-sig")
     found: dict[str, list[int]] = defaultdict(list)
     line = 1
     previous_end = 0

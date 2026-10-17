@@ -63,7 +63,7 @@ def test_each_asset_is_in_the_game_folder_or_a_folder_of_the_resources_folder(tm
     result = inventory(config_for(game), asset_facts)
     # An included feature's files are in the folder of the resources folder that holds them.
     assert [(folder["kind"], folder["relative"], folder["assets"]) for folder in result["folders"]] == [
-        ("game", ".", 2), ("shared", "../common", 3), ("shared", "../other", 1)]
+        ("game", ".", 2), ("common", "../common", 3), ("other-game", "../other", 1)]
     rows = {row["resource"]: row for row in result["assets"]}
     folders = {row["resource"]: Path(row["folder"]).relative_to(game.parent).as_posix() for row in result["assets"]}
     assert folders == {

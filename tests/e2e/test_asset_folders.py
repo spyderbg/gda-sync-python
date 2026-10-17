@@ -40,7 +40,7 @@ def test_library_lists_the_asset_folders_and_filters_by_one(new_context, folders
     expect(page.locator('.asset-card')).to_have_count(6)
 
     folders = summary.get_by_role('group', name='Asset folders: show the assets of one')
-    expect(folders.locator('.workspace-folder-line')).to_have_text([f'Game path{game.resolve()}2 assets', 'Shared../common3 assets', 'Shared../other1 asset'])
+    expect(folders.locator('.workspace-folder-line')).to_have_text([f'Game path{game.resolve()}2 assets', 'Common../common3 assets', 'Other game../other1 assetCopy all into this game…'])
     BUILD.mkdir(exist_ok=True)
     summary.locator('.workspace-folder-strip').screenshot(path=str(BUILD / 'asset-folders.png'))
 

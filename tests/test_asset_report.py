@@ -90,7 +90,7 @@ def test_lists_each_asset_with_the_descriptor_entries_that_load_it(tmp_path):
     files = sum(path.stat().st_size for path in [game / "logo.dds", game / "click.wav", game / "atlas.png", game / "unlisted.dds",
                                                   tmp_path / "resources" / "common" / "shared.png",
                                                   *(game / "anim").iterdir(), *game.glob("loop*.png")])
-    assert result["summary"] == {"assets": 9, "available": 4, "missing": 2, "invalid": 1, "supplementary": 2, "size": files,
+    assert result["summary"] == {"assets": 9, "otherGame": 0, "available": 4, "missing": 2, "invalid": 1, "supplementary": 2, "size": files,
                                  "types": {"audio": 1, "font": 1, "texture": 7},
                                  # The library lists images and image sequences apart: ANIM, ATLAS and the guessed loop.
                                  "sections": {"audio": 1, "font": 1, "image": 4, "sequence": 3}}

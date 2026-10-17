@@ -7,6 +7,7 @@ import CheckBox from '../components/CheckBox.vue';
 import ViewsDetails from '../components/ViewsDetails.vue';
 import ButtonTooltip from '../components/ButtonTooltip.vue';
 import ReportThumbnail from '../components/ReportThumbnail.vue';
+import MoveAssets from '../components/MoveAssets.vue';
 import WorkspaceHeader from '../components/WorkspaceHeader.vue';
 import { useAssetReport } from '../composables/useAssetReport';
 import { assetBadges, assetMatches, assetSection, baseName, declarationLabel, number, plural, size, splitPath, stackedAlpha } from '../format';
@@ -49,12 +50,13 @@ const FILTERS: { key: Filter; label: string; hint: string }[] = [
 ];
 const PAGE_SIZE = 200;
 // The asset report version this release writes, ASSET_REPORT_VERSION in egt_gda_sync/asset_report.py.
-const REPORT_VERSION = 7;
+const REPORT_VERSION = 8;
 
 const { report, loadError } = useAssetReport();
 const filter = ref<Filter>('all');
 // The header's folder that narrows the assets down, by path; null shows every folder.
 const folder = ref<string | null>(null);
+const movingFolder = ref<AssetFolder | null>(null);
 const shown = ref(PAGE_SIZE);
 const state = computed(() => (!assetReport.value?.reportPath ? 'none' : loadError.value ? 'error' : report.value ? 'ready' : 'loading'));
 const revision = computed(() => report.value?.summary.finishedAt ?? '');
@@ -64,6 +66,7 @@ const outdated = computed(() => !!assetReport.value?.reportPath && (assetReport.
 // ImagesSeq before version 6, and movies before version 7.
 const outdatedNote = computed(() => {
   const version = assetReport.value?.version ?? 1;
+  if (version >= 7) return 'Rescan to distinguish common assets from files borrowed from another game, and enable copying a folder into this game.';
   if (version >= 6) return 'This report was written by an earlier version, which listed movies as other files and did not read them. Rescan to update it.';
   if (version >= 5) return 'This report was written by an earlier version, which did not count images and image sequences apart, so the sidebar counts image sequences as images. Rescan to update it.';
   const types = version < 2 ? 'fonts, RTFs and views' : version < 3 ? 'RTFs and views' : version < 4 ? 'views' : 'views outside the game folder';
@@ -91,6 +94,7 @@ watch([filter, folder, () => ui.query, () => ui.category, report], () => { shown
 // Clicking an asset shows its details; a new report that no longer lists it closes them.
 // The asset whose removal waits for confirmation.
 const removing = ref<ReportAsset | null>(null);
+const movingAsset = ref<ReportAsset | null>(null);
 const detailsRow = computed(() => (ui.inspecting ? assets.value.find(row => row.id === ui.inspecting) ?? null : null));
 
 // Views can be selected to show them together in one dialog, as the game draws several at once, in the order they were
@@ -128,7 +132,7 @@ const folderName = computed(() => folders.value.find(item => item.path === folde
 </script>
 
 <template>
-  <WorkspaceHeader v-model:filter="filter" v-model:folder="folder" :folders="folders" />
+  <WorkspaceHeader v-model:filter="filter" v-model:folder="folder" :folders="folders" @move="movingFolder = $event" />
 
   <div v-if="state !== 'ready'" class="card empty-state grid-margin">
     <div class="card-body">
@@ -178,14 +182,14 @@ const folderName = computed(() => folders.value.find(item => item.path === folde
     <div v-if="rows.length && ui.layout === 'grid'" class="row asset-grid">
       <div v-for="row in visible" :key="row.id" class="col-sm-6 col-xl-4 grid-margin stretch-card">
         <AssetCard :row="row" :revision="revision" :inspected="ui.inspecting === row.id" :selectable="stackable(row)" :selected="stacked.includes(row.id)"
-                   :layer="layerOf(row)" @open="ui.inspecting = row.id" @toggle="toggleView(row)" @remove="removing = row" />
+                   :layer="layerOf(row)" @open="ui.inspecting = row.id" @toggle="toggleView(row)" @move="movingAsset = row" @remove="removing = row" />
       </div>
     </div>
     <div v-else-if="rows.length" class="card asset-list grid-margin">
       <div class="table-responsive">
         <table class="table table-hover mb-0">
           <thead>
-            <tr><th class="library-check"><span class="sr-only">Select views</span></th><th>Asset</th><th class="d-none d-md-table-cell">Folder</th><th>Status</th><th class="d-none d-lg-table-cell">Loaded by</th><th class="text-right">Size</th><th class="library-remove"><span class="sr-only">Remove</span></th></tr>
+            <tr><th class="library-check"><span class="sr-only">Select views</span></th><th>Asset</th><th class="d-none d-md-table-cell">Folder</th><th>Status</th><th class="d-none d-lg-table-cell">Loaded by</th><th class="text-right">Size</th><th class="library-remove"><span class="sr-only">Actions</span></th></tr>
           </thead>
           <tbody>
             <tr v-for="row in visible" :key="row.id" :class="['asset-card', 'asset-row', { inspected: ui.inspecting === row.id }]">
@@ -205,6 +209,9 @@ const folderName = computed(() => folders.value.find(item => item.path === folde
               </td>
               <td class="text-right text-nowrap">{{ row.size !== undefined ? size(row.size) : '—' }}</td>
               <td class="library-remove">
+                <button type="button" class="btn btn-link btn-sm text-muted asset-move-row" :aria-label="`Move ${splitPath(row.resource).name}`" title="Move" @click.stop="movingAsset = row">
+                  <i aria-hidden="true" class="mdi mdi-folder-move-outline" />
+                </button>
                 <button type="button" class="btn btn-link btn-sm text-muted asset-remove-row" :aria-label="`Remove ${splitPath(row.resource).name}`" title="Remove" @click="removing = row">
                   <i aria-hidden="true" class="mdi mdi-trash-can-outline" />
                 </button>
@@ -228,6 +235,8 @@ const folderName = computed(() => folders.value.find(item => item.path === folde
     </div>
   </template>
 
+  <MoveAssets v-if="movingFolder" :folder="movingFolder" :folders="folders" @close="movingFolder = null" />
+  <MoveAssets v-if="movingAsset" :row="movingAsset" @close="movingAsset = null" />
   <RemoveAsset v-if="removing" :row="removing" @close="removing = null" />
   <AssetDetails v-if="detailsRow" :row="detailsRow" :revision="revision" @close="ui.inspecting = null" />
   <ViewsDetails v-if="viewsOpen && stackRows.length > 1" :rows="stackRows" :revision="revision" @close="viewsOpen = false" />
@@ -247,7 +256,8 @@ const folderName = computed(() => folders.value.find(item => item.path === folde
 .library-views-selection { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-left: auto; font-size: 13px; }
 .library-views-selection .mdi { color: #2196f3; }
 .library-check { width: 36px; }
-.library-remove { width: 40px; padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; text-align: right; }
+.library-remove { width: 80px; padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; text-align: right; white-space: nowrap; }
+.asset-move-row:hover, .asset-move-row:focus-visible { color: #4b49ac !important; }
 .asset-remove-row:hover, .asset-remove-row:focus-visible { color: #d2453c !important; }
 .library-check :deep(.form-check) { margin: 0; }
 .library-more { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; }

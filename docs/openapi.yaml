@@ -188,6 +188,78 @@ components:
       required:
       - error
       title: Error
+    MoveBody:
+      properties:
+        assets:
+          anyOf:
+          - items:
+              type: string
+              maxLength: 4096
+            type: array
+            maxItems: 10000
+            minItems: 1
+          - type: 'null'
+          title: Assets
+        folder:
+          anyOf:
+          - type: string
+            maxLength: 4096
+          - type: 'null'
+          title: Folder
+        target:
+          type: string
+          maxLength: 4096
+          title: Target
+          default: ''
+        name:
+          anyOf:
+          - type: string
+            maxLength: 255
+            minLength: 1
+          - type: 'null'
+          title: Name
+        fingerprint:
+          type: string
+          pattern: ^[a-f0-9]{64}$
+          title: Fingerprint
+      additionalProperties: false
+      type: object
+      required:
+      - fingerprint
+      title: MoveBody
+    MovePreviewBody:
+      properties:
+        assets:
+          anyOf:
+          - items:
+              type: string
+              maxLength: 4096
+            type: array
+            maxItems: 10000
+            minItems: 1
+          - type: 'null'
+          title: Assets
+        folder:
+          anyOf:
+          - type: string
+            maxLength: 4096
+          - type: 'null'
+          title: Folder
+        target:
+          type: string
+          maxLength: 4096
+          title: Target
+          default: ''
+        name:
+          anyOf:
+          - type: string
+            maxLength: 255
+            minLength: 1
+          - type: 'null'
+          title: Name
+      additionalProperties: false
+      type: object
+      title: MovePreviewBody
     OpenDeclarationBody:
       properties:
         descriptor:
@@ -254,6 +326,73 @@ components:
         and its files. One whose RssKeys views use
 
         is removed only with confirmUsed.'
+    RenameKeyBody:
+      properties:
+        kind:
+          type: string
+          maxLength: 200
+          minLength: 1
+          title: Kind
+        key:
+          type: string
+          maxLength: 200
+          minLength: 1
+          title: Key
+        newKey:
+          type: string
+          maxLength: 200
+          title: Newkey
+        excluded:
+          items:
+            type: string
+            maxLength: 4096
+          type: array
+          maxItems: 10000
+          title: Excluded
+          default: []
+        fingerprint:
+          type: string
+          pattern: ^[a-f0-9]{64}$
+          title: Fingerprint
+      additionalProperties: false
+      type: object
+      required:
+      - kind
+      - key
+      - newKey
+      - fingerprint
+      title: RenameKeyBody
+    RenameKeyPreviewBody:
+      properties:
+        kind:
+          type: string
+          maxLength: 200
+          minLength: 1
+          title: Kind
+        key:
+          type: string
+          maxLength: 200
+          minLength: 1
+          title: Key
+        newKey:
+          type: string
+          maxLength: 200
+          title: Newkey
+        excluded:
+          items:
+            type: string
+            maxLength: 4096
+          type: array
+          maxItems: 10000
+          title: Excluded
+          default: []
+      additionalProperties: false
+      type: object
+      required:
+      - kind
+      - key
+      - newKey
+      title: RenameKeyPreviewBody
     ReportFileBody:
       properties:
         file:
@@ -1361,6 +1500,123 @@ paths:
                 title: Response Generate Asset Report Api Asset Report Post
         '403':
           $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Asset library
+  /api/asset-report/move/preview:
+    post:
+      summary: Move Preview
+      operationId: move_preview_api_asset_report_move_preview_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MovePreviewBody'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Move Preview Api Asset Report Move Preview Post
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '413':
+          $ref: '#/components/responses/ContentTooLarge'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Asset library
+  /api/asset-report/move:
+    post:
+      summary: Move Assets
+      operationId: move_assets_api_asset_report_move_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MoveBody'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Move Assets Api Asset Report Move Post
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '413':
+          $ref: '#/components/responses/ContentTooLarge'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Asset library
+  /api/asset-report/rename-key/preview:
+    post:
+      summary: Rename Key Preview
+      operationId: rename_key_preview_api_asset_report_rename_key_preview_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RenameKeyPreviewBody'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Rename Key Preview Api Asset Report Rename Key Preview
+                  Post
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '413':
+          $ref: '#/components/responses/ContentTooLarge'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Asset library
+  /api/asset-report/rename-key:
+    post:
+      summary: Rename Key
+      operationId: rename_key_api_asset_report_rename_key_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RenameKeyBody'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Rename Key Api Asset Report Rename Key Post
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '413':
+          $ref: '#/components/responses/ContentTooLarge'
         '500':
           $ref: '#/components/responses/ServerError'
       tags:

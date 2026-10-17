@@ -39,7 +39,8 @@ from egt_gda_sync.assets.views import describe_view, is_view, view_root
 # as those of the features the game includes, as views. Version 6 counts the assets by the library's sections, which
 # list images and image sequences apart. Version 7 reports movies as their own type, with their frame size, frame rate,
 # frames, duration and codec, and the format of each Movie entry that declares one.
-ASSET_REPORT_VERSION = 7
+# Version 8 distinguishes common assets from other games and counts the latter as otherGame.
+ASSET_REPORT_VERSION = 8
 CATEGORIES = ("available", "missing", "invalid", "supplementary")
 # The status a sequence takes from its frames: the first of these that any of its files has.
 SEQUENCE_PRECEDENCE = ("invalid", "missing", "available")
@@ -73,7 +74,8 @@ def inventory(config: Config, facts: Facts) -> dict:
         return checked[source]
 
     def scope(source: Path) -> str:
-        return "common" if source.is_relative_to(common_dir) else "game" if source.is_relative_to(game_dir) else "outside"
+        return ("common" if source.is_relative_to(common_dir) else "game" if source.is_relative_to(game_dir)
+                else "other-game" if source.is_relative_to(config.resources_dir) else "outside")
 
     def frame(entry: dict) -> dict:
         # The type is the sequence's.
@@ -189,7 +191,7 @@ def inventory(config: Config, facts: Facts) -> dict:
         "descriptors": found.descriptors,
         "folders": folders,
         "summary": {
-            "assets": len(rows), **{category: counts[category] for category in CATEGORIES},
+            "assets": len(rows), "otherGame": sum(row["scope"] == "other-game" for row in rows), **{category: counts[category] for category in CATEGORIES},
             # Each file once, though a file can be an asset of its own and a frame of sequences.
             "size": sum(entry.get("size", 0) for entry in checked.values()),
             "types": dict(sorted(Counter(row["type"] for row in rows).items())),
@@ -223,7 +225,7 @@ def asset_folders(rows: list[dict], resources_dir: Path, game_dir: Path) -> list
         parts = path.relative_to(resources_dir).parts if inside else ()
         # A shared folder is the one directly in the resources folder; a path elsewhere is in its own folder.
         folder = resources_dir / parts[0] if len(parts) > 1 else path.parent
-        roots.setdefault(folder, "shared" if inside else "outside")
+        roots.setdefault(folder, ("common" if folder == resources_dir / COMMON_DIR else "other-game") if inside else "outside")
         return folder
 
     counts: Counter[Path] = Counter()
@@ -231,7 +233,7 @@ def asset_folders(rows: list[dict], resources_dir: Path, game_dir: Path) -> list
         folder = folder_of(location(row))
         row["folder"] = str(folder)
         counts[folder] += 1
-    order = {"game": 0, "shared": 1, "outside": 2}
+    order = {"game": 0, "common": 1, "other-game": 2, "outside": 3}
     return [{"path": str(folder), "relative": os.path.relpath(folder, game_dir), "kind": kind, "assets": counts[folder]}
             for folder, kind in sorted(roots.items(), key=lambda item: (order[item[1]], str(item[0])))]
 

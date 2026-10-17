@@ -10,6 +10,7 @@ import contextlib
 import hashlib
 import json
 import os
+import re
 import shutil
 import stat
 import struct
@@ -33,11 +34,12 @@ from egt_gda_sync.images.png import PNG_SIGNATURE
 from egt_gda_sync.workspace import backups
 from egt_gda_sync.sync.rss_declare import KINDS, asset_files, asset_kinds, asset_name, build_entry, descriptor_targets, entry_paths, kind_options, used_values
 from egt_gda_sync.sync.rss_edit import add_declaration, declaration_keys, parse as parse_json_source, remove_declarations, set_view_positions, walk
+from egt_gda_sync.sync import rss_refactor
 from egt_gda_sync.sync.rss_jobs import SyncJobs
 from egt_gda_sync.images.image_cache import CACHE_FILE
 from egt_gda_sync.workspace.paths import PLACEHOLDER, contract, expand, expand_fields, global_paths
 from egt_gda_sync.sync.rss_schemas import DOCUMENT_TYPES, parse_dataclass
-from egt_gda_sync.sync.rss_sync import DEFAULT_EXTENSIONS, DEFAULT_MATCH_THRESHOLD, Config, declared_files, load_documents
+from egt_gda_sync.sync.rss_sync import DEFAULT_EXTENSIONS, DEFAULT_MATCH_THRESHOLD, Config, declared_files, expand_path, load_documents
 from egt_gda_sync.assets.view_text import DEFAULT_SAMPLE
 from egt_gda_sync.assets.views import THUMBNAIL_WIDTH, VIEW_FOLDER, is_view, key_uses, load_resources, read_view, render_text, render_view, view_layout, view_root
 from egt_gda_sync.assets.rtf import RTF_EXTENSION, rtf_layout
@@ -211,10 +213,12 @@ def image_candidates(row: dict) -> list[dict]:
     return [{**candidate, "syncable": candidate["matchType"] != "exact_file"} for candidate in ordered]
 
 
-def _replace_file(source: str, target_root: str, relative: str, backup: str, create_parents: bool = False) -> None:
+def _replace_file(source: str, target_root: str, relative: str, backup: str, create_parents: bool = False, must_create: bool = False, expected_hash: str | None = None) -> None:
     """Copy source over target_root/relative through a verified temporary file; an existing target is saved to backup first."""
     target = safe_path(target_root, relative, create_parents)
     original_hash = file_hash(source)
+    if expected_hash is not None and original_hash != expected_hash:
+        raise AppError("The source changed; preview again", 409)
     temporary = os.path.join(os.path.dirname(target), f".egt-gda-sync-{uuid.uuid4()}.tmp")
     try:
         _copy_exclusive(source, temporary)
@@ -231,7 +235,11 @@ def _replace_file(source: str, target_root: str, relative: str, backup: str, cre
                 raise AppError("The destination is not a regular file")
             os.makedirs(os.path.dirname(backup), exist_ok=True)
             _copy_exclusive(target, backup)
-        os.replace(temporary, target)
+        if must_create:
+            os.link(temporary, target)
+            os.unlink(temporary)
+        else:
+            os.replace(temporary, target)
         temporary = None
     finally:
         if temporary:
@@ -715,6 +723,18 @@ class Library:
                 entries.setdefault(item["path"], []).append(item)
             for path in chosen:
                 try:
+                    if by_path[path]["change"] == "created":
+                        if any(by_path[failed["name"]]["change"] != "created" for failed in failures):
+                            raise AppError("Created file was kept because other files could not be restored", 409)
+                        target = safe_path(root, path)
+                        if not os.path.exists(target):
+                            skipped.append(path)
+                        elif not os.path.isfile(target) or file_hash(target) != by_path[path]["sha256"]:
+                            raise AppError("Created file has changed since the operation; it was kept", 409)
+                        else:
+                            _delete_with_backup(target, os.path.join(folder, *path.split("/")))
+                            restored.append(path)
+                        continue
                     source = safe_path(source_root, path)
                     if by_path[path]["now"] == "same":
                         skipped.append(path)
@@ -737,6 +757,8 @@ class Library:
                 backups.write_manifest(folder, action="restore", message=f"Replaced when restoring the backup of {when}",
                                        workspace=workspace, root=root)
                 if workspace.get("id") == self._active_workspace()[0] and not self.reports.status(workspace["id"])["running"]:
+                    if record["action"] in ("move", "rename"):
+                        self._write_asset_report()
                     self.start_comparison()
             return {"restored": restored, "skipped": skipped, "failures": failures, "library": self.scan()}
 
@@ -1069,6 +1091,204 @@ class Library:
                 self.start_comparison()
             return {"library": self.scan(), "name": name, "entries": len(declarations), "files": len(deleted), "kept": kept, "shared": shared}
 
+        return self._exclusive(operation)
+
+    def _move_plan(self, assets: list[str] | None, folder: str | None, target: str, name: str | None):
+        """Resolve report selections and build a validated, read-only plan."""
+        workspace_id, entry = self._active_workspace()
+        workspace, settings = self._comparison(workspace_id, entry)
+        game = self._asset_game(settings).resolve()
+        resources = Path(settings["resources_dir"]).resolve()
+        report = json.loads(self.asset_report())
+        if bool(assets) == bool(folder):
+            raise AppError("Choose assets or one report folder")
+        if folder:
+            if folder not in {item["path"] for item in report.get("folders", [])}:
+                raise AppError("The folder is no longer in the report", 404)
+            rows = [row for row in report["assets"] if row.get("folder") == folder]
+        else:
+            rows = [self._report_asset(workspace_id, asset)[0] for asset in dict.fromkeys(assets or [])]
+        if not rows:
+            raise AppError("Choose at least one asset")
+        if name and (len(rows) != 1 or rows[0].get("sequence")):
+            raise AppError("Only a single file or RTF folder can be renamed")
+        def checked(relative: str) -> Path:
+            relative = relative.replace('\\', '/')
+            if os.path.isabs(relative):
+                relative = os.path.relpath(relative, game)
+            parts = Path(relative.replace('\\', '/')).parts
+            if any(not _valid_name(part) or part.endswith((' ', '.')) or re.search(r'[<>:"|?*\x00-\x1f]', part)
+                   or re.fullmatch(r'(?i:CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(?:\..*)?', part)
+                   for part in parts if part not in ('.', '..', os.sep)):
+                raise AppError("The target contains an invalid file or folder name")
+            if os.path.normpath(relative) == '.':
+                return game
+            return Path(safe_path(str(game), relative))
+        if name and (name in ('.', '..') or '/' in name or '\\' in name):
+            raise AppError("Use a file name without folders")
+        destination = checked(target or '.')
+        mapping: dict[Path, Path] = {}
+        for row in rows:
+            source_files = list(map(Path, _asset_files(row)))
+            if row.get('directory'):
+                source_files = sorted(set(source_files) | {file for file in Path(row['resourcePath']).rglob('*') if file.is_file()})
+            if folder:
+                base = Path(folder)
+            elif row.get('directory'):
+                base = Path(row['resourcePath'])
+            else:
+                base = source_files[0].parent if source_files else game
+            if not target and not folder and source_files:
+                origin = Path(row.get('folder') or str(game))
+                parent = Path(row['resourcePath']).parent if row.get('directory') else source_files[0].parent
+                destination = checked(str(parent.relative_to(origin)))
+            for source in source_files:
+                if folder:
+                    relative = source.relative_to(base)
+                elif row.get('directory'):
+                    relative = Path(name or base.name) / source.relative_to(base)
+                else:
+                    relative = Path(name or source.name)
+                mapped = checked(str(destination / relative))
+                if source in mapping and mapping[source] != mapped:
+                    raise AppError('The selection gives one source multiple targets')
+                mapping[source] = mapped
+        index = rss_refactor.references(game, resources)
+        plan = rss_refactor.plan_move(index, mapping, game, resources)
+        configured = {(game / file).resolve() for template in settings['resource_paths'] for file in expand_path(template)}
+        if configured & mapping.keys():
+            plan.issue('resource-paths', 'A selected file is named by resource_paths in workspace.json. Update that setting first.', configured & mapping.keys())
+        if not plan.files:
+            plan.issue('no-changes', 'Choose a different target folder or file name.')
+        plan.revisions['@workspace'] = hashlib.sha256(json.dumps(workspace, sort_keys=True).encode()).hexdigest()
+        return plan.finish(), index, rows, mapping
+
+    def move_preview(self, assets: list[str] | None = None, folder: str | None = None, target: str = '', name: str | None = None) -> dict:
+        try:
+            return self._move_plan(assets, folder, target, name)[0].json()
+        except (ValueError, OSError, UnicodeError) as error:
+            raise AppError(f"Cannot preview the move: {error_message(error)}") from error
+
+    def _apply_refactor(self, plan, index, fingerprint: str, action: str) -> dict:
+        """Prevalidate every edit, apply in dependency order and roll back failures from one backup."""
+        if plan.fingerprint != fingerprint:
+            raise AppError("The files changed; preview again", 409)
+        if plan.blockers:
+            raise AppError("The change is blocked; resolve the preview's blockers first", 409)
+        workspace_id, entry = self._active_workspace()
+        root = str(index.resources)
+        folder = backups.new_operation(self.backup_path)
+        changes = {}
+        for file, edits in plan.edits.items():
+            if not any(edit.get('selected', True) for edit in edits):
+                continue
+            path = safe_path(root, os.path.relpath(file, root))
+            original = Path(path).read_bytes()
+            text = rss_refactor.apply_edits(original.decode('utf-8-sig'), edits, Path(file))
+            changes[file] = (b'\xef\xbb\xbf' if original.startswith(b'\xef\xbb\xbf') else b'') + text.encode('utf-8')
+        # Recheck all bytes after computing new texts, before the first mutation.
+        for file, revision in plan.revisions.items():
+            if not file.startswith('@') and rss_refactor.sha256(Path(file)) != revision:
+                raise AppError("The files changed; preview again", 409)
+        created, saved = [], []
+        try:
+            for item in plan.files:
+                if item['mode'] == 'reuse':
+                    continue
+                relative = os.path.relpath(item['target'], root)
+                if os.path.lexists(item['target']):
+                    raise AppError("The target appeared; preview again", 409)
+                _replace_file(item['source'], root, relative, os.path.join(folder, relative), create_parents=True, must_create=True,
+                              expected_hash=item['sha256'])
+                created.append({'path': _portable(relative), 'sha256': item['sha256']})
+            for file, data in changes.items():
+                path = safe_path(root, os.path.relpath(file, root))
+                if file_hash(path) != plan.revisions[file]:
+                    raise AppError("The files changed; preview again", 409)
+                relative = os.path.relpath(file, root)
+                backup = os.path.join(folder, relative)
+                os.makedirs(os.path.dirname(backup), exist_ok=True)
+                _copy_exclusive(path, backup)
+                saved.append((path, backup))
+                _write_file(path, data)
+            for item in plan.files:
+                if item['mode'] != 'move':
+                    continue
+                source = safe_path(root, os.path.relpath(item['source'], root))
+                if file_hash(source) != item['sha256']:
+                    raise AppError("The source changed; preview again", 409)
+                backup = os.path.join(folder, os.path.relpath(source, root))
+                _delete_with_backup(source, backup)
+                saved.append((source, backup))
+                _remove_empty_folders(os.path.dirname(source), str(index.game))
+            message = (f"Moved or copied {len(plan.files)} files into the game" if action == 'move'
+                       else 'Renamed an RssKey and its references')
+            backups.write_manifest(folder, action=action, message=message, workspace={'id': workspace_id, 'name': entry['name']},
+                                   root=root, created=created)
+        except Exception:
+            # Restore old files before deleting the new copies; references always have their files.
+            for path, backup in reversed(saved):
+                path = safe_path(root, os.path.relpath(path, root), create_parents=True)
+                temporary = path + f'.rollback-{uuid.uuid4()}'
+                try:
+                    shutil.copy2(backup, temporary)
+                    os.replace(temporary, path)
+                finally:
+                    if os.path.exists(temporary):
+                        os.unlink(temporary)
+            for item in created:
+                path = safe_path(root, item['path'])
+                if os.path.isfile(path) and file_hash(path) == item['sha256']:
+                    os.unlink(path)
+                    _remove_empty_folders(os.path.dirname(path), str(index.game))
+            shutil.rmtree(folder, ignore_errors=True)
+            Path(f'{folder}.json').unlink(missing_ok=True)
+            raise
+        self._record(action, message)
+        result = self._write_asset_report()
+        self.start_comparison()
+        return result
+
+    def move_assets(self, *, fingerprint: str, assets: list[str] | None = None, folder: str | None = None,
+                    target: str = '', name: str | None = None) -> dict:
+        def operation() -> dict:
+            try:
+                plan, index, rows, mapping = self._move_plan(assets, folder, target, name)
+                result = self._apply_refactor(plan, index, fingerprint, 'move')
+            except (ValueError, OSError, UnicodeError) as error:
+                raise AppError(f"Could not move the assets: {error_message(error)}", 409) from error
+            ids = {}
+            for row in rows:
+                mapped = {str(mapping[Path(file)]) for file in _asset_files(row)}
+                match = next((new for new in result['assets'] if mapped & set(_asset_files(new))), None)
+                if match:
+                    ids[row['id']] = match['id']
+            return {'library': self.scan(), 'assets': ids}
+        return self._exclusive(operation)
+
+    def _rename_plan(self, kind: str, key: str, new_key: str, excluded: list[str] | None):
+        workspace_id, entry = self._active_workspace()
+        workspace, settings = self._comparison(workspace_id, entry)
+        game, resources = self._asset_game(settings), Path(settings['resources_dir']).resolve()
+        index = rss_refactor.references(game, resources)
+        plan = rss_refactor.plan_key_rename(index, kind, key, new_key, excluded or [])
+        plan.revisions['@workspace'] = hashlib.sha256(json.dumps(workspace, sort_keys=True).encode()).hexdigest()
+        return plan.finish(), index
+
+    def rename_key_preview(self, kind: str, key: str, new_key: str, excluded: list[str] | None = None) -> dict:
+        try:
+            return self._rename_plan(kind, key, new_key, excluded)[0].json()
+        except (ValueError, OSError, UnicodeError) as error:
+            raise AppError(f"Cannot preview the rename: {error_message(error)}") from error
+
+    def rename_key(self, kind: str, key: str, new_key: str, fingerprint: str, excluded: list[str] | None = None) -> dict:
+        def operation() -> dict:
+            try:
+                plan, index = self._rename_plan(kind, key, new_key, excluded)
+                self._apply_refactor(plan, index, fingerprint, 'rename')
+                return {'library': self.scan()}
+            except (ValueError, OSError, UnicodeError) as error:
+                raise AppError(f"Could not rename the RssKey: {error_message(error)}", 409) from error
         return self._exclusive(operation)
 
     def asset_report(self) -> bytes:

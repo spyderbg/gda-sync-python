@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { TEXT_EXTENSIONS, assetBadges, assetFrames, assetSection, baseName, codePoint, extensionOf, fileType, firstRtfPage, movieTable, number, plural, sectionIcons, sectionSingular, sequenceName, size, splitPath, stackedAlpha, time, typeIcons, viewTable } from '../format';
-import type { FileFacts, ReportAsset } from '../types';
+import type { AssetDeclaration, FileFacts, ReportAsset } from '../types';
 import { copy, openDeclaration, openResourceFolder } from '../workspace';
 import AppModal from './AppModal.vue';
 import AudioPreview from './AudioPreview.vue';
+import MoveAssets from './MoveAssets.vue';
+import RenameKey from './RenameKey.vue';
 import DeclareAsset from './DeclareAsset.vue';
 import FontPreview from './FontPreview.vue';
 import MoviePreview from './MoviePreview.vue';
@@ -32,9 +34,11 @@ const emit = defineEmits<{ close: [] }>();
 const unsaved = ref(false);
 // The dialog that declares the asset, over this one.
 const declaring = ref(false);
+const moving = ref(false);
+const renaming = ref<AssetDeclaration | null>(null);
 watch(() => props.row.id, () => { declaring.value = false; });
 function close() {
-  if (declaring.value) return;
+  if (declaring.value || moving.value || renaming.value) return;
   if (unsaved.value && !window.confirm('Discard your changes without saving them?')) return;
   emit('close');
 }
@@ -180,7 +184,7 @@ const note = computed(() => {
     };
   }
 });
-const scope = computed(() => ({ game: 'Belongs to this game only.', common: 'A common resource, shared with other games.', outside: 'Outside the game folder.' })[props.row.scope]);
+const scope = computed(() => ({ game: 'Belongs to this game only.', common: 'A common resource, shared with other games.', 'other-game': 'From another game’s folder: it breaks when that game changes.', outside: 'Outside the game folder.' })[props.row.scope]);
 </script>
 
 <template>
@@ -192,6 +196,7 @@ const scope = computed(() => ({ game: 'Belongs to this game only.', common: 'A c
       </div>
     </template>
     <div class="modal-body details-dialog asset-details">
+      <p v-if="row.scope === 'other-game'" class="alert alert-warning">From another game's folder: it breaks when that game changes. <button type="button" class="btn btn-sm btn-warning" @click="moving = true">Copy into this game…</button></p>
       <div class="details-previews">
         <figure class="details-preview">
           <figcaption>
@@ -233,6 +238,7 @@ const scope = computed(() => ({ game: 'Belongs to this game only.', common: 'A c
               <span class="details-code">{{ use.descriptor }}:{{ use.line }}</span>
               <span class="badge badge-light">{{ use.type }}</span><span v-if="use.id" class="details-code">{{ use.id }}</span>
               <button type="button" class="details-icon" :aria-label="`Open ${use.descriptor} at line ${use.line} in VS Code`" :title="`Open in VS Code: ${use.descriptor}:${use.line}`" @click="openDeclaration(use.descriptor, use.line)"><i aria-hidden="true" class="mdi mdi-code-braces" /></button>
+              <button v-if="use.id && use.type" type="button" class="details-icon" :aria-label="`Rename RssKey ${use.id}`" title="Rename RssKey" @click="renaming = use"><i aria-hidden="true" class="mdi mdi-rename-box" /></button>
               <span v-if="use.size" class="text-muted">{{ use.size }} px</span>
               <span v-if="use.coverage" :class="['details-coverage', use.coverage.missingCount ? 'text-danger' : 'text-success']">
                 <i aria-hidden="true" :class="['mdi', use.coverage.missingCount ? 'mdi-alert-outline' : 'mdi-check']" />{{ number(use.coverage.covered) }} of {{ number(use.coverage.declared) }} declared characters
@@ -346,9 +352,12 @@ const scope = computed(() => ({ game: 'Belongs to this game only.', common: 'A c
     </div>
     <div class="modal-footer details-footer">
       <span class="text-muted">{{ row.resource }}</span>
+      <button type="button" class="btn btn-outline-primary" :disabled="unsaved" @click="moving = true">Move…</button>
       <button type="button" class="btn btn-light" @click="close">Close</button>
     </div>
   </AppModal>
+  <MoveAssets v-if="moving" :row="row" @close="moving = false" />
+  <RenameKey v-if="renaming?.id && renaming?.type" :kind="renaming.type" :rss-key="renaming.id" @close="renaming = null" />
   <DeclareAsset v-if="declaring" :row="row" @close="declaring = false" />
 </template>
 

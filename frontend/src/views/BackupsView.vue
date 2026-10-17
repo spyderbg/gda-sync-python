@@ -13,6 +13,8 @@ import { busy, config, copy, restoreBackup } from '../workspace';
 // all, or a file's Restore, copies the backups back after a confirmation; the files there now are backed up first, so a
 // restore can be restored too, and a file that is the same as its backup is skipped.
 const ACTIONS: Record<BackupOperation['action'], { label: string; badge: string; icon: string }> = {
+  move: { label: 'Move', badge: 'badge-info', icon: 'mdi-folder-move-outline' },
+  rename: { label: 'Rename', badge: 'badge-info', icon: 'mdi-rename-box' },
   sync: { label: 'Sync', badge: 'badge-success', icon: 'mdi-sync' },
   cleanup: { label: 'Cleanup', badge: 'badge-warning', icon: 'mdi-broom' },
   edit: { label: 'Edit', badge: 'badge-info', icon: 'mdi-pencil-outline' },
@@ -99,7 +101,7 @@ const actionOf = (item: BackupOperation) => ACTIONS[item.action] ?? ACTIONS.back
 
   <div class="card grid-margin">
     <div class="card-body backups-intro">
-      <p class="mb-2">Syncs, cleanups and view edits save every file they replace or delete here before they change it. Restore copies a file back where it was; the file there now is saved here first, so a restore can be restored too.</p>
+      <p class="mb-2">Syncs, cleanups, moves, key renames and view edits save every file they replace or delete here before they change it. Restore copies a file back where it was; the file there now is saved here first, so a restore can be restored too.</p>
       <div class="backups-folder">
         <span class="text-muted">Folder:</span>
         <code>{{ list?.backupPath ?? '…' }}</code>
@@ -153,12 +155,12 @@ const actionOf = (item: BackupOperation) => ACTIONS[item.action] ?? ACTIONS.back
               <tbody>
                 <tr v-for="file in filesOf(item.id)" :key="file.path" :data-file="file.path">
                   <td class="backups-file-path" :title="item.root ? `${item.root}/${file.path}` : file.path">{{ file.path }}</td>
-                  <td>{{ file.change === 'deleted' ? 'Deleted it' : 'Replaced it' }}</td>
+                  <td>{{ file.change === 'created' ? 'Created it · restoring deletes it' : file.change === 'deleted' ? 'Deleted it' : 'Replaced it' }}</td>
                   <td class="text-right text-nowrap">{{ size(file.size) }}</td>
-                  <td :class="NOW[file.now].tone">{{ NOW[file.now].label }}</td>
+                  <td :class="NOW[file.now].tone">{{ file.change === 'created' && file.now === 'same' ? 'Unchanged since creation' : NOW[file.now].label }}</td>
                   <td class="text-right">
-                    <button type="button" class="btn btn-link btn-sm backup-restore-file" :disabled="!item.restorable || file.now === 'same' || !!busy"
-                            :aria-label="`Restore ${file.path}`" :title="file.now === 'same' ? 'The file is the same as its backup' : `Restore ${file.path}`"
+                    <button type="button" class="btn btn-link btn-sm backup-restore-file" :disabled="!item.restorable || (file.now === 'same' && file.change !== 'created') || !!busy"
+                            :aria-label="`Restore ${file.path}`" :title="file.now === 'same' && file.change !== 'created' ? 'The file is the same as its backup' : `Restore ${file.path}`"
                             @click="restoring = { operation: item, files: [file.path] }">Restore</button>
                   </td>
                 </tr>
@@ -187,7 +189,7 @@ const actionOf = (item: BackupOperation) => ACTIONS[item.action] ?? ACTIONS.back
         <li v-for="path in restoringPaths.slice(0, 12)" :key="path" class="backups-file-path">{{ path }}</li>
         <li v-if="restoringPaths.length > 12" class="text-muted">and {{ number(restoringPaths.length - 12) }} more</li>
       </ul>
-      <p class="mb-0 text-muted">The files there now are saved in the backups first, and a file that is the same as its backup is skipped.</p>
+      <p class="mb-0 text-muted">Unchanged files created by the operation are deleted; changed copies are kept and reported. The files there now are saved in the backups first, and a file that is the same as its backup is skipped.</p>
     </div>
     <div class="modal-footer">
       <button type="button" class="btn btn-light" @click="restoring = null">Cancel</button>

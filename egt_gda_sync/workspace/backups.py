@@ -57,13 +57,16 @@ def _files(folder: str) -> list[str]:
 
 
 def write_manifest(folder: str, *, action: str, message: str, workspace: dict, root: str, date: str | None = None,
-                   declarations: list[dict] | None = None) -> None:
+                   declarations: list[dict] | None = None, created: list[dict] | None = None) -> None:
     """Record an operation whose backups are in folder, if it saved any: each file was replaced when root still has it,
     deleted when it does not. declarations are the descriptor entries that it removed."""
+    if created:
+        os.makedirs(folder, exist_ok=True)
     if not os.path.isdir(folder):
         return
     files = [{"path": path, "change": "replaced" if os.path.isfile(os.path.join(root, *path.split("/"))) else "deleted"}
              for path in _files(folder)]
+    files.extend({"path": item["path"], "change": "created", "sha256": item["sha256"]} for item in (created or []))
     record = {"version": MANIFEST_VERSION, "id": os.path.basename(folder), "date": date or _time(datetime.now(timezone.utc).timestamp()),
               "action": action, "message": message, "workspace": workspace, "root": root, "files": files}
     if declarations:
@@ -99,11 +102,14 @@ def _record(backup_path: str, operation_id: str, resolve: Resolver) -> dict | No
                 "workspace": found[0] if found else None, "root": found[1] if found else None,
                 "files": [{"path": path, "change": "replaced"} for path in paths]}
     changes = {item.get("path"): item.get("change") for item in record["files"] if isinstance(item, dict)}
-    # The folder's files are the backups, whatever the record lists.
+    created = [{"path": item["path"], "change": "created", "sha256": item["sha256"]} for item in record["files"]
+               if isinstance(item, dict) and item.get("change") == "created" and isinstance(item.get("path"), str)
+               and isinstance(item.get("sha256"), str)]
+    # Created files have no backup bytes; the other files are verified against the backup folder.
     return {"id": operation_id, "date": str(record.get("date") or ""), "action": str(record.get("action") or "backup"),
             "message": str(record.get("message") or ""), "legacy": False, "declarations": _declarations(record.get("declarations")),
             "workspace": record.get("workspace") if isinstance(record.get("workspace"), dict) else None, "root": record["root"],
-            "files": [{"path": path, "change": changes.get(path) if changes.get(path) in ("replaced", "deleted") else "replaced"} for path in paths]}
+            "files": [{"path": path, "change": changes.get(path) if changes.get(path) in ("replaced", "deleted") else "replaced"} for path in paths] + created}
 
 
 def list_operations(backup_path: str, resolve: Resolver) -> list[dict]:
@@ -118,7 +124,7 @@ def list_operations(backup_path: str, resolve: Resolver) -> list[dict]:
         if record is None or not record["files"]:
             continue
         folder = os.path.join(backup_path, name)
-        size = sum(os.path.getsize(os.path.join(folder, *item["path"].split("/"))) for item in record["files"])
+        size = sum(os.path.getsize(os.path.join(folder, *item["path"].split("/"))) for item in record["files"] if item["change"] != "created")
         operations.append({**{key: value for key, value in record.items() if key not in ("files", "declarations")}, "fileCount": len(record["files"]),
                            "size": size, "restorable": record["root"] is not None})
     return sorted(operations, key=lambda item: item["date"], reverse=True)
@@ -133,7 +139,7 @@ def operation(backup_path: str, operation_id: str, resolve: Resolver) -> dict | 
     folder = os.path.join(backup_path, operation_id)
     for item in record["files"]:
         backup = os.path.join(folder, *item["path"].split("/"))
-        item["size"] = os.path.getsize(backup)
+        item["size"] = 0 if item["change"] == "created" else os.path.getsize(backup)
         current = os.path.join(record["root"], *item["path"].split("/")) if record["root"] else None
         if current is None:
             item["now"] = "unknown"
@@ -141,6 +147,7 @@ def operation(backup_path: str, operation_id: str, resolve: Resolver) -> dict | 
             item["now"] = "missing"
         else:
             item["currentPath"] = current
-            same = os.path.getsize(current) == item["size"] and _hash(current) == _hash(backup)
+            same = (_hash(current) == item["sha256"] if item["change"] == "created"
+                    else os.path.getsize(current) == item["size"] and _hash(current) == _hash(backup))
             item["now"] = "same" if same else "changed"
     return record

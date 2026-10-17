@@ -14,7 +14,11 @@ Every sync, delete and view edit saves the replaced file in the backups folder, 
 back. A **Backups** page would list each operation (when, what, which workspace) with its files, and restore one file or
 the whole operation. It makes every destructive action safe to undo, so it is the one to start with.
 
-### 2. Which games use a shared asset
+### 2. Which games use a shared asset (partly done)
+
+Move previews now check sibling games and keep a game file when another game uses it. Refactor previews block
+changes to common descriptors and files and list the games that include their folders. A general usage panel before
+other sync or edit operations remains to do.
 
 Before syncing or editing something in `../common`, show every workspace whose descriptors use it, so that a change meant
 for one game does not quietly change the others. Today the app says that an asset is "common", but not who uses it.

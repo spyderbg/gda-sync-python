@@ -128,6 +128,28 @@ class ResourceFolderBody(_Body):
     isFolder: bool = False
 
 
+class MovePreviewBody(_Body):
+    assets: Annotated[list[Text4K], Field(min_length=1, max_length=10000)] | None = None
+    folder: Text4K | None = None
+    target: Annotated[str, Field(max_length=4096)] = ''
+    name: Annotated[str, Field(min_length=1, max_length=255)] | None = None
+
+
+class MoveBody(MovePreviewBody):
+    fingerprint: Annotated[str, Field(pattern=r"^[a-f0-9]{64}$")]
+
+
+class RenameKeyPreviewBody(_Body):
+    kind: Annotated[str, Field(min_length=1, max_length=200)]
+    key: Annotated[str, Field(min_length=1, max_length=200)]
+    newKey: Annotated[str, Field(max_length=200)]
+    excluded: Annotated[list[Text4K], Field(max_length=10000)] = []
+
+
+class RenameKeyBody(RenameKeyPreviewBody):
+    fingerprint: Annotated[str, Field(pattern=r"^[a-f0-9]{64}$")]
+
+
 class OpenDeclarationBody(_Body):
     descriptor: Text4K
     line: Annotated[int, Field(strict=True, ge=1, le=2_147_483_647)]
@@ -467,6 +489,23 @@ def create_app(
     @app.post("/api/asset-report")
     def generate_asset_report() -> dict:
         return library.generate_asset_report()
+
+    @app.post("/api/asset-report/move/preview")
+    def move_preview(body: MovePreviewBody) -> dict:
+        return library.move_preview(body.assets, body.folder, body.target, body.name)
+
+    @app.post("/api/asset-report/move")
+    def move_assets(body: MoveBody) -> dict:
+        return library.move_assets(assets=body.assets, folder=body.folder, target=body.target, name=body.name,
+                                   fingerprint=body.fingerprint)
+
+    @app.post("/api/asset-report/rename-key/preview")
+    def rename_key_preview(body: RenameKeyPreviewBody) -> dict:
+        return library.rename_key_preview(body.kind, body.key, body.newKey, body.excluded)
+
+    @app.post("/api/asset-report/rename-key")
+    def rename_key(body: RenameKeyBody) -> dict:
+        return library.rename_key(body.kind, body.key, body.newKey, body.fingerprint, body.excluded)
 
     @app.get("/api/asset-report/declaration")
     def declaration_options(asset: Annotated[str, Query(max_length=4096)]) -> dict:

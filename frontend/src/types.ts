@@ -32,12 +32,12 @@ export interface Activity {
  * backup from before these records (legacy) has no action or message; when its workspace is not known, it has no root
  * and cannot be restored. */
 export interface BackupOperation {
-  id: string; date: string; action: 'sync' | 'cleanup' | 'edit' | 'restore' | 'backup'; message: string; legacy: boolean;
+  id: string; date: string; action: 'sync' | 'cleanup' | 'edit' | 'restore' | 'backup' | 'move' | 'rename'; message: string; legacy: boolean;
   workspace: { id: string; name: string } | null; root: string | null; fileCount: number; size: number; restorable: boolean;
 }
 /** A file of an operation's backups: what the operation did to it, and how it is now: the same as its backup, changed
  * since, or missing (deleted, or not restored yet). */
-export interface BackupFile { path: string; change: 'replaced' | 'deleted'; size: number; now: 'same' | 'changed' | 'missing' | 'unknown'; currentPath?: string }
+export interface BackupFile { path: string; change: 'replaced' | 'deleted' | 'created'; size: number; now: 'same' | 'changed' | 'missing' | 'unknown'; currentPath?: string }
 /** A descriptor entry that an operation removed, which restoring it puts back: the descriptor's path relative to the
  * operation's root, the list it was in, and the entry with its fields. */
 export interface BackupDeclaration { path: string; list: string; entry: Record<string, unknown> }
@@ -111,7 +111,7 @@ export interface RtfDirectory { project: string; files: RtfFolderFile[] }
  * time. Reports from before version 3 list an RTF as its .rtf file, without a directory. */
 export interface ReportAsset extends FileFacts {
   id: string; category: AssetCategory; status: string; resource: string; resourcePath: string; type: AssetType;
-  scope: 'game' | 'common' | 'outside'; requiredBy: AssetDeclaration[]; sequence?: AssetSequence; directory?: RtfDirectory;
+  scope: 'game' | 'common' | 'other-game' | 'outside'; requiredBy: AssetDeclaration[]; sequence?: AssetSequence; directory?: RtfDirectory;
   /** The path of the report folder the asset is in; reports from before version 5 have none. */
   folder?: string;
 }
@@ -142,9 +142,9 @@ export interface AssetUse {
 /** A folder the assets of an asset report are in: the game folder, another folder directly in the resources folder
  * that holds declared files, such as ../common, or one outside the resources folder. relative is its path from the game
  * folder. */
-export interface AssetFolder { path: string; relative: string; kind: 'game' | 'shared' | 'outside'; assets: number }
+export interface AssetFolder { path: string; relative: string; kind: 'game' | 'common' | 'other-game' | 'shared' | 'outside'; assets: number }
 export interface AssetReportSummary extends RssSyncRun, Record<AssetCategory, number> {
-  assets: number; size: number; types: Partial<Record<AssetType, number>>;
+  assets: number; size: number; types: Partial<Record<AssetType, number>>; otherGame?: number;
   /** The assets of each library section; reports from before version 6 have none. */
   sections?: Partial<Record<AssetSection, number>>;
 }
@@ -357,3 +357,18 @@ export interface ViewElement {
 export interface ViewLayout { name: string; resolution: { width: number; height: number }; elements: ViewElement[]; revision?: string; resourcesError?: string }
 /** A view drawn with others on one screen: its file, name and facts. */
 export interface ViewLayer { file: string; name: string; facts: ViewFacts }
+
+/** A dry run of an asset move or RssKey rename; Apply must echo its fingerprint. */
+export interface ChangeEdit {
+  id: string; start: number; end: number; line: number; field: string; old: string; new: string;
+  category: string; selected: boolean;
+}
+export interface ChangePlan {
+  files: { source: string; target: string; mode: 'copy' | 'move' | 'reuse'; size: number; sha256: string }[];
+  edits: Record<string, ChangeEdit[]>;
+  blockers: { code: string; message: string; files: string[] }[];
+  warnings: { code: string; message: string; files: string[] }[];
+  revisions: Record<string, string>; fingerprint: string;
+}
+export interface MoveRequest { assets?: string[]; folder?: string; target: string; name?: string }
+export interface RenameKeyRequest { kind: string; key: string; newKey: string; excluded?: string[] }

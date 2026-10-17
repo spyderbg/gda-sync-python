@@ -1,7 +1,7 @@
 // Application state shared by the layout and the views, and the actions that talk to the backend.
 import { computed, reactive, ref, watch } from 'vue';
 import { commonAction, plural, resourceAction, splitPath, viewSaves, type GdaCandidate } from './format';
-import type { Asset, AssetSection, AssetUse, DeclarationKind, DeclarationOptions, LibraryResponse, RestoreResult, RssFileDetails, RssResource, RssSyncHistory, RssSyncStatus, Session, SyncResult, View, ViewLayout, WorkspaceConfig } from './types';
+import type { ChangePlan, MoveRequest, RenameKeyRequest, Asset, AssetSection, AssetUse, DeclarationKind, DeclarationOptions, LibraryResponse, RestoreResult, RssFileDetails, RssResource, RssSyncHistory, RssSyncStatus, Session, SyncResult, View, ViewLayout, WorkspaceConfig } from './types';
 
 const INVALID_SESSION = 'Invalid session. Reload the application.';
 const RSS_POLL_MS = 1000;
@@ -27,7 +27,7 @@ export const reportState = computed<'unknown' | 'creating' | 'none' | 'failed' |
 export const session = reactive({ token: '', version: '', platform: '' });
 export const loadError = ref('');
 export const stopped = ref(false);
-export const busy = ref<'' | 'scan' | 'sync' | 'report' | 'settings' | 'shutdown' | 'delete-report' | 'restore' | 'declare' | 'remove'>('');
+export const busy = ref<'' | 'scan' | 'sync' | 'report' | 'settings' | 'shutdown' | 'delete-report' | 'restore' | 'declare' | 'remove' | 'move' | 'rename'>('');
 /** What the GDA sync report resources being applied do, while busy is "sync" for them. */
 export const applying = ref<ReturnType<typeof commonAction>>(null);
 export const toast = ref<{ text: string; error?: boolean } | null>(null);
@@ -420,4 +420,25 @@ export async function stopApplication() {
     await api('shutdown');
     stopped.value = true;
   } catch (e) { notify((e as Error).message, true); } finally { busy.value = ''; }
+}
+
+export function movePreview(body: MoveRequest) { return api<ChangePlan>('asset-report/move/preview', 'POST', body); }
+export function renameKeyPreview(body: RenameKeyRequest) { return api<ChangePlan>('asset-report/rename-key/preview', 'POST', body); }
+export async function moveAssets(body: MoveRequest, fingerprint: string) {
+  busy.value = 'move';
+  try {
+    const result = await api<{ library: LibraryResponse; assets: Record<string, string> }>('asset-report/move', 'POST', { ...body, fingerprint });
+    const inspecting = ui.inspecting;
+    applyLibrary(result.library);
+    if (inspecting && result.assets[inspecting]) ui.inspecting = result.assets[inspecting];
+    notify('Moved assets. The operation can be restored from Backups.');
+  } finally { busy.value = ''; }
+}
+export async function renameKey(body: RenameKeyRequest, fingerprint: string) {
+  busy.value = 'rename';
+  try {
+    const result = await api<{ library: LibraryResponse }>('asset-report/rename-key', 'POST', { ...body, fingerprint });
+    applyLibrary(result.library);
+    notify('Renamed the RssKey. The operation can be restored from Backups.');
+  } finally { busy.value = ''; }
 }
