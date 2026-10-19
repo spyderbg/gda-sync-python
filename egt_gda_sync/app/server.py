@@ -20,7 +20,7 @@ from starlette.exceptions import HTTPException
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from egt_gda_sync import APP_ID, __version__
-from egt_gda_sync.app.desktop import open_in_code, open_on_desktop, platform_label
+from egt_gda_sync.app.desktop import choose_folder, open_in_code, open_on_desktop, platform_label
 from egt_gda_sync.app.errors import AppError
 from egt_gda_sync.assets.fonts import FONT_EXTENSIONS, facts_header
 from egt_gda_sync.assets.movies import is_movie
@@ -278,6 +278,7 @@ def create_app(
     dev: bool = False,
     opener: Callable[[str], None] = open_on_desktop,
     code_opener: Callable[[str, int], None] = open_in_code,
+    folder_chooser: Callable[[str], str | None] = choose_folder,
     on_shutdown: Callable[[], None] | None = None,
     page_close_grace: float = PAGE_CLOSE_GRACE_SECONDS,
     frontend: dict[str, tuple[bytes, str]] | None = None,
@@ -489,6 +490,14 @@ def create_app(
     @app.post("/api/asset-report")
     def generate_asset_report() -> dict:
         return library.generate_asset_report()
+
+    @app.get("/api/asset-report/move/folders")
+    def move_folders(path: Annotated[str, Query(max_length=4096)] = '') -> dict:
+        return library.move_folders(path)
+
+    @app.post("/api/asset-report/move/browse")
+    def browse_move_folder() -> dict:
+        return library.browse_move_folder(folder_chooser)
 
     @app.post("/api/asset-report/move/preview")
     def move_preview(body: MovePreviewBody) -> dict:

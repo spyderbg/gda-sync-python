@@ -1504,6 +1504,55 @@ paths:
           $ref: '#/components/responses/ServerError'
       tags:
       - Asset library
+  /api/asset-report/move/folders:
+    get:
+      summary: Move Folders
+      operationId: move_folders_api_asset_report_move_folders_get
+      parameters:
+      - name: path
+        in: query
+        required: false
+        schema:
+          type: string
+          maxLength: 4096
+          default: ''
+          title: Path
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Move Folders Api Asset Report Move Folders Get
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Asset library
+  /api/asset-report/move/browse:
+    post:
+      summary: Browse Move Folder
+      operationId: browse_move_folder_api_asset_report_move_browse_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Browse Move Folder Api Asset Report Move Browse Post
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Asset library
   /api/asset-report/move/preview:
     post:
       summary: Move Preview

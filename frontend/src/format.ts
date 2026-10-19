@@ -28,6 +28,19 @@ export const plural = (count: number) => (count === 1 ? '' : 's');
 export const number = (value: number) => value.toLocaleString();
 export const percent = (part: number, whole: number) => (whole ? Math.round(part / whole * 100) : 0);
 
+/** Display workspace-relative paths; keep absolute paths for desktop and clipboard actions. */
+export function relativePath(path: string, root?: string) {
+  if (!root) return path;
+  const parts = (value: string) => value.replace(/\\/g, '/').replace(/\/$/, '').split('/');
+  const file = parts(path), base = parts(root);
+  const windows = /^[A-Za-z]:/.test(root) || root.startsWith('\\\\');
+  const same = (a: string, b: string) => windows ? a.toLowerCase() === b.toLowerCase() : a === b;
+  if (!same(file[0], base[0])) return path;
+  let shared = 0;
+  while (shared < file.length && shared < base.length && same(file[shared], base[shared])) shared++;
+  return [...base.slice(shared).map(() => '..'), ...file.slice(shared)].join('/') || '.';
+}
+
 export function size(bytes: number) {
   return bytes < 1024 ? `${bytes} B` : bytes < 1048576 ? `${(bytes / 1024).toFixed(1)} KB` : `${(bytes / 1048576).toFixed(1)} MB`;
 }

@@ -173,11 +173,23 @@ Each element is placed as `BaseElement::GetTransform` places it: moved by its `a
 
 ### Move assets and rename RssKeys
 
-Asset details have **Move…**: choose a folder inside the game and optionally a new file name. The preview lists
+Asset cards and details have **Move…**. The compact guided dialog starts with a destination folder and an editable
+file or RTF folder name. **Review changes** opens the second step; **Back** keeps the destination and name so you can
+adjust them before applying. The preview lists
 file copies, moves or reuse of identical files, every descriptor edit, and warnings or blockers. Apply changes all
 matching declarations, including audio samples and every sequence frame; `{N-M}` templates stay templates. An RTF
 moves with its whole folder so its `app:/` paths keep working. A target with different contents, split sequence,
 unsafe path or a file named by `resource_paths` blocks the operation.
+
+The move dialog browses the game's actual folders, including empty ones: the scrolling path breadcrumbs jump to any
+parent, and the compact **Open subfolder** dropdown goes one level deeper. **Browse destination folder** opens a native
+folder chooser starting at the game folder and uses the selected folder as the destination; cancel keeps the current
+path. On Linux it uses Zenity or KDialog. Only folders inside the game can be selected. **Game folder** selects the root.
+The **Target folder** field is always visible for
+entering a new relative path. A single file's or RTF folder's current name is already filled in, ready to edit a prefix or suffix.
+The dialog keeps a fixed size with a scrolling body and visible footer actions on both steps.
+`GET /api/asset-report/move/folders?path=<relative path>` lists the immediate child folders without following links.
+`POST /api/asset-report/move/browse` returns the selected game-relative path, or `null` when the chooser is cancelled.
 
 Version 8 distinguishes **Common** from **Other game**. Other-game assets use the `other-game` scope; the summary's
 `otherGame` counts them. Their details warn that the other game can change independently and offer **Copy into this

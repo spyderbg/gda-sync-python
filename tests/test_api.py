@@ -10,6 +10,56 @@ from tests.fixtures.bc7_dds import create_bc7_dds
 from tests.fixtures.png_reader import read_png
 
 
+def test_move_browse_starts_at_game_and_accepts_only_existing_game_folders(library, tmp_path):
+    game = Path(library.config['destination']).resolve()
+    nested = game / 'art' / 'Empty folder'
+    nested.mkdir(parents=True)
+    outside = tmp_path / 'outside'
+    outside.mkdir()
+    file = game / 'not-a-folder.txt'
+    file.write_text('contents')
+    choices = iter([str(nested), None, str(game), str(outside), str(game / 'missing'), str(file)])
+    starts = []
+    def chooser(start):
+        starts.append(start)
+        return next(choices)
+    app = create_app(library, dev=True, folder_chooser=chooser)
+    with TestClient(app, base_url='http://127.0.0.1') as client:
+        endpoint = '/api/asset-report/move/browse'
+        assert client.post(endpoint).status_code == 403
+        assert starts == []
+        headers = session_headers(client)
+        assert client.post(endpoint, headers=headers).json() == {'path': 'art/Empty folder'}
+        assert client.post(endpoint, headers=headers).json() == {'path': None}
+        assert client.post(endpoint, headers=headers).json() == {'path': '.'}
+        assert client.post(endpoint, headers=headers).status_code == 400
+        assert client.post(endpoint, headers=headers).status_code == 404
+        assert client.post(endpoint, headers=headers).status_code == 400
+        assert starts == [str(game)] * 6
+
+
+def test_move_browse_rejects_symlinks_and_workspace_changes(library, tmp_path):
+    game = Path(library.config['destination']).resolve()
+    child = game / 'art'
+    child.mkdir()
+    link = game / 'linked'
+    try:
+        link.symlink_to(child, target_is_directory=True)
+    except OSError:
+        link = None
+    if link is not None:
+        app = create_app(library, dev=True, folder_chooser=lambda _: str(link))
+        with TestClient(app, base_url='http://127.0.0.1') as client:
+            assert client.post('/api/asset-report/move/browse', headers=session_headers(client)).status_code == 400
+    def switch_workspace(_start):
+        library.config = {**library.config, 'defaultWorkspace': 'changed'}
+        return str(child)
+    app = create_app(library, dev=True, folder_chooser=switch_workspace)
+    with TestClient(app, base_url='http://127.0.0.1') as client:
+        response = client.post('/api/asset-report/move/browse', headers=session_headers(client))
+        assert response.status_code == 409 and 'workspace changed' in response.json()['error']
+
+
 def test_open_declaration_uses_file_and_line_and_rejects_unsafe_paths(library, tmp_path):
     descriptor = Path(library.config["destination"]) / "RssImagesData.json"
     descriptor.write_text('{}', encoding="utf-8")

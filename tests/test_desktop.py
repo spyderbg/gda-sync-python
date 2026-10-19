@@ -11,6 +11,72 @@ from egt_gda_sync.app.errors import AppError
 from egt_gda_sync.workspace.library import asset_id
 
 
+@pytest.mark.parametrize('platform, tool', [('linux', 'zenity'), ('linux', 'kdialog'), ('win32', None), ('darwin', None)])
+def test_folder_chooser_starts_at_literal_path_and_returns_selection(monkeypatch, platform, tool):
+    start = r"C:\Studio\Artist's Game & $(stuff)" if platform == 'win32' else "/studio/Artist's Game & $(stuff)"
+    selected = start + '/art/UI'
+    calls = []
+    def run(command, **kwargs):
+        calls.append((command, kwargs))
+        return subprocess.CompletedProcess(command, 0, selected + '\n', '')
+    monkeypatch.setattr(desktop.sys, 'platform', platform)
+    monkeypatch.setattr(desktop.shutil, 'which', lambda name: f'/usr/bin/{name}' if name == tool else None)
+    monkeypatch.setattr(desktop.subprocess, 'run', run)
+    assert desktop.choose_folder(start) == selected
+    command, options = calls[0]
+    assert not options.get('shell', False)
+    assert options['cwd'] == start
+    if platform == 'win32':
+        assert command[0] == 'powershell.exe' and '-STA' in command
+        assert options['env']['EGT_GDA_SYNC_PICKER_START'] == start
+        assert start not in command[-1]
+    elif platform == 'darwin':
+        assert command[0] == 'osascript' and command[-1] == start
+    elif tool == 'zenity':
+        assert '--directory' in command
+        initial = next(argument.removeprefix('--filename=') for argument in command if argument.startswith('--filename='))
+        assert os.path.dirname(initial) == start
+        assert os.path.basename(initial).startswith('.egt-gda-sync-folder-')
+    else:
+        assert command[:3] == ['/usr/bin/kdialog', '--getexistingdirectory', start]
+
+
+@pytest.mark.skipif(os.name == 'nt', reason='Exercises the Linux chooser subprocess')
+def test_folder_chooser_fallback_starts_in_game_even_when_parent_is_in_gda(monkeypatch, tmp_path):
+    game, gda = tmp_path / "Artist's game", tmp_path / 'GDA'
+    game.mkdir()
+    gda.mkdir()
+    # Model a chooser that uses its process directory instead of its filename option.
+    chooser = tmp_path / 'zenity'
+    chooser.write_text('#!/bin/sh\npwd\n')
+    chooser.chmod(0o755)
+    monkeypatch.setattr(desktop.sys, 'platform', 'linux')
+    monkeypatch.setattr(desktop.shutil, 'which', lambda name: str(chooser) if name == 'zenity' else None)
+    monkeypatch.chdir(gda)
+    assert desktop.choose_folder(str(game)) == str(game)
+    assert os.getcwd() == str(gda)
+    assert list(game.iterdir()) == []
+
+
+@pytest.mark.parametrize('code, output', [(1, ''), (0, '')])
+def test_folder_chooser_cancel_returns_no_selection(monkeypatch, code, output):
+    monkeypatch.setattr(desktop.sys, 'platform', 'linux')
+    monkeypatch.setattr(desktop.shutil, 'which', lambda name: '/usr/bin/zenity' if name == 'zenity' else None)
+    monkeypatch.setattr(desktop.subprocess, 'run', lambda command, **_: subprocess.CompletedProcess(command, code, output, ''))
+    assert desktop.choose_folder('/studio/game') is None
+
+
+def test_folder_chooser_reports_missing_or_failing_desktop_tool(monkeypatch):
+    monkeypatch.setattr(desktop.sys, 'platform', 'linux')
+    monkeypatch.setattr(desktop.shutil, 'which', lambda _: None)
+    with pytest.raises(AppError, match='not available'):
+        desktop.choose_folder('/studio/game')
+    monkeypatch.setattr(desktop.shutil, 'which', lambda name: '/usr/bin/zenity' if name == 'zenity' else None)
+    monkeypatch.setattr(desktop.subprocess, 'run', lambda command, **_: subprocess.CompletedProcess(command, 255, '', 'failed'))
+    with pytest.raises(AppError, match='enter the target path manually'):
+        desktop.choose_folder('/studio/game')
+
+
 @pytest.mark.parametrize("platform, executable, file", [
     ("linux", "/usr/bin/code", "/studio/Artist's Assets & $(stuff)/RssImagesData.json"),
     ("darwin", "/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code", "/studio/My Game/RssImagesData.json"),

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { algorithmValues, baseName, viewTable, type GdaCandidate, declarationLabel, directoryOf, extensionOf, fileType, matchBadge, matchText, number, plural, previewFrames, rssBadges, rtfChangeBadges, rtfChangeNames, rtfChangeSummary, sequenceName, size, splitPath, stackedAlpha, time } from '../format';
+import { algorithmValues, baseName, viewTable, type GdaCandidate, declarationLabel, directoryOf, extensionOf, fileType, matchBadge, matchText, number, plural, previewFrames, relativePath, rssBadges, rtfChangeBadges, rtfChangeNames, rtfChangeSummary, sequenceName, size, splitPath, stackedAlpha, time } from '../format';
 import type { RssFileDetails, RssResource, RtfFacts } from '../types';
 import { busy, copy, data, openDeclaration, openResourceFolder, requestResourceSync, resourceDetails, rssSync } from '../workspace';
 import AppModal from './AppModal.vue';
@@ -35,18 +35,6 @@ const sequence = computed(() => props.row.sequence);
 const name = computed(() => splitPath(props.row.resource).name);
 const running = computed(() => !!rssSync.value?.running);
 const unique = (paths: (string | null | undefined)[]) => [...new Set(paths.filter((path): path is string => !!path))];
-/** Display workspace-relative paths; keep absolute paths for desktop and clipboard actions. */
-function relativePath(path: string, root?: string) {
-  if (!root) return path;
-  const parts = (value: string) => value.replace(/\\/g, '/').replace(/\/$/, '').split('/');
-  const file = parts(path), base = parts(root);
-  const windows = /^[A-Za-z]:/.test(root) || root.startsWith('\\\\');
-  const same = (a: string, b: string) => windows ? a.toLowerCase() === b.toLowerCase() : a === b;
-  if (!same(file[0], base[0])) return path;
-  let shared = 0;
-  while (shared < file.length && shared < base.length && same(file[shared], base[shared])) shared++;
-  return [...base.slice(shared).map(() => '..'), ...file.slice(shared)].join('/') || '.';
-}
 const gamePath = (path: string) => relativePath(path, data.value?.config.destination);
 const gdaPath = (path: string) => relativePath(path, data.value?.config.source);
 // An RTF's folder, and the page its previews show, by name: both RTFs show it when they have it.

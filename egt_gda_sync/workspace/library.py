@@ -1093,6 +1093,46 @@ class Library:
 
         return self._exclusive(operation)
 
+    def browse_move_folder(self, chooser: Callable[[str], str | None]) -> dict:
+        """Choose a destination on the desktop and convert it to a validated game-relative path."""
+        self.require_folders('destination')
+        workspace_id, entry = self._active_workspace()
+        game = self._asset_game(self._comparison(workspace_id, entry)[1]).resolve()
+        selected = chooser(str(game))
+        if selected is None:
+            return {'path': None}
+        current_id, current_entry = self._active_workspace()
+        current_game = self._asset_game(self._comparison(current_id, current_entry)[1]).resolve()
+        if current_id != workspace_id or current_game != game:
+            raise AppError('The workspace changed. Browse for a folder again.', 409)
+        if not os.path.isabs(selected) or not contained(str(game), selected):
+            raise AppError('Choose a folder inside this game.')
+        chosen = self.move_folders(os.path.relpath(selected, game))
+        if not chosen['exists']:
+            raise AppError('The selected folder no longer exists.', 404)
+        return {'path': chosen['path']}
+
+    def move_folders(self, path: str = '') -> dict:
+        """Browse immediate destination folders, including empty ones, inside the active game."""
+        self.require_folders('destination')
+        workspace_id, entry = self._active_workspace()
+        game = self._asset_game(self._comparison(workspace_id, entry)[1]).resolve()
+        relative = os.path.normpath(path.replace('\\', '/') or '.')
+        folder = str(game) if relative == '.' else safe_path(str(game), relative)
+        if not os.path.exists(folder):
+            return {'path': _portable(os.path.relpath(folder, game)), 'exists': False, 'folders': []}
+        if not os.path.isdir(folder):
+            raise AppError('The selected path is not a folder')
+        children = []
+        with os.scandir(folder) as entries:
+            for child in entries:
+                if not _valid_name(child.name) or _is_link(child.stat(follow_symlinks=False)):
+                    continue
+                if child.is_dir(follow_symlinks=False):
+                    children.append({'name': child.name, 'path': _portable(os.path.relpath(child.path, game))})
+        return {'path': _portable(os.path.relpath(folder, game)), 'exists': True,
+                'folders': sorted(children, key=lambda child: (child['name'].casefold(), child['name']))}
+
     def _move_plan(self, assets: list[str] | None, folder: str | None, target: str, name: str | None):
         """Resolve report selections and build a validated, read-only plan."""
         workspace_id, entry = self._active_workspace()

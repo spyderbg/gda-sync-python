@@ -371,4 +371,6 @@ export interface ChangePlan {
   revisions: Record<string, string>; fingerprint: string;
 }
 export interface MoveRequest { assets?: string[]; folder?: string; target: string; name?: string }
+/** Immediate folders on disk under the selected destination, including empty folders. */
+export interface MoveFolderList { path: string; exists: boolean; folders: { name: string; path: string }[] }
 export interface RenameKeyRequest { kind: string; key: string; newKey: string; excluded?: string[] }

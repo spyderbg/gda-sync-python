@@ -404,3 +404,28 @@ def test_restore_keeps_changed_copy_and_removes_other_unchanged_copies(client):
     assert len(result['failures']) == 1
     assert (client.game / 'art' / 'Loading.dds').read_bytes() == b'edited'
     assert not (client.game / 'art' / 'Topper.dds').exists()
+
+
+def test_move_folder_browser_lists_real_directories_including_empty_ones(client):
+    (client.game / 'art' / '1920x1080' / 'Empty').mkdir(parents=True)
+    (client.game / 'Audio').mkdir()
+    (client.game / 'not-a-folder.txt').write_text('file')
+    endpoint = '/api/asset-report/move/folders'
+    root = client.get(endpoint).json()
+    assert root == {'path': '.', 'exists': True, 'folders': [
+        {'name': 'art', 'path': 'art'}, {'name': 'Audio', 'path': 'Audio'}]}
+    assert client.get(endpoint, params={'path': 'art/1920x1080'}).json() == {
+        'path': 'art/1920x1080', 'exists': True, 'folders': [{'name': 'Empty', 'path': 'art/1920x1080/Empty'}]}
+    assert client.get(endpoint, params={'path': 'new/subfolder'}).json() == {
+        'path': 'new/subfolder', 'exists': False, 'folders': []}
+    assert not (client.game / 'new').exists()
+    assert client.get(endpoint, params={'path': 'not-a-folder.txt'}).status_code == 400
+
+
+def test_move_folder_browser_stays_inside_the_game_and_skips_links(client):
+    endpoint = '/api/asset-report/move/folders'
+    (client.game / 'outside-link').symlink_to(client.root / 'other', target_is_directory=True)
+    assert client.get(endpoint).json()['folders'] == []
+    for path in ('../other', str(client.root / 'other'), 'outside-link', 'outside-link/art'):
+        assert client.get(endpoint, params={'path': path}).status_code == 400
+    assert client.get(endpoint, headers={'host': 'attacker.example'}).status_code == 403

@@ -1,7 +1,7 @@
 // Application state shared by the layout and the views, and the actions that talk to the backend.
 import { computed, reactive, ref, watch } from 'vue';
 import { commonAction, plural, resourceAction, splitPath, viewSaves, type GdaCandidate } from './format';
-import type { ChangePlan, MoveRequest, RenameKeyRequest, Asset, AssetSection, AssetUse, DeclarationKind, DeclarationOptions, LibraryResponse, RestoreResult, RssFileDetails, RssResource, RssSyncHistory, RssSyncStatus, Session, SyncResult, View, ViewLayout, WorkspaceConfig } from './types';
+import type { ChangePlan, MoveFolderList, MoveRequest, RenameKeyRequest, Asset, AssetSection, AssetUse, DeclarationKind, DeclarationOptions, LibraryResponse, RestoreResult, RssFileDetails, RssResource, RssSyncHistory, RssSyncStatus, Session, SyncResult, View, ViewLayout, WorkspaceConfig } from './types';
 
 const INVALID_SESSION = 'Invalid session. Reload the application.';
 const RSS_POLL_MS = 1000;
@@ -422,6 +422,8 @@ export async function stopApplication() {
   } catch (e) { notify((e as Error).message, true); } finally { busy.value = ''; }
 }
 
+export function moveFolders(path: string) { return getJSON<MoveFolderList>(`/api/asset-report/move/folders?path=${encodeURIComponent(path)}`); }
+export function browseMoveFolder() { return api<{ path: string | null }>('asset-report/move/browse'); }
 export function movePreview(body: MoveRequest) { return api<ChangePlan>('asset-report/move/preview', 'POST', body); }
 export function renameKeyPreview(body: RenameKeyRequest) { return api<ChangePlan>('asset-report/rename-key/preview', 'POST', body); }
 export async function moveAssets(body: MoveRequest, fingerprint: string) {

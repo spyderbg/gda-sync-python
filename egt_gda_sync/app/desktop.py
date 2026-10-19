@@ -1,4 +1,4 @@
-"""Platform integration: application data location and opening folders or URLs."""
+"""Platform integration: application data location, folder selection and opening folders or URLs."""
 
 import configparser
 import ntpath
@@ -8,12 +8,14 @@ import re
 import shutil
 import subprocess
 import sys
+import uuid
 from collections.abc import Mapping
 
 from egt_gda_sync.app.errors import AppError
 
 NO_FILE_MANAGER = "A desktop file manager is not available. You can copy the folder path instead."
 OPEN_FAILED = "Could not open the folder in your desktop session. You can copy the path instead."
+CHOOSE_FAILED = "Could not open the folder chooser. You can enter the target path manually."
 
 
 def application_data_home(platform: str = sys.platform, env: Mapping[str, str] = os.environ, home: str | None = None) -> str:
@@ -80,6 +82,64 @@ def open_on_desktop(target: str, wait_seconds: float = 10.0) -> None:
         return  # Some openers stay attached to the program they launched.
     if code != 0:
         raise AppError(OPEN_FAILED, 503)
+
+
+def choose_folder(start: str) -> str | None:
+    """Choose one existing folder, starting at start; cancellation returns None. Paths stay literal data."""
+    env = child_environment()
+    cancel_codes = ()
+    if sys.platform == "win32":
+        env["EGT_GDA_SYNC_PICKER_START"] = start
+        script = """
+$ErrorActionPreference = 'Stop'
+[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+Add-Type -AssemblyName System.Windows.Forms
+$dialog = New-Object System.Windows.Forms.FolderBrowserDialog
+$dialog.Description = 'Choose a destination folder inside this game'
+$dialog.SelectedPath = $env:EGT_GDA_SYNC_PICKER_START
+$dialog.ShowNewFolderButton = $false
+try {
+    if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
+        [Console]::WriteLine($dialog.SelectedPath)
+    }
+} finally { $dialog.Dispose() }
+"""
+        command = ["powershell.exe", "-NoProfile", "-NonInteractive", "-STA", "-Command", script]
+    elif sys.platform == "darwin":
+        script = """
+on run argv
+    try
+        set selectedFolder to choose folder with prompt "Choose a destination folder inside this game" default location (POSIX file (item 1 of argv))
+        return POSIX path of selectedFolder
+    on error number -128
+        return ""
+    end try
+end run
+"""
+        command = ["osascript", "-e", script, start]
+    else:
+        cancel_codes = (1,)
+        zenity, kdialog = shutil.which("zenity"), shutil.which("kdialog")
+        if kdialog and (not zenity or "KDE" in env.get("XDG_CURRENT_DESKTOP", "").upper()):
+            command = [kdialog, "--getexistingdirectory", start, "--title", "Choose destination folder"]
+        elif zenity:
+            # GTK4 treats a directory filename as a selection in its parent, even with a trailing slash.
+            # A nonexistent child makes the game the displayed folder, with nothing preselected. No file is created.
+            initial = os.path.join(start, f".egt-gda-sync-folder-{uuid.uuid4().hex}")
+            command = [zenity, "--file-selection", "--directory", "--title=Choose destination folder", f"--filename={initial}"]
+        else:
+            raise AppError("A folder chooser is not available. Install zenity or kdialog, or enter the target path manually.", 503)
+    try:
+        # GTK can fall back to the process directory while restoring the chooser's state.
+        # Set it for this child only; changing the server's working directory would affect other requests.
+        result = subprocess.run(command, cwd=start, env=env, stdin=subprocess.DEVNULL, capture_output=True, text=True, encoding="utf-8")
+    except OSError as error:
+        raise AppError(CHOOSE_FAILED, 503) from error
+    if result.returncode in cancel_codes:
+        return None
+    if result.returncode != 0:
+        raise AppError(CHOOSE_FAILED, 503)
+    return result.stdout.rstrip("\r\n") or None
 
 
 # Browsers that open a URL in a new window when given --new-window.
