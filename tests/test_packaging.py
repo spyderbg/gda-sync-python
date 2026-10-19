@@ -19,7 +19,7 @@ from tests.fixtures.png_reader import read_png
 
 
 def test_packaging_builds_the_current_system_and_windows_on_linux_with_wine():
-    assert package_targets(None, "linux") == ["linux"]
+    assert package_targets(None, "linux") == ["linux", "windows"]
     assert package_targets(None, "win32") == ["windows"]
     assert package_targets("windows", "linux") == ["windows"]
     assert package_targets("windows", "win32") == ["windows"]
@@ -80,9 +80,12 @@ def test_the_package_entrypoint_ships_the_config_after_building_the_executable(t
         (dist / ("egt-gda-sync.exe" if target == "windows" else "egt-gda-sync")).write_bytes(b"test executable")
 
     monkeypatch.setattr(package_support, "build_native", build_native)
+    monkeypatch.setattr(package_support, "build_windows_with_wine", lambda: build_native("windows"))
     entrypoint = runpy.run_path(str(script))
     entrypoint["main"](["--skip-frontend"])
     assert (dist / "workspace.json").read_bytes() == config.read_bytes()
+    if sys.platform == "linux":
+        assert (dist / "egt-gda-sync").is_file() and (dist / "egt-gda-sync.exe").is_file()
 
 
 def test_missing_configuration_fails_packaging_before_a_build_starts(tmp_path, monkeypatch):

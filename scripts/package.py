@@ -3,7 +3,8 @@
 """Build standalone executables: dist/egt-gda-sync (Linux) and dist/egt-gda-sync.exe (Windows).
 
 Each executable contains the Python runtime, the backend, its dependencies and the built Vue interface.
-On Linux, `--target windows` builds the Windows executable with a pinned Windows Python under Wine.
+By default, every target the current operating system can build: both on Linux, where the Windows executable
+is built with a pinned Windows Python under Wine, and only the Windows executable on Windows.
 """
 
 import argparse
@@ -24,7 +25,7 @@ from package_support import (
 
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--target", choices=["linux", "windows", "all"], help="defaults to the current operating system")
+    parser.add_argument("--target", choices=["linux", "windows", "all"], help="defaults to every target the current operating system can build")
     parser.add_argument("--skip-frontend", action="store_true", help="reuse the existing build in egt_gda_sync/static")
     args = parser.parse_args(argv)
     try:

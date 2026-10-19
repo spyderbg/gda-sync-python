@@ -32,7 +32,9 @@ The main command is:
 python scripts/package.py
 ```
 
-It builds for the current operating system. The implementation is in
+It builds every target the current operating system can build: the Linux and
+Windows executables on Linux, and the Windows executable on Windows. The
+implementation is in
 [scripts/package.py](scripts/package.py) and
 [scripts/package_support.py](scripts/package_support.py).
 
@@ -171,8 +173,8 @@ See [PyInstaller's operating-mode documentation](https://pyinstaller.org/en/stab
 ### 4. Copy the editable configuration
 
 After each target builds, packaging copies `config/workspace.json` to
-`dist/workspace.json`, replacing the previous packaged copy. An `--target all`
-build produces both executables with one shared configuration file:
+`dist/workspace.json`, replacing the previous packaged copy. A Linux build of
+both targets produces both executables with one shared configuration file:
 
 ```text
 dist/
@@ -223,7 +225,7 @@ directory at runtime; packaging does not embed an existing demo workspace.
 ## Linux and Windows builds
 
 ```bash
-python scripts/package.py                   # Current OS
+python scripts/package.py                   # All targets the host can build
 python scripts/package.py --target linux    # Linux host only
 python scripts/package.py --target windows  # Native Windows, or Wine on Linux
 python scripts/package.py --target all      # Both, on Linux

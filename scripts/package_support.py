@@ -75,7 +75,7 @@ def package_targets(target: str | None, platform: str = sys.platform) -> list[st
     if platform not in ("linux", "win32"):
         raise ValueError("Run packaging on Linux or Windows.")
     if target is None:
-        return ["windows" if platform == "win32" else "linux"]
+        return ["windows"] if platform == "win32" else ["linux", "windows"]
     if target not in ("linux", "windows", "all"):
         raise ValueError("Usage: python scripts/package.py [--target linux|windows|all]")
     targets = ["linux", "windows"] if target == "all" else [target]

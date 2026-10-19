@@ -259,7 +259,7 @@ Drawing a font with itself, in cards and specimens, needs no particular report v
 
 ### Packaged applications
 
-**Packaging copies `config/workspace.json` to `dist/workspace.json`**, beside `egt-gda-sync` or `egt-gda-sync.exe`. Configure the source file before running `python scripts/package.py`. Each packaging run refreshes the copy. Distribute or move the executable and this configuration together, and adjust folder paths for the destination machine. Both targets share `dist/workspace.json` when building with `--target all`.
+**Packaging copies `config/workspace.json` to `dist/workspace.json`**, beside `egt-gda-sync` or `egt-gda-sync.exe`. Configure the source file before running `python scripts/package.py`. Each packaging run refreshes the copy. Distribute or move the executable and this configuration together, and adjust folder paths for the destination machine. Both targets share `dist/workspace.json` when they are built together.
 
 The packaged application always loads `workspace.json` beside the actual executable, even when launched from another folder or through a symlink. Saving Workspace settings updates that same file; manual edits take effect on the next launch. The launcher prints the active configuration path. Invalid JSON or invalid folders stop startup with an explanation.
 
@@ -401,7 +401,7 @@ pytest
 
 The image matching tests use a stand-in for the GPU. With the `gpu` extra and a CUDA GPU, `EGT_GDA_SYNC_GPU_TESTS=1 pytest tests/test_image_compare.py` also runs the real CLIP and DINOv2 models.
 
-Build the executable for the current operating system into `dist/`:
+Build the executables into `dist/` (both on Linux, the Windows one on Windows):
 
 ```bash
 python scripts/package.py
@@ -414,9 +414,9 @@ Browser tests need Playwright's Chromium once: `python -m playwright install chr
 ### Standalone executables
 
 ```bash
-python scripts/package.py                   # Linux: dist/egt-gda-sync; Windows: dist\egt-gda-sync.exe
-python scripts/package.py --target windows  # On Linux: build dist/egt-gda-sync.exe with Wine
-python scripts/package.py --target all      # On Linux: both executables
+python scripts/package.py                   # Linux: both executables (Windows with Wine); Windows: dist\egt-gda-sync.exe
+python scripts/package.py --target linux    # On Linux: only dist/egt-gda-sync
+python scripts/package.py --target windows  # Only dist/egt-gda-sync.exe (with Wine on Linux)
 python scripts/verify_package.py            # Test the executable for the current OS
 python scripts/verify_package.py windows    # On Linux: test dist/egt-gda-sync.exe under Wine
 ```
