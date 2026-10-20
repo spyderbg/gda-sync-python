@@ -180,7 +180,9 @@ const note = computed(() => {
     case 'invalid': return { icon: 'mdi-alert-circle-outline', tone: 'is-invalid', title: 'The declared path cannot be used.', text: props.row.status.replace(/^invalid: /, '') };
     default: return {
       icon: 'mdi-file-question-outline', tone: 'is-supplementary', title: 'Not declared.',
-      text: `No descriptor declares ${project || (many ? 'these files' : 'this file')}, so the game does not load ${many ? 'them' : 'it'}.${sequence.value?.guessed ? ' The sequence is guessed from the file names.' : ''}`,
+      text: sequence.value?.guessed
+        ? 'No descriptor declares this animation as a sequence. It is guessed from the file names. Individual frames can also be declared as images.'
+        : `No descriptor declares ${project || (many ? 'these files' : 'this file')}, so the game does not load ${many ? 'them' : 'it'}.`,
     };
   }
 });

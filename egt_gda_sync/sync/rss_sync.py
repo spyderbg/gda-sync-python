@@ -422,8 +422,9 @@ def rtf_match(game_project: str, gda_project: str) -> tuple[int, int]:
     return path_overlap(game_project, gda_project), len(words(game_project) & words(gda_project))
 
 
-def gather(config: Config, required: bool = True) -> Declarations:
-    """Read what the game's descriptors declare; a game without descriptors is an error if required."""
+def gather(config: Config, required: bool = True, *, include_declared_images: bool = False) -> Declarations:
+    """Read declarations. The asset inventory can include standalone images in inferred sequences; sync's
+    supplementary cleanup groups only undeclared files. Explicit sequence ranges always keep their exact frames."""
     game_dir = config.resources_dir / config.game
     documents = load_documents(game_dir, required)
     templates = set(config.resource_paths)
@@ -463,7 +464,15 @@ def gather(config: Config, required: bool = True) -> Declarations:
     folders = rtf_folders(config.resources_dir, game_dir, projects, declared_files)
     contents = folder_files(folders)
     in_folders = {path for files in contents.values() for path in files}
-    guessed, single = guess_sequences(sorted(unlisted - in_folders))
+    candidates = unlisted - in_folders
+    if include_declared_images:
+        candidates |= {path for path, entries in uses.items()
+                       if any(entry.type == 'Image' for entry in entries) and path not in frame_files | in_folders
+                       and path.is_relative_to(game_dir) and path.is_file() and unlisted_file(path, game_dir, config.extensions)}
+    guessed, single = guess_sequences(sorted(candidates))
+    # Do not invent an animation consisting entirely of declared still images, or duplicate those as loose files.
+    guessed = [files for files in guessed if any(path in unlisted for path in files)]
+    single = [path for path in single if path in unlisted]
     rtfs = {folder: (project, contents[folder]) for folder, project in sorted(folders.items())}
     return Declarations(game_dir, descriptors, templates, uses, sequence_frames, single, guessed, declared_files, rtfs)
 

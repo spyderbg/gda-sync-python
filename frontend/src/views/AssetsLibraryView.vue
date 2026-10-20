@@ -50,7 +50,7 @@ const FILTERS: { key: Filter; label: string; hint: string }[] = [
 ];
 const PAGE_SIZE = 200;
 // The asset report version this release writes, ASSET_REPORT_VERSION in egt_gda_sync/asset_report.py.
-const REPORT_VERSION = 8;
+const REPORT_VERSION = 9;
 
 const { report, loadError } = useAssetReport();
 const filter = ref<Filter>('all');
@@ -66,6 +66,7 @@ const outdated = computed(() => !!assetReport.value?.reportPath && (assetReport.
 // ImagesSeq before version 6, and movies before version 7.
 const outdatedNote = computed(() => {
   const version = assetReport.value?.version ?? 1;
+  if (version >= 8) return 'Rescan to include frames also declared as Images in inferred animations.';
   if (version >= 7) return 'Rescan to distinguish common assets from files borrowed from another game, and enable copying a folder into this game.';
   if (version >= 6) return 'This report was written by an earlier version, which listed movies as other files and did not read them. Rescan to update it.';
   if (version >= 5) return 'This report was written by an earlier version, which did not count images and image sequences apart, so the sidebar counts image sequences as images. Rescan to update it.';

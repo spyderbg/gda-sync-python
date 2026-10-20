@@ -47,6 +47,51 @@ def config_for(game: Path, **settings) -> Config:
     return Config(resources_dir=game.parent.resolve(), gda_dir=game.parent, extensions=frozenset({".dds", ".png", ".wav"}), game=game.name, **settings)
 
 
+@pytest.mark.parametrize('image_frames', [(0,), (0, 3, 5), tuple(range(6))])
+def test_inferred_animation_keeps_frames_also_declared_as_images(tmp_path, image_frames):
+    game = tmp_path / 'resources' / 'game'
+    folder = game / 'bell'
+    folder.mkdir(parents=True)
+    image = create_bc7_dds(4, 4)
+    for index in range(6):
+        (folder / f'Bell_{index:05}.dds').write_bytes(image)
+    (game / 'RssImagesData.json').write_text(json.dumps({'images': [
+        {'id': f'BELL_{index}', 'path': f'bell/Bell_{index:05}.dds'} for index in image_frames]}))
+    report = inventory(config_for(game), asset_facts)
+    sequences = [row for row in report['assets'] if row.get('sequence')]
+    if len(image_frames) == 6:
+        assert sequences == []  # Numbered still images alone do not invent an undeclared animation.
+    else:
+        assert len(sequences) == 1
+        sequence = sequences[0]
+        assert sequence['resource'] == 'bell/Bell_{00000-00005}.dds'
+        assert sequence['category'] == 'supplementary' and sequence['requiredBy'] == []
+        assert sequence['sequence']['guessed'] is True
+        assert [(frame['resource'], frame['category']) for frame in sequence['sequence']['frames']] == [
+            (f'bell/Bell_{index:05}.dds', 'available' if index in image_frames else 'supplementary') for index in range(6)]
+    images = [row for row in report['assets'] if not row.get('sequence')]
+    assert [(row['resource'], row['category'], row['requiredBy'][0]['id']) for row in images] == [
+        (f'bell/Bell_{index:05}.dds', 'available', f'BELL_{index}') for index in image_frames]
+    assert report['summary']['size'] == len(image) * 6
+
+
+def test_declared_sequence_boundaries_are_not_extended_by_neighboring_images(tmp_path):
+    game = tmp_path / 'resources' / 'game'
+    game.mkdir(parents=True)
+    for index in range(7):
+        (game / f'Bell_{index:05}.dds').write_bytes(create_bc7_dds(4, 4))
+    (game / 'RssImagesData.json').write_text(json.dumps({'images': [{'id': 'FIRST', 'path': 'Bell_00000.dds'},
+                                                               {'id': 'SHARED', 'path': 'Bell_00001.dds'}]}))
+    (game / 'RssImagesSeqData.json').write_text(json.dumps({'imagesSeq': [
+        {'id': 'BELL', 'frameTime': 60, 'loopCount': 0, 'loopTo': 2, 'frames': [{'path': 'Bell_{00001-00005}.dds'}]}]}))
+    report = inventory(config_for(game), asset_facts)
+    sequences = [row['sequence'] for row in report['assets'] if row.get('sequence')]
+    assert len(sequences) == 1
+    assert sequences[0]['paths'] == ['Bell_{00001-00005}.dds']
+    assert [frame['resource'] for frame in sequences[0]['frames']] == [f'Bell_{index:05}.dds' for index in range(1, 6)]
+    assert (sequences[0]['frameTime'], sequences[0]['loopCount'], sequences[0]['loopTo']) == (60, 0, 2)
+
+
 def test_lists_each_asset_with_the_descriptor_entries_that_load_it(tmp_path):
     game = write_game(tmp_path)
     result = inventory(config_for(game), asset_facts)

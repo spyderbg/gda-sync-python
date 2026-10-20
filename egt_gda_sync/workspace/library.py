@@ -39,7 +39,7 @@ from egt_gda_sync.sync.rss_jobs import SyncJobs
 from egt_gda_sync.images.image_cache import CACHE_FILE
 from egt_gda_sync.workspace.paths import PLACEHOLDER, contract, expand, expand_fields, global_paths
 from egt_gda_sync.sync.rss_schemas import DOCUMENT_TYPES, parse_dataclass
-from egt_gda_sync.sync.rss_sync import DEFAULT_EXTENSIONS, DEFAULT_MATCH_THRESHOLD, Config, declared_files, expand_path, load_documents
+from egt_gda_sync.sync.rss_sync import DEFAULT_EXTENSIONS, DEFAULT_MATCH_THRESHOLD, Config, declared_files, declared_paths, expand_path, load_documents
 from egt_gda_sync.assets.view_text import DEFAULT_SAMPLE
 from egt_gda_sync.assets.views import THUMBNAIL_WIDTH, VIEW_FOLDER, is_view, key_uses, load_resources, read_view, render_text, render_view, view_layout, view_root
 from egt_gda_sync.assets.rtf import RTF_EXTENSION, rtf_layout
@@ -930,6 +930,12 @@ class Library:
                 declared = declared_files(game) if documents else set()
             except (OSError, ValueError, TypeError) as error:
                 raise AppError(f"The descriptors cannot be read: {error_message(error)}") from error
+            # A standalone Image may also be a sequence frame. Still refuse a stale inferred sequence whose frames
+            # have since acquired an explicit ImageSequence declaration.
+            if kind == 'ImageSequence' and row.get('sequence', {}).get('guessed'):
+                declared = {(game / path).resolve() for document in documents.values()
+                            for template, sequence, _entry in declared_paths(document) if sequence is not None
+                            for path in expand_path(template)}
             if any(file in declared for file in files):
                 raise AppError("A descriptor declares it now. Rescan to update the report.", 409)
             targets = {path.relative_to(game).as_posix(): path for path in descriptor_targets(documents, KINDS[kind], game)}
@@ -1298,9 +1304,16 @@ class Library:
             except (ValueError, OSError, UnicodeError) as error:
                 raise AppError(f"Could not move the assets: {error_message(error)}", 409) from error
             ids = {}
+            new_files = [(new, set(_asset_files(new))) for new in result['assets']]
             for row in rows:
                 mapped = {str(mapping[Path(file)]) for file in _asset_files(row)}
-                match = next((new for new in result['assets'] if mapped & set(_asset_files(new))), None)
+                candidates = [(new, files) for new, files in new_files if mapped & files]
+                # A still Image and a sequence can share a frame. Follow the same asset and complete file set,
+                # rather than whichever row happens to list that frame first. A loose file can also join a guessed group.
+                match = next((new for new, files in candidates if files == mapped and new['requiredBy'] == row['requiredBy']
+                              and bool(new.get('sequence')) == bool(row.get('sequence'))
+                              and bool(new.get('directory')) == bool(row.get('directory'))),
+                             candidates[0][0] if candidates else None)
                 if match:
                     ids[row['id']] = match['id']
             return {'library': self.scan(), 'assets': ids}
