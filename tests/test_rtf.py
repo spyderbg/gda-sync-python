@@ -80,8 +80,10 @@ def test_lays_out_each_section_with_its_default_text_as_runs(tmp_path):
     assert footer["texts"]["English"]["runs"][2] == {"text": "CREDITS", "style": "_style_title_"}
 
     wintable = {section["id"]: section for section in pages["wintable"]["sections"]}
-    # A paytable figure is the same in every language; the game computes its win.
-    assert wintable["bell_x3"]["texts"] == {"English": {"runs": [{"figure": "3× bell"}]}, "Italian": {"runs": [{"figure": "3× bell"}]}}
+    # A paytable figure is the same in every language; the game computes its win, which it looks up by the figure's first
+    # id, count and multiplier.
+    figure = {"figure": "3× bell", "ids": ["bell"], "count": 3, "multiplier": 1}
+    assert wintable["bell_x3"]["texts"] == {"English": {"runs": [figure]}, "Italian": {"runs": [figure]}}
     # A video draws its first frame, from the frames in its folder.
     assert wintable["spin"]["texts"]["English"]["runs"] == [{"video": str(data / "videos" / "spin" / "spin_00000.png"), "id": "_video_1_", "found": True,
                                                              "frames": 3, "fps": 25.0, "scale": 5.0}]

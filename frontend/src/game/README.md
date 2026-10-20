@@ -1,0 +1,167 @@
+# The browser game
+
+`frontend/src/game` plays the active workspace's game in the browser: **Play**, in the sidebar's **Game** section. It is
+a port of the C++ game (`games/game/alpha_family`) that keeps the C++ structure, so that games and features developed
+here can be exported back to C++.
+
+It plays **Burning Crown Tetra Spins 10**: the main round, the tetra round (four sub screens, sticky and copied crowns),
+the big win movies, the maximum award (capping) splash, autoplay, the bet and language menus, English and Italian, the
+cabinet's info screen (the help pages of the game's RTF) and its topper screen.
+
+## What it loads, and from where
+
+Every file operation goes through the backend (`egt_gda_sync/game/project.py`):
+
+| What | Endpoint | C++ counterpart |
+| --- | --- | --- |
+| The game's modules and their config | `GET /api/game/project` → `modules` (`configs/<workspace id>/modules/<Name>Modules.json`) | ModuleManager config |
+| The family's modules (the capping splash...) | `GET /api/game/project` → `familyModules` (`configs/alpha_family/modules/AlphaGameModules.json`) | ModuleManager config |
+| The descriptors' entries (images, sequences, movies, fonts, styles, audio, IData, views, RTFs) | `GET /api/game/project` → `descriptors` | ResourceManager |
+| The math file, view configs and views | `GET /api/game/data?file=<path in the game folder>` | `IResources::Get<RssIData>`, ElementsList |
+| Images (DDS decoded), movies, audio, fonts, an RTF's laid-out pages | `GET /api/rss-sync/preview?file=` (the asset library's preview) | VideoManager, AudioManager, RtfElement |
+| The assets the asset library lists | `GET /api/asset-report` | – |
+| The C++ plugin's sources, which an export copies | `GET /api/game/cpp?folder=` (the game folder beside the resources: `games/game`) | – |
+| An export | `POST /api/game/export` (written to the app data folder's `game-exports`) | – |
+
+The game uses the same resources the asset library lists: a descriptor entry whose file the asset report does not list
+as available shows under **Developer → Resources**.
+
+## Structure
+
+The folders mirror the C++ ones, and the classes keep their C++ names and methods (`RuntimeGet`, `Transit`, `ReactOn`,
+`SetupViews`, `CalculateRound`...), so a TypeScript class reads like its `.h`/`.cpp`:
+
+| `src/game/...` | C++ |
+| --- | --- |
+| `engine/Core`, `engine/GameCore` | `Egt::Core` (Event, EventQueue), `Egt::GameCore` (RuntimeAccess, IRng engines, Stopwatch), tweeny (`Tools/Tweeny.ts`) |
+| `engine/Fsm` | `games/game/libs/src/Egt/Fsm` (State, Machine, FsmBuilder) |
+| `engine/Game` | `Egt/Game` (Currencies, IMathTypes, IResources, RuntimeImport services, GameFsm, CountdownTimer) |
+| `engine/GameVideoCtrl` | `Egt/GameVideoCtrl` (ElementsList; Image, Anim (`AnimationClip/` ImageSeqElement and MovieElement), Text, Button and Rtf elements; `TweenyExtend/`; IVideo, IVideoManager) |
+| `engine/ResourceManager`, `VideoManager`, `AudioManager`, `ModuleManager` | the plugins of the same names |
+| `plugins/CappingSplashView` | `games/game/plugins/src/Egt/CappingSplashView`, a module of every alpha family game |
+| `alpha_family/libs/AlphaFamily` | `alpha_family/libs/src/Egt/AlphaFamily` (math rules, states and views interfaces) |
+| `alpha_family/libs/AlphaFamilyStatesLibrary` | the states library (managers, Idle, Match, MainRound, TetraRound, MatchCappingApplied...) |
+| `alpha_family/libs/AlphaFamilyVideoCtrl` | BaseView, ButtonView, NumericBarView, MenuView |
+| `alpha_family/plugins/burning_crown_tetra_spins_10/<Module>` | `alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/<Module>`: Math, Fsm, View, InfoView, TopperView |
+| `integration/AlphaFamilyGameflow` | `integration/libs/src/Egt/AlphaFamilyGameflow` |
+| `integration/BrowserKernel` | the kernel integrations (playground, hat...): wallet, limits, localization, hardware buttons |
+| `app/GameApp.ts`, `app/ModuleRegistry.ts` | the ModuleManager and the plugins it loads |
+| `authoring/`, `export/` | no counterpart: the math description and the C++ export (below) |
+
+A few TypeScript necessities:
+
+- Interfaces do not exist at runtime, so each has a token of the same name: `RuntimeGet(IReelsView)` is
+  `RuntimeGet<IReelsView>()`, `RuntimeGet(IReelsView.Events)` is `RuntimeGet<IReelsView::Events>()`.
+- `std::variant` phases are classes: `std::get_if<SpinReelsPhase>(&phase)` is `phase instanceof SpinReelsPhase`.
+- tweeny actions are `Tools/Tweeny.ts` (`Together`, `Sequence`, `Delay`, `MoveFromTo`, `PlaceholderFromTo`...), run in
+  the view's `Process`; plain tweeny delays are `m_timers.After(ms, ...)`.
+- Several small C++ headers are one file where they only declare tokens (`IMenuViews.bridge.ts`, `IOverlayViews.bridge.ts`).
+
+Where the browser differs from a cabinet:
+
+- The info and topper screens are canvases under the game (**Info screen**, **Topper**); Info opens the info screen.
+  The topper screen takes the size of its picture, which on a cabinet the integration's viewport has.
+- An RTF is laid out by the backend and drawn with the app's font, not the RTF Tool's renderer and the project's fonts:
+  the help pages are close to the cabinet's, not exact.
+- Movies play in the browser's video player, muted (their sounds are audio events), composed with their `valpha` alpha.
+  They load once the game's images have loaded, where C++ loads and starts them when the element is made.
+
+Not ported: the rounds this game does not have (free, extra, hold and spin, wheel, gamble, coins), whose states are not
+in its machine. Their reel rules are ported (expanding symbols, collectors, the hold and spin trigger) but untested in
+play, since Burning Crown does not use them.
+
+## Playing and developing
+
+- Keys: Space/Enter START, A autoplay, ↑/↓ bet, M max bet, I info, C cashout. The panel under the screen has the same
+  buttons, Exit (back to the asset library) and the credit insert; the credit is kept in the browser.
+- **Developer** shows the state machine's active states and transitions, the match's wallet, the rounds played, and
+  forces the next round (like the C++ RNG presets): a main win of 4× the bet or more enters the tetra round. **Maximum
+  award** lowers the match's capping to 3.00, so that a main win shows the capping splash.
+- The math was checked by simulation: the main round of `var_10BCTS_8435.json` returns about 84.0–84.5% over 3 million
+  rounds (the setup's `simRtp` is 84.35%), the tetra round about 100% over 600,000 rounds.
+
+Fixed in the browser game, with the C++ of the fix in the export:
+
+- Cashout at the tetra round's input went to the presenting of a round that does not exist (the last one has ended,
+  or none has started), and the ending then asked the gameflow to end it, which throws (in C++ too). Cashout there now
+  ends the tetra rounds like the exit tetra button, and the cashout follows in Idle (`TetraRoundInput.ts`, and its C++
+  in `export/cpp/.../TetraRoundInput.cpp`).
+
+Shown as C++ shows it: the wintable's crown and melon figures read `crown::5X1` and `melon::3X1`. The RTF names them
+crown and melon, the math file's symbols are WILD and WATERMELON, and the info view looks the figures up by the symbols'
+names.
+
+## Adding a game or a feature
+
+1. Math: a `<Game>Math` module whose `MathRules` builds its `ReelRoundRules` from a `MathRulesDescription`
+   (`authoring/MathRulesDescription.ts`): for each round type, which rules it has and where in the math file their
+   values are, like `BurningCrownTetraSpins10Math/MathRules.description.ts`. A new rule goes to
+   `alpha_family/libs/AlphaFamily/Math/Reel/Rules`, to the description, its builder and `export/MathExporter.ts`.
+2. States: reuse the states library, or add states there; a `<Game>Fsm` module describes the tree in `CreateBuilder()`.
+3. Views: a `<Game>View` module whose `CreateViews()` adds its views in groups; views load their elements from the
+   game's `v/<resolution>/*.json` by their ElementsList id.
+4. Register the modules in `app/ModuleRegistry.ts` under the names the game's modules config gives them.
+5. **Developer → Export to C++** writes the game's whole plugin to
+   `~/.local/share/egt-gda-sync/game-exports/<workspace>/`, by its paths in the games folder (`game/...`,
+   `configs/...`), with a README of what each file is:
+   - generated from the browser game: `<Game>Fsm/` (`CreateBuilder()` from the state machine), `<Game>Math/`
+     (`MathRules.cpp` from the math description, `SimulatorConfig/<name>.data.h` from the math file's JSON, the rest of
+     the module), `<Game>View/` (the view module, its `CreateViews()` from the views) and the modules config;
+   - translated from the TypeScript (below): the states, views, visuals and software buttons changed in the browser
+     since they were ported, and new ones; a view comes with the visuals it uses and the other views that use them, so
+     that they compile together. **Translate all the game's views from TypeScript** translates the whole view module;
+   - copied from the C++ game sources (through the backend): the plugin's other sources (the views not translated, the
+     info and topper modules), which the TypeScript of the same names ports;
+   - updated: C++ written by hand for a browser change (`export/cpp/<path in games/game>`), such as the cashout fix of
+     the states library, in place of the C++ game sources' files, with their headers;
+   - skeletons for new views the translator cannot translate (`ViewSkeleton.ts`): they load their elements list and
+     compile, and their TypeScript names what to port.
+
+   `export/PortManifest.json` has, for each TypeScript file that ports C++, its C++ files and the hash of the TypeScript
+   when it was ported. A ported file changed in the browser since is translated; when it cannot be, and the export
+   neither generates nor updates its C++, it is listed in the README (and on the page) as C++ to update by hand, with
+   the translator's reason. After a port, refresh the manifest: `node frontend/src/game/export/port-manifest.mjs
+   <games/game>`.
+
+   For Burning Crown Tetra Spins 10 the export is the plugin's 120 files (17 generated, 103 copied) and the updated
+   `TetraRoundInput`; with all views translated, 34 of its views, visuals and buttons come from the TypeScript instead.
+   Every exported `.cpp`, 47 of them, compiles with the games repository's clang flags
+   (`build/user-dbg-clang/compile_commands.json`, syntax only), in either case, and with a view made in the browser
+   added to the view module. States the exporter does not know yet are added to `export/CppExporter.ts`.
+
+## The TypeScript to C++ translator
+
+`export/translator` translates a class of the browser game into its `.h` and `.cpp`, in the C++ game's own form: a
+state (extends `State`), a view (extends `BaseView`, `ButtonView`, `NumericBarView`...) or a view's visual (extends
+`BaseVisual`). The export runs it through the backend (`POST /api/game/translate`, which needs the app's sources and
+Node.js), in two passes, so that a view translates against its translated visuals' headers.
+
+It reads the TypeScript with its types (the TypeScript compiler) and the C++ game sources' headers (`CppIndex.mjs`,
+preferring the translated game's plugin): each name gets its header and C++ qualification, each interface method its
+exact C++ signature, each event handler its event's argument types; a class the C++ already has keeps its own
+declarations where they say what the TypeScript says. The TypeScript mirrors the C++ API (`this.Parent(IX)` is
+`Parent<IX>()`, `list.TryGet(id, TextElement)` is `TryGet<TextElement>(id)`, `Delay(ms)` and `action.OnEnd(...)` are
+`tweeny::delay` and `on_end.connect`), and what TypeScript says differently is lowered: object literals to designated
+initializers or `video_ctrl` points, optional chaining to pointer or `std::optional` access (or index-checked element
+pointers), `instanceof` on a round's phases to `std::get`/`std::get_if`, a union parameter split with `instanceof`,
+`typeof` or `IsArrayOf` to C++ overloads, array methods to `<algorithm>`, elements held by pointer and visuals by
+`Ptr<T>`, the module's constants, enums and interfaces to the `.cpp`'s anonymous namespace and the class's nested
+types. What it cannot express is an error with its line, never a guess: the class is then listed as C++ to update by
+hand.
+
+All 29 states of the states library, and all 34 views, visuals and software buttons of Burning Crown Tetra Spins 10,
+translate, and their C++ compiles. To keep TypeScript translatable, write it as the C++ is written:
+
+- name C++ integer types where C++ needs them (`engine/GameCore/Common/Types.ts`: `uint32_t[]`, `FigureId`); use
+  `IsValidIndex`/`Contains`/`RandomDevice`/`IsArrayOf` (`engine/GameCore/Common/ContainerHelpers.ts`) as the C++ uses
+  `GameCore::IsValidIndex`...;
+- animate with `Tools/Tweeny.ts` actions held in fields and connected with statements (`action.OnEnd(...)`, not
+  chained), not with timers; get the elements a tween moves with `ElementsList.Find` (C++'s `Ptr`);
+- keep the C++'s names: view names are their class names, interface methods are the C++ interface's (all of them), a
+  config struct's fields are its `.data.h`'s;
+- wrap what only the browser needs (preloading frames) in `BrowserOnly(() => ...)` (`engine/GameCore/Common/BrowserOnly.ts`):
+  the translation leaves it out.
+
+Not translated yet: the info and topper modules' views (`InfoView.ts`, `TopperView.ts`), the capping splash plugin, the
+math rules, and new interfaces (`*.bridge.ts`): a view that implements an interface the C++ does not declare is listed
+as C++ to update by hand.

@@ -1,0 +1,1065 @@
+{
+ "alpha_family/libs/AlphaFamily/Math/Common/Common.data.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Common/Common.data.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Common/Common.data.cpp"
+  ],
+  "sha256": "f0537c7af31bcf2c413bfa27982b369d1c38886adc9d7e7f0f25872a8ead3a2e"
+ },
+ "alpha_family/libs/AlphaFamily/Math/Common/Exceptions.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Common/Exceptions.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Common/Exceptions.cpp"
+  ],
+  "sha256": "8acd72ec02adbba41ba8fc59f133091f13e0df327cdad3f12aee71aa8e5c1ce9"
+ },
+ "alpha_family/libs/AlphaFamily/Math/Common/Weighted.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Common/Weighted.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Common/Weighted.cpp"
+  ],
+  "sha256": "e0e047e51462a7e5f605112dab2aa58f7179d604778f3b86e448a385b31e3796"
+ },
+ "alpha_family/libs/AlphaFamily/Math/Reel/Helpers/ReelRoundGenerators.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/Helpers/ReelRoundGenerators.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/Helpers/ReelRoundGenerators.cpp"
+  ],
+  "sha256": "8169318d429c17bed50b83def120aa46814dad14d3643fdb3d9d6b8ffdb35d4e"
+ },
+ "alpha_family/libs/AlphaFamily/Math/Reel/ReelRoundInput.data.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/ReelRoundInput.data.h"
+  ],
+  "sha256": "99457d5c2eeba6601df56b1baed46fe3d0fa93333008b65ab960151ef88fa971"
+ },
+ "alpha_family/libs/AlphaFamily/Math/Reel/ReelRoundPhase.data.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/ReelRoundPhase.data.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/ReelRoundPhase.data.cpp"
+  ],
+  "sha256": "630bfe7f9d183f19494687dcfc162a56c9f5ead9ff57f7821a343bafe541556a"
+ },
+ "alpha_family/libs/AlphaFamily/Math/Reel/ReelRoundRules.data.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/ReelRoundRules.data.h"
+  ],
+  "sha256": "5d180ab91324bf5239190eedc68db51718cc74417d017ecf6737b3b35545a8a6"
+ },
+ "alpha_family/libs/AlphaFamily/Math/Reel/ReelRoundRules.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/ReelRoundRules.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/ReelRoundRules.cpp"
+  ],
+  "sha256": "817f77fe52524709a20396ca15220d691d9b8469192d70cd52a4b800867e1939"
+ },
+ "alpha_family/libs/AlphaFamily/Math/Reel/Rules/BaseReelRules.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/Rules/BaseReelRules.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/Rules/BaseReelRules.cpp"
+  ],
+  "sha256": "168a879f16ed74a28ca840d669f41e8c020cf157ffed9e232dde7441d1f5f5c9"
+ },
+ "alpha_family/libs/AlphaFamily/Math/Reel/Rules/CollectorRules.data.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/Rules/CollectorRules.data.h"
+  ],
+  "sha256": "32d8a6c5c92916ab84a2c9fb3a3e02b44f11f8ca304009fb42d02b4d39a1e190"
+ },
+ "alpha_family/libs/AlphaFamily/Math/Reel/Rules/CollectorRules.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/Rules/CollectorRules.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/Rules/CollectorRules.cpp"
+  ],
+  "sha256": "08ab473b3af5858ed5015d740debd3f4598ca153e3c5548ed9617917f6e9ae4d"
+ },
+ "alpha_family/libs/AlphaFamily/Math/Reel/Rules/CopySymbolsRules.data.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/Rules/CopySymbolsRules.data.h"
+  ],
+  "sha256": "102639ca00c7c5d0d6c4f361370f0f92a9cb861b60e7695fcceac7344ccb53f2"
+ },
+ "alpha_family/libs/AlphaFamily/Math/Reel/Rules/CopySymbolsRules.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/Rules/CopySymbolsRules.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/Rules/CopySymbolsRules.cpp"
+  ],
+  "sha256": "251bdf020cb522e38a7f0a750b9d6ef28d5ee2934f7b3557da49e7438d75398f"
+ },
+ "alpha_family/libs/AlphaFamily/Math/Reel/Rules/ExpandRules.data.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/Rules/ExpandRules.data.h"
+  ],
+  "sha256": "4b55129eb4f92b57de035422cf1236e40cc24e0aed3dd8b7956a48c06dc076ab"
+ },
+ "alpha_family/libs/AlphaFamily/Math/Reel/Rules/ExpandRules.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/Rules/ExpandRules.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/Rules/ExpandRules.cpp"
+  ],
+  "sha256": "a56ec336ea35803453aa0544094593e3f1b160a62d24c96c4a2bb19075223651"
+ },
+ "alpha_family/libs/AlphaFamily/Math/Reel/Rules/HoldAndSpinTriggerRules.data.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/Rules/HoldAndSpinTriggerRules.data.h"
+  ],
+  "sha256": "3b73e99cf8a46947cdbce622f33872187e77388c1bf2471953015e220d3d7712"
+ },
+ "alpha_family/libs/AlphaFamily/Math/Reel/Rules/HoldAndSpinTriggerRules.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/Rules/HoldAndSpinTriggerRules.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/Rules/HoldAndSpinTriggerRules.cpp"
+  ],
+  "sha256": "fd79358d6bcd2519f4624f17d2197fc35311dc71bee79208e068feb76b9bb1f3"
+ },
+ "alpha_family/libs/AlphaFamily/Math/Reel/Rules/LineRules.data.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/Rules/LineRules.data.h"
+  ],
+  "sha256": "b4f5821abfdb8a8f3fe72685dcf84f8f8fb18ff010449680b2ccd1351f7367fe"
+ },
+ "alpha_family/libs/AlphaFamily/Math/Reel/Rules/LineRules.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/Rules/LineRules.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/Rules/LineRules.cpp"
+  ],
+  "sha256": "f794aac9200181aaec8caff551148656a4afc81c622c826072cab5fdf2e9bd81"
+ },
+ "alpha_family/libs/AlphaFamily/Math/Reel/Rules/RtpRules.data.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/Rules/RtpRules.data.h"
+  ],
+  "sha256": "9ded4cbf053478628328e110022f8d99cfbfee8ee27868135235eb60e62daa0d"
+ },
+ "alpha_family/libs/AlphaFamily/Math/Reel/Rules/RtpRules.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/Rules/RtpRules.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/Rules/RtpRules.cpp"
+  ],
+  "sha256": "206c05dfe5d245f2574ebfe1b429b9cce3fd496ed746fec06ae7c05b859a4d7e"
+ },
+ "alpha_family/libs/AlphaFamily/Math/Reel/Rules/ScatterRules.data.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/Rules/ScatterRules.data.h"
+  ],
+  "sha256": "362accdf6ef0c4204a75c950dadb0cfeb5b854621d092bbf4ded95958a0254a5"
+ },
+ "alpha_family/libs/AlphaFamily/Math/Reel/Rules/ScatterRules.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/Rules/ScatterRules.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/Rules/ScatterRules.cpp"
+  ],
+  "sha256": "cb0f7bc3c1e00052badb6cf26fc744d0eeb9f6b0a7fa35e3f41c8a9b531b5ac8"
+ },
+ "alpha_family/libs/AlphaFamily/Math/Reel/Rules/SpinRules.data.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/Rules/SpinRules.data.h"
+  ],
+  "sha256": "8ac7c26031d2e15c35458fb1665c5dd09244e64a35b4e5ff819eb082f2dba358"
+ },
+ "alpha_family/libs/AlphaFamily/Math/Reel/Rules/SpinRules.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/Rules/SpinRules.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/Rules/SpinRules.cpp"
+  ],
+  "sha256": "a297154ef23424496aa09ab9f3b6cf0586013306961925b5f920681f6c68b38e"
+ },
+ "alpha_family/libs/AlphaFamily/Math/Reel/Rules/StickSymbolsRules.data.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/Rules/StickSymbolsRules.data.h"
+  ],
+  "sha256": "ca85174c75dc26a3967509b3f67e4834c50b8e9e53a176e6e637c06e5a8fc58f"
+ },
+ "alpha_family/libs/AlphaFamily/Math/Reel/Rules/StickSymbolsRules.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/Rules/StickSymbolsRules.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/Rules/StickSymbolsRules.cpp"
+  ],
+  "sha256": "3da8bd0578d8b4ad9d6a4034b3ac00c842d71c4fbb2f06a19c632c96e6799de7"
+ },
+ "alpha_family/libs/AlphaFamily/Math/Reel/Rules/TetraSpinRules.data.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/Rules/TetraSpinRules.data.h"
+  ],
+  "sha256": "d36d5ff0e774fbbb7a08c80ab0d542a75b91fe7cee7acae9d27ed562bc7f3e14"
+ },
+ "alpha_family/libs/AlphaFamily/Math/Reel/Rules/TetraSpinRules.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/Rules/TetraSpinRules.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/Rules/TetraSpinRules.cpp"
+  ],
+  "sha256": "0babe07f157d89e841044f8f194db22739e515f942dff303998233821dfe0f96"
+ },
+ "alpha_family/libs/AlphaFamily/Math/Reel/VisualAnalyse/VisualAnalyze.data.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/VisualAnalyse/VisualAnalyze.data.h"
+  ],
+  "sha256": "3c2ae7f3fd003ca14632206ff034ffea69eef9f2d13d7ac083b3ca97effc0d37"
+ },
+ "alpha_family/libs/AlphaFamily/Math/Reel/VisualAnalyse/VisualAnalyze.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/VisualAnalyse/VisualAnalyze.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/VisualAnalyse/VisualAnalyze.cpp"
+  ],
+  "sha256": "47d104166e5ed6003e1e209f24371ba997cbfeaa675c01260a620b730d4db6bc"
+ },
+ "alpha_family/libs/AlphaFamily/Math/RoundResult.data.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/RoundResult.data.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/RoundResult.data.cpp"
+  ],
+  "sha256": "c6c9a74eb79bca95fd18a81180aeec938c74947b793c50ed5ac4bc187fea45e9"
+ },
+ "alpha_family/libs/AlphaFamily/RuntimeExport/IMathRules.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/RuntimeExport/IMathRules.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/RuntimeExport/IMathRules.cpp"
+  ],
+  "sha256": "fe19534fde04ac372d99c4d3385cb12abd02fa8402a18bb677799cfb4fff5e5c"
+ },
+ "alpha_family/libs/AlphaFamily/RuntimeImport/IGameflow.bridge.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/RuntimeImport/IGameflow.bridge.h"
+  ],
+  "sha256": "ea70809ab07695c953f8d652977c5071009a15baaf61e0c777559fb5e6d92fb4"
+ },
+ "alpha_family/libs/AlphaFamily/RuntimeImport/IGameflow.data.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/RuntimeImport/IGameflow.data.h"
+  ],
+  "sha256": "136c634962ff17c43b7736c2dc87a8ac57a197c96ef98d1160e5619057863cd6"
+ },
+ "alpha_family/libs/AlphaFamily/States/IBetManager.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/States/IBetManager.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/States/IBetManager.cpp"
+  ],
+  "sha256": "66ca01a39fe8f8694ad359ac8496337c537d0c48979f54954885a7fe9b71653c"
+ },
+ "alpha_family/libs/AlphaFamily/States/Idle/IIdle.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/States/Idle/IIdle.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/States/Idle/IIdle.cpp"
+  ],
+  "sha256": "12d4f843dbe62952164243fbd4cd264198eabb3237497f439ef69ed6557f8785"
+ },
+ "alpha_family/libs/AlphaFamily/States/IGameManager.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/States/IGameManager.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/States/IGameManager.cpp"
+  ],
+  "sha256": "ce4b3d6f18e32fbd19534f4fc22a39ab578c84e7873cf9218eeab071f2e4b761"
+ },
+ "alpha_family/libs/AlphaFamily/States/ISystemManager.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/States/ISystemManager.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/States/ISystemManager.cpp"
+  ],
+  "sha256": "6f8a40a3e643ea541df309ac31a543f0368b1d8550a2142ee70f7c3f8a65b146"
+ },
+ "alpha_family/libs/AlphaFamily/States/IViewManager.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/States/IViewManager.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/States/IViewManager.cpp"
+  ],
+  "sha256": "e10bb82d1ccb8b78695b392a65a49d7583d6373b3a082058fdbc4acfc317be0c"
+ },
+ "alpha_family/libs/AlphaFamily/States/Match/ICreditTaxation.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/States/Match/ICreditTaxation.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/States/Match/ICreditTaxation.cpp"
+  ],
+  "sha256": "0a9712a684df920c271f7941fea74d435427b96789211e4483ba1629fbcdfad7"
+ },
+ "alpha_family/libs/AlphaFamily/States/Match/IMainRound.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/States/Match/IMainRound.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/States/Match/IMainRound.cpp"
+  ],
+  "sha256": "90d689414e15b9ef870d1c7d334e40e143b14b85ba999681b43dd98850650839"
+ },
+ "alpha_family/libs/AlphaFamily/States/Match/IMatch.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/States/Match/IMatch.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/States/Match/IMatch.cpp"
+  ],
+  "sha256": "dcba6e4c5c84740f20dbed19ddc5fb491367244f934f9b404c1627c33f7a16a6"
+ },
+ "alpha_family/libs/AlphaFamily/States/Match/IMatchCappingApplied.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/States/Match/IMatchCappingApplied.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/States/Match/IMatchCappingApplied.cpp"
+  ],
+  "sha256": "9c183434a9fb018dc9ad60f42435ab11e8f37015acbc86dde4197f7ca3203325"
+ },
+ "alpha_family/libs/AlphaFamily/States/Match/IMatchEnding.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/States/Match/IMatchEnding.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/States/Match/IMatchEnding.cpp"
+  ],
+  "sha256": "9c5e5a493618c2764bb96759b220a604ff696ee3cabd8c76d9bca2b1f6e05435"
+ },
+ "alpha_family/libs/AlphaFamily/States/Match/IMatchEndOutro.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/States/Match/IMatchEndOutro.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/States/Match/IMatchEndOutro.cpp"
+  ],
+  "sha256": "fc90b562685eed4466ae9f00d0509de7242e2f846ae6841ca80f7b04de693e4f"
+ },
+ "alpha_family/libs/AlphaFamily/States/Match/IMatchStarting.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/States/Match/IMatchStarting.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/States/Match/IMatchStarting.cpp"
+  ],
+  "sha256": "fae85e69d93a2eefa456e9bc8bdcd39a8a40e31504d1413eb147423cb389ad99"
+ },
+ "alpha_family/libs/AlphaFamily/States/Match/IMatchTakeWin.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/States/Match/IMatchTakeWin.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/States/Match/IMatchTakeWin.cpp"
+  ],
+  "sha256": "31e8275c900f45ab8364f4b88d7084cbb4ca61eb2a242e0f7c66a8e4e343e194"
+ },
+ "alpha_family/libs/AlphaFamily/States/Match/IReelRound.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/States/Match/IReelRound.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/States/Match/IReelRound.cpp"
+  ],
+  "sha256": "6af41b45c55d850a5ebc8218200c077351ce0de0d1690054699f55b1f510a207"
+ },
+ "alpha_family/libs/AlphaFamily/States/Match/IRound.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/States/Match/IRound.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/States/Match/IRound.cpp"
+  ],
+  "sha256": "62b23ce7788b8dab56344f2eeb5c10c919a79705e84993238e7fdc66a285f683"
+ },
+ "alpha_family/libs/AlphaFamily/States/Match/ITetraRound.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/States/Match/ITetraRound.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/States/Match/ITetraRound.cpp"
+  ],
+  "sha256": "73af94866abbec81357973930fcaa3fbc7cc48d4425b63212dc11773d88a7e44"
+ },
+ "alpha_family/libs/AlphaFamily/Views/BarsView.bridge.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/BarsView.bridge.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/BarsView.bridge.cpp"
+  ],
+  "sha256": "37343edfc1f55228b55198ab579d2d777c7b7295fc653540da9d1a203a726376"
+ },
+ "alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IControlView.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/BaseInterfaces/IControlView.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/BaseInterfaces/IControlView.cpp"
+  ],
+  "sha256": "8127625d4ed9348aee227c14f54a3e60070397e282540fa7910bda3fed1a13a5"
+ },
+ "alpha_family/libs/AlphaFamily/Views/IBetMenuView.bridge.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IBetMenuView.bridge.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IBetMenuView.bridge.cpp"
+  ],
+  "sha256": "978bc3c97950da804a3ef868f5b70eb5ae5df4c8db54bb26c2fc74722bd79385"
+ },
+ "alpha_family/libs/AlphaFamily/Views/ICappingSplashView.bridge.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/ICappingSplashView.bridge.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/ICappingSplashView.bridge.cpp"
+  ],
+  "sha256": "b4dc085b1ae3542a598f99db3dad45d6f8e0efea6468ea9c14e09f32062e6e1d"
+ },
+ "alpha_family/libs/AlphaFamily/Views/IInfoView.bridge.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IInfoView.bridge.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IInfoView.bridge.cpp"
+  ],
+  "sha256": "a2abcc2fb1a3acd3fa62d2a31c81705ec867c05f8f60352dd8b971239b306359"
+ },
+ "alpha_family/libs/AlphaFamily/Views/IInfoView.data.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IInfoView.data.h"
+  ],
+  "sha256": "7fd8867854c3220a6d18acd0ca6502c4e98b556ac54b7277bede7172454a9b24"
+ },
+ "alpha_family/libs/AlphaFamily/Views/ILinesView.bridge.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/ILinesView.bridge.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/ILinesView.bridge.cpp"
+  ],
+  "sha256": "5f3a2fd139a1b6b8998ac74a7a59159ee55d034f8919f1b9031963765a5baee7"
+ },
+ "alpha_family/libs/AlphaFamily/Views/IReelsView.bridge.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IReelsView.bridge.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IReelsView.bridge.cpp"
+  ],
+  "sha256": "f18de165261de92138f8f306bf5612b973afacc9784a5a3147b34c3a0b82dae2"
+ },
+ "alpha_family/libs/AlphaFamily/Views/IStatusLineView.bridge.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IStatusLineView.bridge.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IStatusLineView.bridge.cpp"
+  ],
+  "sha256": "fdfe50e97b49ed253daa9ad5b94abbd266820c3ae2bd20cee1281412c46504be"
+ },
+ "alpha_family/libs/AlphaFamily/Views/ITetraRoundView.bridge.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/ITetraRoundView.bridge.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/ITetraRoundView.bridge.cpp"
+  ],
+  "sha256": "99da8a19bcbc8f5bbdec1f9a027ba06218b3771ed20b8db68801e485e3e84483"
+ },
+ "alpha_family/libs/AlphaFamily/Views/IWinFiguresView.bridge.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IWinFiguresView.bridge.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IWinFiguresView.bridge.cpp"
+  ],
+  "sha256": "71db2393a9693ed29c75f2d545d73a0e116fbcfac67a138211bf1abeb37b7bcc"
+ },
+ "alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/SwButtonViews.bridge.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/SwButtonViews.bridge.cpp"
+  ],
+  "sha256": "e5e78b4e0b38cc32b71e2e9a9ec6d3dfe56312b62a2707aba7580f894ffff641"
+ },
+ "alpha_family/libs/AlphaFamily/Views/Tools/AccumulationControl.data.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/Tools/AccumulationControl.data.h"
+  ],
+  "sha256": "ca3d859538b1cbc3dbc97c0acf910dd30e35599608c52c22b5de32bd702b679c"
+ },
+ "alpha_family/libs/AlphaFamily/Views/Tools/AccumulationControl.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/Tools/AccumulationControl.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/Tools/AccumulationControl.cpp"
+  ],
+  "sha256": "7d4d7ed1dea7f39fbccf7184b128e74b8b53ec1f247290c82e0138b602efff6c"
+ },
+ "alpha_family/libs/AlphaFamily/Views/Tools/BarsSync.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/Tools/BarsSync.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/Tools/BarsSync.cpp"
+  ],
+  "sha256": "eaf1dc070c021aaf7db2b9515964ea4cf5ef27a60e26f162c1891064bb4e20f7"
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/BetManager.data.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/BetManager.data.h"
+  ],
+  "sha256": "58f8ae3bd2b71da78c64c3b1ef37e418ce38af34a51f7568a56ac48cb79f7005"
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/BetManager.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/BetManager.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/BetManager.cpp"
+  ],
+  "sha256": "34f218b46509a8d19e7af6b899594aaf82c3a16557d6333871e1f9c286ed84d6"
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/GameManager.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/GameManager.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/GameManager.cpp"
+  ],
+  "sha256": "5f5313ea4ebba58a534edbcc10cb045308a5e3817f088059eff1201b0147aa3e"
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Idle/Idle.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Idle/Idle.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Idle/Idle.cpp"
+  ],
+  "sha256": "b92311b7460fabdcf3e2d90c9bc8511e8045f7fb00e77b2493f269b82f061d79"
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/CreditTaxation/CreditTaxation.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CreditTaxation/CreditTaxation.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CreditTaxation/CreditTaxation.cpp"
+  ],
+  "sha256": "068f32582bbd61b3c55c8d0a4fbab8f2d9c6fb05340d2221279b52c118bcfcbd"
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/MainRound/MainRound.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/MainRound/MainRound.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/MainRound/MainRound.cpp"
+  ],
+  "sha256": "141c96f351903345b6cfbf1298d053c7f72f3c5ea7fc1fdfb164d5057c209ff9"
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/MainRound/MainRoundEnding.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/MainRound/MainRoundEnding.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/MainRound/MainRoundEnding.cpp"
+  ],
+  "sha256": "b15eb05c5988f720f11ab0c3f121c76d97ffd4f63f0dc2d1fc688d9115252302"
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/MainRound/MainRoundPresenting.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/MainRound/MainRoundPresenting.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/MainRound/MainRoundPresenting.cpp"
+  ],
+  "sha256": "ee880e5ea03e5cd507a8988edd0a2099976a581d27e371d974ed9f10aea76609"
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/MainRound/MainRoundReeling.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/MainRound/MainRoundReeling.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/MainRound/MainRoundReeling.cpp"
+  ],
+  "sha256": "92a8f72b3938dac692985051d4da39056c276ffe1a2900797791f2f24efb5074"
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/MainRound/MainRoundStarting.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/MainRound/MainRoundStarting.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/MainRound/MainRoundStarting.cpp"
+  ],
+  "sha256": "5df5a1b437333c16448e590af25a719ddd35d8e3bc8177032ec5ac64ae7bd36a"
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/Match.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/Match.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/Match.cpp"
+  ],
+  "sha256": "0397e134d2ae1e1714ed39776cecabbbb851037e85424d48d7973d0567555a00"
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/MatchCappingApplied/MatchCappingApplied.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/MatchCappingApplied/MatchCappingApplied.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/MatchCappingApplied/MatchCappingApplied.cpp"
+  ],
+  "sha256": "2151108b21b86c4b58f078cb74a67e937b6d15bc66284c01845d3425bdbaed61"
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/MatchEnding/MatchEnding.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/MatchEnding/MatchEnding.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/MatchEnding/MatchEnding.cpp"
+  ],
+  "sha256": "c96617a18e2436c71cf82a011492214412062fed6fc613bf1ed44c8ff473405f"
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/MatchEndOutro/MatchEndOutro.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/MatchEndOutro/MatchEndOutro.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/MatchEndOutro/MatchEndOutro.cpp"
+  ],
+  "sha256": "be8cb13753e48c366f33952b6cf1163f5e31ab26242216319c254c93265c3b38"
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/MatchStarting/MatchStarting.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/MatchStarting/MatchStarting.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/MatchStarting/MatchStarting.cpp"
+  ],
+  "sha256": "b4868218d4bd22c4c6a8b2c493612f123fa6b76edd7be155879bcefc857701db"
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/MatchTakeWin/MatchTakeWin.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/MatchTakeWin/MatchTakeWin.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/MatchTakeWin/MatchTakeWin.cpp"
+  ],
+  "sha256": "8408f882fdf9749a1fbb71ccb2b1be9a940965433cfbb6779e4304e08cfa85d5"
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/ReelRound/ReelRound.data.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/ReelRound/ReelRound.data.h"
+  ],
+  "sha256": "eb39b2f6984dbf1cbdca06b848546bc98a3be8cb2b1332a62e78634209a85aa1"
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/ReelRound/ReelRound.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/ReelRound/ReelRound.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/ReelRound/ReelRound.cpp"
+  ],
+  "sha256": "2e1351543a440ae354ccb61ccdd3943001c832e515a8b9d774653b41097327d8"
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/ReelRound/ReelRoundEnding.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/ReelRound/ReelRoundEnding.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/ReelRound/ReelRoundEnding.cpp"
+  ],
+  "sha256": "a5f9ec6b5996cb5bf1b7e39a03a11f296a40e20ad69e8f0a6d8a4342124da3d0"
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/ReelRound/ReelRoundPresenting.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/ReelRound/ReelRoundPresenting.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/ReelRound/ReelRoundPresenting.cpp"
+  ],
+  "sha256": "833ce9a6fc40fc2aa01b3477bb2c93ed6a176b32a06347e61f4ec403638bf9b5"
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/ReelRound/ReelRoundReeling.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/ReelRound/ReelRoundReeling.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/ReelRound/ReelRoundReeling.cpp"
+  ],
+  "sha256": "967497128e031a507f7008876317e5c999318d8308630581dc5b7239013bfc9f"
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/ReelRound/ReelRoundStarting.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/ReelRound/ReelRoundStarting.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/ReelRound/ReelRoundStarting.cpp"
+  ],
+  "sha256": "d5583231351be08c6fbde488a02e19b9367979b8d98a7fec3dd480b256c16dba"
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRound.data.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRound.data.h"
+  ],
+  "sha256": "0b02012602aa7ae59715aee9dfac98e23204d4eb116a54cdaecbf247d2260ff6"
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRound.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRound.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRound.cpp"
+  ],
+  "sha256": "06056dab522a86a3fbcf5a4d879f9b46235bda47b893accff43329f762d06931"
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRoundEnding.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRoundEnding.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRoundEnding.cpp"
+  ],
+  "sha256": "7480008f2be057fc1ba482216de05bc1411f18c4832f2ba3af101194ed7e4b77"
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRoundInput.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRoundInput.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRoundInput.cpp"
+  ],
+  "sha256": "4b95ccd7d0db71f30ef67aea6b0d4caae1df34c01ad614262676a2a0db61c4ff"
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRoundIntro.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRoundIntro.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRoundIntro.cpp"
+  ],
+  "sha256": "a578ac02d31a9aa7c255f98d4574744a7e4831f49bc36e9f5643a3a2798d1cb6"
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRoundOutro.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRoundOutro.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRoundOutro.cpp"
+  ],
+  "sha256": "c3eb61952cd57bd3261cda2a70eb35824370f7d9692935ff34505f1a333824f6"
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRoundPresenting.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRoundPresenting.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRoundPresenting.cpp"
+  ],
+  "sha256": "1fa6c00472eb2fabb92752523db3ae4338620e450ba1f3312019a0d4be3334e4"
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRoundStarting.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRoundStarting.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRoundStarting.cpp"
+  ],
+  "sha256": "bffba08ce44fdf785c815ea3293b6da2dadae38fd076d3d3a37bb1370eaf7993"
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/SystemManager.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/SystemManager.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/SystemManager.cpp"
+  ],
+  "sha256": "e1dd8c6421570ae3daccbd71e187d6d687644e9c1fee4a5e13d0b208fd615d41"
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/ViewManager.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/ViewManager.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/ViewManager.cpp"
+  ],
+  "sha256": "8d6f9a1ba93e96949be82f9bcc362fe1148ff70a6e018fff49b33f18924330a3"
+ },
+ "alpha_family/libs/AlphaFamilyVideoCtrl/BaseView.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/BaseView.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/BaseView.cpp"
+  ],
+  "sha256": "a867be230f6af09c443b1e072a3708f17e175c0280ce61c4e448c7bfad05b948"
+ },
+ "alpha_family/libs/AlphaFamilyVideoCtrl/Components/ButtonView.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/Components/ButtonView.h"
+  ],
+  "sha256": "71af5f358bf7ebdfcffa7d84a873a8795b73a7ff4527eacbd5ba65a213ee67c1"
+ },
+ "alpha_family/libs/AlphaFamilyVideoCtrl/Components/ControlView.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/Components/ControlView.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/Components/ControlView.cpp"
+  ],
+  "sha256": "8d68c07f3d9dab00f7a94dae0f76247723d7c3db98800e3e34d32b4355e84a9c"
+ },
+ "alpha_family/libs/AlphaFamilyVideoCtrl/Components/MenuView.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/Components/MenuView.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/Components/MenuView.cpp"
+  ],
+  "sha256": "b343e1321a1d147aa284b0da4b5b2e0db1e3b5862098c3a86acc71ebaaeb67e0"
+ },
+ "alpha_family/libs/AlphaFamilyVideoCtrl/Components/NumericBarView.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/Components/NumericBarView.h"
+  ],
+  "sha256": "d2a5e41c556752f22ff835d885f695a94379eb71fdd3160dbee63bd2466cbba3"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10Fsm/BurningCrownTetraSpins10Fsm.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10Fsm/BurningCrownTetraSpins10Fsm.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10Fsm/BurningCrownTetraSpins10Fsm.cpp"
+  ],
+  "sha256": "b4659301257dea122f3e59fdb13cb62c3d9d807dae3dd3d97bc9dd6860195a72"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10InfoView/BurningCrownTetraSpins10InfoView.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10InfoView/BurningCrownTetraSpins10InfoView.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10InfoView/BurningCrownTetraSpins10InfoView.cpp"
+  ],
+  "sha256": "bce879095fa785ab9554b06f13d29dd9a9f64d15ebf26eb3a2077f3e5219cfbe"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10InfoView/InfoView.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10InfoView/InfoView.data.h"
+  ],
+  "sha256": "ac541634d531c40dab97a48f1d16bf54073473c13a2d8b4dbc9d3f7c1a7acbf5"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10InfoView/InfoView.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10InfoView/InfoView.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10InfoView/InfoView.cpp"
+  ],
+  "sha256": "f106a5483d2d84343e72fec156492f7e9248544d62ebc15d629f8487a05f2528"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10Math/BurningCrownTetraSpins10Math.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10Math/BurningCrownTetraSpins10Math.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10Math/BurningCrownTetraSpins10Math.cpp"
+  ],
+  "sha256": "0f88a48df23849721a7337b49bee6f29c3424bcd23e5105c77b76f9d4d25738e"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10Math/MathRules.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10Math/MathRules.data.h"
+  ],
+  "sha256": "2248ff042646d5fb63c84ad38101e70f2e424eedbd40f3311ea5ace0832cfbed"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10Math/MathRules.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10Math/MathRules.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10Math/MathRules.cpp"
+  ],
+  "sha256": "9287cb90c8b8f06246195ccddd5427e25c107291fed589bc89af30ad935efc79"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10Math/MathTypes.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10Math/MathTypes.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10Math/MathTypes.cpp"
+  ],
+  "sha256": "03ce21e75fec8694024de00d925a7a30787c9cf916b94147e25875f72e3f39c0"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10Math/SimulatorConfig/BurningCrown.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10Math/SimulatorConfig/BurningCrown.data.h"
+  ],
+  "sha256": "2e462e95d8a550647238acbce0af1ebf7956f57072d5eacaf183ce199871ba8d"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10Math/SimulatorConfig/MathDefs.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10Math/SimulatorConfig/MathDefs.data.h"
+  ],
+  "sha256": "9f1eb427c56867eda7b30a8b9bf0086d2ab1f19e863b2ca2015896d75ed9e316"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10TopperView/BurningCrownTetraSpins10TopperView.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10TopperView/BurningCrownTetraSpins10TopperView.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10TopperView/BurningCrownTetraSpins10TopperView.cpp"
+  ],
+  "sha256": "165b74ff014eca91e1bfde3d6053c78d1ef1d9ee3621200029161b75994c26f0"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10TopperView/TopperView.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10TopperView/TopperView.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10TopperView/TopperView.cpp"
+  ],
+  "sha256": "fc68bdc2dd013325914f787558b400cc2877ac391f7752e807dfb7d7d8f6a940"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/BurningCrownTetraSpins10View.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/BurningCrownTetraSpins10View.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/BurningCrownTetraSpins10View.cpp"
+  ],
+  "sha256": "3755d36ff8ac2e7b23f71f2240163d36c6316ae964388a3f1d132ad481af227d"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/SwButtons/BetDownSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/BetDownSwButtonView.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/BetDownSwButtonView.cpp"
+  ],
+  "sha256": "0e887cac07b34f8447bdafd24d9adc3c59b4e5407f99bf9fc6c034c152b1e842"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/SwButtons/BetUpSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/BetUpSwButtonView.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/BetUpSwButtonView.cpp"
+  ],
+  "sha256": "e10930395c543d6c13aeb23d14a3c5618a7670cbe84301a373e7b433b05bfc3f"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/SwButtons/ExitGameSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/ExitGameSwButtonView.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/ExitGameSwButtonView.cpp"
+  ],
+  "sha256": "9c42321d052896c8093b4c48e8976bf753e6f02858844c3dacd59ff3223552fc"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/SwButtons/ExitTetraSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/ExitTetraSwButtonView.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/ExitTetraSwButtonView.cpp"
+  ],
+  "sha256": "ed685bd7d9a6532fc9f1230c8ba710c661e8ebef02d3ec68c6e67222a7dbbce5"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/SwButtons/InfoSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/InfoSwButtonView.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/InfoSwButtonView.cpp"
+  ],
+  "sha256": "320851494b1e4f1aa9f160a417fbd07baaf360100388eb1b5dec63d50756949b"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/SwButtons/LanguageSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/LanguageSwButtonView.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/LanguageSwButtonView.cpp"
+  ],
+  "sha256": "dfb4441b614036581a6fd17115210dfc1b1053bccefb18edd8e791cf0d29d3f7"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/SwButtons/LineDownSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/LineDownSwButtonView.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/LineDownSwButtonView.cpp"
+  ],
+  "sha256": "f702c85e4851220082127c397c6554ba332ac77df0b90d1b9229f76d56caf49b"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/SwButtons/LineUpSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/LineUpSwButtonView.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/LineUpSwButtonView.cpp"
+  ],
+  "sha256": "c97b99c99a723f48130a944c815dc3e6811f313bb97c99f604bc7da1225a5fb8"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/SwButtons/ResponsibleSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/ResponsibleSwButtonView.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/ResponsibleSwButtonView.cpp"
+  ],
+  "sha256": "00c18472817c4b99116be7e35ddce1505d99502123df5fbb36d03ebd2889ff75"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/SwButtons/SoundVolumeSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/SoundVolumeSwButtonView.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/SoundVolumeSwButtonView.cpp"
+  ],
+  "sha256": "a44a0d099693315dd39e3be385d245a2fd4a38cf09c687480777be3598a52bfb"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/SwButtons/StopSingleReelSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/StopSingleReelSwButtonView.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/StopSingleReelSwButtonView.cpp"
+  ],
+  "sha256": "64b9e266b69b382b5ec1636c1d88c7c8216f8d1f4669581ed22fb2e02bbf6255"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Views/AutoPlayView.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/AutoPlayView.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/AutoPlayView.cpp"
+  ],
+  "sha256": "c5dbe3d8888a4432bf7dd5220943f3ac478e83969962105a1aa41f8b80debec2"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Views/BaseReelsView.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/BaseReelsView.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/BaseReelsView.cpp"
+  ],
+  "sha256": "ecc64747f504d466b113dc8662f5fd0b82b10718947f6f925f0ad63e8ab19f15"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Views/BetBarView.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/BetBarView.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/BetBarView.cpp"
+  ],
+  "sha256": "9c7364f5e1116c0586656841733e280f3077e115cdbed16318f5bd4b245709f1"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Views/BetMenuView.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/BetMenuView.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/BetMenuView.cpp"
+  ],
+  "sha256": "d52b67d0b919a702b276805bf037fbfb8018d1c570b797be5a076f7276ff9d6a"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Views/BigWinView.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/BigWinView.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/BigWinView.cpp"
+  ],
+  "sha256": "10a1dc4ce2d00aabc4d655cc64227b12c3412fc4f5a519a9f685eefd35467920"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Views/CreditBarView.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/CreditBarView.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/CreditBarView.cpp"
+  ],
+  "sha256": "3933570bbcc7839daa69456f452348a329844641fd3d0b318daca5b0cff60614"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Views/CreditsWinBarView.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/CreditsWinBarView.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/CreditsWinBarView.cpp"
+  ],
+  "sha256": "8a4f832697553413d58245c12aae8a07933edbdedfceec595d613648c33be154"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Views/GameBackgroundView.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/GameBackgroundView.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/GameBackgroundView.cpp"
+  ],
+  "sha256": "71ff8f845f5d2b576df43341f464e3615e0f13fe9baf2ac2473a31a8c0d87733"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Views/KnobsView.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/KnobsView.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/KnobsView.cpp"
+  ],
+  "sha256": "b1323b1fc959354508c0640765b063936cd40b9b71ff0a7e5551c8b2331aedcc"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Views/LanguageMenuView.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/LanguageMenuView.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/LanguageMenuView.cpp"
+  ],
+  "sha256": "b9b1e7b6e1e257d7d3808b4e59abd6c5505f4db464f6f8c3d6f711788e923d1a"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Views/LinesView.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/LinesView.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/LinesView.cpp"
+  ],
+  "sha256": "d57648dbeb46c1f9a9885787ca143d38e240df6d735adf8734c985f23318a779"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Views/ReelSubScreen.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/ReelSubScreen.data.h"
+  ],
+  "sha256": "7dbc4daf13b69cea425716401575395633de1429c09dbb567d5b8d6fb263b331"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Views/ReelsView.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/ReelsView.data.h"
+  ],
+  "sha256": "965eabff8d7ae28aaf822a9b9c854bb0c3a9be8eed87ad1ba64e14177f3ef870"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Views/ReelsView.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/ReelsView.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/ReelsView.cpp"
+  ],
+  "sha256": "bfe9f8a55d00d22fb8cde475032454041b1217d765faaf4a45e4305463e77bfd"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Views/SoundMenuView.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/SoundMenuView.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/SoundMenuView.cpp"
+  ],
+  "sha256": "536fc81a9cf824315b8abb604d6ffe29b48924b48669a707401a05c088863802"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Views/StatusLineView.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/StatusLineView.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/StatusLineView.cpp"
+  ],
+  "sha256": "693318a6bf3463baf7b95c6b42859b6def91533ea6fbb2e5d4b7e93e81cee8bf"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Views/TetraRoundOverlayView.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/TetraRoundOverlayView.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/TetraRoundOverlayView.cpp"
+  ],
+  "sha256": "94e00c46fddeb6dedf1c053796a768def0dab642549c00a6c601aba183c358f5"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Views/TetraRoundView.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/TetraRoundView.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/TetraRoundView.cpp"
+  ],
+  "sha256": "fe495667d216884428878279440a3d4126a6aca572301dd12664674e2a60d1c7"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Views/TetraSpinBarView.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/TetraSpinBarView.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/TetraSpinBarView.cpp"
+  ],
+  "sha256": "3337dfa6dc71464a5f82491986192402db753d03c348106677f36ca2643e14ee"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Views/WinFiguresView.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/WinFiguresView.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/WinFiguresView.cpp"
+  ],
+  "sha256": "2a3244d948089c3803bc79a24c7a667f25a8f2f7d50a264c1d209c802b8391ee"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Visuals/BaseVisual.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Visuals/BaseVisual.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Visuals/BaseVisual.cpp"
+  ],
+  "sha256": "6e81720ed76bb09a4372128ec60c0627471fb69b619ea6dca6697802f3f476b0"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Visuals/DimSubScreenVisual.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Visuals/DimSubScreenVisual.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Visuals/DimSubScreenVisual.cpp"
+  ],
+  "sha256": "997ed147b67d1fa9b4702d02a066b31d28820d5f19a35e156f6e4565ff973d5e"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Visuals/FlyingSymbolsVisual.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Visuals/FlyingSymbolsVisual.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Visuals/FlyingSymbolsVisual.cpp"
+  ],
+  "sha256": "036cd014c57af680ecbd9fa2825d1fb536b04dc99920bcba341ef60d746d5d38"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Visuals/LinesVisual.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Visuals/LinesVisual.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Visuals/LinesVisual.cpp"
+  ],
+  "sha256": "530c157ca7ce65f970b4850af0ace8a433131ee984e1765dbb7db74ab2a4272d"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Visuals/ReelVisual.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Visuals/ReelVisual.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Visuals/ReelVisual.cpp"
+  ],
+  "sha256": "100209524da731ad4ca694ead110756e5435511b1ff2e90b136e4335b07fabd6"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Visuals/WinFiguresVisual.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Visuals/WinFiguresVisual.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Visuals/WinFiguresVisual.cpp"
+  ],
+  "sha256": "dfac75b6b99a4ff1b51588ec972a1586e6585433808ce69a54f5231afcf54cf3"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Visuals/WinValueVisual.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Visuals/WinValueVisual.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Visuals/WinValueVisual.cpp"
+  ],
+  "sha256": "b2e42085394646f1e14542e8538c514a56b8008230419ca58c32f97171d5b2c1"
+ },
+ "plugins/CappingSplashView/CappingSplashView.data.ts": {
+  "cpp": [
+   "plugins/src/Egt/CappingSplashView/CappingSplashView.data.h"
+  ],
+  "sha256": "27bfdccbad502c262f26d32ffa862afc592163e7851b51272dccfa1e12acb4e3"
+ },
+ "plugins/CappingSplashView/CappingSplashView.ts": {
+  "cpp": [
+   "plugins/src/Egt/CappingSplashView/CappingSplashView.h",
+   "plugins/src/Egt/CappingSplashView/CappingSplashView.cpp"
+  ],
+  "sha256": "9e5a2750ac9bd00de33a245bf5c26cc5d3362b00e6c050eda226776556543852"
+ }
+}

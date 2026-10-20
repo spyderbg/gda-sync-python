@@ -248,8 +248,11 @@ def _section(project: _Project, name: str, section: dict) -> dict:
     chosen = next((text for text in variants if not _list(text.get("tags"))), variants[0] if variants else {})
     texts: dict[str, dict] = {}
     if "figure_info" in chosen:
-        label = figure_label(_dict(chosen["figure_info"]))
-        texts = {language: {"runs": [{"figure": label}]} for language in project.languages}
+        figure = _dict(chosen["figure_info"])
+        # The label, and what the game looks the figure's win up by: its first id, count and multiplier.
+        run = {"figure": figure_label(figure), "ids": [str(item) for item in _list(figure.get("ids"))],
+               "count": int(_number(figure.get("count"))), "multiplier": _number(figure.get("multiplier"), 1)}
+        texts = {language: {"runs": [dict(run)]} for language in project.languages}
     elif "text_info" in chosen:
         for language, entry in project.translations(_dict(chosen["text_info"]).get("id")).items():
             options = _dict(entry.get("options"))

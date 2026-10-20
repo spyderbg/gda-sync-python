@@ -3,7 +3,7 @@ export type AssetType = 'texture' | 'model' | 'material' | 'audio' | 'font' | 'r
 export type AssetSection = 'image' | 'sequence' | Exclude<AssetType, 'texture'>;
 export type AssetStatus = 'new' | 'modified' | 'synced';
 export type FolderKey = 'source' | 'destination';
-export type View ='dashboard' | 'library' | 'pending' | 'rssSync' | 'history' | 'backups' | 'settings';
+export type View ='dashboard' | 'library' | 'pending' | 'rssSync' | 'history' | 'backups' | 'settings' | 'game';
 
 /** A file of the game folder, which the asset library lists. */
 export interface Asset {
@@ -163,7 +163,7 @@ export type RtfRun = { style?: string } & (
   | { text: string }
   | { image: string | null; id: string; found: boolean; scale: number }
   | { video: string | null; id: string; found: boolean; frames: number; fps: number; scale: number }
-  | { figure: string }
+  | { figure: string; ids?: string[]; count?: number; multiplier?: number }
   | { variable: string; value?: string }
 );
 /** A text section of a page: its rectangle in page pixels, alignment, whether its text wraps, its style, and its

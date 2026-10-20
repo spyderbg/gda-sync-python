@@ -188,6 +188,55 @@ components:
       required:
       - error
       title: Error
+    GameExportBody:
+      properties:
+        name:
+          type: string
+          pattern: ^[A-Za-z0-9_-]{1,64}$
+          title: Name
+        files:
+          additionalProperties:
+            type: string
+          propertyNames:
+            maxLength: 4096
+          type: object
+          maxProperties: 500
+          minProperties: 1
+          title: Files
+        copies:
+          additionalProperties:
+            type: string
+            maxLength: 4096
+          propertyNames:
+            maxLength: 4096
+          type: object
+          maxProperties: 500
+          title: Copies
+          default: {}
+      additionalProperties: false
+      type: object
+      required:
+      - name
+      - files
+      title: GameExportBody
+      description: The files that the browser game generates, by their paths relative
+        to the export's folder.
+    GameTranslateBody:
+      properties:
+        files:
+          items:
+            type: string
+            maxLength: 4096
+          type: array
+          maxItems: 200
+          minItems: 1
+          title: Files
+      additionalProperties: false
+      type: object
+      required:
+      - files
+      title: GameTranslateBody
+      description: TypeScript files of the browser game, by their paths in frontend/src/game.
     MoveBody:
       properties:
         assets:
@@ -1846,3 +1895,141 @@ paths:
           $ref: '#/components/responses/ServerError'
       tags:
       - Asset library
+
+  # ─── Other ──────────────────────────────────────────────────────────
+  /api/game/project:
+    get:
+      summary: Game Project
+      operationId: game_project_api_game_project_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Game Project Api Game Project Get
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Other
+  /api/game/data:
+    get:
+      summary: Game Data
+      operationId: game_data_api_game_data_get
+      parameters:
+      - name: file
+        in: query
+        required: true
+        schema:
+          type: string
+          maxLength: 4096
+          title: File
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Other
+  /api/game/cpp:
+    get:
+      summary: Game Cpp
+      operationId: game_cpp_api_game_cpp_get
+      parameters:
+      - name: folder
+        in: query
+        required: true
+        schema:
+          type: string
+          maxLength: 4096
+          title: Folder
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Game Cpp Api Game Cpp Get
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Other
+  /api/game/translate:
+    post:
+      summary: Game Translate
+      operationId: game_translate_api_game_translate_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GameTranslateBody'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Game Translate Api Game Translate Post
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '413':
+          $ref: '#/components/responses/ContentTooLarge'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Other
+  /api/game/export:
+    post:
+      summary: Game Export
+      operationId: game_export_api_game_export_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GameExportBody'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Game Export Api Game Export Post
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '413':
+          description: The request body is larger than 49280 KiB
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Other

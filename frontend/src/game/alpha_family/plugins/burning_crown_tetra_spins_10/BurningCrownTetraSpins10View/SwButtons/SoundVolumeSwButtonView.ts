@@ -1,0 +1,139 @@
+// Egt::Game::AlphaFamily::SoundVolumeSwButtonView (BurningCrownTetraSpins10View/SwButtons/SoundVolumeSwButtonView.h/.cpp):
+// the sound button, one element for each volume preset, of which it shows the current one; a press shows the next
+// volume's button 200 ms later. It moves to its tetra place in the tetra round.
+
+import { IAudioApi } from '../../../../../engine/Game/RuntimeImport/IAudioApi';
+import type { Runtime } from '../../../../../engine/GameCore/RuntimeAccess';
+import { Delay, type TweenAction } from '../../../../../engine/GameCore/Tools/Tweeny';
+import { BaseElement } from '../../../../../engine/GameVideoCtrl/ViewElements/BaseElement';
+import { ButtonElement } from '../../../../../engine/GameVideoCtrl/ViewElements/ButtonElement';
+import { IButtonViewEvents } from '../../../../libs/AlphaFamily/Views/BaseInterfaces/IControlView';
+import { ESoundSwButtonType, ISoundVolumeSwButtonView } from '../../../../libs/AlphaFamily/Views/SwButtonViews.bridge';
+import { ButtonView } from '../../../../libs/AlphaFamilyVideoCtrl/Components/ButtonView';
+
+const SoundVolumeSwButtonViewId = 'SoundVolumeSwButtonView';
+const ButtonVolumeMuteId = 'button_volume_mute';
+const ButtonVolumeL0Id = 'button_volume_l0';
+const ButtonVolumeL1Id = 'button_volume_l1';
+const ButtonVolumeL2Id = 'button_volume_l2';
+const ButtonVolumeL3Id = 'button_volume_l3';
+const DummyNormalButtonId = 'dummy_normal_button';
+const DummyTetraButtonId = 'dummy_tetra_button';
+const ButtonVolumeIds = [ButtonVolumeMuteId, ButtonVolumeL0Id, ButtonVolumeL1Id, ButtonVolumeL2Id, ButtonVolumeL3Id];
+const PressDelay = 200;
+
+enum ESoundVolumePresentingState {
+  Idle,
+  InProgress,
+}
+
+export class SoundVolumeSwButtonView extends ButtonView implements ISoundVolumeSwButtonView {
+  private m_presentingState = ESoundVolumePresentingState.Idle;
+  private m_currentVolume = 0;
+  private m_oldVolume = -1;
+  private m_actionPress: TweenAction | null = null;
+  private m_buttonType = ESoundSwButtonType.Normal;
+
+  constructor() {
+    super(SoundVolumeSwButtonViewId, ISoundVolumeSwButtonView, new IButtonViewEvents());
+  }
+
+  Init(runtime: Runtime) {
+    super.Init(runtime);
+    this.InitElementsList(SoundVolumeSwButtonViewId, () => this.OnElementsListLoaded());
+    return true;
+  }
+
+  Deinit() {
+    this.DeinitElementsList();
+    super.Deinit();
+  }
+
+  Process() {
+    super.Process();
+    this.m_actionPress?.Process();
+  }
+
+  SetCurrentVolume(volume: number) {
+    if (this.m_currentVolume === volume) return;
+    this.m_currentVolume = volume;
+    if (!this.m_elementsList.IsLoaded()) return;
+    this.AdjustButtons();
+  }
+
+  SetButtonType(type: ESoundSwButtonType) {
+    if (type === this.m_buttonType) return;
+    this.m_buttonType = type;
+    this.AdjustPosition();
+  }
+
+  SimulateButtonPress() {
+    if (this.m_oldVolume === this.m_currentVolume) return;
+    this.m_oldVolume = this.m_currentVolume;
+    super.SimulateButtonPress();
+    this.m_actionPress?.Start();
+  }
+
+  private OnElementsListLoaded() {
+    this.InitAnimations();
+    this.AdjustButtons();
+    this.AdjustPosition();
+  }
+
+  private InitAnimations() {
+    this.m_actionPress = Delay(PressDelay);
+    this.m_actionPress.OnBegin(() => {
+      this.m_presentingState = ESoundVolumePresentingState.InProgress;
+    });
+    this.m_actionPress.OnEnd(() => {
+      this.m_presentingState = ESoundVolumePresentingState.Idle;
+      this.AdjustButtons();
+    });
+  }
+
+  private AdjustButtons() {
+    if (this.m_presentingState !== ESoundVolumePresentingState.Idle) return;
+    const presetCount = this.RuntimeGetConst(IAudioApi).GetVolumePresetCount();
+    if (presetCount === 0) {
+      for (const buttonId of ButtonVolumeIds) {
+        const button = this.m_elementsList.Get(buttonId, ButtonElement);
+        button.SetEnabled(false);
+        button.SetHidden(true);
+      }
+      return;
+    }
+    const maxPresetIndex = presetCount - 1;
+    const maxButtonIndex = ButtonVolumeIds.length - 1;
+    const buttonIndex = Math.min(Math.max(maxButtonIndex - maxPresetIndex + this.m_currentVolume, 0), maxButtonIndex);
+    for (let idx = 0; idx <= maxButtonIndex; ++idx) {
+      const buttonId = ButtonVolumeIds[idx];
+      const button = this.m_elementsList.Get(buttonId, ButtonElement);
+      if (idx === buttonIndex) {
+        button.SetEnabled(true);
+        button.SetHidden(false);
+        this.SetButtonId(buttonId);
+      } else {
+        button.SetEnabled(false);
+        button.SetHidden(true);
+      }
+    }
+  }
+
+  private AdjustPosition() {
+    if (!this.m_elementsList.IsLoaded()) return;
+    switch (this.m_buttonType) {
+      case ESoundSwButtonType.Normal: {
+        const dummyNormal = this.m_elementsList.TryGet(DummyNormalButtonId, BaseElement);
+        if (!dummyNormal) return;
+        this.m_elementsList.SetPosition(dummyNormal.GetPosition(), ButtonVolumeIds);
+        break;
+      }
+      case ESoundSwButtonType.Tetra: {
+        const dummyTetra = this.m_elementsList.TryGet(DummyTetraButtonId, BaseElement);
+        if (!dummyTetra) return;
+        this.m_elementsList.SetPosition(dummyTetra.GetPosition(), ButtonVolumeIds);
+        break;
+      }
+    }
+  }
+}

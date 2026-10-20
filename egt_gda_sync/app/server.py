@@ -24,6 +24,7 @@ from egt_gda_sync.app.desktop import choose_folder, open_in_code, open_on_deskto
 from egt_gda_sync.app.errors import AppError
 from egt_gda_sync.assets.fonts import FONT_EXTENSIONS, facts_header
 from egt_gda_sync.assets.movies import is_movie
+from egt_gda_sync.game.project import MAX_EXPORT_BYTES, GameProject
 from egt_gda_sync.workspace.library import MAX_TEXT_BYTES, Library
 from egt_gda_sync.app.lifetime import PAGE_CLOSE_GRACE_SECONDS, PageLifetime
 from egt_gda_sync.app.ports import dev_ui_url
@@ -33,7 +34,8 @@ BODY_LIMIT = 128 * 1024
 # A text file that the asset details save comes whole: up to MAX_TEXT_BYTES of UTF-8, each byte of which JSON escapes
 # as at most six bytes (\u001f); the rest of the body fits in BODY_LIMIT.
 TEXT_BODY_LIMIT = 6 * MAX_TEXT_BYTES + BODY_LIMIT
-BODY_LIMITS = {"/api/asset-report/text": TEXT_BODY_LIMIT}
+# A game export's files come whole, each byte of which JSON escapes as at most six bytes.
+BODY_LIMITS = {"/api/asset-report/text": TEXT_BODY_LIMIT, "/api/game/export": 6 * MAX_EXPORT_BYTES + BODY_LIMIT}
 LOCAL_HOSTS = {"127.0.0.1", "localhost", "[::1]"}
 APP_CSP = (
     "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self'; "
@@ -174,6 +176,19 @@ class TextFileBody(_Body):
     file: Text4K
     text: Annotated[str, Field(max_length=MAX_TEXT_BYTES)]
     revision: Annotated[str, Field(min_length=1, max_length=64)]
+
+
+class GameExportBody(_Body):
+    """The files that the browser game generates, by their paths relative to the export's folder."""
+    name: Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9_-]{1,64}$")]
+    files: Annotated[dict[Text4K, str], Field(min_length=1, max_length=500)]
+    # C++ sources copied as they are: an export path to its path in the C++ game sources.
+    copies: Annotated[dict[Text4K, Text4K], Field(max_length=500)] = {}
+
+
+class GameTranslateBody(_Body):
+    """TypeScript files of the browser game, by their paths in frontend/src/game."""
+    files: Annotated[list[Text4K], Field(min_length=1, max_length=200)]
 
 
 class RemoveAssetBody(_Body):
@@ -540,6 +555,27 @@ def create_app(
     @app.post("/api/asset-report/text")
     def save_text_file(body: TextFileBody) -> dict:
         return library.save_text_file(body.file, body.text, body.revision)
+
+    # The browser game (frontend/src/game) plays the active workspace's game from these.
+    @app.get("/api/game/project")
+    def game_project() -> dict:
+        return GameProject(library).project()
+
+    @app.get("/api/game/data")
+    def game_data(file: Annotated[str, Query(max_length=4096)]) -> Response:
+        return Response(GameProject(library).data(file), media_type="application/json")
+
+    @app.get("/api/game/cpp")
+    def game_cpp(folder: Annotated[str, Query(max_length=4096)]) -> dict:
+        return GameProject(library).cpp_files(folder)
+
+    @app.post("/api/game/translate")
+    def game_translate(body: GameTranslateBody) -> dict:
+        return GameProject(library).translate(body.files)
+
+    @app.post("/api/game/export")
+    def game_export(body: GameExportBody) -> dict:
+        return GameProject(library).export(body.name, body.files, body.copies)
 
     @app.get("/{path:path}", include_in_schema=False)
     async def frontend_file(path: str) -> Response:

@@ -216,6 +216,15 @@ def test_renews_an_expired_server_session_and_retries_the_rejected_request_once(
     assert calls["sessions"] > 1
 
 
+def test_the_play_page_explains_a_game_the_browser_cannot_play(page):
+    # The demo workspace has no modules config (configs/<id>/modules), so the browser game has none of its modules.
+    page.goto("/")
+    select_workspace(page)
+    page.get_by_role("button", name="Play", exact=True).click()
+    expect(page.get_by_role("heading", name="This game cannot be played in the browser yet")).to_be_visible()
+    expect(page.get_by_label("Game screen")).to_be_hidden()
+
+
 def test_stops_the_local_application_and_leaves_a_clear_closed_workspace_screen(page, backend):
     page.goto("/")
     select_workspace(page)
@@ -224,3 +233,4 @@ def test_stops_the_local_application_and_leaves_a_clear_closed_workspace_screen(
     page.get_by_role("dialog").get_by_role("button", name="Stop application", exact=True).click()
     expect(page.get_by_role("heading", name="Workspace closed.")).to_be_visible()
     assert backend.wait_for_exit(10) == 0
+

@@ -8,7 +8,7 @@ const RSS_POLL_MS = 1000;
 export const LIBRARY_VIEWS: View[] = ['library', 'pending'];
 export const PAGE_NAMES: Record<View, string> = {
   dashboard: 'Dashboard', library: 'Asset library', pending: 'Sync', rssSync: 'Sync in progress', history: 'Sync history', backups: 'Backups',
-  settings: 'Workspace settings',
+  settings: 'Workspace settings', game: 'Play',
 };
 
 export const data = ref<LibraryResponse | null>(null);

@@ -16,7 +16,7 @@ cp "$project_dir/dist/egt-gda-sync" "$app_dir/egt-gda-sync"
 if [[ ! -f "$app_dir/workspace.json" ]]; then
   cp "$project_dir/dist/workspace.json" "$app_dir/workspace.json"
 fi
-cp "$project_dir/frontend/public/favicon.svg" "$app_dir/icon.svg"
+cp "$project_dir/frontend/public/app-icon.png" "$app_dir/app-icon.png"
 ln -sfn "$app_dir/egt-gda-sync" "$HOME/.local/bin/egt-gda-sync"
 cat > "$applications_dir/egt-gda-sync.desktop" <<DESKTOP
 [Desktop Entry]
@@ -25,7 +25,7 @@ Type=Application
 Name=EGT GDA Sync
 Comment=Your studio asset workspace
 Exec="$app_dir/egt-gda-sync"
-Icon=$app_dir/icon.svg
+Icon=$app_dir/app-icon.png
 Terminal=false
 Categories=Graphics;Utility;
 StartupNotify=false

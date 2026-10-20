@@ -14,6 +14,7 @@ import BackupsView from './views/BackupsView.vue';
 import SyncHistoryView from './views/SyncHistoryView.vue';
 import SyncInProgressView from './views/SyncInProgressView.vue';
 import SyncView from './views/SyncView.vue';
+import GameView from './game/GameView.vue';
 import { data, isLibraryView, load, loadError, stopped, ui } from './workspace';
 
 useBackendLifetime(() => !stopped.value);
@@ -62,6 +63,7 @@ onBeforeUnmount(() => {
           <SyncHistoryView v-else-if="ui.view === 'history'" />
           <BackupsView v-else-if="ui.view === 'backups'" />
           <SettingsView v-else-if="ui.view === 'settings'" />
+          <GameView v-else-if="ui.view === 'game'" />
         </div>
         <AppFooter />
       </div>

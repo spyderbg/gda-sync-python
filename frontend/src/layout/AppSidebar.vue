@@ -77,9 +77,15 @@ const assetEntries = computed<Entry[]>(() => [...ASSET_CATEGORIES, ...(countSect
   onSelect: () => navigate('library', category),
 })));
 
+// The browser game plays the workspace's game from its assets (frontend/src/game).
+const gameEntries = computed<Entry[]>(() => [
+  { key: 'game', label: 'Play', icon: 'mdi-slot-machine-outline', title: 'Play the game in the browser', active: ui.view === 'game', onSelect: () => navigate('game') },
+]);
+
 const sections = computed(() => [
   { key: 'sync', heading: 'Sync', title: folders(config.value.source, config.value.destination), entries: syncEntries.value },
   { key: 'assets', heading: 'Assets', title: undefined, entries: assetEntries.value },
+  { key: 'game', heading: 'Game', title: undefined, entries: gameEntries.value },
 ]);
 </script>
 
