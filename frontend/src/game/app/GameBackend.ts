@@ -28,6 +28,8 @@ export interface GameProject {
   /** The C++ game sources (games/game), which an export copies the plugin's sources from. */
   cppPath: string;
   descriptors: RssDescriptors;
+  /** The descriptor files (AllRssData.json, RssImagesData.json...), by their paths relative to the game folder. */
+  descriptorFiles?: string[];
   errors: string[];
 }
 

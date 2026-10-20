@@ -91,6 +91,8 @@ class GameProject:
             "modules": (modules := self._modules(workspace_id, resources)),
             "familyModules": self._family_modules(modules, resources),
             "descriptors": descriptors,
+            # the descriptor files, relative to the game folder: the browser game watches them, and reads them again
+            "descriptorFiles": sorted(os.path.relpath(path, game.resolve()) for path in documents),
             "errors": errors,
         }
 

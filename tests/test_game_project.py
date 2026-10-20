@@ -68,6 +68,8 @@ def test_the_project_has_the_modules_config_and_the_descriptors_entries_with_the
     assert atlas["frames"][1]["source"] == {"x": 2, "y": 0, "w": 2, "h": 2}
     assert descriptors["audioEvents"][0]["files"] == [str(client.game / "click.wav")]
     assert descriptors["idatas"][0]["path"] == "math/rules.json"
+    # the descriptor files, which the game watches and reads again when they change
+    assert {"RssImagesData.json", "RssIData.json"} <= set(project["descriptorFiles"])
 
 
 def test_json_data_of_the_resources_is_read_and_nothing_else(client):

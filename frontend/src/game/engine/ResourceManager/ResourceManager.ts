@@ -4,11 +4,17 @@
 // files the active workspace's asset report lists as available. Before the game starts, it loads every IData and view
 // of the game (GET /api/game/data), as the C++ resource manager does on its first access; images, image sequences,
 // audio and fonts load on first use through the preview endpoint.
+//
+// While the game plays, it watches the descriptor files (IFileWatch): when one changes (an image's file renamed or
+// moved), it reads the descriptors again, and the elements draw the files they now name (the browser game's: C++ reads
+// its descriptors once).
 
 import type { GameAssetReport, GameProject } from '../../app/GameBackend';
 import { GameBackend } from '../../app/GameBackend';
 import { Runtime } from '../GameCore/RuntimeAccess';
 import { type ElementsListData, IResources, type RssAudioEvent, type RssDescriptors, type RssElement, type RssFont, type RssIData, type RssImage, type RssImageSequence, type RssMovie, type RssRtf, type RssTextStyle } from '../Game/RuntimeExport/IResources';
+import { IFileWatch } from '../Game/RuntimeExport/IFileWatch';
+import { IVideo } from '../GameVideoCtrl/RuntimeExport/IVideo';
 import { BaseModule, type ModuleConfig } from '../ModuleManager/BaseModule';
 
 const RESOLUTION = '1920x1080';
@@ -23,6 +29,8 @@ export interface ResourceProblem {
 
 export class ResourceManager extends BaseModule implements IResources {
   private descriptors: RssDescriptors;
+  private descriptorFiles: string[];
+  private watchedDescriptorFiles: string[] = [];
   private available: Set<string> | null;
   private idatas = new Map<string, unknown>();
   private views = new Map<string, ElementsListData>();
@@ -32,6 +40,7 @@ export class ResourceManager extends BaseModule implements IResources {
   constructor(project: GameProject, report: GameAssetReport | null, private readonly integration: string | null = null) {
     super();
     this.descriptors = project.descriptors;
+    this.descriptorFiles = project.descriptorFiles ?? [];
     this.available = report ? ResourceManager.AvailableFiles(report) : null;
     for (const error of project.errors) this.problems.push({ kind: 'descriptor', id: '', message: error });
   }
@@ -53,33 +62,81 @@ export class ResourceManager extends BaseModule implements IResources {
     return true;
   }
 
+  PostInit() {
+    this.WatchDescriptorFiles(this.descriptorFiles);
+    return super.PostInit();
+  }
+
   Deinit() {
+    this.WatchDescriptorFiles([]);
     this.RuntimeRemove(IResources);
     super.Deinit();
   }
 
+  /** Watches these descriptor files, and no others (FileWatch is made after this module: it watches from PostInit). */
+  private WatchDescriptorFiles(files: string[]) {
+    const fileWatch = this.RuntimeTryGet(IFileWatch);
+    if (!fileWatch) return;
+    for (const file of this.watchedDescriptorFiles) if (!files.includes(file)) fileWatch.StopWatchFile(file);
+    for (const file of files) if (!this.watchedDescriptorFiles.includes(file)) fileWatch.StartWatchFile(file);
+    this.watchedDescriptorFiles = [...files];
+  }
+
+  /** Reads the descriptors again, and the asset report, and the IData and views a changed entry names another file of. */
+  private async ReloadDescriptors() {
+    let project: GameProject;
+    try {
+      project = await GameBackend.Project();
+    } catch (error) {
+      console.warn(`The descriptors: ${(error as Error).message}`);
+      return false;
+    }
+    const report = await GameBackend.AssetReport().catch(() => null);
+    const pathOf = (entries: Entry[], id: string) => (this.Choose(entries, id) as { path?: string } | null)?.path;
+    const idataPaths = new Map([...this.idatas.keys()].map(id => [id, pathOf(this.descriptors.idatas, id)]));
+    const viewPaths = new Map([...this.views.keys()].map(id => [id, pathOf(this.descriptors.elements, id)]));
+    this.descriptors = project.descriptors;
+    this.descriptorFiles = project.descriptorFiles ?? [];
+    if (report) this.available = ResourceManager.AvailableFiles(report);
+    // what is missing is reported again as it is drawn
+    this.problems.splice(0, this.problems.length, ...project.errors.map(error => ({ kind: 'descriptor', id: '', message: error })));
+    this.WatchDescriptorFiles(this.descriptorFiles);
+    this.RuntimeTryGet(IVideo)?.GetImages().ForgetFailed();
+    await Promise.all([
+      ...[...new Set(this.descriptors.idatas.map(entry => entry.id))].filter(id => !this.idatas.has(id) || idataPaths.get(id) !== pathOf(this.descriptors.idatas, id))
+        .map(id => this.LoadIData(id)),
+      ...[...new Set(this.descriptors.elements.map(entry => entry.id))].filter(id => !this.views.has(id) || viewPaths.get(id) !== pathOf(this.descriptors.elements, id))
+        .map(id => this.LoadView(id)),
+    ]);
+    return true;
+  }
+
   private async LoadIDatas() {
     const ids = [...new Set(this.descriptors.idatas.map(entry => entry.id))];
-    await Promise.all(ids.map(async id => {
-      const entry = this.Choose(this.descriptors.idatas, id) as RssIData;
-      try {
-        this.idatas.set(id, await GameBackend.Data(entry.path));
-      } catch (error) {
-        this.problems.push({ kind: 'IData', id, message: (error as Error).message });
-      }
-    }));
+    await Promise.all(ids.map(id => this.LoadIData(id)));
+  }
+
+  private async LoadIData(id: string) {
+    const entry = this.Choose(this.descriptors.idatas, id) as RssIData;
+    try {
+      this.idatas.set(id, await GameBackend.Data(entry.path));
+    } catch (error) {
+      this.problems.push({ kind: 'IData', id, message: (error as Error).message });
+    }
   }
 
   private async LoadViews() {
     const ids = [...new Set(this.descriptors.elements.map(entry => entry.id))];
-    await Promise.all(ids.map(async id => {
-      const entry = this.Choose(this.descriptors.elements, id) as RssElement;
-      try {
-        this.views.set(id, await GameBackend.Data<ElementsListData>(entry.path));
-      } catch (error) {
-        this.problems.push({ kind: 'ElementsList', id, message: (error as Error).message });
-      }
-    }));
+    await Promise.all(ids.map(id => this.LoadView(id)));
+  }
+
+  private async LoadView(id: string) {
+    const entry = this.Choose(this.descriptors.elements, id) as RssElement;
+    try {
+      this.views.set(id, await GameBackend.Data<ElementsListData>(entry.path));
+    } catch (error) {
+      this.problems.push({ kind: 'ElementsList', id, message: (error as Error).message });
+    }
   }
 
   /** The entry of an id for the game's resolution, integration and language: of several entries, the one that names
@@ -122,6 +179,7 @@ export class ResourceManager extends BaseModule implements IResources {
   }
 
   async ReloadFile(file: string) {
+    if (this.descriptorFiles.includes(file)) return this.ReloadDescriptors();
     const views = [...new Set(this.descriptors.elements.map(entry => entry.id))].filter(id => this.Choose(this.descriptors.elements, id)?.path === file);
     const idatas = [...new Set(this.descriptors.idatas.map(entry => entry.id))].filter(id => this.Choose(this.descriptors.idatas, id)?.path === file);
     if (!views.length && !idatas.length) return false;

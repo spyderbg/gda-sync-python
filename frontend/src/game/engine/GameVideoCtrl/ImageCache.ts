@@ -22,6 +22,13 @@ export class ImageCache {
     return entry.loaded ? entry.image : null;
   }
 
+  /** Forgets the files that could not be loaded, so that they load again on their next request (once the descriptors
+   * that named them changed, or the files were put back). */
+  ForgetFailed() {
+    for (const file of this.failed) this.images.delete(file);
+    this.failed.clear();
+  }
+
   /** Loads files ahead of their first draw; resolves when all are loaded or failed. */
   Preload(files: string[]) {
     return Promise.all(files.map(file => new Promise<void>(resolve => {

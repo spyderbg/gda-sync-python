@@ -18,7 +18,7 @@ Every file operation goes through the backend (`egt_gda_sync/game/project.py`):
 | The family's modules (the capping splash...) | `GET /api/game/project` → `familyModules` (`configs/alpha_family/modules/AlphaGameModules.json`) | ModuleManager config |
 | The descriptors' entries (images, sequences, movies, fonts, styles, audio, IData, views, RTFs) | `GET /api/game/project` → `descriptors` | ResourceManager |
 | The math file, view configs and views | `GET /api/game/data?file=<path in the game folder>` | `IResources::Get<RssIData>`, ElementsList |
-| When the watched view files last changed | `GET /api/game/file-stamps?file=...&file=...` | FileWatch (inotify) |
+| When the watched view and descriptor files last changed | `GET /api/game/file-stamps?file=...&file=...` | FileWatch (inotify) |
 | Images (DDS decoded), movies, audio, fonts, an RTF's laid-out pages | `GET /api/rss-sync/preview?file=` (the asset library's preview) | VideoManager, AudioManager, RtfElement |
 | The assets the asset library lists | `GET /api/asset-report` | – |
 | The C++ plugin's sources, which an export copies | `GET /api/game/cpp?folder=` (the game folder beside the resources: `games/game`) | – |
@@ -91,8 +91,11 @@ play, since Burning Crown does not use them.
   it shows if it is hidden. When the file has the same elements (by id, type and keys), such as when they moved, the
   elements change in place, so that what holds them (a view's tweens, the reels' visuals) keeps working; else they are
   made anew. Either way the view's elements-list callback runs again (C++ does not run it), which places what the view
-  derives from its elements, such as the credit from its `_min` and `_max` dummies. Other files load when the game
-  starts: the IData (such as the reels' area, which places the reels' symbols), the images and the descriptors.
+  derives from its elements, such as the credit from its `_min` and `_max` dummies.
+- The descriptors (`AllRssData.json`, `RssImagesData.json`...) are watched too (the browser game's: C++ reads them once):
+  when one changes, such as when an image's file was moved or renamed and its entry's path follows it, the resource
+  manager reads them again, and the elements draw the files their RssKeys now name, from their next frame. Other files
+  load when the game starts: the IData (such as the reels' area, which places the reels' symbols) and the images.
 - The math was checked by simulation: the main round of `var_10BCTS_8435.json` returns about 84.0–84.5% over 3 million
   rounds (the setup's `simRtp` is 84.35%), the tetra round about 100% over 600,000 rounds.
 

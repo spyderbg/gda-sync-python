@@ -148,8 +148,8 @@ export interface IResources {
   LoadRtfLayout(file: string): Promise<RtfLayout>;
   /** The URL the browser loads a resource file from. */
   FileUrl(file: string): string;
-  /** Reads a changed IData or view file again (the browser's: C++ reads the file when it converts it); false when it
-   * cannot be read, such as while it is half written. */
+  /** Reads a changed IData, view or descriptor file again (the browser's: C++ reads the file when it converts it, and
+   * its descriptors once); false when it cannot be read, such as while it is half written. */
   ReloadFile(file: string): Promise<boolean>;
   /** Selects the entries of the language among those declared per language. */
   SetLanguage(language: string): void;
