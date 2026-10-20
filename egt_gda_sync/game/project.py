@@ -9,6 +9,8 @@ reads it.
   resolved to files: the images, image sequences (their {N-M} frames expanded), fonts, text styles, audio events,
   IData (math, view configs) and ElementsList entries (views) the game loads by id.
 - Its JSON data: an IData or view file, by its path relative to the game folder, inside the resources folder.
+- The stamps of its files (when each last changed), which the browser game polls to reload a view whose file changed,
+  as the C++ game's FileWatch module does.
 
 Images, audio and fonts are read through the asset library's preview endpoint, which decodes DDS textures. An export
 writes the files the browser game generates (C++ sources and configs) to the app data folder, never into the games
@@ -32,6 +34,7 @@ from egt_gda_sync.sync.rss_sync import expand_path, load_documents
 from egt_gda_sync.workspace.library import Library, contained, safe_path
 
 MAX_DATA_BYTES = 16 * 1024 * 1024
+MAX_WATCHED_FILES = 500
 MODULES_SUFFIX = "Modules.json"
 EXPORTS_FOLDER = "game-exports"
 # The descriptor lists the game loads entries of, as the C++ resource manager names them.
@@ -143,6 +146,25 @@ class GameProject:
         except (UnicodeDecodeError, ValueError) as error:
             raise AppError(f"{os.path.basename(path)} is not valid JSON: {error}", 415) from error
         return data.removeprefix(b"\xef\xbb\xbf")
+
+    def stamps(self, files: list[str]) -> dict:
+        """When each file of the game's resources last changed, by its path relative to the game folder, as the
+        descriptors name it: the browser game's FileWatch reloads a view whose file's stamp changes. A missing file has
+        none."""
+        if len(files) > MAX_WATCHED_FILES or any(len(file) > 4096 for file in files):
+            raise AppError(f"At most {MAX_WATCHED_FILES} files, of paths up to 4096 characters, can be watched", 400)
+        _workspace_id, _workspace, resources, game = self._folders()
+        stamps: dict[str, str | None] = {}
+        for file in files:
+            target = os.path.normpath(os.path.join(game, file))
+            if os.path.isabs(file) or not contained(str(resources), target):
+                raise AppError("Only the files of the game's resources can be watched", 403)
+            try:
+                stat = os.stat(safe_path(str(resources), os.path.relpath(target, resources)))
+                stamps[file] = f"{stat.st_mtime_ns}:{stat.st_size}"
+            except FileNotFoundError:
+                stamps[file] = None
+        return {"stamps": stamps}
 
     @staticmethod
     def _cpp_root(resources: Path) -> Path:

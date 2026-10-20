@@ -3,17 +3,20 @@
 
 import type { Runtime } from '../../../../../engine/GameCore/RuntimeAccess';
 import { IResources } from '../../../../../engine/Game/RuntimeExport/IResources';
+import * as tweeny from '../../../../../hat_libs/tweeny/tweeny';
 import type { DrawList } from '../../../../../engine/GameVideoCtrl/DrawList';
-import type { SymbolViewInfo, SymbolViewInfos } from '../../../../libs/AlphaFamily/Math/Common/Common.data';
+import { SymbolGridCoordinates, type SymbolViewInfo, type SymbolViewInfos } from '../../../../libs/AlphaFamily/Math/Common/Common.data';
 import type { ReelCombinations } from '../../../../libs/AlphaFamily/Math/Reel/ReelRoundPhase.data';
 import { IWinFiguresView, IWinFiguresViewEvents } from '../../../../libs/AlphaFamily/Views/IWinFiguresView.bridge';
 import { BaseView } from '../../../../libs/AlphaFamilyVideoCtrl/BaseView';
 import { BaseVisual } from '../Visuals/BaseVisual';
-import { WinFigureVisual } from '../Visuals/WinFiguresVisual';
+import { EWinFigureType, WinFigureVisual } from '../Visuals/WinFiguresVisual';
 import type { WinFiguresVisualConfig } from './ReelsView.data';
 import type { ReelSubScreensConfig } from './ReelSubScreen.data';
 
 const WinFiguresViewId = 'WinFiguresView';
+
+const wildCrossFadeDuration = 700;
 
 interface WinFiguresViewConfig {
   subScreensConfig: ReelSubScreensConfig;
@@ -26,6 +29,7 @@ export class WinFiguresView extends BaseView implements IWinFiguresView {
   private m_winFigures: WinFigureVisual[] = [];
   private m_stackedFigures: SymbolViewInfos = [];
   private m_allWinSymbols = '';
+  private m_wildCrossFade = new tweeny.tween_action();
 
   constructor() {
     super(WinFiguresViewId);
@@ -61,7 +65,10 @@ export class WinFiguresView extends BaseView implements IWinFiguresView {
     this.RemoveWinFigures();
     this.CreateWinFigures([...allWinSymbols.values()], playFromLoop);
     this.CreateWildFigures();
+    this.CreateWildCrossFade();
     this.m_allWinSymbols = key;
+
+    tweeny.start(this.m_wildCrossFade);
   }
 
   ShowWinFigures(_infos: SymbolViewInfos) {
@@ -85,14 +92,20 @@ export class WinFiguresView extends BaseView implements IWinFiguresView {
   }
 
   PauseAnimations() {
+    tweeny.pause(this.m_wildCrossFade);
+
     for (const figure of this.m_winFigures) figure.PauseAnimation();
   }
 
   ResumeAnimations() {
+    tweeny.resume(this.m_wildCrossFade);
+
     for (const figure of this.m_winFigures) figure.ResumeAnimation();
   }
 
   private RemoveWinFigures() {
+    tweeny.stop(this.m_wildCrossFade);
+
     BaseVisual.ClearAll(this.m_winFigures);
   }
 
@@ -107,8 +120,47 @@ export class WinFiguresView extends BaseView implements IWinFiguresView {
   /** The stacked wilds: BurningCrownTetraSpins10 has none (its stack figure config is empty). */
   private CreateWildFigures() {
     for (const viewInfo of this.m_stackedFigures) {
+      // the fading in joker
       const wild = new WinFigureVisual(this.m_elementsList, this.m_config.subScreensConfig, this.m_config.winFiguresConfig);
-      if (wild.CreateWild(viewInfo)) this.m_winFigures.push(wild);
+      if (!wild.CreateWild(viewInfo)) continue;
+
+      this.m_winFigures.push(wild);
+
+      // figure's id is the figure's size
+      const figureSize = viewInfo.symbolId;
+
+      // the jokers fading out from under it
+      for (let row = viewInfo.coord.rowId; row < figureSize; ++row) {
+        const singleWild = new WinFigureVisual(this.m_elementsList, this.m_config.subScreensConfig, this.m_config.winFiguresConfig);
+        if (!singleWild.CreateSingleWild(new SymbolGridCoordinates(viewInfo.coord.reelId, row))) continue;
+
+        this.m_winFigures.push(singleWild);
+      }
     }
+  }
+
+  private CreateWildCrossFade() {
+    tweeny.stop(this.m_wildCrossFade);
+
+    const crossFadeActions: tweeny.tween_action[] = [];
+
+    for (const figure of this.m_winFigures) {
+      const action = figure.CreateCrossFade(wildCrossFadeDuration);
+      if (!action.is_valid()) continue;
+
+      crossFadeActions.push(action);
+    }
+
+    this.m_wildCrossFade = tweeny.together(crossFadeActions);
+
+    this.m_wildCrossFade.on_end.connect(() => {
+      // the single wilds have faded out from under the jokers, they are not needed anymore
+      this.m_winFigures = this.m_winFigures.filter(figure => {
+        if (figure.GetType() !== EWinFigureType.SingleWild) return true;
+
+        figure.Clear();
+        return false;
+      });
+    });
   }
 }

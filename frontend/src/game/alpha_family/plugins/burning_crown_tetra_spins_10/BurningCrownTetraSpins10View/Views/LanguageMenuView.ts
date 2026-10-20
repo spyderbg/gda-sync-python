@@ -3,7 +3,7 @@
 // in; they close the other way.
 
 import type { Runtime } from '../../../../../engine/GameCore/RuntimeAccess';
-import { Delay, Sequence, Together, ease } from '../../../../../engine/GameCore/Tools/Tweeny';
+import * as tweeny from '../../../../../hat_libs/tweeny/tweeny';
 import type { DrawList } from '../../../../../engine/GameVideoCtrl/DrawList';
 import { BaseElement } from '../../../../../engine/GameVideoCtrl/ViewElements/BaseElement';
 import { ButtonElement } from '../../../../../engine/GameVideoCtrl/ViewElements/ButtonElement';
@@ -91,64 +91,64 @@ export class LanguageMenuView extends BaseView implements ILanguageMenuView {
     const buttonFrameEnglishOpened = this.m_elementsList.Find(ImageFrameEnglishOpenedId, ImageElement);
     const buttonFrameEnglishClosed = this.m_elementsList.Find(ImageFrameEnglishClosedId, ImageElement);
 
-    const openFirstLanguage = Together([
-      PlaceholderFromTo(buttonEnglish, buttonEnglishClosed, buttonEnglishOpened, ElementAnimDuration, ease.back_stop),
-      PlaceholderFromTo(buttonEnglish, buttonColorClosed, buttonColorOpened, ElementAnimDuration, ease.linear),
-      PlaceholderFromTo(buttonFrameEnglish, buttonFrameEnglishClosed, buttonFrameEnglishOpened, ElementAnimDuration, ease.back_stop),
-      PlaceholderFromTo(buttonFrameEnglish, imageColorClosed, imageColorOpened, ElementAnimDuration, ease.linear),
+    const openFirstLanguage = tweeny.together([
+      PlaceholderFromTo(buttonEnglish, buttonEnglishClosed, buttonEnglishOpened, ElementAnimDuration, tweeny.ease.back_stop),
+      PlaceholderFromTo(buttonEnglish, buttonColorClosed, buttonColorOpened, ElementAnimDuration, tweeny.ease.linear),
+      PlaceholderFromTo(buttonFrameEnglish, buttonFrameEnglishClosed, buttonFrameEnglishOpened, ElementAnimDuration, tweeny.ease.back_stop),
+      PlaceholderFromTo(buttonFrameEnglish, imageColorClosed, imageColorOpened, ElementAnimDuration, tweeny.ease.linear),
     ]);
-    openFirstLanguage.OnBegin(() => {
+    openFirstLanguage.on_begin.connect(() => {
       this.m_elementsList.Get(ButtonEnglishId, BaseElement).SetHidden(false);
       this.m_elementsList.Get(ImageFrameEnglishId, BaseElement).SetHidden(false);
       this.m_elementsList.Get(ButtonItalianId, BaseElement).SetHidden(true);
       this.m_elementsList.Get(ImageFrameItalianId, BaseElement).SetHidden(true);
     });
-    const openSecondLanguage = Together([
-      PlaceholderFromTo(buttonItalian, buttonItalianClosed, buttonItalianOpened, ElementAnimDuration, ease.back_stop),
-      PlaceholderFromTo(buttonItalian, buttonColorClosed, buttonColorOpened, ElementAnimDuration, ease.linear),
-      PlaceholderFromTo(buttonFrameItalian, buttonFrameItalianClosed, buttonFrameItalianOpened, ElementAnimDuration, ease.back_stop),
-      PlaceholderFromTo(buttonFrameItalian, imageColorClosed, imageColorOpened, ElementAnimDuration, ease.linear),
+    const openSecondLanguage = tweeny.together([
+      PlaceholderFromTo(buttonItalian, buttonItalianClosed, buttonItalianOpened, ElementAnimDuration, tweeny.ease.back_stop),
+      PlaceholderFromTo(buttonItalian, buttonColorClosed, buttonColorOpened, ElementAnimDuration, tweeny.ease.linear),
+      PlaceholderFromTo(buttonFrameItalian, buttonFrameItalianClosed, buttonFrameItalianOpened, ElementAnimDuration, tweeny.ease.back_stop),
+      PlaceholderFromTo(buttonFrameItalian, imageColorClosed, imageColorOpened, ElementAnimDuration, tweeny.ease.linear),
     ]);
-    openSecondLanguage.OnBegin(() => {
+    openSecondLanguage.on_begin.connect(() => {
       this.m_elementsList.Get(ButtonEnglishId, BaseElement).SetHidden(false);
       this.m_elementsList.Get(ImageFrameEnglishId, BaseElement).SetHidden(false);
       this.m_elementsList.Get(ButtonItalianId, BaseElement).SetHidden(false);
       this.m_elementsList.Get(ImageFrameItalianId, BaseElement).SetHidden(false);
     });
-    const open = Together([openFirstLanguage, Sequence([Delay(delayBetweenLanguages), openSecondLanguage])]);
+    const open = tweeny.together([openFirstLanguage, tweeny.sequence([tweeny.delay(delayBetweenLanguages), openSecondLanguage])]);
 
-    const closeSecondLanguage = Together([
-      PlaceholderFromTo(buttonItalian, buttonItalianOpened, buttonItalianClosed, ElementAnimDuration, ease.back_start),
-      PlaceholderFromTo(buttonItalian, buttonColorOpened, buttonColorClosed, ElementAnimDuration, ease.linear),
-      PlaceholderFromTo(buttonFrameItalian, buttonFrameItalianOpened, buttonFrameItalianClosed, ElementAnimDuration, ease.back_start),
-      PlaceholderFromTo(buttonFrameItalian, imageColorOpened, imageColorClosed, ElementAnimDuration, ease.linear),
+    const closeSecondLanguage = tweeny.together([
+      PlaceholderFromTo(buttonItalian, buttonItalianOpened, buttonItalianClosed, ElementAnimDuration, tweeny.ease.back_start),
+      PlaceholderFromTo(buttonItalian, buttonColorOpened, buttonColorClosed, ElementAnimDuration, tweeny.ease.linear),
+      PlaceholderFromTo(buttonFrameItalian, buttonFrameItalianOpened, buttonFrameItalianClosed, ElementAnimDuration, tweeny.ease.back_start),
+      PlaceholderFromTo(buttonFrameItalian, imageColorOpened, imageColorClosed, ElementAnimDuration, tweeny.ease.linear),
     ]);
-    closeSecondLanguage.OnEnd(() => {
+    closeSecondLanguage.on_end.connect(() => {
       this.m_elementsList.Get(ButtonEnglishId, BaseElement).SetHidden(false);
       this.m_elementsList.Get(ImageFrameEnglishId, BaseElement).SetHidden(false);
       this.m_elementsList.Get(ButtonItalianId, BaseElement).SetHidden(true);
       this.m_elementsList.Get(ImageFrameItalianId, BaseElement).SetHidden(true);
     });
 
-    const closeFirstLanguage = Together([
-      PlaceholderFromTo(buttonEnglish, buttonEnglishOpened, buttonEnglishClosed, ElementAnimDuration, ease.back_start),
-      PlaceholderFromTo(buttonEnglish, buttonColorOpened, buttonColorClosed, ElementAnimDuration, ease.linear),
-      PlaceholderFromTo(buttonFrameEnglish, buttonFrameEnglishOpened, buttonFrameEnglishClosed, ElementAnimDuration, ease.back_start),
-      PlaceholderFromTo(buttonFrameEnglish, imageColorOpened, imageColorClosed, ElementAnimDuration, ease.linear),
+    const closeFirstLanguage = tweeny.together([
+      PlaceholderFromTo(buttonEnglish, buttonEnglishOpened, buttonEnglishClosed, ElementAnimDuration, tweeny.ease.back_start),
+      PlaceholderFromTo(buttonEnglish, buttonColorOpened, buttonColorClosed, ElementAnimDuration, tweeny.ease.linear),
+      PlaceholderFromTo(buttonFrameEnglish, buttonFrameEnglishOpened, buttonFrameEnglishClosed, ElementAnimDuration, tweeny.ease.back_start),
+      PlaceholderFromTo(buttonFrameEnglish, imageColorOpened, imageColorClosed, ElementAnimDuration, tweeny.ease.linear),
     ]);
-    closeFirstLanguage.OnEnd(() => {
+    closeFirstLanguage.on_end.connect(() => {
       this.m_elementsList.Get(ButtonEnglishId, BaseElement).SetHidden(true);
       this.m_elementsList.Get(ImageFrameEnglishId, BaseElement).SetHidden(true);
       this.m_elementsList.Get(ButtonItalianId, BaseElement).SetHidden(true);
       this.m_elementsList.Get(ImageFrameItalianId, BaseElement).SetHidden(true);
     });
-    const close = Together(closeSecondLanguage, Sequence([Delay(delayBetweenLanguages), closeFirstLanguage]));
-    close.OnEnd(() => {
+    const close = tweeny.together(closeSecondLanguage, tweeny.sequence([tweeny.delay(delayBetweenLanguages), closeFirstLanguage]));
+    close.on_end.connect(() => {
       this.m_elementsList.SetHidden(true, ElementsAllIds);
     });
 
-    close.Start();
-    close.StopAndFinish();
+    tweeny.start(close, 'LanguageMenuView:Close');
+    tweeny.stop_and_finish(close);
 
     this.m_menu.SetupAnims(open, close);
     this.m_menu.SetupSounds(SoundLanguageMenuIntroId, SoundLanguageMenuOutroId);

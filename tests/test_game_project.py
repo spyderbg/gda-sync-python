@@ -80,6 +80,22 @@ def test_json_data_of_the_resources_is_read_and_nothing_else(client):
     assert client.get("/api/game/data", params={"file": str(client.game / "math" / "rules.json")}).status_code == 403
 
 
+def test_the_stamps_of_resource_files_change_when_they_are_written(client):
+    def stamps(*files):
+        response = client.get("/api/game/file-stamps", params={"file": list(files)})
+        return response.json()["stamps"] if response.status_code == 200 else response.status_code
+
+    before = stamps("math/rules.json", "math/none.json")
+    assert before["math/rules.json"] and before["math/none.json"] is None
+    assert stamps("math/rules.json") == {"math/rules.json": before["math/rules.json"]}
+    (client.game / "math" / "rules.json").write_text(json.dumps({"rowsCount": 4, "reels": 5}))
+    assert stamps("math/rules.json")["math/rules.json"] != before["math/rules.json"]
+    # Only the files of the resources, by a path relative to the game folder.
+    assert stamps("../../workspace.json") == 403
+    assert stamps(str(client.game / "math" / "rules.json")) == 403
+    assert stamps(*[f"f{index}.json" for index in range(501)]) == 400
+
+
 def test_an_export_is_written_to_the_app_data_folder(client):
     files = {"plugins/example/src/Egt/ExampleFsm/ExampleFsm.cpp": "// fsm\n", "README.md": "# Example\n"}
     result = client.post("/api/game/export", json={"name": "Example", "files": files}).json()

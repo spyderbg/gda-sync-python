@@ -3,7 +3,8 @@
 
 import type { Point, RssRect } from '../../../../../engine/Game/RuntimeExport/IResources';
 import type { Runtime } from '../../../../../engine/GameCore/RuntimeAccess';
-import { Delay, type TweenAction } from '../../../../../engine/GameCore/Tools/Tweeny';
+import { make_sentinel, sentinel } from '../../../../../hat_libs/egt_hpp/sentinel';
+import * as tweeny from '../../../../../hat_libs/tweeny/tweeny';
 import { Stopwatch } from '../../../../../engine/GameCore/Tools/Timers';
 import { IAudioApi, type IAudioPlayback } from '../../../../../engine/Game/RuntimeImport/IAudioApi';
 import { IResources } from '../../../../../engine/Game/RuntimeExport/IResources';
@@ -31,12 +32,11 @@ const SoundWinId = 'SOUND_TETRA_WIN';
 const SoundWinCreditId = 'SOUND_TETRA_WIN_CREDIT';
 
 interface LinesAnimation {
+  blink: tweeny.tween_action;
+  showTimer: tweeny.tween_action; // one full pass over the lines of the sub screen
   showFast: boolean;
   finishedPosted: boolean;
   pendingClear: boolean; // clear once the line on screen has played out
-  start: number | null;
-  current: number;
-  finishedAction: TweenAction | null;
 }
 
 export class TetraRoundView extends BaseView implements ITetraRoundView, BaseReelsView {
@@ -49,7 +49,8 @@ export class TetraRoundView extends BaseView implements ITetraRoundView, BaseRee
   protected m_winFigures: WinFigureVisual[] = [];
   protected m_dimSubScreens: DimSubScreenVisual[] = [];
   protected m_winValues: WinValueVisual[] = [];
-  protected m_linesAnimations: LinesAnimation[] = [];
+  protected m_linesAnimations: LinesAnimation[] = []; // [sub screen index]
+  protected m_sentinel = new sentinel();
   protected m_lastTickTime: number | null = null;
   protected m_allStopDelay: Stopwatch | null = null;
   protected m_dimmedDelay: Stopwatch | null = null;
@@ -68,8 +69,9 @@ export class TetraRoundView extends BaseView implements ITetraRoundView, BaseRee
     this.RuntimeAdd(ITetraRoundView.Events, this.m_events);
     this.LoadConfig();
     this.m_linesAnimations = this.m_config.subScreensConfig.subScreens.map(() => ({
-      showFast: false, finishedPosted: false, pendingClear: false, start: null, current: -1, finishedAction: null,
+      blink: new tweeny.tween_action(), showTimer: new tweeny.tween_action(), showFast: false, finishedPosted: false, pendingClear: false,
     }));
+    this.m_sentinel = make_sentinel();
     this.InitElementsList(TetraRoundViewId);
     super.SetVisible(false);
     this.m_config.subScreensConfig.subScreens.forEach((_, subScreenIdx) => {
@@ -85,6 +87,7 @@ export class TetraRoundView extends BaseView implements ITetraRoundView, BaseRee
 
   Deinit() {
     this.Clear();
+    this.m_linesAnimations = [];
     for (const visuals of [this.m_reels, this.m_flyingSymbols, this.m_lines, this.m_winFigures, this.m_dimSubScreens, this.m_winValues]) BaseVisual.ClearAll(visuals);
     this.DeinitElementsList();
     this.RuntimeRemove(ITetraRoundView);
@@ -93,7 +96,6 @@ export class TetraRoundView extends BaseView implements ITetraRoundView, BaseRee
   }
 
   Process() {
-    for (const animation of this.m_linesAnimations) animation.finishedAction?.Process();
     const tick = this.m_config.reelingParamsConfig.tickDuration;
     if (this.m_lastTickTime !== null) {
       const now = performance.now();
@@ -118,7 +120,6 @@ export class TetraRoundView extends BaseView implements ITetraRoundView, BaseRee
       this.m_flyingSymbolTimer = null;
       this.m_events.flyAnimationEndEvent.Post();
     }
-    this.ProcessLines();
     super.Process();
   }
 
@@ -333,76 +334,96 @@ export class TetraRoundView extends BaseView implements ITetraRoundView, BaseRee
     return this.m_lines.filter(line => line.GetSubScreenIdx() === subScreenIdx);
   }
 
-  /** Cycles the sub screen's lines one at a time: a full pass tells the round the combinations have been shown, a fast
-   * pass hands over to the slow cycling. */
   private AdjustLinesVisibility(subScreenIdx: number) {
     const animation = this.m_linesAnimations[subScreenIdx];
+
+    if (animation.blink.is_valid()) {
+      tweeny.stop_and_finish(animation.blink);
+    }
+
     const linesConfig = this.m_config.linesConfig;
+
+    const interval = (animation.showFast ? linesConfig.fastShowInterval : linesConfig.slowShowInterval) ?? 0;
+    const showEnd = (animation.showFast ? linesConfig.fastShowEnd : linesConfig.slowShowEnd) ?? 0;
+
     const lines = this.GetSubScreenLines(subScreenIdx);
+
+    // one full pass over the lines, in whichever mode we are in - a fast pass hands over to the slow
+    // cycling, and either way the round is told the combinations have been shown once
+    if (!animation.finishedPosted) {
+      const showInterval = (animation.showFast ? linesConfig.fastShowInterval : linesConfig.slowShowInterval) ?? 0;
+      const actionEndTime = tweeny.delay(lines.length * showInterval, this.m_sentinel);
+
+      actionEndTime.on_end.connect(() => {
+        const state = this.m_linesAnimations[subScreenIdx];
+        state.finishedPosted = true;
+
+        if (state.showFast) {
+          state.showFast = false;
+          this.AdjustLinesVisibility(subScreenIdx);
+        }
+
+        this.m_events.showCombinationsFinished.Post(subScreenIdx);
+      });
+
+      animation.showTimer = actionEndTime;
+    }
+
+    const actionsList: tweeny.tween_action[] = [];
+
     for (const line of lines) {
       line.SetLightsVisibility(!animation.showFast);
       line.CreateBlinking(linesConfig.shadowBlinkingInterval ?? 0);
-      line.SetVisible(false);
-    }
-    animation.start = performance.now();
-    animation.current = -1;
-    if (!animation.finishedPosted) {
-      animation.finishedAction?.Stop();
-      const interval = (animation.showFast ? linesConfig.fastShowInterval : linesConfig.slowShowInterval) ?? 1000;
-      animation.finishedAction = Delay(lines.length * interval);
-      animation.finishedAction.OnEnd(() => {
-        const finished = this.m_linesAnimations[subScreenIdx];
-        finished.finishedPosted = true;
-        if (finished.showFast) {
-          finished.showFast = false;
-          this.AdjustLinesVisibility(subScreenIdx);
-        }
-        this.m_events.showCombinationsFinished.Post(subScreenIdx);
-      });
-      animation.finishedAction.Start();
-    }
-  }
 
-  private ProcessLines() {
-    const linesConfig = this.m_config.linesConfig;
-    this.m_linesAnimations.forEach((animation, subScreenIdx) => {
-      if (animation.start === null) return;
-      const lines = this.GetSubScreenLines(subScreenIdx);
-      if (!lines.length) return;
-      const interval = (animation.showFast ? linesConfig.fastShowInterval : linesConfig.slowShowInterval) ?? 1000;
-      const showEnd = (animation.showFast ? linesConfig.fastShowEnd : linesConfig.slowShowEnd) ?? interval;
-      const elapsed = performance.now() - animation.start;
-      const index = Math.floor(elapsed / interval) % lines.length;
-      const visible = elapsed % interval < showEnd;
-      if (index !== animation.current) {
-        const previous = lines[animation.current];
-        if (previous) {
-          previous.SetVisible(false);
-          previous.EnableBlinking(false);
-          if (animation.pendingClear) {
-            this.ClearCombinations(subScreenIdx);
-            return;
-          }
+      const actionVisibleCombo = tweeny.delay(showEnd, this.m_sentinel);
+      const blink = !animation.showFast;
+      actionVisibleCombo.on_begin.connect(() => {
+        line.SetVisible(true);
+        line.EnableBlinking(blink);
+
+        if (!this.m_linesAnimations[subScreenIdx].finishedPosted) {
+          this.RuntimeGet(IAudioApi).Play(SoundLineId);
         }
-        animation.current = index;
-        lines[index].SetVisible(true);
-        lines[index].EnableBlinking(!animation.showFast);
-        if (!animation.finishedPosted) this.RuntimeGet(IAudioApi).Play(SoundLineId);
-      } else if (!visible && lines[index].IsVisible()) {
-        lines[index].SetVisible(false);
-        lines[index].EnableBlinking(false);
-        if (animation.pendingClear) this.ClearCombinations(subScreenIdx);
-      }
-    });
+      });
+      actionVisibleCombo.on_end.connect(() => {
+        line.SetVisible(false);
+        line.EnableBlinking(false);
+
+        if (this.m_linesAnimations[subScreenIdx].pendingClear) {
+          this.ClearCombinations(subScreenIdx);
+        }
+      });
+
+      const actionComboInterval = tweeny.together([actionVisibleCombo, tweeny.delay(interval, this.m_sentinel)], this.m_sentinel);
+
+      actionsList.push(actionComboInterval);
+    }
+
+    const actionSequence = tweeny.sequence_precise(actionsList, this.m_sentinel);
+    const actionLooped = tweeny.repeat_precise(actionSequence, this.m_sentinel);
+
+    animation.blink = actionLooped;
+
+    tweeny.start(animation.blink, 'TetraRoundView:LinesBlink');
+
+    if (!animation.finishedPosted) {
+      tweeny.start(animation.showTimer);
+    }
   }
 
   private ClearLines(subScreenIdx: number) {
     const animation = this.m_linesAnimations[subScreenIdx];
     if (!animation) return;
-    animation.finishedAction?.Stop();
-    Object.assign(animation, { showFast: false, finishedPosted: false, pendingClear: false, start: null, current: -1, finishedAction: null });
+
+    tweeny.stop(animation.blink);
+    tweeny.stop(animation.showTimer);
+    animation.showFast = false;
+    animation.finishedPosted = false;
+    animation.pendingClear = false;
+
     this.m_lines = this.m_lines.filter(line => {
       if (line.GetSubScreenIdx() !== subScreenIdx) return true;
+
       line.Clear();
       return false;
     });

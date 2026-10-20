@@ -3,6 +3,7 @@
 
 import type { Runtime } from '../../../../engine/GameCore/RuntimeAccess';
 import type { DrawList } from '../../../../engine/GameVideoCtrl/DrawList';
+import { IFileWatch } from '../../../../engine/Game/RuntimeExport/IFileWatch';
 import { IVideo } from '../../../../engine/GameVideoCtrl/RuntimeExport/IVideo';
 import { BaseModule, type ModuleConfig } from '../../../../engine/ModuleManager/BaseModule';
 import { VideoManager } from '../../../../engine/VideoManager/VideoManager';
@@ -22,11 +23,13 @@ export class BurningCrownTetraSpins10TopperView extends BaseModule {
 
   PostInit() {
     this.RuntimeTryGet(IVideo)?.RegisterDrawTopper(null, drawList => this.Draw(drawList));
+    this.RuntimeTryGet(IFileWatch.Events)?.fileChanged.RegisterInstant(this, filepath => this.OnFileChanged(filepath));
     return true;
   }
 
   PreDeinit() {
     this.RuntimeTryGet(IVideo)?.UnregisterDrawTopper();
+    this.RuntimeTryGet(IFileWatch.Events)?.fileChanged.Unregister(this);
   }
 
   Deinit() {
@@ -46,6 +49,10 @@ export class BurningCrownTetraSpins10TopperView extends BaseModule {
         this.m_sized = true;
       }
     }
+  }
+
+  private OnFileChanged(filepath: string) {
+    for (const view of this.m_views) view.HandleFileChanged(filepath);
   }
 
   private Draw(drawList: DrawList) {

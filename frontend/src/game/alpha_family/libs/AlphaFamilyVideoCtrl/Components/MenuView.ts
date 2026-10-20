@@ -5,8 +5,14 @@
 import { IAudioApi } from '../../../../engine/Game/RuntimeImport/IAudioApi';
 import { RuntimeHolder, type Runtime } from '../../../../engine/GameCore/RuntimeAccess';
 import { Stopwatch } from '../../../../engine/GameCore/Tools/Timers';
-import { type Position, Sequence, type TweenAction, ValueFromTo } from '../../../../engine/GameCore/Tools/Tweeny';
+import { make_sentinel } from '../../../../hat_libs/egt_hpp/sentinel';
+import * as tweeny from '../../../../hat_libs/tweeny/tweeny';
 import type { IMenuView, IMenuViewEvents } from '../../AlphaFamily/Views/BaseInterfaces/IControlView';
+
+interface Position {
+  x: number;
+  y: number;
+}
 
 const OpenedTimeoutMs = 5000;
 
@@ -20,10 +26,11 @@ export enum EState {
 
 export class MenuView extends RuntimeHolder implements IMenuView {
   private m_state = EState.Closed;
-  private readonly m_pos: Position = { x: 0, y: 0 };
+  private m_pos: Position = { x: 0, y: 0 };
   private m_timerOpened = new Stopwatch();
-  private m_actionOpen: TweenAction | null = null;
-  private m_actionClose: TweenAction | null = null;
+  private m_sentinel = make_sentinel();
+  private m_actionOpen = new tweeny.tween_action();
+  private m_actionClose = new tweeny.tween_action();
   private m_openSoundId = '';
   private m_closeSoundId = '';
 
@@ -38,28 +45,39 @@ export class MenuView extends RuntimeHolder implements IMenuView {
 
   Deinit() {
     this.m_timerOpened.Reset();
-    this.m_actionOpen?.Stop();
-    this.m_actionClose?.Stop();
+    tweeny.stop(this.m_actionOpen);
+    tweeny.stop(this.m_actionClose);
     this.SetRuntime(null);
   }
 
   /** Moves the menu's position from closed to opened, and back. */
   SetupAnimsMove(closedPos: Position, openedPos: Position, duration: number) {
-    const move = (from: Position, to: Position) => Sequence(
-      ValueFromTo(() => Object.assign(this.m_pos, from), 0, 1, 0),
-      ValueFromTo(t => Object.assign(this.m_pos, { x: from.x + (to.x - from.x) * t, y: from.y + (to.y - from.y) * t }), 0, 1, duration),
-    );
-    this.SetupAnims(move(closedPos, openedPos), move(openedPos, closedPos));
-    Object.assign(this.m_pos, closedPos);
-  }
-
-  SetupAnims(open: TweenAction, close: TweenAction) {
-    this.m_actionOpen = open.OnEnd(() => {
+    this.m_sentinel = make_sentinel();
+    const pos = tweeny.ref<Position>(this, 'm_pos');
+    this.m_actionOpen = tweeny.sequence(tweeny.tween_to(pos, closedPos, 0, this.m_sentinel), tweeny.tween_to(pos, openedPos, duration, this.m_sentinel));
+    this.m_actionOpen.on_end.connect(() => {
       this.m_state = EState.Opened;
       this.m_events.menuOpened.Post();
       this.m_timerOpened.Reset();
     });
-    this.m_actionClose = close.OnEnd(() => {
+    this.m_actionClose = tweeny.sequence(tweeny.tween_to(pos, openedPos, 0, this.m_sentinel), tweeny.tween_to(pos, closedPos, duration, this.m_sentinel));
+    this.m_actionClose.on_end.connect(() => {
+      this.m_state = EState.Closed;
+      this.m_events.menuClosed.Post();
+    });
+    this.m_pos = { ...closedPos };
+  }
+
+  SetupAnims(open: tweeny.tween_action, close: tweeny.tween_action) {
+    this.m_sentinel = make_sentinel();
+    this.m_actionOpen = open;
+    this.m_actionOpen.on_end.connect(() => {
+      this.m_state = EState.Opened;
+      this.m_events.menuOpened.Post();
+      this.m_timerOpened.Reset();
+    });
+    this.m_actionClose = close;
+    this.m_actionClose.on_end.connect(() => {
       this.m_state = EState.Closed;
       this.m_events.menuClosed.Post();
     });
@@ -71,9 +89,6 @@ export class MenuView extends RuntimeHolder implements IMenuView {
   }
 
   Process() {
-    const now = performance.now();
-    this.m_actionOpen?.Process(now);
-    this.m_actionClose?.Process(now);
     if (this.IsOpened() && this.m_timerOpened.Measure() > OpenedTimeoutMs) this.CloseMenu();
   }
 
@@ -102,7 +117,7 @@ export class MenuView extends RuntimeHolder implements IMenuView {
     if (this.m_state !== EState.Closed) return;
     this.m_state = EState.Opening;
     this.m_events.menuOpening.Post();
-    this.Start(this.m_actionOpen, EState.Opened, this.m_events.menuOpened);
+    tweeny.start(this.m_actionOpen, 'MenuView:Open');
     if (this.m_openSoundId) this.RuntimeGet(IAudioApi).Play(this.m_openSoundId);
   }
 
@@ -110,18 +125,7 @@ export class MenuView extends RuntimeHolder implements IMenuView {
     if (this.m_state !== EState.Opened) return;
     this.m_state = EState.Closing;
     this.m_events.menuClosing.Post();
-    this.Start(this.m_actionClose, EState.Closed, this.m_events.menuClosed);
+    tweeny.start(this.m_actionClose, 'MenuView:Close');
     if (this.m_closeSoundId) this.RuntimeGet(IAudioApi).Play(this.m_closeSoundId);
-  }
-
-  // A menu without actions (an empty tweeny action) opens and closes at once.
-  private Start(action: TweenAction | null, end: EState, ended: { Post(): void }) {
-    if (action) {
-      action.Start();
-      return;
-    }
-    this.m_state = end;
-    ended.Post();
-    if (end === EState.Opened) this.m_timerOpened.Reset();
   }
 }

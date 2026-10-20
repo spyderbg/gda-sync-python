@@ -4,7 +4,7 @@
 
 import type { Runtime } from '../../../../../engine/GameCore/RuntimeAccess';
 import { ILocalization } from '../../../../../engine/Game/RuntimeImport/ILocalization';
-import { Together, type TweenAction } from '../../../../../engine/GameCore/Tools/Tweeny';
+import * as tweeny from '../../../../../hat_libs/tweeny/tweeny';
 import type { DrawList } from '../../../../../engine/GameVideoCtrl/DrawList';
 import { BaseElement } from '../../../../../engine/GameVideoCtrl/ViewElements/BaseElement';
 import { ButtonElement } from '../../../../../engine/GameVideoCtrl/ViewElements/ButtonElement';
@@ -35,8 +35,8 @@ enum EAnimationState {
 
 export class CreditBarView extends NumericBarView<ICreditBarView, ICreditBarViewEvents> implements ICreditBarView {
   private m_animState = EAnimationState.Undefined;
-  private m_actionMinimize: TweenAction | null = null;
-  private m_actionMaximize: TweenAction | null = null;
+  private m_actionMinimize = new tweeny.tween_action();
+  private m_actionMaximize = new tweeny.tween_action();
   private m_showingCredits = true;
 
   constructor() {
@@ -50,8 +50,8 @@ export class CreditBarView extends NumericBarView<ICreditBarView, ICreditBarView
   }
 
   Deinit() {
-    this.m_actionMinimize?.Stop();
-    this.m_actionMaximize?.Stop();
+    tweeny.stop(this.m_actionMinimize);
+    tweeny.stop(this.m_actionMaximize);
     this.DeinitElementsList();
     super.Deinit();
   }
@@ -65,15 +65,13 @@ export class CreditBarView extends NumericBarView<ICreditBarView, ICreditBarView
   Process() {
     if (!this.m_control.m_enabled) return;
     super.Process();
-    this.m_actionMinimize?.Process();
-    this.m_actionMaximize?.Process();
   }
 
   Minimize(instant: boolean) {
     if (this.m_animState === EAnimationState.Minimized) return;
     if (this.m_animState === EAnimationState.Minimizing && !instant) return;
-    this.m_actionMinimize?.StopAndFinish();
-    this.m_actionMaximize?.StopAndFinish();
+    tweeny.stop_and_finish(this.m_actionMinimize);
+    tweeny.stop_and_finish(this.m_actionMaximize);
     if (instant) {
       this.m_elementsList.Find(TextAmountId, TextElement)?.SetFromDummy(this.m_elementsList.Find(TextAmountMinId, TextElement));
       this.m_elementsList.Find(ImageLabelId, ImageElement)?.SetFromDummy(this.m_elementsList.Find(ImageLabelMinId, ImageElement));
@@ -81,15 +79,15 @@ export class CreditBarView extends NumericBarView<ICreditBarView, ICreditBarView
       this.m_events.minimized.Post();
     } else {
       this.m_animState = EAnimationState.Minimizing;
-      this.m_actionMinimize?.Start();
+      tweeny.start(this.m_actionMinimize, 'CreditBarView:Minimize');
     }
   }
 
   Maximize(instant: boolean) {
     if (this.m_animState === EAnimationState.Maximized) return;
     if (this.m_animState === EAnimationState.Maximizing && !instant) return;
-    this.m_actionMinimize?.StopAndFinish();
-    this.m_actionMaximize?.StopAndFinish();
+    tweeny.stop_and_finish(this.m_actionMinimize);
+    tweeny.stop_and_finish(this.m_actionMaximize);
     if (instant) {
       this.m_elementsList.Find(TextAmountId, TextElement)?.SetFromDummy(this.m_elementsList.Find(TextAmountMaxId, TextElement));
       this.m_elementsList.Find(ImageLabelId, ImageElement)?.SetFromDummy(this.m_elementsList.Find(ImageLabelMaxId, ImageElement));
@@ -97,7 +95,7 @@ export class CreditBarView extends NumericBarView<ICreditBarView, ICreditBarView
       this.m_events.maximized.Post();
     } else {
       this.m_animState = EAnimationState.Maximizing;
-      this.m_actionMaximize?.Start();
+      tweeny.start(this.m_actionMaximize, 'CreditBarView:Maximize');
     }
   }
 
@@ -116,19 +114,19 @@ export class CreditBarView extends NumericBarView<ICreditBarView, ICreditBarView
     const labelImageMax = list.Find(ImageLabelMaxId, ImageElement);
     if (!textAmount || !amountTextMin || !amountTextMax || !labelImage || !labelImageMin || !labelImageMax) return;
 
-    this.m_actionMinimize = Together(
+    this.m_actionMinimize = tweeny.together(
       PlaceholderFromTo(textAmount, amountTextMax, amountTextMin, AnimDurationSeconds),
       PlaceholderFromTo(labelImage, labelImageMax, labelImageMin, AnimDurationSeconds),
     );
-    this.m_actionMinimize.OnEnd(() => {
+    this.m_actionMinimize.on_end.connect(() => {
       this.m_animState = EAnimationState.Minimized;
       this.m_events.minimized.Post();
     });
-    this.m_actionMaximize = Together(
+    this.m_actionMaximize = tweeny.together(
       PlaceholderFromTo(textAmount, amountTextMin, amountTextMax, AnimDurationSeconds),
       PlaceholderFromTo(labelImage, labelImageMin, labelImageMax, AnimDurationSeconds),
     );
-    this.m_actionMaximize.OnEnd(() => {
+    this.m_actionMaximize.on_end.connect(() => {
       this.m_animState = EAnimationState.Maximized;
       this.m_events.maximized.Post();
     });

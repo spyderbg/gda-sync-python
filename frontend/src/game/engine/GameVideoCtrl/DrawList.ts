@@ -1,5 +1,6 @@
 // video_ctrl::draw_list: what the views draw each frame, onto the game's 2D canvas of the view resolution.
 
+import { transformf } from '../../hat_libs/egt_math/transform';
 import type { Color, RssRect } from '../Game/RuntimeExport/IResources';
 
 export interface Transform {
@@ -18,10 +19,18 @@ export interface Transform {
 export class DrawList {
   constructor(readonly ctx: CanvasRenderingContext2D) {}
 
-  /** Moves what is drawn until pop_transform. */
-  push_transform(position: { x: number; y: number }) {
+  /** Moves (and a math::transformf also rotates around z and scales) what is drawn until pop_transform. */
+  push_transform(transform: { x: number; y: number } | transformf) {
     this.ctx.save();
+    if (!(transform instanceof transformf)) {
+      this.ctx.translate(transform.x, transform.y);
+      return;
+    }
+    const position = transform.get_position();
+    const scale = transform.get_scale();
     this.ctx.translate(position.x, position.y);
+    this.ctx.rotate(transform.get_rotation_euler().z);
+    this.ctx.scale(scale.x, scale.y);
   }
 
   pop_transform() {

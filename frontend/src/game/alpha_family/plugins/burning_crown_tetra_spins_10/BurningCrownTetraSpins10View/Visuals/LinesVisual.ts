@@ -4,6 +4,7 @@
 import type { RssRect } from '../../../../../engine/Game/RuntimeExport/IResources';
 import type { DrawList } from '../../../../../engine/GameVideoCtrl/DrawList';
 import type { ElementsList } from '../../../../../engine/GameVideoCtrl/ViewElements/ElementsList';
+import * as tweeny from '../../../../../hat_libs/tweeny/tweeny';
 import { BaseVisual } from './BaseVisual';
 
 export class LinesVisual extends BaseVisual {
@@ -13,12 +14,9 @@ export class LinesVisual extends BaseVisual {
   private m_shadowSquareIds: string[] = [];
   private m_lightIds: string[] = [];
   private m_cropRects: (() => RssRect)[] = [];
+  private m_shadowBlinking = new tweeny.tween_action();
   private m_shadowVisible = false;
   private m_lightsVisible = false;
-  private m_blinkInterval = 0;
-  private m_blinking = false;
-  private m_blinkStart = 0;
-  private m_paused = false;
 
   constructor(elementsList: ElementsList) {
     super(elementsList);
@@ -26,10 +24,6 @@ export class LinesVisual extends BaseVisual {
 
   Draw(drawList: DrawList) {
     if (!this.IsVisible()) return;
-    if (this.m_blinking && !this.m_paused && this.m_blinkInterval > 0) {
-      // the shadow shows in the second half of each blink
-      this.m_shadowVisible = Math.floor((performance.now() - this.m_blinkStart) / this.m_blinkInterval) % 2 === 1;
-    }
     const cropRects = this.m_cropRects.map(rect => rect());
     const draw = (lineIds: string[], squareIds: string[]) => {
       for (const lineId of lineIds) {
@@ -84,25 +78,46 @@ export class LinesVisual extends BaseVisual {
     this.m_lightsVisible = isVisible;
   }
 
-  CreateBlinking(duration: number) {
-    this.m_blinkInterval = duration;
+  CreateBlinking(duration: tweeny.duration_t) {
+    tweeny.stop(this.m_shadowBlinking);
+
+    const actionBlinking = tweeny.delay(duration);
+    actionBlinking.on_begin.connect(() => {
+      this.SetShadowVisible(false);
+    });
+
+    actionBlinking.on_end.connect(() => {
+      this.SetShadowVisible(true);
+    });
+
+    const actionFullBlink = tweeny.sequence_precise([actionBlinking, tweeny.delay(duration)]);
+
+    this.m_shadowBlinking = tweeny.repeat_precise(actionFullBlink);
   }
 
   EnableBlinking(enable: boolean) {
-    this.m_blinking = enable && this.m_blinkInterval > 0;
-    this.m_blinkStart = performance.now();
-    if (!this.m_blinking) this.m_shadowVisible = false;
+    if (enable && this.m_shadowBlinking.is_valid()) {
+      tweeny.start(this.m_shadowBlinking);
+    } else {
+      tweeny.stop(this.m_shadowBlinking);
+    }
   }
 
   PauseAnimations() {
-    this.m_paused = true;
+    tweeny.pause(this.m_shadowBlinking);
   }
 
   ResumeAnimations() {
-    this.m_paused = false;
+    if (tweeny.is_paused(this.m_shadowBlinking)) {
+      tweeny.resume(this.m_shadowBlinking);
+    }
   }
 
   GetLightIds(): readonly string[] {
     return this.m_lightIds;
+  }
+
+  private SetShadowVisible(visible: boolean) {
+    this.m_shadowVisible = visible;
   }
 }

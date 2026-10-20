@@ -49,6 +49,7 @@ SECTIONS: dict[str, tuple[str, ...]] = {
     "GDA sync": ("/api/rss-sync",),
     "Backups": ("/api/backups",),
     "Asset library": ("/api/asset-report",),
+    "Browser game": ("/api/game",),
 }
 OTHER = "Other"
 

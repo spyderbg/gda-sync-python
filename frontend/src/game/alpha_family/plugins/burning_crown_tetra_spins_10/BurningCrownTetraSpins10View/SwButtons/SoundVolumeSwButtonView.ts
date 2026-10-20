@@ -4,7 +4,7 @@
 
 import { IAudioApi } from '../../../../../engine/Game/RuntimeImport/IAudioApi';
 import type { Runtime } from '../../../../../engine/GameCore/RuntimeAccess';
-import { Delay, type TweenAction } from '../../../../../engine/GameCore/Tools/Tweeny';
+import * as tweeny from '../../../../../hat_libs/tweeny/tweeny';
 import { BaseElement } from '../../../../../engine/GameVideoCtrl/ViewElements/BaseElement';
 import { ButtonElement } from '../../../../../engine/GameVideoCtrl/ViewElements/ButtonElement';
 import { IButtonViewEvents } from '../../../../libs/AlphaFamily/Views/BaseInterfaces/IControlView';
@@ -31,7 +31,7 @@ export class SoundVolumeSwButtonView extends ButtonView implements ISoundVolumeS
   private m_presentingState = ESoundVolumePresentingState.Idle;
   private m_currentVolume = 0;
   private m_oldVolume = -1;
-  private m_actionPress: TweenAction | null = null;
+  private m_actionPress = new tweeny.tween_action();
   private m_buttonType = ESoundSwButtonType.Normal;
 
   constructor() {
@@ -51,7 +51,6 @@ export class SoundVolumeSwButtonView extends ButtonView implements ISoundVolumeS
 
   Process() {
     super.Process();
-    this.m_actionPress?.Process();
   }
 
   SetCurrentVolume(volume: number) {
@@ -71,7 +70,7 @@ export class SoundVolumeSwButtonView extends ButtonView implements ISoundVolumeS
     if (this.m_oldVolume === this.m_currentVolume) return;
     this.m_oldVolume = this.m_currentVolume;
     super.SimulateButtonPress();
-    this.m_actionPress?.Start();
+    tweeny.start(this.m_actionPress, 'SoundVolumeSwButtonView/SimulateButtonPress');
   }
 
   private OnElementsListLoaded() {
@@ -81,11 +80,11 @@ export class SoundVolumeSwButtonView extends ButtonView implements ISoundVolumeS
   }
 
   private InitAnimations() {
-    this.m_actionPress = Delay(PressDelay);
-    this.m_actionPress.OnBegin(() => {
+    this.m_actionPress = tweeny.delay(PressDelay);
+    this.m_actionPress.on_begin.connect(() => {
       this.m_presentingState = ESoundVolumePresentingState.InProgress;
     });
-    this.m_actionPress.OnEnd(() => {
+    this.m_actionPress.on_end.connect(() => {
       this.m_presentingState = ESoundVolumePresentingState.Idle;
       this.AdjustButtons();
     });

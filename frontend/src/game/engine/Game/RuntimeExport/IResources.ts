@@ -135,6 +135,8 @@ export interface IResources {
   /** The JSON of an IData, as the C++ rss::convert reads it. */
   GetIData<T>(id: string): T;
   GetElementsList(id: string): ElementsListData | null;
+  /** The file of an ElementsList entry, which the elements list watches (rss::convertFilepath). */
+  GetElementsListFile(id: string): string | null;
   GetImage(id: string): RssImage | null;
   GetImageSequence(id: string): RssImageSequence | null;
   GetMovie(id: string): RssMovie | null;
@@ -146,6 +148,9 @@ export interface IResources {
   LoadRtfLayout(file: string): Promise<RtfLayout>;
   /** The URL the browser loads a resource file from. */
   FileUrl(file: string): string;
+  /** Reads a changed IData or view file again (the browser's: C++ reads the file when it converts it); false when it
+   * cannot be read, such as while it is half written. */
+  ReloadFile(file: string): Promise<boolean>;
   /** Selects the entries of the language among those declared per language. */
   SetLanguage(language: string): void;
 }

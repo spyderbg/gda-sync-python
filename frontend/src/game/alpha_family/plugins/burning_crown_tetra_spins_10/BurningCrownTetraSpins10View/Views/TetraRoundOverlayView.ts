@@ -4,7 +4,8 @@
 import { IAudioApi } from '../../../../../engine/Game/RuntimeImport/IAudioApi';
 import { BrowserOnly } from '../../../../../engine/GameCore/Common/BrowserOnly';
 import type { Runtime } from '../../../../../engine/GameCore/RuntimeAccess';
-import { Delay, Sequence, type TweenAction } from '../../../../../engine/GameCore/Tools/Tweeny';
+import { make_sentinel, sentinel } from '../../../../../hat_libs/egt_hpp/sentinel';
+import * as tweeny from '../../../../../hat_libs/tweeny/tweeny';
 import { AnimElement } from '../../../../../engine/GameVideoCtrl/ViewElements/AnimElement';
 import { ITetraRoundOverlayView, ITetraRoundOverlayViewEvents } from '../../../../libs/AlphaFamily/Views/IOverlayViews.bridge';
 import { BaseView } from '../../../../libs/AlphaFamilyVideoCtrl/BaseView';
@@ -23,8 +24,9 @@ enum EMode {
 
 export class TetraRoundOverlayView extends BaseView implements ITetraRoundOverlayView {
   protected readonly m_events = new ITetraRoundOverlayViewEvents();
-  private m_actionIntro: TweenAction | null = null;
-  private m_actionOutro: TweenAction | null = null;
+  private m_actionIntro = new tweeny.tween_action();
+  private m_actionOutro = new tweeny.tween_action();
+  private m_sentinel = new sentinel();
   private m_mode = EMode.None;
 
   constructor() {
@@ -40,8 +42,8 @@ export class TetraRoundOverlayView extends BaseView implements ITetraRoundOverla
   }
 
   Deinit() {
-    this.m_actionIntro?.Stop();
-    this.m_actionOutro?.Stop();
+    tweeny.stop(this.m_actionIntro);
+    tweeny.stop(this.m_actionOutro);
     this.DeinitElementsList();
     this.RuntimeRemove(ITetraRoundOverlayView);
     this.RuntimeRemove(ITetraRoundOverlayView.Events);
@@ -50,8 +52,6 @@ export class TetraRoundOverlayView extends BaseView implements ITetraRoundOverla
 
   Process() {
     super.Process();
-    this.m_actionIntro?.Process();
-    this.m_actionOutro?.Process();
   }
 
   private OnElementsListLoaded() {
@@ -64,10 +64,10 @@ export class TetraRoundOverlayView extends BaseView implements ITetraRoundOverla
     this.InitAnimations();
     switch (this.m_mode) {
       case EMode.Intro:
-        this.m_actionIntro?.Start();
+        tweeny.start(this.m_actionIntro, 'TetraRoundOverlayView:Intro');
         break;
       case EMode.Outro:
-        this.m_actionOutro?.Start();
+        tweeny.start(this.m_actionOutro, 'TetraRoundOverlayView:Outro');
         break;
       default:
         break;
@@ -75,16 +75,18 @@ export class TetraRoundOverlayView extends BaseView implements ITetraRoundOverla
   }
 
   private InitAnimations() {
+    this.m_sentinel = make_sentinel();
+
     {
       const animDuration = Math.round(this.m_elementsList.Get(AnimIntroId, AnimElement).GetDuration());
       const midwayDuration = Math.trunc(animDuration / 2);
-      const actionMidway = Delay(midwayDuration);
-      actionMidway.OnEnd(() => {
+      const actionMidway = tweeny.delay(midwayDuration, this.m_sentinel);
+      actionMidway.on_end.connect(() => {
         this.m_events.introMidway.Post();
       });
-      const actionRest = Delay(animDuration - midwayDuration);
-      this.m_actionIntro = Sequence([actionMidway, actionRest]);
-      this.m_actionIntro.OnBegin(() => {
+      const actionRest = tweeny.delay(animDuration - midwayDuration, this.m_sentinel);
+      this.m_actionIntro = tweeny.sequence([actionMidway, actionRest], this.m_sentinel);
+      this.m_actionIntro.on_begin.connect(() => {
         this.HideMembers();
         const animIntro = this.m_elementsList.Get(AnimIntroId, AnimElement);
         animIntro.Stop();
@@ -92,7 +94,7 @@ export class TetraRoundOverlayView extends BaseView implements ITetraRoundOverla
         animIntro.Play();
         animIntro.SetHidden(false);
       });
-      this.m_actionIntro.OnEnd(() => {
+      this.m_actionIntro.on_end.connect(() => {
         this.HideMembers();
         this.m_events.introFinished.Post();
         this.m_mode = EMode.None;
@@ -101,13 +103,13 @@ export class TetraRoundOverlayView extends BaseView implements ITetraRoundOverla
     {
       const animDuration = Math.round(this.m_elementsList.Get(AnimOutroId, AnimElement).GetDuration());
       const midwayDuration = Math.trunc(animDuration / 2);
-      const actionMidway = Delay(midwayDuration);
-      actionMidway.OnEnd(() => {
+      const actionMidway = tweeny.delay(midwayDuration, this.m_sentinel);
+      actionMidway.on_end.connect(() => {
         this.m_events.outroMidway.Post();
       });
-      const actionRest = Delay(animDuration - midwayDuration);
-      this.m_actionOutro = Sequence([actionMidway, actionRest]);
-      this.m_actionOutro.OnBegin(() => {
+      const actionRest = tweeny.delay(animDuration - midwayDuration, this.m_sentinel);
+      this.m_actionOutro = tweeny.sequence([actionMidway, actionRest], this.m_sentinel);
+      this.m_actionOutro.on_begin.connect(() => {
         this.HideMembers();
         const animOutro = this.m_elementsList.Get(AnimOutroId, AnimElement);
         animOutro.Stop();
@@ -115,7 +117,7 @@ export class TetraRoundOverlayView extends BaseView implements ITetraRoundOverla
         animOutro.Play();
         animOutro.SetHidden(false);
       });
-      this.m_actionOutro.OnEnd(() => {
+      this.m_actionOutro.on_end.connect(() => {
         this.HideMembers();
         this.m_events.outroFinished.Post();
         this.m_mode = EMode.None;
@@ -138,22 +140,22 @@ export class TetraRoundOverlayView extends BaseView implements ITetraRoundOverla
   }
 
   ShowIntro() {
-    this.m_actionOutro?.Stop();
-    this.m_actionIntro?.Start();
+    tweeny.stop(this.m_actionOutro);
+    tweeny.start(this.m_actionIntro, 'TetraRoundOverlayView:Intro');
     this.RuntimeGet(IAudioApi).Play(SoundSplashIntroId);
     this.m_mode = EMode.Intro;
   }
 
   ShowOutro() {
-    this.m_actionIntro?.Stop();
-    this.m_actionOutro?.Start();
+    tweeny.stop(this.m_actionIntro);
+    tweeny.start(this.m_actionOutro, 'TetraRoundOverlayView:Outro');
     this.RuntimeGet(IAudioApi).Play(SoundSplashOutroId);
     this.m_mode = EMode.Outro;
   }
 
   Clear() {
-    this.m_actionIntro?.Stop();
-    this.m_actionOutro?.Stop();
+    tweeny.stop(this.m_actionIntro);
+    tweeny.stop(this.m_actionOutro);
     this.HideMembers();
     this.m_mode = EMode.None;
   }

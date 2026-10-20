@@ -2,10 +2,12 @@
 // animation of a winning symbol over its cell.
 
 import type { Point } from '../../../../../engine/Game/RuntimeExport/IResources';
-import { Alignment } from '../../../../../engine/GameVideoCtrl/ViewElements/BaseElement';
+import { Alignment, BaseElement } from '../../../../../engine/GameVideoCtrl/ViewElements/BaseElement';
 import { AnimElement } from '../../../../../engine/GameVideoCtrl/ViewElements/AnimElement';
 import type { ElementsList } from '../../../../../engine/GameVideoCtrl/ViewElements/ElementsList';
 import { ImageElement } from '../../../../../engine/GameVideoCtrl/ViewElements/ImageElement';
+import { FadeIn, FadeOut } from '../../../../../engine/GameVideoCtrl/ViewElements/TweenyExtend/TweenyExtendElement';
+import * as tweeny from '../../../../../hat_libs/tweeny/tweeny';
 import type { SymbolGridCoordinates, SymbolViewInfo } from '../../../../libs/AlphaFamily/Math/Common/Common.data';
 import type { WinFiguresVisualConfig } from '../Views/ReelsView.data';
 import type { ReelSubScreensConfig } from '../Views/ReelSubScreen.data';
@@ -59,7 +61,7 @@ export class WinFigureVisual extends BaseVisual {
     const cell = this.GetCellPosition(viewInfo.coord);
     const element = this.m_elementsList.Create(AnimElement, key).SetPosition({
       x: cell.x - (this.m_config.wildSymbolAnimOffsetX ?? 0) * this.scale.x, y: cell.y - (this.m_config.wildSymbolAnimOffsetY ?? 0) * this.scale.y,
-    }).SetScale(this.scale);
+    }).SetScale(this.scale).SetHidden(false);
     this.m_type = EWinFigureType.Wild;
     super.Clear();
     this.StoreElementId(element.GetId());
@@ -70,12 +72,47 @@ export class WinFigureVisual extends BaseVisual {
   CreateSingleWild(coord: SymbolGridCoordinates) {
     if (!this.m_config.singleWildFigureRssKey) return false;
     const element = this.m_elementsList.Create(ImageElement, this.m_config.singleWildFigureRssKey)
-      .SetPosition(this.GetCellCenter(coord)).SetScale(this.scale).SetAlignment(Alignment.MiddleCenter);
+      .SetPosition(this.GetCellCenter(coord)).SetScale(this.scale).SetHidden(false).SetAlignment(Alignment.MiddleCenter);
     this.m_type = EWinFigureType.SingleWild;
     super.Clear();
     this.StoreElementId(element.GetId());
     this.SetVisible(true);
     return true;
+  }
+
+  CreateCrossFade(duration: tweeny.duration_t) {
+    const noAction = new tweeny.tween_action();
+    if (!this.HasStoredElementId()) return noAction;
+
+    const element = this.m_elementsList.Find(this.FirstElementId(), BaseElement);
+    if (!element) return noAction;
+
+    switch (this.m_type) {
+      case EWinFigureType.Wild: {
+        const action = FadeIn(element, duration, tweeny.ease.linear);
+
+        action.on_begin.connect(() => {
+          this.OnCrossFadeBegin();
+        });
+        action.on_end.connect(() => {
+          this.OnCrossFadeEnd();
+        });
+
+        return action;
+      }
+
+      case EWinFigureType.SingleWild:
+        return FadeOut(element, duration, tweeny.ease.linear);
+
+      default:
+        return noAction;
+    }
+  }
+
+  /** *GetElementIds().begin() */
+  private FirstElementId() {
+    for (const id of this.GetElementIds()) return id;
+    return '';
   }
 
   private Element() {
@@ -100,5 +137,22 @@ export class WinFigureVisual extends BaseVisual {
     const subScreen = this.m_subScreensConfig.subScreens[this.GetSubScreenIdx()];
     const position = this.GetCellPosition(coord);
     return { x: position.x + subScreen.reelStepX / 2, y: position.y + subScreen.reelStepY / 2 };
+  }
+
+  private OnCrossFadeBegin() {
+    const element = this.Element();
+    if (!element) return;
+
+    element.SetHidden(false);
+    element.Rewind();
+    element.Stop();
+  }
+
+  private OnCrossFadeEnd() {
+    const element = this.Element();
+    if (!element) return;
+
+    element.Rewind();
+    element.Play();
   }
 }

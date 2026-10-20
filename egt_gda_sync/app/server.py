@@ -565,6 +565,10 @@ def create_app(
     def game_data(file: Annotated[str, Query(max_length=4096)]) -> Response:
         return Response(GameProject(library).data(file), media_type="application/json")
 
+    @app.get("/api/game/file-stamps")
+    def game_file_stamps(file: Annotated[list[str], Query()]) -> dict:
+        return GameProject(library).stamps(file)
+
     @app.get("/api/game/cpp")
     def game_cpp(folder: Annotated[str, Query(max_length=4096)]) -> dict:
         return GameProject(library).cpp_files(folder)

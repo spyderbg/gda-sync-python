@@ -5,6 +5,7 @@ import type { Runtime } from '../../../../engine/GameCore/RuntimeAccess';
 import { ILocalization } from '../../../../engine/Game/RuntimeImport/ILocalization';
 import { IResources } from '../../../../engine/Game/RuntimeExport/IResources';
 import type { DrawList } from '../../../../engine/GameVideoCtrl/DrawList';
+import { IFileWatch } from '../../../../engine/Game/RuntimeExport/IFileWatch';
 import { IVideo, type TouchEventData } from '../../../../engine/GameVideoCtrl/RuntimeExport/IVideo';
 import { BaseModule, type ModuleConfig } from '../../../../engine/ModuleManager/BaseModule';
 import type { BaseView } from '../../../libs/AlphaFamilyVideoCtrl/BaseView';
@@ -56,6 +57,7 @@ export class BurningCrownTetraSpins10View extends BaseModule {
 
   PostInit() {
     this.RuntimeTryGet(IVideo)?.RegisterDrawMain(event => this.HandleOsEvent(event), drawList => this.Draw(drawList));
+    this.RuntimeTryGet(IFileWatch.Events)?.fileChanged.RegisterInstant(this, filepath => this.OnFileChanged(filepath));
     this.RuntimeTryGet(ILocalization.Events)?.languageChanged.RegisterInstant(this, language => {
       this.RuntimeGet(IResources).SetLanguage(language);
       for (const view of this.m_views) view.OnLanguageChanged(language);
@@ -65,6 +67,7 @@ export class BurningCrownTetraSpins10View extends BaseModule {
 
   PreDeinit() {
     this.RuntimeTryGet(IVideo)?.UnregisterDrawMain();
+    this.RuntimeTryGet(IFileWatch.Events)?.fileChanged.Unregister(this);
     this.RuntimeTryGet(ILocalization.Events)?.languageChanged.Unregister(this);
   }
 
@@ -82,6 +85,10 @@ export class BurningCrownTetraSpins10View extends BaseModule {
   /** The views, for the page's debug panel. */
   GetViews(): readonly BaseView[] {
     return this.m_views;
+  }
+
+  private OnFileChanged(filepath: string) {
+    for (const view of this.m_views) view.HandleFileChanged(filepath);
   }
 
   private Draw(drawList: DrawList) {

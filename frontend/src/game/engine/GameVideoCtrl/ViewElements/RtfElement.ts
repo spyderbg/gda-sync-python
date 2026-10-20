@@ -34,6 +34,9 @@ export interface FigureKey {
 
 export type PaytableFiguresTextType = Map<string, string>;
 
+/** A FigureKey as a key of PaytableFiguresTextType (a Map, which keys objects by identity; C++'s std::map keys the
+ * struct itself).
+ * @cppKey */
 export function FigureKeyString(key: FigureKey) {
   return `${key.name}|${key.count}|${key.multiplier}`;
 }

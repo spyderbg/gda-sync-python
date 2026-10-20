@@ -3,22 +3,26 @@
 // slides the next page in, in the config's order, and an idle non-main page returns to the main one. The page shows
 // the game's stakes: each paytable figure's win at the bet per line, the win capping limit, the certification code...
 
-import type { RoundType } from '../../../libs/AlphaFamily/Math/Common/Common.data';
-import { RoundType as RoundTypes } from '../../../libs/AlphaFamily/Math/Common/Common.data';
+import { RoundType } from '../../../libs/AlphaFamily/Math/Common/Common.data';
 import type { ReelCombinations } from '../../../libs/AlphaFamily/Math/Reel/ReelRoundPhase.data';
-import { ECurrencyPrize, type IInfoView, IInfoView as IInfoViewToken, IInfoViewEvents, type PaytableCoefficients } from '../../../libs/AlphaFamily/Views/IInfoView.bridge';
+import { ECurrencyPrize, type FigureId, type IInfoView, IInfoView as IInfoViewToken, IInfoViewEvents, type PaytableCoefficients } from '../../../libs/AlphaFamily/Views/IInfoView.bridge';
 import { EInfoViewPageType } from '../../../libs/AlphaFamily/Views/IInfoView.data';
 import { BaseView } from '../../../libs/AlphaFamilyVideoCtrl/BaseView';
 import { IResources } from '../../../../engine/Game/RuntimeExport/IResources';
 import { ILocalization } from '../../../../engine/Game/RuntimeImport/ILocalization';
 import type { Runtime } from '../../../../engine/GameCore/RuntimeAccess';
+import type { uint32_t } from '../../../../engine/GameCore/Common/Types';
 import { Stopwatch } from '../../../../engine/GameCore/Tools/Timers';
-import { MoveFromTo, type Position, type TweenAction } from '../../../../engine/GameCore/Tools/Tweeny';
+import { transformf, vec3 } from '../../../../hat_libs/egt_math/transform';
+import { make_sentinel, sentinel } from '../../../../hat_libs/egt_hpp/sentinel';
+import * as tweeny from '../../../../hat_libs/tweeny/tweeny';
+import { move_from_to } from '../../../../hat_libs/tweeny_extend/tweeny_extend_transform/tweeny_extend_transform';
 import type { DrawList } from '../../../../engine/GameVideoCtrl/DrawList';
-import { ERtfTags, FigureKeyString, type PaytableFiguresTextType, RtfElement } from '../../../../engine/GameVideoCtrl/ViewElements/RtfElement';
-import { InfoViewConfig } from './InfoView.data';
+import { ERtfTags, type FigureKey, FigureKeyString, type PaytableFiguresTextType, RtfElement } from '../../../../engine/GameVideoCtrl/ViewElements/RtfElement';
+import type { InfoViewConfig } from './InfoView.data';
 
 const InfoViewId = 'InfoView';
+
 const RtfInfoId = 'rtf_info';
 
 interface InfoViewDataImpl {
@@ -27,7 +31,7 @@ interface InfoViewDataImpl {
   serialNumber: string;
   betPerLine: number;
   lines: number;
-  figureNames: Map<number, string>;
+  figureNames: Map<FigureId, string>;
   paytables: Map<ECurrencyPrize, PaytableCoefficients>;
   paytableTexts: PaytableFiguresTextType;
   gambleLimit: string;
@@ -37,63 +41,271 @@ interface InfoViewDataImpl {
   winCappingLimit: string;
 }
 
-// gameToRtfLanguages: the RTF Tool's language names, of the languages a game is played in.
-const gameToRtfLanguages = new Map([
-  ['en-GB', 'English'], ['el-GR', 'Greek'], ['bg-BG', 'Bulgarian'], ['cs-CZ', 'Czech'], ['de-DE', 'German'], ['es-ES', 'Spanish'],
-  ['fr-FR', 'French'], ['hr-HR', 'Croatian'], ['hu-HU', 'Hungarian'], ['it-IT', 'Italian'], ['mk-MK', 'Macedonian'], ['pl-PL', 'Polish'],
-  ['pt-PT', 'Portuguese'], ['ru-RU', 'Russian'], ['ro-RO', 'Romanian'], ['sk-SK', 'Slovak'], ['sl-SI', 'Slovenian'], ['sr-RS', 'Serbian'],
-  ['tr-TR', 'Turkish'], ['uk-UA', 'Ukrainian'],
+const gameToRtfLanguages: Map<string, string> = new Map([
+  ['en-GB', 'English'],
+  ['el-GR', 'Greek'],
+  ['aa-ER', 'Afar'],
+  // ['UNKNOWN-Abkhazian', 'Abkhazian'],
+  ['af-ZA', 'Afrikaans'],
+  // ['UNKNOWN-Akan', 'Akan'],
+  ['am-ET', 'Amharic'],
+  // ['UNKNOWN-Aragonese', 'Aragonese'],
+  // ['UNKNOWN-Arabic', 'Arabic'],
+  // ['UNKNOWN-Assamese', 'Assamese'],
+  // ['UNKNOWN-Avar', 'Avar'],
+  ['ay-BO', 'Aymara'],
+  ['az-AZ', 'Azerbaijani'],
+  // ['UNKNOWN-Bashkir', 'Bashkir'],
+  ['be-BY', 'Belarusian'],
+  ['bg-BG', 'Bulgarian'],
+  // ['UNKNOWN-Bihari', 'Bihari'],
+  ['bi-VU', 'Bislama'],
+  // ['UNKNOWN-Bambara', 'Bambara'],
+  ['bn-BD', 'Bengali'],
+  // ['UNKNOWN-Tibetan', 'Tibetan'],
+  // ['UNKNOWN-Breton', 'Breton'],
+  ['bs-BA', 'Bosnian'],
+  ['ca-AD', 'Catalan'],
+  // ['UNKNOWN-Chechen', 'Chechen'],
+  ['ch-GU', 'Chamorro'],
+  // ['UNKNOWN-Corsican', 'Corsican'],
+  // ['UNKNOWN-Cree', 'Cree'],
+  ['cs-CZ', 'Czech'],
+  // ['UNKNOWN-Chuvash', 'Chuvash'],
+  // ['UNKNOWN-Welsh', 'Welsh'],
+  ['da-DK', 'Danish'],
+  ['de-DE', 'German'],
+  ['dv-MV', 'Divehi'],
+  ['dz-BT', 'Dzongkha'],
+  // ['UNKNOWN-Ewe', 'Ewe'],
+  // ['UNKNOWN-Esperanto', 'Esperanto'],
+  ['es-ES', 'Spanish'],
+  ['et-EE', 'Estonian'],
+  // ['UNKNOWN-Basque', 'Basque'],
+  ['fa-IR', 'Persian'],
+  // ['UNKNOWN-Peul', 'Peul'],
+  ['fi-FI', 'Finnish'],
+  ['fj-FJ', 'Fijian'],
+  ['fo-FO', 'Faroese'],
+  ['fr-FR', 'French'],
+  // ['UNKNOWN-West Frisian', 'West Frisian'],
+  ['ga-IE', 'Irish'],
+  // ['UNKNOWN-Scottish Gaelic', 'Scottish Gaelic'],
+  // ['UNKNOWN-Galician', 'Galician'],
+  ['gn-AR', 'Guarani'],
+  // ['UNKNOWN-Gujarati', 'Gujarati'],
+  ['gv-IM', 'Manx'],
+  // ['UNKNOWN-Hausa', 'Hausa'],
+  ['he-IL', 'Hebrew'],
+  ['hi-IN', 'Hindi'],
+  // ['UNKNOWN-Hiri Motu', 'Hiri Motu'],
+  ['hr-HR', 'Croatian'],
+  ['ht-HT', 'Haitian'],
+  ['hu-HU', 'Hungarian'],
+  ['hy-AM', 'Armenian'],
+  // ['UNKNOWN-Herero', 'Herero'],
+  // ['UNKNOWN-Interlingua', 'Interlingua'],
+  ['id-ID', 'Indonesian'],
+  // ['UNKNOWN-Interlingue', 'Interlingue'],
+  // ['UNKNOWN-Igbo', 'Igbo'],
+  // ['UNKNOWN-Sichuan Yi', 'Sichuan Yi'],
+  // ['UNKNOWN-Inupiak', 'Inupiak'],
+  // ['UNKNOWN-Ido', 'Ido'],
+  ['is-IS', 'Icelandic'],
+  ['it-IT', 'Italian'],
+  // ['UNKNOWN-Inuktitut', 'Inuktitut'],
+  // ['UNKNOWN-Javanese', 'Javanese'],
+  ['ja-JP', 'Japanese'],
+  ['ka-GE', 'Georgian'],
+  ['kg-CD', 'Kongo'],
+  // ['UNKNOWN-Kikuyu', 'Kikuyu'],
+  // ['UNKNOWN-Kuanyama', 'Kuanyama'],
+  ['kk-KZ', 'Kazakh'],
+  ['kl-GL', 'Greenlandic'],
+  ['km-KH', 'Cambodian'],
+  // ['UNKNOWN-Kannada', 'Kannada'],
+  ['ko-KR', 'Korean'],
+  // ['UNKNOWN-Kanuri', 'Kanuri'],
+  // ['UNKNOWN-Kashmiri', 'Kashmiri'],
+  ['ku-IQ', 'Kurdish'],
+  // ['UNKNOWN-Komi', 'Komi'],
+  // ['UNKNOWN-Cornish', 'Cornish'],
+  // ['UNKNOWN-Kirghiz', 'Kirghiz'],
+  ['la-VA', 'Latin'],
+  ['lb-LU', 'Luxembourgish'],
+  // ['UNKNOWN-Ganda', 'Ganda'],
+  // ['UNKNOWN-Limburgian', 'Limburgian'],
+  ['ln-CD', 'Lingala'],
+  // ['UNKNOWN-Laotian', 'Laotian'],
+  ['lt-LT', 'Lithuanian'],
+  ['lu-CD', 'Luba-Katanga'],
+  ['lv-LV', 'Latvian'],
+  ['mg-MG', 'Malagasy'],
+  ['mh-MH', 'Marshallese'],
+  ['mi-NZ', 'Maori'],
+  ['mk-MK', 'Macedonian'],
+  // ['UNKNOWN-Malayalam', 'Malayalam'],
+  ['mn-MN', 'Mongolian'],
+  ['ro-MD', 'Moldovan'],
+  // ['UNKNOWN-Marathi', 'Marathi'],
+  ['ms-SG', 'Malay'],
+  ['mt-MT', 'Maltese'],
+  ['my-MM', 'Burmese'],
+  ['na-NR', 'Nauruan'],
+  ['nb-NO', 'Norwegian Bokmål'],
+  ['nd-ZW', 'North Ndebele'],
+  ['ne-NP', 'Nepali'],
+  // ['UNKNOWN-Ndonga', 'Ndonga'],
+  ['nl-NL', 'Dutch'],
+  ['nn-NO', 'Norwegian Nynorsk'],
+  ['no-NO', 'Norwegian'],
+  ['nr-ZA', 'South Ndebele'],
+  // ['UNKNOWN-Navajo', 'Navajo'],
+  ['ny-MW', 'Chichewa'],
+  // ['UNKNOWN-Occitan', 'Occitan'],
+  // ['UNKNOWN-Ojibwa', 'Ojibwa'],
+  // ['UNKNOWN-Oromo', 'Oromo'],
+  // ['UNKNOWN-Oriya', 'Oriya'],
+  // ['UNKNOWN-Ossetian / Ossetic', 'Ossetian / Ossetic'],
+  ['pa-AW', 'Panjabi / Punjabi'],
+  // ['UNKNOWN-Pali', 'Pali'],
+  ['pl-PL', 'Polish'],
+  ['ps-AF', 'Pashto'],
+  ['pt-PT', 'Portuguese'],
+  ['qu-BO', 'Quechua'],
+  // ['UNKNOWN-Raeto Romance', 'Raeto Romance'],
+  ['rn-BI', 'Kirundi'],
+  ['ru-RU', 'Russian'],
+  ['ro-RO', 'Romanian'],
+  // ['UNKNOWN-Rwandi', 'Rwandi'],
+  // ['UNKNOWN-Sanskrit', 'Sanskrit'],
+  // ['UNKNOWN-Sardinian', 'Sardinian'],
+  // ['UNKNOWN-Sindhi', 'Sindhi'],
+  // ['UNKNOWN-Northern Sami', 'Northern Sami'],
+  ['sg-CF', 'Sango'],
+  // ['UNKNOWN-Serbo-Croatian', 'Serbo-Croatian'],
+  ['si-LK', 'Sinhalese'],
+  ['sk-SK', 'Slovak'],
+  ['sl-SI', 'Slovenian'],
+  ['sm-WS', 'Samoan'],
+  ['sn-ZW', 'Shona'],
+  ['so-SO', 'Somalia'],
+  ['sq-AL', 'Albanian'],
+  ['sr-RS', 'Serbian'],
+  ['ss-ZA', 'Swati'],
+  ['st-ZA', 'Southern Sotho'],
+  // ['UNKNOWN-Sundanese', 'Sundanese'],
+  ['sv-SE', 'Swedish'],
+  ['sw-CD', 'Swahili'],
+  ['ta-SG', 'Tamil'],
+  // ['UNKNOWN-Telugu', 'Telugu'],
+  ['tg-TJ', 'Tajik'],
+  ['th-TH', 'Thai'],
+  ['ti-ER', 'Tigrinya'],
+  ['tk-TM', 'Turkmen'],
+  // ['UNKNOWN-Tagalog / Filipino', 'Tagalog / Filipino'],
+  ['tn-ZA', 'Tswana'],
+  ['to-TO', 'Tonga'],
+  ['tr-TR', 'Turkish'],
+  ['ts-ZA', 'Tsonga'],
+  // ['UNKNOWN-Tatar', 'Tatar'],
+  // ['UNKNOWN-Twi', 'Twi'],
+  // ['UNKNOWN-Tahitian', 'Tahitian'],
+  // ['UNKNOWN-Uyghur', 'Uyghur'],
+  ['uk-UA', 'Ukrainian'],
+  ['ur-PK', 'Urdu'],
+  ['uz-UZ', 'Uzbek'],
+  ['ve-ZA', 'Venda'],
+  ['vi-VN', 'Vietnamese'],
+  // ['UNKNOWN-Volapük', 'Volapük'],
+  // ['UNKNOWN-Walloon', 'Walloon'],
+  // ['UNKNOWN-Wolof', 'Wolof'],
+  ['xh-ZA', 'Xhosa'],
+  // ['UNKNOWN-Yiddish', 'Yiddish'],
+  // ['UNKNOWN-Yoruba', 'Yoruba'],
+  // ['UNKNOWN-Zhuang', 'Zhuang'],
+  ['zh-CN', 'Chinese'],
+  ['zu-ZA', 'Zulu'],
 ]);
 
 function ConvertGameToRtfLanguage(language: string) {
-  return gameToRtfLanguages.get(language) ?? '';
+  if (gameToRtfLanguages.has(language)) {
+    return gameToRtfLanguages.get(language)!;
+  }
+  return '';
 }
 
-/** Each figure's win in the paytables, by its name, count and multiplier: what the RTF's paytable figures show. */
-function CreatePaytableFiguresText(betPerLine: number, lines: number, paytables: Map<ECurrencyPrize, PaytableCoefficients>, scatterFigures: Set<number>,
-  figureNames: Map<number, string>, gameMultipliers: number[], localization: ILocalization): PaytableFiguresTextType {
-  const paytableFiguresText: PaytableFiguresTextType = new Map();
-  const formatCreditWinText = (isScatter: boolean, winCoefficient: number, gameMultiplier: number, divider: number) => {
-    let winCents = winCoefficient * betPerLine * (isScatter ? lines : 1);
+function CreatePaytableFiguresText(betPerLine: number, lines: number, paytables: Map<ECurrencyPrize, PaytableCoefficients>,
+  scatterFigures: Set<FigureId>, figureNames: Map<FigureId, string>, gameMultipliers: uint32_t[], localization: ILocalization): PaytableFiguresTextType {
+  const paytableFiguresText: PaytableFiguresTextType = new Map(); // figureLookups,
+  const formatCreditWinText = (isScatter: boolean, winCoefficient: number, betPerLine: number, linesCount: number, gameMultiplier: number, devider: number) => {
+    let winCents = winCoefficient * betPerLine * (isScatter ? linesCount : 1);
     winCents *= gameMultiplier;
-    winCents = Math.trunc(winCents / divider);
+    winCents = Math.trunc(winCents / devider);
+
     return localization.FormatNumber(winCents);
   };
-  const addFormattersForPaytable = (paytable: PaytableCoefficients) => {
-    const multipliers = gameMultipliers.length ? gameMultipliers : [1];
+
+  const addFormattersForPaytable = (figureLookups: PaytableFiguresTextType, paytable: PaytableCoefficients, scatterFigures: Set<FigureId>,
+    figureNames: Map<FigureId, string>, gameMultipliers: uint32_t[]) => {
+    const noMultipliers: uint32_t[] = [1];
+    const multipliers = gameMultipliers.length === 0 ? noMultipliers : gameMultipliers;
     for (const [figureId, figureWinCoefficients] of paytable) {
-      figureWinCoefficients.forEach((winCoef, winFigureCount) => {
-        if (winCoef === 0) return;
-        for (const gameMultiplier of multipliers) {
-          const key = { name: figureNames.get(figureId) ?? '', count: winFigureCount, multiplier: gameMultiplier };
-          paytableFiguresText.set(FigureKeyString(key), formatCreditWinText(scatterFigures.has(figureId), winCoef, key.multiplier, 1));
+      for (let winFigureCount: uint32_t = 0; winFigureCount < figureWinCoefficients.length; ++winFigureCount) {
+        const winCoef = figureWinCoefficients[winFigureCount];
+        const skipWin = winCoef === 0;
+        if (skipWin) {
+          continue;
         }
-      });
+
+        for (const gameMultiplier of multipliers) {
+          const figureKey: FigureKey = { name: figureNames.get(figureId)!, count: winFigureCount, multiplier: gameMultiplier };
+          const divider = 1;
+
+          const isScatter = scatterFigures.has(figureId);
+          const winText = formatCreditWinText(isScatter, winCoef, betPerLine, lines, figureKey.multiplier, divider);
+          figureLookups.set(FigureKeyString(figureKey), winText);
+        }
+      }
     }
   };
-  // add formatters for credit wins, then for coin spin wins
-  const creditPaytable = paytables.get(ECurrencyPrize.Credits);
-  if (creditPaytable) addFormattersForPaytable(creditPaytable);
-  const coinSpinPaytable = paytables.get(ECurrencyPrize.CoinsSpinEnergy);
-  if (coinSpinPaytable) addFormattersForPaytable(coinSpinPaytable);
+
+  // add formatters for credit wins
+  if (paytables.has(ECurrencyPrize.Credits)) {
+    addFormattersForPaytable(paytableFiguresText, paytables.get(ECurrencyPrize.Credits)!, scatterFigures, figureNames, gameMultipliers);
+  }
+
+  // add formatters for coin spin wins
+  if (paytables.has(ECurrencyPrize.CoinsSpinEnergy)) {
+    addFormattersForPaytable(paytableFiguresText, paytables.get(ECurrencyPrize.CoinsSpinEnergy)!, scatterFigures, figureNames, gameMultipliers);
+  }
+
   return paytableFiguresText;
 }
 
 export class InfoView extends BaseView implements IInfoView {
   private readonly m_events = new IInfoViewEvents();
-  private m_config = InfoViewConfig();
-  private readonly m_data: InfoViewDataImpl = {
-    certificationCode: 'TEST : CUSTOM CERTIFICATION CODE', language: 'English', serialNumber: 'TEST: SERIAL NUMBER', betPerLine: 1, lines: 1,
-    figureNames: new Map(), paytables: new Map(), paytableTexts: new Map(), gambleLimit: '', maxGambleAttempts: '', jackpotMultiplier: 0,
-    gambleCapLimit: '', winCappingLimit: '',
+  private m_config: InfoViewConfig = {
+    currentPageDefault: { x: 0, y: 0 }, nextPageDefault: { x: 0, y: 0 }, nextPageMoved: { x: 0, y: 0 }, changePageDuration: 0,
+    idleReturnToMainMs: 30000, infoPageToRtfPage: {}, orderedInfoPages: [], showWinCombination: false,
   };
-  private m_currentPage = EInfoViewPageType.Main;
+
+  private readonly m_data: InfoViewDataImpl = {
+    certificationCode: '', language: '', serialNumber: '', betPerLine: 1, lines: 1, figureNames: new Map(), paytables: new Map(),
+    paytableTexts: new Map(), gambleLimit: '', maxGambleAttempts: '', jackpotMultiplier: 0, gambleCapLimit: '', winCappingLimit: '',
+  };
+
+  private m_currentPage = EInfoViewPageType.Undefined;
   private m_nextPage = EInfoViewPageType.Undefined;
-  private readonly m_currentPageTransform: Position = { x: 0, y: 0 };
-  private readonly m_nextPageTransform: Position = { x: 0, y: 0 };
-  private m_actionNextPage: TweenAction | null = null;
+
+  private readonly m_currentPageTransform = transformf.identity();
+  private readonly m_nextPageTransform = transformf.identity();
+
+  private m_sentinel = new sentinel();
+  private m_actionNextPage = new tweeny.tween_action();
   private readonly m_infoIdleStopwatch = new Stopwatch();
-  private m_shouldUseTimer = false;
+
+  private m_shouldUseTimer = true;
 
   constructor() {
     super(InfoViewId);
@@ -103,8 +315,19 @@ export class InfoView extends BaseView implements IInfoView {
     super.Init(runtime);
     this.RuntimeAdd(IInfoViewToken, this);
     this.RuntimeAdd(IInfoViewToken.Events, this.m_events);
-    this.InitElementsList(InfoViewId, () => this.OnElementsListLoaded());
-    this.m_infoIdleStopwatch.Pause();
+
+    this.InitElementsList(InfoViewId, () => {
+      this.OnElementsListLoaded();
+    });
+    this.m_data.language = 'English';
+    this.m_data.certificationCode = 'TEST : CUSTOM CERTIFICATION CODE';
+    this.m_data.serialNumber = 'TEST: SERIAL NUMBER';
+    this.m_data.betPerLine = 1;
+    this.m_data.lines = 1;
+    this.m_data.figureNames = new Map();
+    this.m_currentPage = EInfoViewPageType.Main;
+    this.m_nextPage = EInfoViewPageType.Undefined;
+
     this.SetVisible(true);
     return true;
   }
@@ -112,6 +335,7 @@ export class InfoView extends BaseView implements IInfoView {
   private OnElementsListLoaded() {
     this.LoadConfig();
     this.InitAnimations();
+
     this.AdjustCertificationCode();
     this.AdjustCurrentPage();
     this.AdjustGambleCapLimit();
@@ -124,91 +348,114 @@ export class InfoView extends BaseView implements IInfoView {
   }
 
   private LoadConfig() {
-    this.m_config = InfoViewConfig(this.RuntimeGet(IResources).GetIData<Record<string, unknown>>('InfoViewConfig'));
+    this.m_config = this.RuntimeGet(IResources).GetIData<InfoViewConfig>('InfoViewConfig');
   }
 
   private InitAnimations() {
-    this.m_actionNextPage = MoveFromTo(this.m_nextPageTransform, this.GetNextPageDefaultPos(), this.GetNextPageMovedPos(), this.m_config.changePageDuration)
-      .OnEnd(() => {
-        this.ShowPage(this.m_nextPage);
-        this.m_nextPage = EInfoViewPageType.Undefined;
-        Object.assign(this.m_currentPageTransform, this.GetCurrentPageDefaultPos());
-      });
-    Object.assign(this.m_currentPageTransform, this.GetCurrentPageDefaultPos());
+    const changePageDuration = this.m_config.changePageDuration;
+
+    this.m_sentinel = make_sentinel();
+    this.m_actionNextPage = move_from_to(this.m_nextPageTransform, this.GetNextPageDefaultPos(), this.GetNextPageMovedPos(), changePageDuration, this.m_sentinel);
+    this.m_actionNextPage.on_end.connect(() => {
+      this.ShowPage(this.m_nextPage);
+      this.m_nextPage = EInfoViewPageType.Undefined;
+      this.m_currentPageTransform.set_position(this.GetCurrentPageDefaultPos());
+    });
   }
 
   Deinit() {
     this.RuntimeRemove(IInfoViewToken);
     this.RuntimeRemove(IInfoViewToken.Events);
-    this.m_actionNextPage?.Stop();
+
+    tweeny.stop(this.m_actionNextPage);
+
     this.DeinitElementsList();
     super.Deinit();
   }
 
   Process() {
     super.Process();
-    this.m_actionNextPage?.Process();
-    if (this.m_config.idleReturnToMainMs > 0 && this.m_nextPage === EInfoViewPageType.Undefined && this.m_currentPage !== EInfoViewPageType.Main
-      && this.m_infoIdleStopwatch.IsRunning() && this.m_infoIdleStopwatch.Measure() >= this.m_config.idleReturnToMainMs) {
-      this.ResetInfoPage();
-      this.m_infoIdleStopwatch.Reset();
-      this.m_infoIdleStopwatch.Pause();
+
+    if (this.m_config.idleReturnToMainMs > 0 && this.m_nextPage === EInfoViewPageType.Undefined
+      && this.m_currentPage !== EInfoViewPageType.Main && this.m_infoIdleStopwatch.IsRunning()) {
+      const idleMs = this.m_infoIdleStopwatch.Measure();
+      if (idleMs >= this.m_config.idleReturnToMainMs) {
+        this.ResetInfoPage();
+        this.m_infoIdleStopwatch.Reset();
+        this.m_infoIdleStopwatch.Pause();
+      }
     }
   }
 
-  private Rtf() {
-    return this.m_elementsList.TryGet(RtfInfoId, RtfElement);
-  }
-
   Draw(drawList: DrawList) {
-    const rtf = this.Rtf();
+    const rtf = this.m_elementsList.TryGet(RtfInfoId, RtfElement);
     if (!rtf) return;
+
     // Draw all elements
     if (this.m_currentPage !== EInfoViewPageType.Undefined) {
       drawList.push_transform(this.m_currentPageTransform);
-      rtf.DrawPage(this.m_config.infoPageToRtfPage.get(this.m_currentPage) ?? '', drawList);
+      rtf.DrawPage(this.m_config.infoPageToRtfPage[this.m_currentPage]!, drawList);
       drawList.pop_transform();
     }
     if (this.m_nextPage !== EInfoViewPageType.Undefined) {
       drawList.push_transform(this.m_nextPageTransform);
-      rtf.DrawPage(this.m_config.infoPageToRtfPage.get(this.m_nextPage) ?? '', drawList);
+      rtf.DrawPage(this.m_config.infoPageToRtfPage[this.m_nextPage]!, drawList);
       drawList.pop_transform();
     }
-    for (const element of this.m_elementsList.Elements()) if (element.GetId() !== RtfInfoId) element.Draw(drawList);
+
+    for (const element of this.m_elementsList.GetElements()) {
+      if (element.GetId() !== RtfInfoId) {
+        element.Draw(drawList);
+      }
+    }
   }
 
-  /** The kind of page shown, and the one sliding in, for the page around the game. */
+  /** The kind of page shown, and the one sliding in, for the page around the game.
+   * @browserOnly */
   GetPages() {
     return { current: this.m_currentPage, next: this.m_nextPage };
   }
 
   ShowRoundInfo(roundType: RoundType, idleChange: boolean) {
-    const typeConversion = new Map([[RoundTypes.Main, EInfoViewPageType.Main], [RoundTypes.Coins, EInfoViewPageType.Main], [RoundTypes.Tetra, EInfoViewPageType.Main]]);
-    const infoPage = typeConversion.get(roundType) ?? EInfoViewPageType.Main;
-    this.m_shouldUseTimer = idleChange && (roundType === RoundTypes.Main || roundType === RoundTypes.Coins);
+    const typeConversion: Map<RoundType, EInfoViewPageType> = new Map([
+      [RoundType.Main, EInfoViewPageType.Main],
+      [RoundType.Coins, EInfoViewPageType.Main],
+      [RoundType.Tetra, EInfoViewPageType.Main],
+    ]);
+    const infoPage = typeConversion.has(roundType) ? typeConversion.get(roundType)! : EInfoViewPageType.Main;
+
+    this.m_shouldUseTimer = idleChange && (roundType === RoundType.Main || roundType === RoundType.Coins);
     if (this.m_shouldUseTimer) {
       this.m_infoIdleStopwatch.Reset();
       this.m_infoIdleStopwatch.Resume();
     } else {
       this.m_infoIdleStopwatch.Pause();
     }
-    if (this.m_currentPage === infoPage || this.m_nextPage === infoPage) return;
+
+    if (this.m_currentPage === infoPage) return;
+    if (this.m_nextPage === infoPage) return;
+
     this.TransitionToPage(infoPage);
   }
 
   private TransitionToPage(page: EInfoViewPageType) {
     // transition to page should be absolute
-    if (this.m_actionNextPage?.IsRunning()) {
-      this.m_actionNextPage.Stop();
+    if (tweeny.is_running(this.m_actionNextPage)) {
+      tweeny.stop(this.m_actionNextPage);
       this.m_nextPage = EInfoViewPageType.Undefined;
     }
-    if (this.m_currentPage === page || this.m_nextPage === page) return;
+
+    if (this.m_currentPage === page) return;
+    if (this.m_nextPage === page) return;
+
     const canAnimate = this.m_elementsList.IsLoaded() && this.m_currentPage !== EInfoViewPageType.Undefined
-      && this.m_nextPage === EInfoViewPageType.Undefined && this.m_config.infoPageToRtfPage.has(page);
+      && this.m_nextPage === EInfoViewPageType.Undefined && page in this.m_config.infoPageToRtfPage;
+
     if (canAnimate) {
       this.m_nextPage = page;
-      this.Rtf()?.RefreshPage(this.m_config.infoPageToRtfPage.get(this.m_nextPage)!);
-      this.m_actionNextPage?.Start();
+      const rtf = this.m_elementsList.Get(RtfInfoId, RtfElement);
+      rtf.RefreshPage(this.m_config.infoPageToRtfPage[this.m_nextPage]!);
+      tweeny.start(this.m_actionNextPage, 'InfoView::TransitionToPage');
     } else {
       this.ShowPage(page);
     }
@@ -216,6 +463,7 @@ export class InfoView extends BaseView implements IInfoView {
 
   ShowPage(page: EInfoViewPageType) {
     this.m_currentPage = page;
+
     this.AdjustCurrentPage();
   }
 
@@ -224,13 +472,18 @@ export class InfoView extends BaseView implements IInfoView {
       this.m_infoIdleStopwatch.Reset();
       this.m_infoIdleStopwatch.Resume();
     }
-    const ordered = this.m_config.orderedInfoPages;
-    if (!ordered.length) return;
-    const index = ordered.indexOf(this.m_currentPage);
-    this.m_nextPage = index < 0 || this.m_currentPage === ordered[ordered.length - 1] ? ordered[0] : ordered[index + 1];
+
+    const orderedInfoPages = this.m_config.orderedInfoPages;
+    if (orderedInfoPages.length === 0) return;
+    const currentPageIndex = orderedInfoPages.indexOf(this.m_currentPage);
+    this.m_nextPage = currentPageIndex < 0 || this.m_currentPage === orderedInfoPages[orderedInfoPages.length - 1]
+      ? orderedInfoPages[0]
+      : orderedInfoPages[currentPageIndex + 1];
+
     if (!this.m_elementsList.IsLoaded()) return;
-    this.Rtf()?.RefreshPage(this.m_config.infoPageToRtfPage.get(this.m_nextPage) ?? '');
-    this.m_actionNextPage?.Start();
+    const rtf = this.m_elementsList.Get(RtfInfoId, RtfElement);
+    rtf.RefreshPage(this.m_config.infoPageToRtfPage[this.m_nextPage]!);
+    tweeny.start(this.m_actionNextPage, 'InfoView::ShowNextPage');
   }
 
   SetStakes(totalBet: number, lines: number) {
@@ -238,26 +491,33 @@ export class InfoView extends BaseView implements IInfoView {
     this.m_data.lines = lines;
   }
 
-  SetPaytables(paytables: Map<ECurrencyPrize, PaytableCoefficients>, scatterFigures: Set<number>, figureNames: Map<number, string>, gameMultipliers: number[]) {
+  SetPaytables(paytables: Map<ECurrencyPrize, PaytableCoefficients>, scatterFigures: Set<FigureId>, figureNames: Map<FigureId, string>,
+    gameMultipliers: uint32_t[]) {
     this.m_data.figureNames = figureNames;
     this.m_data.paytables = paytables;
-    this.m_data.paytableTexts = CreatePaytableFiguresText(this.m_data.betPerLine, this.m_data.lines, paytables, scatterFigures, figureNames,
+    this.m_data.paytableTexts = CreatePaytableFiguresText(this.m_data.betPerLine, this.m_data.lines, paytables, scatterFigures, this.m_data.figureNames,
       gameMultipliers, this.RuntimeGetConst(ILocalization));
+
     this.AdjustPaytable();
   }
 
   SetGambleLimits(gambleLimit: number, maxGambleAttempts: number) {
     this.m_data.gambleLimit = this.RuntimeGetConst(ILocalization).FormatCurrency(gambleLimit);
     this.m_data.maxGambleAttempts = String(maxGambleAttempts);
+
     this.AdjustGambleLimits();
   }
 
   SetCertificationCode(certificationCode: string) {
-    this.Rtf()?.SetCertificationCode(certificationCode);
+    if (!this.m_elementsList.IsLoaded()) return;
+    const rtf = this.m_elementsList.Get(RtfInfoId, RtfElement);
+    rtf.SetCertificationCode(certificationCode);
   }
 
   SetLanguage(language: string) {
-    this.m_data.language = ConvertGameToRtfLanguage(language);
+    const rtfLanguage = ConvertGameToRtfLanguage(language);
+    this.m_data.language = rtfLanguage;
+
     this.AdjustLanguage();
   }
 
@@ -268,6 +528,7 @@ export class InfoView extends BaseView implements IInfoView {
 
   SetWinCappingLimit(winCappingLimit: number) {
     this.m_data.winCappingLimit = this.RuntimeGetConst(ILocalization).FormatNumber(winCappingLimit);
+
     this.AdjustWinCappingLimit();
   }
 
@@ -278,21 +539,32 @@ export class InfoView extends BaseView implements IInfoView {
 
   SetGambleCapLimit(gambleCapLimit: number) {
     this.m_data.gambleCapLimit = this.RuntimeGetConst(ILocalization).FormatNumber(gambleCapLimit);
+
     this.AdjustGambleCapLimit();
   }
 
   ShowCombinations(combinations: ReelCombinations) {
-    if (!this.m_elementsList.IsLoaded() || !this.m_config.showWinCombination) return;
-    const rtf = this.Rtf();
+    if (!this.m_elementsList.IsLoaded()) return;
+    if (!this.m_config.showWinCombination) return;
+
+    const rtf = this.m_elementsList.Get(RtfInfoId, RtfElement);
+
     for (const combination of combinations) {
-      const factors = combination.multipliers.data.map(multiplier => multiplier.factor);
-      const multiplier = factors.length ? Math.max(...factors) : 1;
-      rtf?.ShowWinLine(this.m_data.figureNames.get(combination.symbolId) ?? 'Unknown', combination.symbolCount, multiplier);
+      let multiplier: uint32_t = 1;
+      for (const item of combination.multipliers.data) {
+        if (multiplier < item.factor) multiplier = item.factor;
+      }
+
+      const figureName = this.m_data.figureNames.has(combination.symbolId) ? this.m_data.figureNames.get(combination.symbolId)! : 'Unknown';
+
+      rtf.ShowWinLine(figureName, combination.symbolCount, multiplier);
     }
   }
 
   HideWins() {
-    this.Rtf()?.HideWins(true);
+    if (!this.m_elementsList.IsLoaded()) return;
+    const rtf = this.m_elementsList.Get(RtfInfoId, RtfElement);
+    rtf.HideWins(true);
   }
 
   StopAnimation(_animId: string) {}
@@ -300,79 +572,117 @@ export class InfoView extends BaseView implements IInfoView {
   StartAnimation(_animId: string) {}
 
   private GetCurrentPageDefaultPos() {
-    return { ...this.m_config.currentPageDefault };
+    return vec3(this.m_config.currentPageDefault.x, this.m_config.currentPageDefault.y, 0);
   }
 
   private GetNextPageDefaultPos() {
-    return { ...this.m_config.nextPageDefault };
+    return vec3(this.m_config.nextPageDefault.x, this.m_config.nextPageDefault.y, 0);
   }
 
   private GetNextPageMovedPos() {
-    return { ...this.m_config.nextPageMoved };
+    return vec3(this.m_config.nextPageMoved.x, this.m_config.nextPageMoved.y, 0);
   }
 
   private AdjustCertificationCode() {
-    this.Rtf()?.SetCertificationCode(this.m_data.certificationCode);
+    if (!this.m_elementsList.IsLoaded()) return;
+    const rtf = this.m_elementsList.Get(RtfInfoId, RtfElement);
+    rtf.SetCertificationCode(this.m_data.certificationCode);
   }
 
   private AdjustCurrentPage() {
     if (!this.m_elementsList.IsLoaded()) return;
-    const rtfPage = this.m_config.infoPageToRtfPage.get(this.m_currentPage);
-    if (rtfPage) this.Rtf()?.SetPage(rtfPage);
-    this.m_events.pageShown.Post();
+
+    const rtfPage = this.m_config.infoPageToRtfPage[this.m_currentPage]!;
+
+    const rtf = this.m_elementsList.Get(RtfInfoId, RtfElement);
+    rtf.SetPage(rtfPage);
   }
 
   private AdjustGambleCapLimit() {
-    this.Rtf()?.SetGambleCapLimit(this.m_data.gambleCapLimit);
+    if (!this.m_elementsList.IsLoaded()) return;
+    const rtf = this.m_elementsList.Get(RtfInfoId, RtfElement);
+    rtf.SetGambleCapLimit(this.m_data.gambleCapLimit);
   }
 
   private AdjustGambleLimits() {
-    this.Rtf()?.SetGambleLimits(this.m_data.gambleLimit, this.m_data.maxGambleAttempts);
+    if (!this.m_elementsList.IsLoaded()) return;
+    const rtf = this.m_elementsList.Get(RtfInfoId, RtfElement);
+    rtf.SetGambleLimits(this.m_data.gambleLimit, this.m_data.maxGambleAttempts);
   }
 
   private AdjustJackpotMultiplier() {
-    this.Rtf()?.SetJackpotMultiplier(String(this.m_data.jackpotMultiplier));
+    if (!this.m_elementsList.IsLoaded()) return;
+    const rtf = this.m_elementsList.Get(RtfInfoId, RtfElement);
+    rtf.SetJackpotMultiplier(String(this.m_data.jackpotMultiplier));
   }
 
   private AdjustLanguage() {
-    this.Rtf()?.SetLanguage(this.m_data.language);
+    if (!this.m_elementsList.IsLoaded()) return;
+    const rtf = this.m_elementsList.Get(RtfInfoId, RtfElement);
+    rtf.SetLanguage(this.m_data.language);
   }
 
   private AdjustPaytable() {
-    const rtf = this.Rtf();
-    if (!rtf) return;
+    if (!this.m_elementsList.IsLoaded()) return;
+    const rtf = this.m_elementsList.Get(RtfInfoId, RtfElement);
     rtf.SetPaytableTexts(this.m_data.paytableTexts);
-    this.SetCurrencyType(rtf, this.GetFittestCurrencyType());
+
+    const fittestCurrencyToShow = this.GetFittestCurrencyType();
+    this.SetCurrencyType(rtf, fittestCurrencyToShow);
   }
 
   private GetFittestCurrencyType() {
-    const fitness = new Map([
-      [ECurrencyPrize.Undefined, 0], [ECurrencyPrize.FreeSpinsEnergy, 1], [ECurrencyPrize.CoinsFreeSpinEnergy, 1], [ECurrencyPrize.Credits, 2],
-      [ECurrencyPrize.ExtraSpinsEnergy, 3], [ECurrencyPrize.CoinsSpinEnergy, 4],
+    const fitness: Map<ECurrencyPrize, number> = new Map([
+      [ECurrencyPrize.Undefined, 0],
+      [ECurrencyPrize.FreeSpinsEnergy, 1],
+      [ECurrencyPrize.CoinsFreeSpinEnergy, 1],
+      [ECurrencyPrize.Credits, 2],
+      [ECurrencyPrize.ExtraSpinsEnergy, 3],
+      [ECurrencyPrize.CoinsSpinEnergy, 4],
     ]);
+
     let fittest = ECurrencyPrize.Undefined;
-    for (const currency of this.m_data.paytables.keys()) fittest = (fitness.get(fittest) ?? 0) < (fitness.get(currency) ?? 0) ? currency : fittest;
+    for (const currency of this.m_data.paytables.keys()) {
+      fittest = fitness.get(fittest)! < fitness.get(currency)! ? currency : fittest;
+    }
     return fittest;
   }
 
   private SetCurrencyType(rtf: RtfElement, currencyType: ECurrencyPrize) {
-    rtf.SetCurrencyType('€'); // EURO SIGN
-    if (currencyType === ECurrencyPrize.CoinsSpinEnergy || currencyType === ECurrencyPrize.CoinsFreeSpinEnergy) rtf.AddTag(ERtfTags.eCustomCurrency);
-    else rtf.RemoveTag(ERtfTags.eCustomCurrency);
+    const creditsSymbol = '€'; // EURO SIGN
+    rtf.SetCurrencyType(creditsSymbol);
+
+    switch (currencyType) {
+      case ECurrencyPrize.CoinsSpinEnergy:
+      case ECurrencyPrize.CoinsFreeSpinEnergy:
+        rtf.AddTag(ERtfTags.eCustomCurrency);
+        break;
+      default:
+        rtf.RemoveTag(ERtfTags.eCustomCurrency);
+        break;
+    }
   }
 
   private AdjustSerialNumber() {
-    this.Rtf()?.SetSerialNumber(this.m_data.serialNumber);
+    if (!this.m_elementsList.IsLoaded()) return;
+    const rtf = this.m_elementsList.Get(RtfInfoId, RtfElement);
+    rtf.SetSerialNumber(this.m_data.serialNumber);
   }
 
   private AdjustWinCappingLimit() {
-    this.Rtf()?.SetWinCappingLimit(this.m_data.winCappingLimit);
+    if (!this.m_elementsList.IsLoaded()) return;
+    const rtf = this.m_elementsList.Get(RtfInfoId, RtfElement);
+    rtf.SetWinCappingLimit(this.m_data.winCappingLimit);
   }
 
   private ResetInfoPage() {
-    if (!this.m_config.orderedInfoPages.length) return;
+    if (this.m_config.orderedInfoPages.length === 0) return;
+
     this.m_nextPage = this.m_config.orderedInfoPages[0];
-    this.Rtf()?.RefreshPage(this.m_config.infoPageToRtfPage.get(this.m_nextPage) ?? '');
-    this.m_actionNextPage?.Start();
+
+    const rtf = this.m_elementsList.Get(RtfInfoId, RtfElement);
+
+    rtf.RefreshPage(this.m_config.infoPageToRtfPage[this.m_nextPage]!);
+    tweeny.start(this.m_actionNextPage, 'InfoView::ShowNextPage');
   }
 }

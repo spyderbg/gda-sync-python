@@ -117,6 +117,25 @@ export class ResourceManager extends BaseModule implements IResources {
     return this.views.get(id) ?? null;
   }
 
+  GetElementsListFile(id: string) {
+    return this.Choose(this.descriptors.elements, id)?.path ?? null;
+  }
+
+  async ReloadFile(file: string) {
+    const views = [...new Set(this.descriptors.elements.map(entry => entry.id))].filter(id => this.Choose(this.descriptors.elements, id)?.path === file);
+    const idatas = [...new Set(this.descriptors.idatas.map(entry => entry.id))].filter(id => this.Choose(this.descriptors.idatas, id)?.path === file);
+    if (!views.length && !idatas.length) return false;
+    try {
+      const data = await GameBackend.Data<unknown>(file);
+      for (const id of views) this.views.set(id, data as ElementsListData);
+      for (const id of idatas) this.idatas.set(id, data);
+      return true;
+    } catch (error) {
+      console.warn(`${file}: ${(error as Error).message}`);
+      return false;
+    }
+  }
+
   GetImage(id: string): RssImage | null {
     const entry = this.Choose(this.descriptors.images, id);
     if (!entry) this.Report('Image', id, 'no image has this id');

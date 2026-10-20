@@ -44,18 +44,15 @@ const OPERATOR_METHODS = {
   Stopwatch: { Measure: base => `std::chrono::duration_cast<std::chrono::milliseconds>(${base}.Measure()).count()` },
 };
 
-/** The browser game's tweens (engine/GameCore/Tools/Tweeny.ts) are tweeny's: functions and methods of a tween_action. */
-const TWEENY_FUNCTIONS = { Delay: 'tweeny::delay', Together: 'tweeny::together', Sequence: 'tweeny::sequence' };
-const TWEEN_METHODS = {
-  OnBegin: (base, [handler]) => `${base}.on_begin.connect(${handler})`,
-  OnEnd: (base, [handler]) => `${base}.on_end.connect(${handler})`,
-  Start: (base, _args, scope) => `tweeny::start(${base}, {${JSON.stringify(scope)}})`,
-  Stop: base => `tweeny::stop(${base})`,
-  StopAndFinish: base => `tweeny::stop_and_finish(${base})`,
-  IsRunning: base => `tweeny::is_running(${base})`,
-  // tweeny's manager updates the tweens
-  Process: null,
-};
+/** The browser game's ports of the C++ hat_libs (hat_libs/<lib>/<file>.ts): the C++ namespace and header of what a
+ * file declares. tweeny.ts's namespaces (scope, manager) nest in its namespace. */
+const HAT_LIBS = [
+  { file: /\/hat_libs\/tweeny\/tween_ease\.ts$/, namespace: 'tweeny::ease', include: () => 'tweeny/tween_ease.h' },
+  { file: /\/hat_libs\/tweeny\/(tweeny|tween_\w+)\.ts$/, namespace: 'tweeny', include: match => `tweeny/${match[1]}.h` },
+  { file: /\/hat_libs\/tweeny_extend\/(\w+)\/\1\.ts$/, namespace: 'tweeny', include: match => `${match[1]}/${match[1]}.h` },
+  { file: /\/hat_libs\/egt_hpp\/(\w+)\.ts$/, namespace: 'hpp', include: match => `egt_hpp/${match[1]}.hpp` },
+  { file: /\/hat_libs\/egt_math\/(\w+)\.ts$/, namespace: 'math', include: match => `egt_math/${match[1]}.hpp` },
+];
 /** The browser game's geometry types, video_ctrl's: their C++ type and their fields in constructor order. */
 const VIDEO_TYPES = {
   Point: { cpp: 'video_ctrl::pointf', fields: ['x', 'y'], cast: 'float' },
@@ -326,7 +323,7 @@ export class Translator {
 
 // Translated by the browser game from frontend/src/game/${tsPath}.
 
-${[...this.headerIncludes].sort().map(path => `#include <${path}>`).join('\n')}
+${[...this.headerIncludes].filter(path => path !== this.index.Include(this.className)).sort().map(path => `#include <${path}>`).join('\n')}
 
 namespace Egt::Game::AlphaFamily
 {
@@ -443,11 +440,108 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
     return this.index.Qualified(name, inHeader, hint);
   }
 
-  /** Whether a TypeScript type is a tween (Tweeny.ts's TweenAction and its kinds): tweeny::tween_action. */
+  /** Whether a TypeScript type is a tween (the tweeny port's tween_action): tweeny::tween_action. */
   IsTweenType(type) {
     const nonNull = this.checker.getNonNullableType(type);
     const declaration = nonNull.symbol?.declarations?.[0];
-    return !!declaration && /\/Tools\/Tweeny\.ts$/.test(declaration.getSourceFile().fileName) && (nonNull.symbol.flags & ts.SymbolFlags.Class) !== 0;
+    return !!declaration && /\/hat_libs\/tweeny\/tween_action\.ts$/.test(declaration.getSourceFile().fileName) && nonNull.symbol.name === 'tween_action';
+  }
+
+  /** What a declaration of a hat_libs port is in C++: its qualified name and header, or null. */
+  HatLibDeclaration(declaration, name) {
+    const file = declaration?.getSourceFile().fileName ?? '';
+    for (const lib of HAT_LIBS) {
+      const match = lib.file.exec(file);
+      if (!match) continue;
+      // the TypeScript namespaces it is in (tweeny.scope), and its class (tween_scope_policy.policy_t)
+      const scopes = [];
+      for (let parent = declaration.parent; parent && !ts.isSourceFile(parent); parent = parent.parent) {
+        if (ts.isModuleDeclaration(parent) || ts.isClassDeclaration(parent)) scopes.unshift(parent.name.text);
+      }
+      if (ts.isEnumMember(declaration)) scopes.push(declaration.parent.name.text);
+      return { cpp: [lib.namespace, ...scopes, name].join('::'), include: lib.include(match), declaration };
+    }
+    return null;
+  }
+
+  /** The hat_libs declaration an expression names (tweeny.start, tweeny.ease.linear, make_sentinel, transformf), or null. */
+  HatLib(node) {
+    if (!ts.isIdentifier(node) && !ts.isPropertyAccessExpression(node)) return null;
+    let symbol = this.checker.getSymbolAtLocation(ts.isPropertyAccessExpression(node) ? node.name : node);
+    if (symbol && symbol.flags & ts.SymbolFlags.Alias) symbol = this.checker.getAliasedSymbol(symbol);
+    const declaration = symbol?.valueDeclaration ?? symbol?.declarations?.[0];
+    if (!declaration || ts.isSourceFile(declaration) || ts.isModuleDeclaration(declaration)) return null;
+    // an instance's member (action.on_end) is the object's, not a name of the library
+    if (ts.isPropertyAccessExpression(node) && !this.IsHatNamespace(node.expression) && !this.HatLib(node.expression)) return null;
+    return this.HatLibDeclaration(declaration, symbol.name);
+  }
+
+  /** Whether an expression is a namespace of a hat_libs port: import * as tweeny, tweeny.ease, tweeny.scope. */
+  IsHatNamespace(node) {
+    if (!ts.isIdentifier(node) && !ts.isPropertyAccessExpression(node)) return false;
+    let symbol = this.checker.getSymbolAtLocation(ts.isPropertyAccessExpression(node) ? node.name : node);
+    if (symbol && symbol.flags & ts.SymbolFlags.Alias) symbol = this.checker.getAliasedSymbol(symbol);
+    const declaration = symbol?.declarations?.[0];
+    if (!declaration) return false;
+    if (ts.isSourceFile(declaration)) return HAT_LIBS.some(lib => lib.file.test(declaration.fileName));
+    return ts.isModuleDeclaration(declaration) && HAT_LIBS.some(lib => lib.file.test(declaration.getSourceFile().fileName));
+  }
+
+  /** The C++ type of a TypeScript type a hat_libs port declares (tweeny::tween_action, hpp::sentinel, math::vec3). */
+  HatLibType(type, inHeader = true) {
+    const symbol = this.checker.getNonNullableType(type).aliasSymbol ?? this.checker.getNonNullableType(type).symbol;
+    const hat = symbol ? this.HatLibDeclaration(symbol.declarations?.[0], symbol.name) : null;
+    if (!hat) return null;
+    this.includes.add(hat.include);
+    if (inHeader) this.headerIncludes.add(hat.include);
+    return hat.cpp;
+  }
+
+  /** A C++ duration of a TypeScript one, in milliseconds: a duration a tweeny function returns as it is. */
+  DurationArg(node) {
+    this.includes.add('chrono');
+    if (ts.isCallExpression(node) && this.IsHatDuration(this.HatLib(node.expression))) return this.HatCall(node, true);
+    if (this.IsFractional(node)) {
+      return `std::chrono::duration_cast<tweeny::duration_t>(std::chrono::duration<double, std::milli>(${this.Expr(node)}))`;
+    }
+    return `std::chrono::milliseconds(${this.Expr(node)})`;
+  }
+
+  /** Whether a hat_libs function returns a duration_t. */
+  IsHatDuration(hat) {
+    return !!hat && ts.isFunctionDeclaration(hat.declaration) && /^(tweeny\.)?duration_t$/.test(hat.declaration.type?.getText() ?? '');
+  }
+
+  /** A call of a hat_libs function: its arguments as C++ takes them. A duration it returns is in milliseconds, unless
+   * it goes to a duration (raw). */
+  HatCall(node, raw = false) {
+    const hat = this.HatLib(node.expression);
+    this.includes.add(hat.include);
+    // ref(object, 'field'): the field, which C++ takes by reference
+    if (/::ref$/.test(hat.cpp)) return this.RefArg(node);
+    const signature = this.checker.getResolvedSignature(node);
+    const params = signature?.declaration?.parameters ?? [];
+    const args = node.arguments.map((arg, i) => {
+      const param = params[Math.min(i, params.length - 1)];
+      const type = param?.type?.getText() ?? '';
+      if (/^(tweeny\.)?duration_t$/.test(type)) return this.DurationArg(arg);
+      if (/^(tweeny\.)?ref_t</.test(type)) return this.RefArg(arg);
+      return this.Expr(arg);
+    });
+    const call = `${hat.cpp}(${args.join(', ')})`;
+    if (!raw && this.IsHatDuration(hat)) return `std::chrono::duration_cast<std::chrono::milliseconds>(${call}).count()`;
+    return call;
+  }
+
+  /** The value ref(object, 'field') refers to: object.field (a field of this: the field). */
+  RefArg(node) {
+    const hat = ts.isCallExpression(node) ? this.HatLib(node.expression) : null;
+    if (!hat || !/::ref$/.test(hat.cpp) || node.arguments.length !== 2 || !ts.isStringLiteralLike(node.arguments[1])) {
+      this.Fail(node, "a tweened value that is not ref(object, 'field')");
+    }
+    const [object, key] = node.arguments;
+    if (object.kind === ts.SyntaxKind.ThisKeyword) return key.text;
+    return `${this.Expr(object)}${this.IsPointer(object) ? '->' : '.'}${key.text}`;
   }
 
   /** Whether a TypeScript type is a view element's class (BaseElement and its kinds): the elements list owns them, and
@@ -477,18 +571,6 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
       if (symbol && symbol.flags & ts.SymbolFlags.Alias) symbol = this.checker.getAliasedSymbol(symbol);
     }
     return false;
-  }
-
-  IsTweenName(name) {
-    return name === 'TweenAction';
-  }
-
-  /** A TypeScript function imported from a file of the browser game's engine: Tweeny.ts's Delay... */
-  ImportedFrom(identifier, pattern) {
-    let symbol = this.checker.getSymbolAtLocation(identifier);
-    if (symbol && symbol.flags & ts.SymbolFlags.Alias) symbol = this.checker.getAliasedSymbol(symbol);
-    const file = symbol?.declarations?.[0]?.getSourceFile().fileName ?? '';
-    return pattern.test(file);
   }
 
   /** The arguments of a C++ function or method: a duration parameter takes the TypeScript's milliseconds. */
@@ -540,6 +622,12 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
       }
       return qualified + (template ?? '');
     });
+  }
+
+  /** The TypeScript module a symbol is declared in, as the C++ header base it mirrors (IInfoView.bridge), or null. */
+  DeclarationHint(symbol) {
+    const file = symbol?.declarations?.[0]?.getSourceFile().fileName;
+    return file ? file.split('/').pop().replace(/\.ts$/, '') : null;
   }
 
   /** The TypeScript module a name is declared in, as the C++ header base it mirrors: IInfoView.bridge. */
@@ -641,6 +729,10 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
     if (isPointer) this.pointerFields.add(member.name.getText());
     const isNull = member.initializer?.kind === ts.SyntaxKind.NullKeyword || (member.initializer && ts.isIdentifier(member.initializer) && member.initializer.text === 'undefined');
     if (isNull && (isPointer || /^std::optional</.test(cppType) || cppType === 'tweeny::tween_action')) return `${cppType} ${member.name.text};`;
+    // a default-made value of a hat_libs port (new tweeny.tween_action()): the C++ field's default
+    if (member.initializer && ts.isNewExpression(member.initializer) && !member.initializer.arguments?.length && this.HatLib(member.initializer.expression)) {
+      return `${cppType} ${member.name.text};`;
+    }
     // the header does not see the .cpp's constants: their values
     this.inHeader = true;
     const init = member.initializer ? ` = ${this.Expr(member.initializer)}` : '';
@@ -1118,11 +1210,9 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
       if (VIDEO_TYPES[name] && !this.index.Has(name)) return VIDEO_TYPES[name].cpp;
       if (name === 'DrawList') return 'video_ctrl::draw_list';
       if (this.localStructs?.has(name)) return name;
-      if (this.IsTweenName(name)) {
-        this.includes.add('tweeny/tween_action.h');
-        this.headerIncludes.add('tweeny/tween_action.h');
-        return 'tweeny::tween_action';
-      }
+      // a type of a hat_libs port: tweeny.tween_action, transformf, sentinel, vec3
+      const hatType = this.HatLibType(this.checker.getTypeFromTypeNode(node));
+      if (hatType) return hatType;
       if ((this.index.Has(name) || this.IsEventsName(name)) && this.IsVisualType(this.checker.getTypeFromTypeNode(node)) && !this.inVisualOwnType) {
         return `Ptr<${this.Name(name, true, this.ModuleHint(node.typeName))}>`;
       }
@@ -1142,8 +1232,10 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
 
   CppType(type, node, isParam = false) {
     const checker = this.checker;
-    if (type.aliasSymbol && this.index.Has(type.aliasSymbol.name)) {
-      const name = this.Name(type.aliasSymbol.name, true);
+    // an enum of this file is nested in its class (below), not another class's of the same name
+    const localEnum = type.aliasSymbol?.declarations?.some(item => ts.isEnumDeclaration(item) && item.getSourceFile() === this.sourceFile);
+    if (type.aliasSymbol && !localEnum && this.index.Has(type.aliasSymbol.name)) {
+      const name = this.Name(type.aliasSymbol.name, true, this.DeclarationHint(type.aliasSymbol));
       return isParam ? `const ${name}&` : name;
     }
     if (type.flags & ts.TypeFlags.Void) return 'void';
@@ -1166,7 +1258,7 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
         const base = checker.getBaseTypeOfLiteralType(type);
         if (base !== type) return this.CppType(base, node, isParam);
         const enumName = type.types[0].symbol?.parent?.name;
-        if (enumName && this.index.Has(enumName)) return this.Name(enumName, true);
+        if (enumName && this.index.Has(enumName)) return this.Name(enumName, true, this.DeclarationHint(type.types[0].symbol?.parent));
         this.Fail(node, `no C++ type for ${checker.typeToString(type)}`);
       }
     }
@@ -1176,16 +1268,17 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
       if (enumSymbol?.declarations?.some(item => ts.isEnumDeclaration(item) && item.getSourceFile() === this.sourceFile)) return enumSymbol.name;
     }
     if (type.flags & ts.TypeFlags.EnumLike) {
-      const name = (type.symbol?.parent ?? type.symbol)?.name;
-      if (name && this.index.Has(name)) return this.Name(name, true);
+      const enumSymbol = type.symbol?.parent ?? type.symbol;
+      const name = enumSymbol?.name;
+      // the header of the module that declares it (IInfoView.bridge's ECurrencyPrize, not IHoldAndSpinRoundInfoView's)
+      if (name && this.index.Has(name)) return this.Name(name, true, this.DeclarationHint(enumSymbol));
     }
     const symbol = type.aliasSymbol ?? type.symbol;
     const name = symbol?.name;
     if (name === 'Reaction') return 'Reaction';
-    if (this.IsTweenType(type)) {
-      this.headerIncludes.add('tweeny/tween_action.h');
-      return 'tweeny::tween_action';
-    }
+    // a type of a hat_libs port: tweeny::tween_action, hpp::sentinel, math::transformf, math::vec3
+    const hatType = this.HatLibType(type);
+    if (hatType) return isParam && !(type.flags & ts.TypeFlags.EnumLike) ? `const ${hatType}&` : hatType;
     if (name && VIDEO_TYPES[name] && !this.index.Has(name)) return isParam ? `const ${VIDEO_TYPES[name].cpp}&` : VIDEO_TYPES[name].cpp;
     if (checker.isArrayType(type)) {
       const elementType = checker.getTypeArguments(type)[0];
@@ -1277,6 +1370,10 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
         }).join('\n');
       }
       this.MarkVariable(declaration);
+      // over a C++ container of pointers (ElementsList::GetElements(), a std::vector<Ptr<BaseElement>>): a pointer each
+      let containerType = this.CppReturnOf(node.expression) ?? '';
+      if (this.index.aliases.has(containerType.split('::').pop())) containerType = this.index.aliases.get(containerType.split('::').pop());
+      if (/^std::(vector|list)<\s*(Ptr<|std::shared_ptr<|ElementPtr\b|[^<>]*\*\s*>)/.test(containerType)) this.pointers.add(this.checker.getSymbolAtLocation(declaration.name));
       const loopBody = this.Body(node.statement, depth);
       // a loop of what C++ does elsewhere (a tween's Process): nothing
       if (!loopBody.replace(/\/\/[^\n]*/g, '').replace(/[{}\s]/g, '')) return `${pad}// (tweeny's manager runs the tweens)`;
@@ -1284,7 +1381,7 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
     }
     if (ts.isForStatement(node)) {
       const init = node.initializer && ts.isVariableDeclarationList(node.initializer)
-        ? node.initializer.declarations.map(declaration => `int64_t ${declaration.name.getText()} = ${this.Expr(declaration.initializer)}`).join(', ')
+        ? node.initializer.declarations.map(declaration => `${(declaration.type && this.CppTypeNode(declaration.type)) || 'int64_t'} ${declaration.name.getText()} = ${this.Expr(declaration.initializer)}`).join(', ')
         : node.initializer ? this.Expr(node.initializer) : '';
       return `${pad}for (${init}; ${node.condition ? this.Expr(node.condition) : ''}; ${node.incrementor ? this.Expr(node.incrementor) : ''})\n${this.Body(node.statement, depth)}`;
     }
@@ -1416,31 +1513,10 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
     return `${pad}auto&& ${name} = ${init};`;
   }
 
-  /** A call of a tween's method (this.m_action?.Start()). */
-  IsTweenCall(node) {
-    return ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) && node.expression.name.text in TWEEN_METHODS
-      && this.IsTweenType(this.checker.getTypeAtLocation(node.expression.expression));
-  }
-
-  TweenCall(node, chain) {
-    const method = TWEEN_METHODS[node.expression.name.text];
-    if (!method) return null;
-    // tweeny connects on_begin and on_end: their result is a connection, not the action
-    if (['OnBegin', 'OnEnd'].includes(node.expression.name.text) && !ts.isExpressionStatement(node.parent)) {
-      this.Fail(node, `a chained ${node.expression.name.text} (call it on the action as a statement, as C++ connects on_end)`);
-    }
-    const base = this.Expr(node.expression.expression, chain);
-    return method(base, node.arguments.map(arg => this.Expr(arg, chain)), `${this.className}:${this.currentMethod ?? ''}`);
-  }
-
   ExpressionStatement(expression, pad) {
     if (ts.isVoidExpression(expression)) return this.ExpressionStatement(expression.expression, pad);
     // what only the browser game does (engine/GameCore/Common/BrowserOnly.ts)
     if (ts.isCallExpression(expression) && ts.isIdentifier(expression.expression) && expression.expression.text === 'BrowserOnly') return `${pad}// (browser only)`;
-    if (this.IsTweenCall(expression)) {
-      const text = this.TweenCall(expression, null);
-      return text ? `${pad}${text};` : `${pad}// (${expression.expression.name.text}: tweeny's manager runs the tweens)`;
-    }
     // super.Init(runtime): the base's, or no Init
     if (ts.isCallExpression(expression) && ts.isPropertyAccessExpression(expression.expression) && expression.expression.expression.kind === ts.SyntaxKind.SuperKeyword
       && expression.expression.name.text === 'Init' && expression.arguments.length === 1) {
@@ -1690,7 +1766,7 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
     const expr = child => this.Expr(child, chain);
     if (chain && node === chain.replace) return chain.with;
     // a?.b as a value: (a ? a->b : the type's default)
-    if (ts.isOptionalChain(node) && !(chain?.optionalRoot) && !this.IsTweenCall(node) && !(ts.isOptionalChain(node.parent) && node.parent.expression === node)
+    if (ts.isOptionalChain(node) && !(chain?.optionalRoot) && !(ts.isOptionalChain(node.parent) && node.parent.expression === node)
       && !(ts.isNonNullExpression(node.parent))) {
       const root = this.OptionalChainRoot(node)?.root;
       // one ?. on a pointer or an optional
@@ -1857,7 +1933,9 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
       return `std::make_shared<${this.Name(node.expression.getText())}>(${(node.arguments ?? []).map(expr).join(', ')})`;
     }
     if (ts.isNewExpression(node)) {
-      const type = this.Name(node.expression.getText());
+      const hat = this.HatLib(node.expression);
+      if (hat) this.includes.add(hat.include);
+      const type = hat ? hat.cpp : this.Name(node.expression.getText());
       const args = (node.arguments ?? []).map(expr);
       return args.length ? `${type}(${args.join(', ')})` : `${type}{}`;
     }
@@ -1904,6 +1982,8 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
     const expr = child => this.Expr(child, chain);
     const op = node.operatorToken.kind;
     if (op === ts.SyntaxKind.QuestionQuestionToken) return this.Coalesce(node.left, expr(node.right), chain, node);
+    // key in record: a Record is a std::map
+    if (op === ts.SyntaxKind.InKeyword) return `${expr(node.right)}.contains(${expr(node.left)})`;
     if (op === ts.SyntaxKind.InstanceOfKeyword) {
       this.includes.add('variant');
       return `std::holds_alternative<${this.Name(node.right.getText())}>(${expr(node.left)})`;
@@ -2177,9 +2257,11 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
         ts.SyntaxKind.ExclamationEqualsEqualsToken, ts.SyntaxKind.EqualsEqualsToken, ts.SyntaxKind.ExclamationEqualsToken].includes(node.parent.operatorToken.kind))) return `${name}.value()`;
       return name;
     }
-    if (ts.isIdentifier(node.expression) && node.expression.text === 'ease' && this.ImportedFrom(node.expression, /\/Tools\/Tweeny\.ts$/)) {
-      this.includes.add('tweeny/tween_ease.h');
-      return `tweeny::ease::${name}`;
+    // a name of a hat_libs port: tweeny.ease.linear, transformf.identity, tween_scope_policy.policy_t.independent
+    const hat = this.HatLib(node);
+    if (hat) {
+      this.includes.add(hat.include);
+      return hat.cpp;
     }
     if (this.IsScope(node.expression)) return `${this.Name(node.expression.getText(), false, this.ModuleHint(node.expression))}::${name}`;
     if (name === 'Events' && this.IsToken(node)) return this.TokenName(node);
@@ -2202,16 +2284,13 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
   Call(node, chain) {
     const expr = child => this.Expr(child, chain);
     const callee = node.expression;
-    if (this.IsTweenCall(node)) return this.TweenCall(node, chain) ?? this.Fail(node, 'a tween method that has no C++');
-    // Tweeny.ts's functions: tweeny's
-    if (ts.isIdentifier(callee) && TWEENY_FUNCTIONS[callee.text] && this.ImportedFrom(callee, /\/Tools\/Tweeny\.ts$/)) {
-      this.includes.add('tweeny/tween_core.h');
-      const args = node.arguments.map(expr);
-      if (callee.text === 'Delay') {
-        this.includes.add('chrono');
-        return `tweeny::delay(std::chrono::milliseconds(${args[0]}))`;
-      }
-      return `${TWEENY_FUNCTIONS[callee.text]}(${args.join(', ')})`;
+    // a function of a hat_libs port: tweeny's (tweeny.start, sequence...), hpp::make_sentinel, math::transformf::identity
+    if (this.HatLib(callee)) return this.HatCall(node);
+    // a key string (a doc comment says @cppKey): what stands for a std::map's struct key, which in C++ is the key itself
+    if (ts.isIdentifier(callee) && node.arguments.length === 1) {
+      let symbol = this.checker.getSymbolAtLocation(callee);
+      if (symbol && symbol.flags & ts.SymbolFlags.Alias) symbol = this.checker.getAliasedSymbol(symbol);
+      if (symbol?.declarations?.some(item => ts.getJSDocTags(item).some(tag => tag.tagName.text === 'cppKey'))) return expr(node.arguments[0]);
     }
     // resources.GetIData<T>(id): the IData's JSON as the C++ struct T (rss::convert)
     if (ts.isPropertyAccessExpression(callee) && callee.name.text === 'GetIData' && node.arguments.length === 1) {
@@ -2594,6 +2673,8 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
       }).sort((a, b) => order.indexOf(a.name) - order.indexOf(b.name));
       return `${localName}{${values.map(value => `.${value.name} = ${value.value}`).join(', ')}}`;
     }
+    // {} of a Record (a std::map) or another type C++ default-makes: {}
+    if ((!name || !this.index.Has(name)) && !node.properties.length) return '{}';
     if (!name || !this.index.Has(name)) this.Fail(node, 'an object literal of no C++ struct');
     this.UseHeader(name);
     const order = this.index.Fields(name);

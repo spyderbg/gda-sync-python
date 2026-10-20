@@ -6,7 +6,7 @@ import type { Runtime } from '../../../../../engine/GameCore/RuntimeAccess';
 import type { CurrencyType } from '../../../../../engine/Game/Math/Common.data';
 import type { RssRect } from '../../../../../engine/Game/RuntimeExport/IResources';
 import { ILocalization } from '../../../../../engine/Game/RuntimeImport/ILocalization';
-import { Delay, Sequence, Together, type TweenAction, ease } from '../../../../../engine/GameCore/Tools/Tweeny';
+import * as tweeny from '../../../../../hat_libs/tweeny/tweeny';
 import type { DrawList } from '../../../../../engine/GameVideoCtrl/DrawList';
 import { BaseElement } from '../../../../../engine/GameVideoCtrl/ViewElements/BaseElement';
 import { ButtonElement } from '../../../../../engine/GameVideoCtrl/ViewElements/ButtonElement';
@@ -92,55 +92,55 @@ export class BetMenuView extends BaseView implements IBetMenuView {
     this.m_elementsList.SetWorldPivot(pivot2, ElementsMenu2Ids);
 
     /// setup open animations
-    const actionsOpenBetPerLineMenu: TweenAction[] = [];
+    const actionsOpenBetPerLineMenu: tweeny.tween_action[] = [];
     for (const id of ElementsMenu1Ids) {
       const elementMenu1 = this.m_elementsList.Find(id, BaseElement);
-      actionsOpenBetPerLineMenu.push(PlaceholderFromTo(elementMenu1, dummyMenuScaleClosed, dummyMenuScaleOpened, ElementAnimDuration, ease.back_stop));
-      actionsOpenBetPerLineMenu.push(PlaceholderFromTo(elementMenu1, dummyMenuColorClosed, dummyMenuColorOpened, ElementAnimDuration, ease.linear));
+      actionsOpenBetPerLineMenu.push(PlaceholderFromTo(elementMenu1, dummyMenuScaleClosed, dummyMenuScaleOpened, ElementAnimDuration, tweeny.ease.back_stop));
+      actionsOpenBetPerLineMenu.push(PlaceholderFromTo(elementMenu1, dummyMenuColorClosed, dummyMenuColorOpened, ElementAnimDuration, tweeny.ease.linear));
     }
-    const openBetPerLineMenu = Together(actionsOpenBetPerLineMenu);
-    openBetPerLineMenu.OnBegin(() => {
+    const openBetPerLineMenu = tweeny.together(actionsOpenBetPerLineMenu);
+    openBetPerLineMenu.on_begin.connect(() => {
       this.m_elementsList.SetHidden(false, ElementsMenu1Ids);
       this.m_elementsList.SetHidden(true, ElementsMenu2Ids);
     });
-    const actionsOpenLinesMenu: TweenAction[] = [];
+    const actionsOpenLinesMenu: tweeny.tween_action[] = [];
     for (const id of ElementsMenu2Ids) {
       const elementMenu2 = this.m_elementsList.Find(id, BaseElement);
-      actionsOpenLinesMenu.push(PlaceholderFromTo(elementMenu2, dummyMenuScaleClosed, dummyMenuScaleOpened, ElementAnimDuration, ease.back_stop));
-      actionsOpenLinesMenu.push(PlaceholderFromTo(elementMenu2, dummyMenuColorClosed, dummyMenuColorOpened, ElementAnimDuration, ease.linear));
+      actionsOpenLinesMenu.push(PlaceholderFromTo(elementMenu2, dummyMenuScaleClosed, dummyMenuScaleOpened, ElementAnimDuration, tweeny.ease.back_stop));
+      actionsOpenLinesMenu.push(PlaceholderFromTo(elementMenu2, dummyMenuColorClosed, dummyMenuColorOpened, ElementAnimDuration, tweeny.ease.linear));
     }
-    const openLinesMenu = Together(actionsOpenLinesMenu);
-    openLinesMenu.OnBegin(() => {
+    const openLinesMenu = tweeny.together(actionsOpenLinesMenu);
+    openLinesMenu.on_begin.connect(() => {
       this.m_elementsList.SetHidden(false, ElementsMenu2Ids);
     });
-    const open = Together(openBetPerLineMenu, Sequence([Delay(delayBetweenMenus), openLinesMenu]));
+    const open = tweeny.together(openBetPerLineMenu, tweeny.sequence([tweeny.delay(delayBetweenMenus), openLinesMenu]));
 
     /// setup close animations
-    const actionsCloseLinesMenu: TweenAction[] = [];
+    const actionsCloseLinesMenu: tweeny.tween_action[] = [];
     for (const id of ElementsMenu2Ids) {
       const elementMenu2 = this.m_elementsList.Find(id, BaseElement);
-      actionsCloseLinesMenu.push(PlaceholderFromTo(elementMenu2, dummyMenuScaleOpened, dummyMenuScaleClosed, ElementAnimDuration, ease.back_start));
-      actionsCloseLinesMenu.push(PlaceholderFromTo(elementMenu2, dummyMenuColorOpened, dummyMenuColorClosed, ElementAnimDuration, ease.linear));
+      actionsCloseLinesMenu.push(PlaceholderFromTo(elementMenu2, dummyMenuScaleOpened, dummyMenuScaleClosed, ElementAnimDuration, tweeny.ease.back_start));
+      actionsCloseLinesMenu.push(PlaceholderFromTo(elementMenu2, dummyMenuColorOpened, dummyMenuColorClosed, ElementAnimDuration, tweeny.ease.linear));
     }
-    const closeLinesMenu = Together(actionsCloseLinesMenu);
-    closeLinesMenu.OnEnd(() => {
+    const closeLinesMenu = tweeny.together(actionsCloseLinesMenu);
+    closeLinesMenu.on_end.connect(() => {
       this.m_elementsList.SetHidden(true, ElementsMenu2Ids);
       this.m_elementsList.SetHidden(false, ElementsMenu1Ids);
     });
-    const actionsCloseBetPerLineMenu: TweenAction[] = [];
+    const actionsCloseBetPerLineMenu: tweeny.tween_action[] = [];
     for (const id of ElementsMenu1Ids) {
       const elementMenu1 = this.m_elementsList.Find(id, BaseElement);
-      actionsCloseBetPerLineMenu.push(PlaceholderFromTo(elementMenu1, dummyMenuScaleOpened, dummyMenuScaleClosed, ElementAnimDuration, ease.back_start));
-      actionsCloseBetPerLineMenu.push(PlaceholderFromTo(elementMenu1, dummyMenuColorOpened, dummyMenuColorClosed, ElementAnimDuration, ease.linear));
+      actionsCloseBetPerLineMenu.push(PlaceholderFromTo(elementMenu1, dummyMenuScaleOpened, dummyMenuScaleClosed, ElementAnimDuration, tweeny.ease.back_start));
+      actionsCloseBetPerLineMenu.push(PlaceholderFromTo(elementMenu1, dummyMenuColorOpened, dummyMenuColorClosed, ElementAnimDuration, tweeny.ease.linear));
     }
-    const closeBetPerLineMenu = Together(actionsCloseBetPerLineMenu);
-    closeBetPerLineMenu.OnEnd(() => {
+    const closeBetPerLineMenu = tweeny.together(actionsCloseBetPerLineMenu);
+    closeBetPerLineMenu.on_end.connect(() => {
       this.m_elementsList.SetHidden(true, ElementsMenu1Ids);
     });
-    const close = Together(closeLinesMenu, Sequence([Delay(delayBetweenMenus), closeBetPerLineMenu]));
+    const close = tweeny.together(closeLinesMenu, tweeny.sequence([tweeny.delay(delayBetweenMenus), closeBetPerLineMenu]));
 
-    close.Start();
-    close.StopAndFinish();
+    tweeny.start(close, 'BetMenuView:Close');
+    tweeny.stop_and_finish(close);
 
     this.m_menu.SetupAnims(open, close);
     this.m_menu.SetupSounds(SoundBetMenuIntroId, SoundBetMenuOutroId);

@@ -18,6 +18,7 @@ Every file operation goes through the backend (`egt_gda_sync/game/project.py`):
 | The family's modules (the capping splash...) | `GET /api/game/project` → `familyModules` (`configs/alpha_family/modules/AlphaGameModules.json`) | ModuleManager config |
 | The descriptors' entries (images, sequences, movies, fonts, styles, audio, IData, views, RTFs) | `GET /api/game/project` → `descriptors` | ResourceManager |
 | The math file, view configs and views | `GET /api/game/data?file=<path in the game folder>` | `IResources::Get<RssIData>`, ElementsList |
+| When the watched view files last changed | `GET /api/game/file-stamps?file=...&file=...` | FileWatch (inotify) |
 | Images (DDS decoded), movies, audio, fonts, an RTF's laid-out pages | `GET /api/rss-sync/preview?file=` (the asset library's preview) | VideoManager, AudioManager, RtfElement |
 | The assets the asset library lists | `GET /api/asset-report` | – |
 | The C++ plugin's sources, which an export copies | `GET /api/game/cpp?folder=` (the game folder beside the resources: `games/game`) | – |
@@ -33,11 +34,13 @@ The folders mirror the C++ ones, and the classes keep their C++ names and method
 
 | `src/game/...` | C++ |
 | --- | --- |
-| `engine/Core`, `engine/GameCore` | `Egt::Core` (Event, EventQueue), `Egt::GameCore` (RuntimeAccess, IRng engines, Stopwatch), tweeny (`Tools/Tweeny.ts`) |
+| `engine/Core`, `engine/GameCore` | `Egt::Core` (Event, EventQueue), `Egt::GameCore` (RuntimeAccess, IRng engines, Stopwatch) |
+| `hat_libs/tweeny`, `hat_libs/tweeny_extend/tweeny_extend_transform` | `games/hat_libs/tweeny` (all of it: tweens, combinators, manager, scopes, easings, inspector info; `tests/` are the C++ tests) and its transform tweens |
+| `hat_libs/egt_hpp`, `hat_libs/egt_math` | what tweeny needs of them: `hpp::event`, `hpp::sentinel`, `math::transformf` (position, rotation, scale) |
 | `engine/Fsm` | `games/game/libs/src/Egt/Fsm` (State, Machine, FsmBuilder) |
 | `engine/Game` | `Egt/Game` (Currencies, IMathTypes, IResources, RuntimeImport services, GameFsm, CountdownTimer) |
 | `engine/GameVideoCtrl` | `Egt/GameVideoCtrl` (ElementsList; Image, Anim (`AnimationClip/` ImageSeqElement and MovieElement), Text, Button and Rtf elements; `TweenyExtend/`; IVideo, IVideoManager) |
-| `engine/ResourceManager`, `VideoManager`, `AudioManager`, `ModuleManager` | the plugins of the same names |
+| `engine/ResourceManager`, `VideoManager`, `AudioManager`, `ModuleManager`, `FileWatch` | the plugins of the same names |
 | `plugins/CappingSplashView` | `games/game/plugins/src/Egt/CappingSplashView`, a module of every alpha family game |
 | `alpha_family/libs/AlphaFamily` | `alpha_family/libs/src/Egt/AlphaFamily` (math rules, states and views interfaces) |
 | `alpha_family/libs/AlphaFamilyStatesLibrary` | the states library (managers, Idle, Match, MainRound, TetraRound, MatchCappingApplied...) |
@@ -53,8 +56,12 @@ A few TypeScript necessities:
 - Interfaces do not exist at runtime, so each has a token of the same name: `RuntimeGet(IReelsView)` is
   `RuntimeGet<IReelsView>()`, `RuntimeGet(IReelsView.Events)` is `RuntimeGet<IReelsView::Events>()`.
 - `std::variant` phases are classes: `std::get_if<SpinReelsPhase>(&phase)` is `phase instanceof SpinReelsPhase`.
-- tweeny actions are `Tools/Tweeny.ts` (`Together`, `Sequence`, `Delay`, `MoveFromTo`, `PlaceholderFromTo`...), run in
-  the view's `Process`; plain tweeny delays are `m_timers.After(ms, ...)`.
+- tweeny is C++'s, by its C++ names: `import * as tweeny from '.../hat_libs/tweeny/tweeny'`, then `tweeny.start(action,
+  'Scope')`, `tweeny.sequence(...)`, `action.on_end.connect(...)`, `tweeny.ease.back_stop`. Durations are milliseconds
+  (C++ `duration_t`). An action is a value: `start` runs a copy, which `stop`/`pause`/`is_running` find by the action's
+  id. The video manager updates the started tweens every frame (`tweeny.update`, as `VideoManager::Process`). A
+  tweened value C++ takes by reference is `tweeny.ref(object, 'field')`; an element's tweens end once its elements list
+  releases it (C++'s `ElementPtr` sentinel).
 - Several small C++ headers are one file where they only declare tokens (`IMenuViews.bridge.ts`, `IOverlayViews.bridge.ts`).
 
 Where the browser differs from a cabinet:
@@ -77,6 +84,15 @@ play, since Burning Crown does not use them.
 - **Developer** shows the state machine's active states and transitions, the match's wallet, the rounds played, and
   forces the next round (like the C++ RNG presets): a main win of 4× the bet or more enters the tetra round. **Maximum
   award** lowers the match's capping to 3.00, so that a main win shows the capping splash.
+- A view's file (`v/1920x1080/<View>.json`, its ElementsList entry) can be edited while the game plays: within a
+  second the view shows the change, as the C++ game's debug and QA builds do. Each elements list watches its file
+  (IFileWatch, the FileWatch module, which polls the files' stamps), the view module passes the change to its views
+  (`HandleFileChanged`), and a view loads the list again on its next `Process` (`BaseView.ReloadElementsList`), or when
+  it shows if it is hidden. When the file has the same elements (by id, type and keys), such as when they moved, the
+  elements change in place, so that what holds them (a view's tweens, the reels' visuals) keeps working; else they are
+  made anew. Either way the view's elements-list callback runs again (C++ does not run it), which places what the view
+  derives from its elements, such as the credit from its `_min` and `_max` dummies. Other files load when the game
+  starts: the IData (such as the reels' area, which places the reels' symbols), the images and the descriptors.
 - The math was checked by simulation: the main round of `var_10BCTS_8435.json` returns about 84.0–84.5% over 3 million
   rounds (the setup's `simRtp` is 84.35%), the tetra round about 100% over 600,000 rounds.
 
@@ -140,8 +156,10 @@ It reads the TypeScript with its types (the TypeScript compiler) and the C++ gam
 preferring the translated game's plugin): each name gets its header and C++ qualification, each interface method its
 exact C++ signature, each event handler its event's argument types; a class the C++ already has keeps its own
 declarations where they say what the TypeScript says. The TypeScript mirrors the C++ API (`this.Parent(IX)` is
-`Parent<IX>()`, `list.TryGet(id, TextElement)` is `TryGet<TextElement>(id)`, `Delay(ms)` and `action.OnEnd(...)` are
-`tweeny::delay` and `on_end.connect`), and what TypeScript says differently is lowered: object literals to designated
+`Parent<IX>()`, `list.TryGet(id, TextElement)` is `TryGet<TextElement>(id)`, a name of the `hat_libs` ports is its
+C++ name in its namespace and header (`tweeny.delay(ms)` is `tweeny::delay(std::chrono::milliseconds(ms))`,
+`tweeny.ref(this, 'm_pos')` is `m_pos`, `transformf` is `math::transformf`)), and what TypeScript says differently is
+lowered: object literals to designated
 initializers or `video_ctrl` points, optional chaining to pointer or `std::optional` access (or index-checked element
 pointers), `instanceof` on a round's phases to `std::get`/`std::get_if`, a union parameter split with `instanceof`,
 `typeof` or `IsArrayOf` to C++ overloads, array methods to `<algorithm>`, elements held by pointer and visuals by
@@ -149,19 +167,26 @@ pointers), `instanceof` on a round's phases to `std::get`/`std::get_if`, a union
 types. What it cannot express is an error with its line, never a guess: the class is then listed as C++ to update by
 hand.
 
-All 29 states of the states library, and all 34 views, visuals and software buttons of Burning Crown Tetra Spins 10,
-translate, and their C++ compiles. To keep TypeScript translatable, write it as the C++ is written:
+All 29 states of the states library, and all 37 views, visuals and software buttons of Burning Crown Tetra Spins 10
+(with the info and topper screens' `InfoView` and `TopperView`), translate, and their C++ compiles. To keep TypeScript translatable, write it as the C++ is written:
 
 - name C++ integer types where C++ needs them (`engine/GameCore/Common/Types.ts`: `uint32_t[]`, `FigureId`); use
   `IsValidIndex`/`Contains`/`RandomDevice`/`IsArrayOf` (`engine/GameCore/Common/ContainerHelpers.ts`) as the C++ uses
   `GameCore::IsValidIndex`...;
-- animate with `Tools/Tweeny.ts` actions held in fields and connected with statements (`action.OnEnd(...)`, not
-  chained), not with timers; get the elements a tween moves with `ElementsList.Find` (C++'s `Ptr`);
+- animate with tweeny actions held in fields (`m_action = new tweeny.tween_action()`), started, stopped, paused and
+  connected as C++ does (a looping animation is `repeat_precise(sequence_precise([...]))`, not a timer); get the
+  elements a tween moves with `ElementsList.Find` or `CreatePtr` (C++'s `Ptr`);
+- write a nested C++ struct as a namespace of its owner (`StatusLineVisualConfig.ElementConfig`), and loops where
+  C++ loops (`reduce` is not translated);
+- read an IData as its C++ struct (`GetIData<InfoViewConfig>`), a `std::map` of it as a `Record` (`key in record` is
+  `contains`), its enums with the IData's names as values (`EInfoViewPageType.Main = 'Main'`); look a key up with
+  `map.has(k)` then `map.get(k)!`, as C++ does with `contains` and `at`; a TypeScript key that stands for a C++ struct
+  key (`FigureKeyString(key)`, a `Map` keys objects by identity) is tagged `@cppKey`, and is the key itself in C++;
 - keep the C++'s names: view names are their class names, interface methods are the C++ interface's (all of them), a
   config struct's fields are its `.data.h`'s;
 - wrap what only the browser needs (preloading frames) in `BrowserOnly(() => ...)` (`engine/GameCore/Common/BrowserOnly.ts`):
   the translation leaves it out.
 
-Not translated yet: the info and topper modules' views (`InfoView.ts`, `TopperView.ts`), the capping splash plugin, the
-math rules, and new interfaces (`*.bridge.ts`): a view that implements an interface the C++ does not declare is listed
+Not translated yet: the info and topper modules themselves (`BurningCrownTetraSpins10InfoView.ts`, the C++ of which the
+export copies), the capping splash plugin, the math rules, and new interfaces (`*.bridge.ts`): a view that implements an interface the C++ does not declare is listed
 as C++ to update by hand.

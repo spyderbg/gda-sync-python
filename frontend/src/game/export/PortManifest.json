@@ -380,7 +380,7 @@
   "cpp": [
    "alpha_family/libs/src/Egt/AlphaFamily/Views/IInfoView.data.h"
   ],
-  "sha256": "7fd8867854c3220a6d18acd0ca6502c4e98b556ac54b7277bede7172454a9b24"
+  "sha256": "316209e5bbc6062e6f8897c1b6434a916f945bdae34d1f5289f320027ab5811a"
  },
  "alpha_family/libs/AlphaFamily/Views/ILinesView.bridge.ts": {
   "cpp": [
@@ -670,7 +670,7 @@
    "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/BaseView.h",
    "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/BaseView.cpp"
   ],
-  "sha256": "a867be230f6af09c443b1e072a3708f17e175c0280ce61c4e448c7bfad05b948"
+  "sha256": "e3e900c39290d22eedbfb91cc2ceefac071c0a12d8bb2c8e4ea7051fb238acdd"
  },
  "alpha_family/libs/AlphaFamilyVideoCtrl/Components/ButtonView.ts": {
   "cpp": [
@@ -690,7 +690,7 @@
    "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/Components/MenuView.h",
    "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/Components/MenuView.cpp"
   ],
-  "sha256": "b343e1321a1d147aa284b0da4b5b2e0db1e3b5862098c3a86acc71ebaaeb67e0"
+  "sha256": "f6e77351a03cde8a820973e6325204c061115878355006a37e02e015c9944dc2"
  },
  "alpha_family/libs/AlphaFamilyVideoCtrl/Components/NumericBarView.ts": {
   "cpp": [
@@ -710,20 +710,20 @@
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10InfoView/BurningCrownTetraSpins10InfoView.h",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10InfoView/BurningCrownTetraSpins10InfoView.cpp"
   ],
-  "sha256": "bce879095fa785ab9554b06f13d29dd9a9f64d15ebf26eb3a2077f3e5219cfbe"
+  "sha256": "beb2480baa7d1653e438cbf086183ea7bb79bf1afaf51b6b62013825b871e314"
  },
  "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10InfoView/InfoView.data.ts": {
   "cpp": [
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10InfoView/InfoView.data.h"
   ],
-  "sha256": "ac541634d531c40dab97a48f1d16bf54073473c13a2d8b4dbc9d3f7c1a7acbf5"
+  "sha256": "34fe1f1aeeb200f4e53f17c104473f9136a812468b2c7d68fd5219f834ce021d"
  },
  "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10InfoView/InfoView.ts": {
   "cpp": [
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10InfoView/InfoView.h",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10InfoView/InfoView.cpp"
   ],
-  "sha256": "f106a5483d2d84343e72fec156492f7e9248544d62ebc15d629f8487a05f2528"
+  "sha256": "74afe98385a99307fcc3215c276f6cacf49a87a460c6a79a02a7ed20c7cfef18"
  },
  "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10Math/BurningCrownTetraSpins10Math.ts": {
   "cpp": [
@@ -769,21 +769,21 @@
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10TopperView/BurningCrownTetraSpins10TopperView.h",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10TopperView/BurningCrownTetraSpins10TopperView.cpp"
   ],
-  "sha256": "165b74ff014eca91e1bfde3d6053c78d1ef1d9ee3621200029161b75994c26f0"
+  "sha256": "1ab21b20b52ad86a0d96a1923d1cd979e2ce2d858d78432ca1045edb6a6704f8"
  },
  "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10TopperView/TopperView.ts": {
   "cpp": [
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10TopperView/TopperView.h",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10TopperView/TopperView.cpp"
   ],
-  "sha256": "fc68bdc2dd013325914f787558b400cc2877ac391f7752e807dfb7d7d8f6a940"
+  "sha256": "0ae0531571c7b712955b7fb6aec534f90c76b4580757bbe9b6f6e9adb31f8097"
  },
  "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/BurningCrownTetraSpins10View.ts": {
   "cpp": [
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/BurningCrownTetraSpins10View.h",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/BurningCrownTetraSpins10View.cpp"
   ],
-  "sha256": "3755d36ff8ac2e7b23f71f2240163d36c6316ae964388a3f1d132ad481af227d"
+  "sha256": "9d59690dd04222cbea1aa6dc6c98e2a5f714848f0b0f0a26080dcc5bf5950dc9"
  },
  "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/SwButtons/BetDownSwButtonView.ts": {
   "cpp": [
@@ -853,7 +853,7 @@
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/SoundVolumeSwButtonView.h",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/SoundVolumeSwButtonView.cpp"
   ],
-  "sha256": "a44a0d099693315dd39e3be385d245a2fd4a38cf09c687480777be3598a52bfb"
+  "sha256": "109f1c9e7e4dfa1e0e7c926f96a7066bd9cceb25657a4b43a596c716216fffb0"
  },
  "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/SwButtons/StopSingleReelSwButtonView.ts": {
   "cpp": [
@@ -888,7 +888,7 @@
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/BetMenuView.h",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/BetMenuView.cpp"
   ],
-  "sha256": "d52b67d0b919a702b276805bf037fbfb8018d1c570b797be5a076f7276ff9d6a"
+  "sha256": "842ba1e0c18cfebee2fe7a44937460fc7e291f87ab783bf69aa7a6f7aa85bc36"
  },
  "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Views/BigWinView.ts": {
   "cpp": [
@@ -902,7 +902,7 @@
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/CreditBarView.h",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/CreditBarView.cpp"
   ],
-  "sha256": "3933570bbcc7839daa69456f452348a329844641fd3d0b318daca5b0cff60614"
+  "sha256": "d31dc1f834a1491a6cb4f62024092743219d7a8f2a1648b61bfcb706e654258a"
  },
  "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Views/CreditsWinBarView.ts": {
   "cpp": [
@@ -930,14 +930,14 @@
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/LanguageMenuView.h",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/LanguageMenuView.cpp"
   ],
-  "sha256": "b9b1e7b6e1e257d7d3808b4e59abd6c5505f4db464f6f8c3d6f711788e923d1a"
+  "sha256": "b23df4a928714ab1f32e108e040e8278ed56cf1a43d314f19e886a6da77f897d"
  },
  "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Views/LinesView.ts": {
   "cpp": [
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/LinesView.h",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/LinesView.cpp"
   ],
-  "sha256": "d57648dbeb46c1f9a9885787ca143d38e240df6d735adf8734c985f23318a779"
+  "sha256": "2aae4ee604dbd695ce935794ae66b88cbc06abf8ec6d77ee5cda17b2bfa60807"
  },
  "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Views/ReelSubScreen.data.ts": {
   "cpp": [
@@ -965,26 +965,32 @@
   ],
   "sha256": "536fc81a9cf824315b8abb604d6ffe29b48924b48669a707401a05c088863802"
  },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Views/StatusLineView.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/StatusLineView.data.h"
+  ],
+  "sha256": "3da6d7796341b9fdc166fc5b5e5351f23c8b14cb7f14fb2012c5dc73a4363461"
+ },
  "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Views/StatusLineView.ts": {
   "cpp": [
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/StatusLineView.h",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/StatusLineView.cpp"
   ],
-  "sha256": "693318a6bf3463baf7b95c6b42859b6def91533ea6fbb2e5d4b7e93e81cee8bf"
+  "sha256": "0714b067dc202d69c9b230c62944e3e456d6339ce375924e9d07cf2b4219c092"
  },
  "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Views/TetraRoundOverlayView.ts": {
   "cpp": [
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/TetraRoundOverlayView.h",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/TetraRoundOverlayView.cpp"
   ],
-  "sha256": "94e00c46fddeb6dedf1c053796a768def0dab642549c00a6c601aba183c358f5"
+  "sha256": "0bd9a948c063cd8ef87beda7a9b44238d4e5d2213a190428b022e64bbd1a32ac"
  },
  "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Views/TetraRoundView.ts": {
   "cpp": [
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/TetraRoundView.h",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/TetraRoundView.cpp"
   ],
-  "sha256": "fe495667d216884428878279440a3d4126a6aca572301dd12664674e2a60d1c7"
+  "sha256": "d85125a9a7d08b1035ec5095e9e31d83aa8f80cf755767dd96f0ba806b3abb37"
  },
  "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Views/TetraSpinBarView.ts": {
   "cpp": [
@@ -998,7 +1004,7 @@
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/WinFiguresView.h",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/WinFiguresView.cpp"
   ],
-  "sha256": "2a3244d948089c3803bc79a24c7a667f25a8f2f7d50a264c1d209c802b8391ee"
+  "sha256": "328c1a1d4ed2c9770a451cb8306f5f1b8c6b32a771735e9d6ac78b083933be96"
  },
  "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Visuals/BaseVisual.ts": {
   "cpp": [
@@ -1019,14 +1025,14 @@
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Visuals/FlyingSymbolsVisual.h",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Visuals/FlyingSymbolsVisual.cpp"
   ],
-  "sha256": "036cd014c57af680ecbd9fa2825d1fb536b04dc99920bcba341ef60d746d5d38"
+  "sha256": "aa369e3511e6763ca903f7d7158a607b64b9abe56a398a4b562011a34b6c8193"
  },
  "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Visuals/LinesVisual.ts": {
   "cpp": [
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Visuals/LinesVisual.h",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Visuals/LinesVisual.cpp"
   ],
-  "sha256": "530c157ca7ce65f970b4850af0ace8a433131ee984e1765dbb7db74ab2a4272d"
+  "sha256": "871e33fdcfbc4c4468cfd662334856527d1095e2673571455ee6bd9db98777c1"
  },
  "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Visuals/ReelVisual.ts": {
   "cpp": [
@@ -1035,12 +1041,25 @@
   ],
   "sha256": "100209524da731ad4ca694ead110756e5435511b1ff2e90b136e4335b07fabd6"
  },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Visuals/StatusLineVisual.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Visuals/StatusLineVisual.data.h"
+  ],
+  "sha256": "a1bb5a5a6757e346afe21d3b91cc61c8f07a2f0795297ef54d11d1c96d9d2d4b"
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Visuals/StatusLineVisual.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Visuals/StatusLineVisual.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Visuals/StatusLineVisual.cpp"
+  ],
+  "sha256": "b10c0d8e3b1d86561912f37f4accd9c607b891997440450426724e1172a87a4e"
+ },
  "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Visuals/WinFiguresVisual.ts": {
   "cpp": [
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Visuals/WinFiguresVisual.h",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Visuals/WinFiguresVisual.cpp"
   ],
-  "sha256": "dfac75b6b99a4ff1b51588ec972a1586e6585433808ce69a54f5231afcf54cf3"
+  "sha256": "cf7490d07106a745194ecfafc73b546be80d66dfe95d527489206f50997ee0cb"
  },
  "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Visuals/WinValueVisual.ts": {
   "cpp": [

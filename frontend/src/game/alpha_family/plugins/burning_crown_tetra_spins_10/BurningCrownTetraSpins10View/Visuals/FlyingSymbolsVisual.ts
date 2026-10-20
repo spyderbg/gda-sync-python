@@ -3,9 +3,10 @@
 
 import type { Point } from '../../../../../engine/Game/RuntimeExport/IResources';
 import { Alignment } from '../../../../../engine/GameVideoCtrl/ViewElements/BaseElement';
-import type { DrawList } from '../../../../../engine/GameVideoCtrl/DrawList';
 import type { ElementsList } from '../../../../../engine/GameVideoCtrl/ViewElements/ElementsList';
 import { ImageElement } from '../../../../../engine/GameVideoCtrl/ViewElements/ImageElement';
+import { MoveTo } from '../../../../../engine/GameVideoCtrl/ViewElements/TweenyExtend/TweenyExtendElement';
+import * as tweeny from '../../../../../hat_libs/tweeny/tweeny';
 import type { FlyingSymbolData } from '../Views/ReelsView.data';
 import { BaseVisual } from './BaseVisual';
 
@@ -13,17 +14,15 @@ export class FlyingSymbolsVisual extends BaseVisual {
   private m_reelIdx = 0;
   private m_startingSubScreenIdx = 0;
   private m_endSubScreenIdx = 0;
-  private m_path: [Point, Point] | null = null;
-  private m_duration = 0;
-  private m_start: number | null = null;
-  private m_elementId = '';
+  private m_animation = new tweeny.tween_action();
 
   constructor(elementsList: ElementsList) {
     super(elementsList);
   }
 
   Clear() {
-    this.m_start = null;
+    tweeny.stop(this.m_animation);
+
     super.Clear();
   }
 
@@ -52,28 +51,27 @@ export class FlyingSymbolsVisual extends BaseVisual {
   }
 
   AddAnimation(movePath: [Point, Point], data: FlyingSymbolData, duration: number) {
-    const element = this.m_elementsList.Create(ImageElement, data.flyingRssId).SetPosition(movePath[0]).SetAlignment(Alignment.MiddleCenter);
-    element.SetHidden(true);
-    this.m_elementId = element.GetId();
-    this.StoreElementId(this.m_elementId);
-    this.m_path = movePath;
-    this.m_duration = duration;
+    const element = this.m_elementsList.CreatePtr(ImageElement, data.flyingRssId);
+    element.SetPosition(movePath[0]);
+    element.SetAlignment(Alignment.MiddleCenter);
+
+    this.StoreElementId(element.GetId());
+
+    const action = MoveTo(element, movePath[1], duration, tweeny.ease.linear);
+
+    this.m_animation = action;
+  }
+
+  SetHidden(isHidden: boolean) {
+    this.m_elementsList.SetHidden(isHidden, this.GetElementIds());
   }
 
   StartAnimation(subScreenIdx: number) {
     if (subScreenIdx !== this.m_startingSubScreenIdx) return false;
-    this.m_start = performance.now();
-    this.SetVisible(true);
-    return true;
-  }
 
-  Draw(drawList: DrawList) {
-    if (!this.IsVisible() || !this.m_path) return;
-    const element = this.m_elementsList.TryGet(this.m_elementId);
-    if (!element) return;
-    const t = this.m_start === null ? 0 : Math.min(1, (performance.now() - this.m_start) / Math.max(this.m_duration, 1));
-    const [from, to] = this.m_path;
-    element.SetPosition({ x: from.x + (to.x - from.x) * t, y: from.y + (to.y - from.y) * t });
-    element.Draw(drawList);
+    this.m_elementsList.SetHidden(false, this.GetElementIds());
+
+    tweeny.start(this.m_animation);
+    return true;
   }
 }

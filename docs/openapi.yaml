@@ -1896,7 +1896,7 @@ paths:
       tags:
       - Asset library
 
-  # ─── Other ──────────────────────────────────────────────────────────
+  # ─── Browser game ───────────────────────────────────────────────────
   /api/game/project:
     get:
       summary: Game Project
@@ -1915,7 +1915,7 @@ paths:
         '500':
           $ref: '#/components/responses/ServerError'
       tags:
-      - Other
+      - Browser game
   /api/game/data:
     get:
       summary: Game Data
@@ -1941,7 +1941,37 @@ paths:
         '500':
           $ref: '#/components/responses/ServerError'
       tags:
-      - Other
+      - Browser game
+  /api/game/file-stamps:
+    get:
+      summary: Game File Stamps
+      operationId: game_file_stamps_api_game_file_stamps_get
+      parameters:
+      - name: file
+        in: query
+        required: true
+        schema:
+          type: array
+          items:
+            type: string
+          title: File
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Game File Stamps Api Game File Stamps Get
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Browser game
   /api/game/cpp:
     get:
       summary: Game Cpp
@@ -1970,7 +2000,7 @@ paths:
         '500':
           $ref: '#/components/responses/ServerError'
       tags:
-      - Other
+      - Browser game
   /api/game/translate:
     post:
       summary: Game Translate
@@ -1999,7 +2029,7 @@ paths:
         '500':
           $ref: '#/components/responses/ServerError'
       tags:
-      - Other
+      - Browser game
   /api/game/export:
     post:
       summary: Game Export
@@ -2032,4 +2062,4 @@ paths:
         '500':
           $ref: '#/components/responses/ServerError'
       tags:
-      - Other
+      - Browser game

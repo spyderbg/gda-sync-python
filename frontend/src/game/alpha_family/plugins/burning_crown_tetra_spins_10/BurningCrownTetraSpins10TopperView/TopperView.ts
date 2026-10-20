@@ -24,6 +24,11 @@ export class TopperView extends BaseView implements ITopperView {
     this.RuntimeRemove(ITopperViewToken);
   }
 
+  Process() {
+    super.Process();
+    this.m_elementsList.Update();
+  }
+
   Draw(drawList: DrawList) {
     if (!this.IsVisible()) return;
     this.m_elementsList.Draw(drawList);
@@ -37,7 +42,7 @@ export class TopperView extends BaseView implements ITopperView {
   GetContentSize() {
     let w = 0;
     let h = 0;
-    for (const element of this.m_elementsList.Elements()) {
+    for (const element of this.m_elementsList.GetElements()) {
       if (element.GetHidden()) continue;
       const bounds = element.GetBounds();
       w = Math.max(w, bounds.x + bounds.w);

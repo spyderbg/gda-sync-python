@@ -37,6 +37,7 @@ export class BaseElement extends RuntimeHolder {
   protected color: Color = { ...WHITE };
   protected hidden = false;
   protected elementData: ViewElementData | null = null;
+  private released = false;
 
   Init(runtime: Runtime, key = '') {
     this.SetRuntime(runtime);
@@ -44,6 +45,16 @@ export class BaseElement extends RuntimeHolder {
   }
 
   Deinit() {}
+
+  /** Whether its elements list released it: where C++'s ElementPtr is gone, which the tweens of it check (their
+   * sentinel). */
+  IsReleased() {
+    return this.released;
+  }
+
+  Release() {
+    this.released = true;
+  }
 
   SetElementData(data: ViewElementData) {
     this.elementData = data;

@@ -103,8 +103,8 @@ export interface PluginExport {
 }
 
 export interface PluginExportOptions {
-  /** Translates every view, visual and software button of the game's view module from its TypeScript, not only those
-   * changed in the browser: the plugin's C++ views then follow the browser's. */
+  /** Translates every view, visual and software button of the game's view module, and the info and topper modules'
+   * views, from their TypeScript, not only those changed in the browser: the plugin's C++ views then follow the browser's. */
   translateAllViews?: boolean;
 }
 
@@ -163,6 +163,12 @@ export async function ExportPlugin(input: CppExportInput, token: string, options
   const viewSources = await LoadSources(viewModule);
   const allViews = options.translateAllViews ? [...viewSources.keys()].filter(path => /^(Views|Visuals|SwButtons)\//.test(path.slice(viewModule.length))
     && !path.endsWith('.data.ts') && !path.endsWith('/BaseVisual.ts') && /\bexport (abstract )?class\b/.test(viewSources.get(path) ?? '')) : [];
+  // and the views of the info and topper modules (InfoView, TopperView; their modules are C++'s)
+  if (options.translateAllViews) {
+    for (const module of [`${gameName}InfoView`, `${gameName}TopperView`]) {
+      for (const [path, text] of await LoadSources(`alpha_family/plugins/${plugin}/${module}/`)) if (/\bextends BaseView\b/.test(text)) allViews.push(path);
+    }
+  }
   const candidates = TranslationClosure([...changed.map(item => item.ts), ...newFiles, ...allViews], viewModule, viewSources);
   const translated: { ts: string; cpp: string[] }[] = [];
   if (candidates.length) {

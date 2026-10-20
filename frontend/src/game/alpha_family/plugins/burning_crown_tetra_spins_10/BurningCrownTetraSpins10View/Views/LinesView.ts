@@ -2,7 +2,8 @@
 // lines, shown one at a time: fast once (then showFastLinesFinished), then slowly, over and over.
 
 import type { Runtime } from '../../../../../engine/GameCore/RuntimeAccess';
-import { Delay, type TweenAction } from '../../../../../engine/GameCore/Tools/Tweeny';
+import { make_sentinel, sentinel } from '../../../../../hat_libs/egt_hpp/sentinel';
+import * as tweeny from '../../../../../hat_libs/tweeny/tweeny';
 import { IAudioApi, type IAudioPlayback } from '../../../../../engine/Game/RuntimeImport/IAudioApi';
 import { IResources, type RssRect } from '../../../../../engine/Game/RuntimeExport/IResources';
 import type { DrawList } from '../../../../../engine/GameVideoCtrl/DrawList';
@@ -12,12 +13,26 @@ import { CombinationType, type ERoundTags, type SymbolId, type SymbolViewInfos }
 import { CombinationsEqual, type ReelCombination, type ReelCombinations } from '../../../../libs/AlphaFamily/Math/Reel/ReelRoundPhase.data';
 import { ILinesView, ILinesViewEvents, LineType } from '../../../../libs/AlphaFamily/Views/ILinesView.bridge';
 import { BaseView } from '../../../../libs/AlphaFamilyVideoCtrl/BaseView';
-import { BaseVisual } from '../Visuals/BaseVisual';
 import { LinesVisual } from '../Visuals/LinesVisual';
 import type { LinesVisualConfig } from './ReelsView.data';
 import type { ReelSubScreen } from './ReelSubScreen.data';
 
 const LinesViewId = 'LinesView';
+
+const AudioEventCollectId = 'SOUND_WIN_COLLECT';
+const AudioEventCollectEndId = 'SOUND_WIN_COLLECT_END';
+
+enum AudioProgress {
+  Idle,
+  PlayingCombination,
+  PlayingCollect,
+}
+
+enum AnimationCommand {
+  PlayAnimations,
+  PauseAnimations,
+  ResumeAnimations,
+}
 
 interface LinesViewConfig extends LinesVisualConfig {
   autoPlayIdleTimer?: number;
@@ -27,16 +42,29 @@ interface LinesViewConfig extends LinesVisualConfig {
 }
 
 export class LinesView extends BaseView implements ILinesView {
-  private readonly m_events = new ILinesViewEvents();
-  private m_config!: LinesViewConfig;
+  protected readonly m_events = new ILinesViewEvents();
+
+  private m_actionFastTimer = new tweeny.tween_action();
   private m_lines: LinesVisual[] = [];
-  private m_combinations: ReelCombinations = [];
+
   private m_isShowFast = false;
-  private m_start: number | null = null;
-  private m_current = -1;
-  private m_paused = false;
-  private m_actionFast: TweenAction | null = null;
-  private m_winPlayback: IAudioPlayback | null = null;
+  private m_isAutoPlayEnabled = false;
+  private m_hasShownLine = false;
+  private m_winTags: ERoundTags[] = [];
+  private m_combinations: ReelCombinations = [];
+
+  private m_sentinel = new sentinel();
+  private m_actionBlink = new tweeny.tween_action();
+
+  private m_autoPlayTimer = new tweeny.tween_action(); // used to skip win lines when auto play is on
+
+  private m_combinationPlayback: IAudioPlayback | null = null;
+  private m_collectPlayback: IAudioPlayback | null = null;
+  private m_audioProgress = AudioProgress.Idle;
+
+  private m_config!: LinesViewConfig;
+
+  private m_lastAnimationCommand = AnimationCommand.PlayAnimations;
 
   constructor() {
     super(LinesViewId);
@@ -46,160 +74,401 @@ export class LinesView extends BaseView implements ILinesView {
     super.Init(runtime);
     this.RuntimeAdd(ILinesView, this);
     this.RuntimeAdd(ILinesView.Events, this.m_events);
-    this.m_config = this.RuntimeGet(IResources).GetIData<LinesViewConfig>('LinesViewConfig');
-    this.InitElementsList(LinesViewId);
+
+    this.InitConfig();
+
+    this.InitElementsList(LinesViewId, () => {
+      this.OnElementsListLoaded();
+    });
+
+    this.InitIdleTimer();
+
     return true;
   }
 
   Deinit() {
     this.ClearLines();
     this.DeinitElementsList();
+
     this.RuntimeRemove(ILinesView);
     this.RuntimeRemove(ILinesView.Events);
-    super.Deinit();
-  }
 
-  Draw(drawList: DrawList) {
-    if (!this.IsVisible()) return;
-    BaseVisual.DrawAll(this.m_lines, drawList);
+    super.Deinit();
   }
 
   Process() {
     super.Process();
-    this.m_actionFast?.Process();
-    if (this.m_start === null || this.m_paused || !this.m_lines.length) return;
-    const interval = (this.m_isShowFast ? this.m_config.fastShowInterval : this.m_config.slowShowInterval) ?? 1000;
-    const showEnd = (this.m_isShowFast ? this.m_config.fastShowEnd : this.m_config.slowShowEnd) ?? interval;
-    const elapsed = performance.now() - this.m_start;
-    const index = Math.floor(elapsed / interval) % this.m_lines.length;
-    const visible = elapsed % interval < showEnd;
-    if (index !== this.m_current) {
-      const previous = this.m_lines[this.m_current];
-      previous?.SetVisible(false);
-      previous?.EnableBlinking(false);
-      this.m_current = index;
-      this.m_lines[index].SetVisible(true);
-      this.m_lines[index].EnableBlinking(!this.m_isShowFast);
-      this.PlayLineSound(index);
-    } else if (!visible && this.m_lines[index].IsVisible()) {
-      this.m_lines[index].SetVisible(false);
-      this.m_lines[index].EnableBlinking(false);
+
+    this.UpdateAudio();
+  }
+
+  Draw(drawList: DrawList) {
+    if (!this.IsVisible()) return;
+
+    for (const line of this.m_lines) {
+      line.Draw(drawList);
     }
   }
 
-  SetWinLineTags(_tags: ERoundTags[]) {}
+  SetWinLineTags(tags: ERoundTags[]) {
+    if (tags.length === this.m_winTags.length && tags.every((tag, index) => tag === this.m_winTags[index])) return;
+    this.m_winTags = tags;
+  }
 
   ShowWinLine(combination: ReelCombination, _type = LineType.eSteadyForever) {
     this.ShowCombinations([combination], true, false);
   }
 
+  ShowCombinations(combinations: ReelCombinations, fast: boolean, autoPlayEnabled: boolean) {
+    if (CombinationsEqual(combinations, this.m_combinations)) return;
+
+    this.ClearLines();
+
+    this.m_lastAnimationCommand = AnimationCommand.PlayAnimations;
+    this.m_combinations = combinations;
+    this.m_isShowFast = fast;
+    this.m_isAutoPlayEnabled = autoPlayEnabled;
+
+    if (this.m_isAutoPlayEnabled) {
+      this.StartAutoPlayIdleTimer();
+    }
+
+    if (this.m_isShowFast) {
+      const winAudioEventId = this.GetWinAudioEventIdFromCombinations(this.m_combinations, this.m_isAutoPlayEnabled);
+      this.PlayAudio(winAudioEventId);
+    }
+    if (!this.m_combinations.length) {
+      this.StopAudio();
+    }
+
+    combinations.forEach((comb, i) => {
+      switch (comb.type) {
+        case CombinationType.LeftToRight: {
+          const config = this.m_config.lines?.[comb.id];
+          const squareKey = this.m_config.winSquareRssKeys?.[comb.id];
+          if (!config || !squareKey) return;
+
+          const line = this.CreateLineVisual(comb.symbolViewInfos, squareKey, i === 0, fast);
+
+          const lineElement = this.m_elementsList.Create(ImageElement, config.imageId).SetPosition(config.offset).SetScale(config.scale);
+
+          line.AddLineId(lineElement.GetId());
+
+          const shadowLineElement = this.m_elementsList.Create(ImageElement, config.imageId)
+            .SetPosition(config.offset)
+            .SetScale(config.scale)
+            .SetColor({ r: 160, g: 160, b: 160 });
+
+          line.AddShadowLineId(shadowLineElement.GetId());
+
+          this.m_lines.push(line);
+          break;
+        }
+        case CombinationType.Scatter: {
+          const line = this.CreateLineVisual(comb.symbolViewInfos, this.m_config.winSquareScatterRssKey ?? '', i === 0, fast);
+
+          this.m_lines.push(line);
+          break;
+        }
+        default:
+          break;
+      }
+    });
+
+    this.AdjustVisibility();
+  }
+
+  UpdateShownCombinations(autoPlayEnabled: boolean) {
+    if (this.m_isAutoPlayEnabled === autoPlayEnabled) return;
+    this.m_isAutoPlayEnabled = autoPlayEnabled;
+
+    if (!autoPlayEnabled) {
+      tweeny.stop(this.m_autoPlayTimer);
+    }
+  }
+
   PlayWinLinesSounds(_todo_useSpecificType: string) {}
+
+  StopWinLinesSounds(reason: string) {
+    if (reason === 'AccumulationInstantEnd' && this.m_audioProgress === AudioProgress.PlayingCombination) return;
+
+    this.StopAudio();
+  }
 
   PlayBackgroundMusic(_roundName: string) {}
 
   StopBackgroundMusic(_roundName: string) {}
 
-  ShowCombinations(combinations: ReelCombinations, fast: boolean, _autoPlayEnabled: boolean) {
-    if (CombinationsEqual(combinations, this.m_combinations)) return;
-    this.ClearLines();
-    this.m_combinations = combinations;
-    this.m_isShowFast = fast;
-    combinations.forEach((comb, i) => {
-      if (comb.type === CombinationType.LeftToRight) {
-        const config = this.m_config.lines?.[comb.id];
-        const squareKey = this.m_config.winSquareRssKeys?.[comb.id];
-        if (!config || !squareKey) return;
-        const line = this.CreateLineVisual(comb.symbolViewInfos, squareKey, i === 0, fast);
-        line.AddLineId(this.m_elementsList.Create(ImageElement, config.imageId).SetPosition(config.offset).SetScale(config.scale).GetId());
-        line.AddShadowLineId(this.m_elementsList.Create(ImageElement, config.imageId).SetPosition(config.offset).SetScale(config.scale)
-          .SetColor({ r: 160, g: 160, b: 160 }).GetId());
-        this.m_lines.push(line);
-      } else if (comb.type === CombinationType.Scatter && this.m_config.winSquareScatterRssKey) {
-        this.m_lines.push(this.CreateLineVisual(comb.symbolViewInfos, this.m_config.winSquareScatterRssKey, i === 0, fast));
-      }
-    });
-    this.AdjustVisibility();
-  }
+  ClearLines() {
+    tweeny.stop(this.m_autoPlayTimer);
 
-  UpdateShownCombinations(_autoPlayEnabled: boolean) {}
+    for (const line of this.m_lines) {
+      line.EnableBlinking(false);
+    }
 
-  StopWinLinesSounds(_reason: string) {
-    this.m_winPlayback?.Stop();
-    this.m_winPlayback = null;
-  }
-
-  StopAllSounds() {
-    this.StopWinLinesSounds('StopAllSounds');
+    tweeny.stop(this.m_actionBlink);
+    tweeny.stop(this.m_actionFastTimer);
+    this.m_lines = [];
+    this.m_combinations = [];
+    this.m_isAutoPlayEnabled = false;
+    this.m_lastAnimationCommand = AnimationCommand.PlayAnimations;
+    this.m_elementsList.RemoveAll();
   }
 
   PauseAnimations() {
-    this.m_paused = true;
-    for (const line of this.m_lines) line.PauseAnimations();
+    this.m_lastAnimationCommand = AnimationCommand.PauseAnimations;
+
+    tweeny.pause(this.m_actionBlink);
+    tweeny.pause(this.m_actionFastTimer);
+    tweeny.pause(this.m_autoPlayTimer);
+
+    this.m_lines.forEach((line, i) => {
+      if (!this.m_hasShownLine) {
+        line.SetVisible(i === 0);
+      }
+
+      line.EnableBlinking(false);
+      line.PauseAnimations();
+
+      for (const light of line.GetLightIds()) {
+        const lightElement = this.m_elementsList.TryGet(light, AnimElement);
+        if (!lightElement) continue;
+
+        lightElement.Stop();
+      }
+    });
   }
 
   ResumeAnimations() {
-    this.m_paused = false;
-    for (const line of this.m_lines) line.ResumeAnimations();
+    this.m_lastAnimationCommand = AnimationCommand.ResumeAnimations;
+
+    tweeny.resume(this.m_actionBlink);
+    tweeny.resume(this.m_autoPlayTimer);
+    tweeny.resume(this.m_actionFastTimer);
+
+    for (const line of this.m_lines) {
+      line.ResumeAnimations();
+
+      for (const light of line.GetLightIds()) {
+        const lightElement = this.m_elementsList.TryGet(light, AnimElement);
+        if (!lightElement) continue;
+
+        lightElement.Play();
+      }
+    }
   }
 
-  ClearLines() {
-    this.m_actionFast?.Stop();
-    BaseVisual.ClearAll(this.m_lines);
-    this.m_combinations = [];
-    this.m_start = null;
-    this.m_current = -1;
+  StopAllSounds() {
+    this.m_audioProgress = AudioProgress.Idle;
+
+    this.m_collectPlayback?.Stop();
+    this.m_combinationPlayback?.Stop();
+  }
+
+  private OnElementsListLoaded() {
+    this.m_sentinel = make_sentinel();
+
+    this.AdjustVisibility();
+
+    switch (this.m_lastAnimationCommand) {
+      case AnimationCommand.PauseAnimations:
+        this.PauseAnimations();
+        break;
+      default:
+        break;
+    }
   }
 
   private AdjustVisibility() {
-    for (const line of this.m_lines) {
-      line.SetLightsVisibility(!this.m_isShowFast);
-      line.CreateBlinking(this.m_config.shadowBlinkingInterval ?? 0);
-      line.SetVisible(false);
+    if (this.m_actionBlink.is_valid()) {
+      tweeny.stop_and_finish(this.m_actionBlink);
     }
-    this.m_start = performance.now();
-    this.m_current = -1;
+
+    const interval = (this.m_isShowFast ? this.m_config.fastShowInterval : this.m_config.slowShowInterval) ?? 0;
+    const showEnd = (this.m_isShowFast ? this.m_config.fastShowEnd : this.m_config.slowShowEnd) ?? 0;
+
     if (this.m_isShowFast) {
-      this.m_actionFast?.Stop();
-      this.m_actionFast = Delay(this.m_lines.length * (this.m_config.fastShowInterval ?? 1000));
-      this.m_actionFast.OnEnd(() => {
+      const actionEndTime = tweeny.delay(this.m_lines.length * (this.m_config.fastShowInterval ?? 0));
+
+      actionEndTime.on_end.connect(() => {
         this.m_isShowFast = false;
         this.AdjustVisibility();
+
         this.m_events.showFastLinesFinished.Post();
         this.m_events.showCombinationsFinished.Post();
       });
-      this.m_actionFast.Start();
-    }
-  }
 
-  /** A line's sound: its symbol's, while the lines show fast. */
-  private PlayLineSound(index: number) {
-    if (!this.m_isShowFast) return;
-    const combination = this.m_combinations.filter(comb => comb.type === CombinationType.LeftToRight || comb.type === CombinationType.Scatter)[index];
-    const soundId = combination ? this.m_config.winFiguresDefaultSoundRssKeys?.[combination.symbolId] : '';
-    if (soundId) this.m_winPlayback = this.RuntimeGet(IAudioApi).Play(soundId);
+      this.m_actionFastTimer = actionEndTime;
+    }
+
+    const actionsList: tweeny.tween_action[] = [];
+
+    this.m_lines.forEach((line, index) => {
+      line.SetLightsVisibility(!this.m_isShowFast);
+      line.CreateBlinking(this.m_config.shadowBlinkingInterval ?? 0);
+
+      const actionVisibleCombo = tweeny.delay(showEnd, this.m_sentinel);
+      actionVisibleCombo.on_begin.connect(() => {
+        this.m_lines[index].SetVisible(true);
+        this.m_lines[index].EnableBlinking(!this.m_isShowFast);
+        this.m_hasShownLine = true;
+      });
+      actionVisibleCombo.on_end.connect(() => {
+        this.m_lines[index].SetVisible(false);
+        this.m_lines[index].EnableBlinking(false);
+      });
+
+      const actionComboInterval = tweeny.together([actionVisibleCombo, tweeny.delay(interval, this.m_sentinel)], this.m_sentinel);
+
+      actionsList.push(actionComboInterval);
+    });
+
+    const actionSequence = tweeny.sequence_precise(actionsList, this.m_sentinel);
+    const actionLooped = tweeny.repeat_precise(actionSequence, this.m_sentinel);
+
+    this.m_actionBlink = actionLooped;
+
+    tweeny.start(this.m_actionBlink, 'LinesView:ActionBlink');
+
+    if (this.m_isShowFast) {
+      tweeny.start(this.m_actionFastTimer);
+    }
   }
 
   private CreateLineVisual(symbolViewInfos: SymbolViewInfos, imageId: string, first: boolean, fast: boolean) {
     const line = new LinesVisual(this.m_elementsList);
+
     const subScreen = this.m_config.subScreen;
+
     for (const viewInfo of symbolViewInfos) {
       const offset = this.m_config.winSquareOffsets?.[viewInfo.coord.rowId];
       if (!offset) continue;
-      const squarePosition = { x: subScreen.reelAreaX + subScreen.reelStepX * viewInfo.coord.reelId + offset.x, y: subScreen.reelAreaY + subScreen.reelStepY * viewInfo.coord.rowId + offset.y };
+
+      const x = subScreen.reelAreaX + subScreen.reelStepX * viewInfo.coord.reelId + offset.x;
+      const y = subScreen.reelAreaY + subScreen.reelStepY * viewInfo.coord.rowId + offset.y;
+      const squarePosition = { x, y };
       const square = this.m_elementsList.Create(ImageElement, imageId).SetPosition(squarePosition);
       line.AddSquareId(square.GetId(), () => this.CalculateSquareCutBounds(square.GetBounds()), first);
-      line.AddShadowSquareId(this.m_elementsList.Create(ImageElement, imageId).SetPosition(squarePosition).SetColor({ r: 160, g: 160, b: 160 }).GetId());
-      if (!this.m_config.squareLightsRssKey) continue;
+
+      const shadowSquare = this.m_elementsList.Create(ImageElement, imageId)
+        .SetPosition(squarePosition)
+        .SetColor({ r: 160, g: 160, b: 160 });
+      line.AddShadowSquareId(shadowSquare.GetId());
+
       const lightsOffset = this.m_config.squareLightsOffset ?? { x: 0, y: 0 };
-      line.AddLightId(this.m_elementsList.Create(AnimElement, this.m_config.squareLightsRssKey)
-        .SetPosition({ x: squarePosition.x + lightsOffset.x, y: squarePosition.y + lightsOffset.y }).GetId());
+      const light = this.m_elementsList.Create(AnimElement, this.m_config.squareLightsRssKey ?? '')
+        .SetPosition({ x: squarePosition.x + lightsOffset.x, y: squarePosition.y + lightsOffset.y });
+      line.AddLightId(light.GetId());
+      line.SetLightsVisibility(!fast);
     }
-    line.SetLightsVisibility(!fast);
+
     return line;
   }
 
   private CalculateSquareCutBounds(bounds: RssRect): RssRect {
     const inset = this.m_config.winSquareCutInset ?? { x: 0, y: 0, w: 0, h: 0 };
     return { x: bounds.x + inset.x, y: bounds.y + inset.y, w: bounds.w - inset.w, h: bounds.h - inset.h };
+  }
+
+  private GetWinAudioEventIdFromCombinations(combinations: ReelCombinations, autoPlayEnabled: boolean) {
+    const noResult = '';
+    if (!combinations.length) return noResult;
+    if (!autoPlayEnabled && this.m_winTags.length) return noResult;
+
+    // std::tie(type, symbolCount, symbolId) <: the first of the highest
+    const higherSoundPriorityCombination = (a: ReelCombination, b: ReelCombination) =>
+      a.type !== b.type ? a.type < b.type : a.symbolCount !== b.symbolCount ? a.symbolCount < b.symbolCount : a.symbolId < b.symbolId;
+    let highestSoundPriorityCombination = combinations[0];
+    for (const combination of combinations) {
+      if (higherSoundPriorityCombination(highestSoundPriorityCombination, combination)) highestSoundPriorityCombination = combination;
+    }
+
+    const symbolCount = highestSoundPriorityCombination.symbolCount;
+    const symbolId = highestSoundPriorityCombination.symbolId;
+
+    const soundRssKey = symbolCount === 5 ? this.m_config.winFiguresX5SoundRssKeys![symbolId] : this.m_config.winFiguresDefaultSoundRssKeys![symbolId];
+    return soundRssKey;
+  }
+
+  private PlayAudio(winAudioEventId: string) {
+    this.StopAudio();
+    if (!winAudioEventId) return;
+    const audioApi = this.RuntimeTryGet(IAudioApi);
+    if (!audioApi) return;
+    this.m_combinationPlayback = audioApi.Play(winAudioEventId);
+    this.m_audioProgress = AudioProgress.PlayingCombination;
+  }
+
+  private StopAudio() {
+    switch (this.m_audioProgress) {
+      case AudioProgress.PlayingCollect: {
+        this.m_collectPlayback?.Stop();
+        const audioApi = this.RuntimeTryGet(IAudioApi);
+        if (!audioApi) return;
+        audioApi.Play(AudioEventCollectEndId);
+        break;
+      }
+      default:
+        this.m_collectPlayback?.Stop();
+        this.m_combinationPlayback?.Stop();
+        break;
+    }
+    this.m_audioProgress = AudioProgress.Idle;
+  }
+
+  private UpdateAudio() {
+    const audioApi = this.RuntimeTryGet(IAudioApi);
+    switch (this.m_audioProgress) {
+      case AudioProgress.Idle:
+        return;
+      case AudioProgress.PlayingCombination: {
+        if (!this.m_combinationPlayback) return;
+        if (this.m_combinationPlayback.IsPlaying()) return;
+        this.m_combinationPlayback.Stop();
+        if (!audioApi) return;
+        this.m_collectPlayback = audioApi.Play(AudioEventCollectId);
+        this.m_audioProgress = AudioProgress.PlayingCollect;
+        break;
+      }
+      case AudioProgress.PlayingCollect: {
+        if (!this.m_collectPlayback) return;
+        if (this.m_collectPlayback.IsPlaying()) return;
+        this.m_collectPlayback.Stop();
+        if (!audioApi) return;
+        audioApi.Play(AudioEventCollectEndId);
+        this.m_audioProgress = AudioProgress.Idle;
+        break;
+      }
+      default:
+        break;
+    }
+  }
+
+  private InitConfig() {
+    this.m_config = this.RuntimeGet(IResources).GetIData<LinesViewConfig>('LinesViewConfig');
+  }
+
+  private InitIdleTimer() {
+    const timerDuration = this.m_config.autoPlayIdleTimer ?? 0;
+
+    const timerAction = tweeny.delay(timerDuration);
+
+    timerAction.on_end.connect(() => {
+      if (!this.m_isAutoPlayEnabled) return;
+
+      for (const line of this.m_lines) {
+        line.EnableBlinking(false);
+      }
+
+      tweeny.stop(this.m_actionBlink);
+      this.m_events.showFastLinesFinished.Post();
+      this.m_events.showCombinationsFinished.Post();
+    });
+
+    this.m_autoPlayTimer = timerAction;
+  }
+
+  private StartAutoPlayIdleTimer() {
+    tweeny.start(this.m_autoPlayTimer);
   }
 }

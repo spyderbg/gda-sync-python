@@ -1,7 +1,8 @@
 // The VideoManager module (plugins/src/Egt/VideoManager): provides IVideo, the screen of the view resolution the game
 // draws on, and IVideoManager, the render layers over it (the capping splash...). The browser's canvas is that screen,
-// scaled to the page; touches are mapped back to the view resolution.
+// scaled to the page; touches are mapped back to the view resolution. Its Process updates the started tweens (tweeny).
 
+import * as tweeny from '../../hat_libs/tweeny/tweeny';
 import { IResources } from '../Game/RuntimeExport/IResources';
 import { Runtime } from '../GameCore/RuntimeAccess';
 import { DrawList } from '../GameVideoCtrl/DrawList';
@@ -25,6 +26,7 @@ export class VideoManager extends BaseModule implements IVideo, IVideoManager {
   private ctx: CanvasRenderingContext2D | null = null;
   private readonly layersMain = new Map<number, { handleEvent: EventHandler; draw: DrawHandler; isOpaqueFullScreen: IsOpaqueFullScreenHandler }>();
   private readonly listeners: [string, EventListener][] = [];
+  private m_lastProcess: number | null = null;
 
   constructor(private readonly canvas: HTMLCanvasElement, private readonly infoCanvas: HTMLCanvasElement | null = null,
     private readonly topperCanvas: HTMLCanvasElement | null = null) {
@@ -63,10 +65,19 @@ export class VideoManager extends BaseModule implements IVideo, IVideoManager {
   }
 
   Deinit() {
+    tweeny.shutdown();
     for (const [name, listener] of this.listeners) this.canvas.removeEventListener(name, listener);
     this.RuntimeRemove(IVideo);
     this.RuntimeRemove(IVideoManager);
     super.Deinit();
+  }
+
+  /** Runs the tweens by the time since the last frame (C++'s stopwatch). */
+  Process() {
+    const now = performance.now();
+    const dt = this.m_lastProcess === null ? 0 : now - this.m_lastProcess;
+    this.m_lastProcess = now;
+    tweeny.update(dt);
   }
 
   RegisterDrawMain(handleEvent: (event: TouchEventData) => boolean, draw: (drawList: DrawList) => void) {

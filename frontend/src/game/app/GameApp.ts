@@ -6,6 +6,7 @@
 import { Runtime } from '../engine/GameCore/RuntimeAccess';
 import type { IModule, ModuleConfig } from '../engine/ModuleManager/BaseModule';
 import { AudioManager } from '../engine/AudioManager/AudioManager';
+import { FileWatch } from '../engine/FileWatch/FileWatch';
 import { ResourceManager } from '../engine/ResourceManager/ResourceManager';
 import { VideoManager } from '../engine/VideoManager/VideoManager';
 import { AlphaFamilyGameflow } from '../integration/AlphaFamilyGameflow/AlphaFamilyGameflow';
@@ -55,6 +56,8 @@ export class GameApp {
     const { project } = options;
     const capping = GameApp.Capping(project);
     this.Add('ResourceManager', new ResourceManager(project, options.report), {}, true);
+    // a view reloads its elements list when its file changes (C++'s FileWatch, in debug and QA builds)
+    this.Add('FileWatch', new FileWatch(), {}, true);
     this.Add('VideoManager', new VideoManager(options.canvas, options.infoCanvas ?? null, options.topperCanvas ?? null), {}, true);
     this.Add('AudioManager', new AudioManager(), {}, true);
     this.Add('BrowserKernel', new BrowserKernel(), { capping, ...options.kernel }, true);

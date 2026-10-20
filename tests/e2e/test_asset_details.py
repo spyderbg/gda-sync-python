@@ -303,3 +303,62 @@ def test_a_text_file_is_edited_in_its_details_and_saved_into_the_backups(new_con
     assert (game / 'notes.csv').read_bytes() == b'a,b\r\n1,2\r\n3,4\r\n'
     expect(details.get_by_role('status')).to_contain_text('Saved')
     assert errors == []
+
+
+@pytest.mark.parametrize(('content', 'line'), [
+    ('{\n  "count": 1,\n}\n', 3),
+    ('{\n  "count": nope\n}', 2),
+    ('{\n  "count": 1\n', 3),
+    ('', 1),
+    ('{\n' + '\n' * 60 + '  "count": nope\n}', 62),
+])
+def test_invalid_json_highlights_its_line_and_updates_when_edited(new_context, details_backend, content, line):
+    backend, game = details_backend
+    (game / 'idata').mkdir()
+    (game / 'idata' / 'broken.json').write_bytes(content.replace('\n', '\r\n').encode())
+    page = new_context().new_page()
+    errors = []
+    page.on('pageerror', lambda error: errors.append(str(error)))
+    page.goto(backend.url)
+    page.get_by_role('list', name='Workspaces').get_by_role('button', name='Example', exact=True).click()
+    page.get_by_role('button', name='Asset library', exact=True).click()
+    page.get_by_role('region', name='Workspace summary').get_by_role('button', name='Rescan', exact=True).click()
+    page.get_by_role('button', name='Inspect broken.json', exact=True).click()
+    details = page.get_by_role('dialog', name='broken.json')
+    editor = details.get_by_label('Text of broken.json')
+    highlight = details.locator('.text-editor-error-line')
+    expect(details.get_by_role('status')).to_contain_text('Not valid JSON:')
+    expect(editor).to_have_attribute('aria-invalid', 'true')
+    expect(highlight).to_have_attribute('data-line', str(line))
+    details.get_by_role('button', name=f'Go to error on line {line}', exact=True).click()
+    expect(editor).to_be_focused()
+    assert editor.evaluate('el => el.selectionStart') == sum(len(part) + 1 for part in content.split('\n')[:line - 1])
+    # The highlight tracks the actual line even after jumping and scrolling a long file.
+    geometry = editor.evaluate('''el => {
+      const style = getComputedStyle(el);
+      const mark = el.parentElement.querySelector('.text-editor-error-line').getBoundingClientRect();
+      return {actual: mark.top, expected: el.getBoundingClientRect().top + parseFloat(style.borderTopWidth)
+        + parseFloat(style.paddingTop) + (Number(el.parentElement.querySelector('.text-editor-error-line').dataset.line) - 1)
+        * parseFloat(style.lineHeight) - el.scrollTop, visible: mark.bottom > el.getBoundingClientRect().top
+        && mark.top < el.getBoundingClientRect().bottom};
+    }''')
+    assert abs(geometry['actual'] - geometry['expected']) < 1
+    assert geometry['visible']
+    if line > 60:
+        editor.evaluate('el => { el.scrollTop += 36; }')
+        poll(lambda: highlight.evaluate('el => parseFloat(el.style.top)'),
+             8 + (line - 1) * 18 - editor.evaluate('el => el.scrollTop'))
+        BUILD.mkdir(exist_ok=True)
+        page.screenshot(path=str(BUILD / 'text-editor-error-line.png'))
+
+    editor.fill('{\n\n  "count": nope\n}')
+    expect(highlight).to_have_attribute('data-line', '3')
+    expect(details.get_by_role('button', name='Save', exact=True)).to_be_disabled()
+    editor.fill('{\n  "count": 1\n}')
+    expect(highlight).to_have_count(0)
+    expect(editor).not_to_have_attribute('aria-invalid', 'true')
+    expect(details.get_by_role('button', name='Save', exact=True)).to_be_enabled()
+    details.get_by_role('button', name='Revert', exact=True).click()
+    expect(editor).to_have_value(content)
+    expect(highlight).to_have_attribute('data-line', str(line))
+    assert errors == []

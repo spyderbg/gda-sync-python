@@ -54,6 +54,9 @@ export const GameBackend = {
   AssetReport: () => getJSON<GameAssetReport>('/api/asset-report'),
   /** A JSON file of the game, by its path relative to the game folder. */
   Data: <T>(path: string) => getJSON<T>(`/api/game/data?file=${encodeURIComponent(path)}`),
+  /** When each file of the game's resources last changed (null: missing), by its path relative to the game folder. */
+  FileStamps: (files: string[]) =>
+    getJSON<{ stamps: Record<string, string | null> }>(`/api/game/file-stamps?${files.map(file => `file=${encodeURIComponent(file)}`).join('&')}`),
   /** The URL of a resource file: images (DDS decoded to PNG), audio and fonts. */
   FileUrl: (file: string) => `/api/rss-sync/preview?file=${encodeURIComponent(file)}`,
   /** The pages of an RTF, laid out (the asset library's RTF preview). */
