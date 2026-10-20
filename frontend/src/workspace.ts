@@ -124,7 +124,7 @@ export async function load(signal: AbortSignal) {
   }
 }
 
-async function api<T>(path: string, method = 'POST', body?: unknown): Promise<T> {
+export async function api<T>(path: string, method = 'POST', body?: unknown): Promise<T> {
   const send = (token: string) => fetch(`/api/${path}`, {
     method,
     headers: { ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}), 'x-gda-token': token },

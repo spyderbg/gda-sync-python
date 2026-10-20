@@ -226,6 +226,66 @@ assets or one folder. An empty target preserves the original subfolders when cop
 `POST /api/asset-report/rename-key/preview` and `/rename-key` take `{kind, key, newKey, excluded?: [referenceId]}`.
 Apply also requires the preview's `fingerprint`. Preview is read-only; all four endpoints use the usual session guard.
 
+### Image metadata and generation
+
+**Image studio** in the Asset library, or **Image metadata…** in an Image/ImageSeq's details, analyzes image assets
+with a local LM Studio vision model. The backend Python package `egt_gda_sync.images.metadata` adapts the analyzer,
+metadata format and stable-diffusion.cpp runner from the sibling `image-analyzer` project. It also decodes DDS
+(including BC7) to PNG for vision input. Width, height, transparency and the original file's SHA-256 come from the
+image, rather than the model. Supported inputs are DDS, PNG, JPEG, WebP, BMP, TGA and TIFF.
+
+Metadata is UTF-8 JSON beside the image: `bell.dds.json`. Its structured editor shows description, scene, objects,
+tags, OCR text and provenance, and edits **Output resolution**, **Model render resolution**, transparency and an
+optional **Generation prompt**. An empty custom prompt uses the description and scene. Render sizes are multiples
+of 32; generated PNGs are resized to the exact output size. **Save metadata** works without a model. Existing
+image-analyzer sidecars use the same schema. Saving refuses a stale revision instead of overwriting another edit.
+
+An ImageSeq has **one description and generation prompt for the entire animation**, with one JSON file in the game's
+`.asset-metadata/sequences/<asset-id>.imageseq.json`. Its metadata includes the ordered frame list, source rectangles,
+range paths, timing and loop settings. Each animation has its own metadata even when it shares DDS files with another
+animation or an Image. A separately declared Image still has its own image sidecar.
+
+**Analyze animation** submits one model request containing a chronological contact sheet of up to 12 representative
+frames, evenly covering the animation and including its first and last frame. Atlas frames are cropped to their
+declared source rectangles before analysis. The model is asked for one description of the subject, appearance, motion
+and changes over time; sampled frame indices are recorded. Long animations are sampled, so short events between
+samples may need manual description. Analysis creates no per-frame metadata files and never edits the descriptor.
+The editor shows this one animation entry, its representative frames, and shared description/prompt. Output sizes
+start with the first frame's dimensions. Generating from animation metadata creates one still PNG from its shared
+prompt; it does not synthesize an animated sequence. **Analyze batch** / **Generate batch** in the library studio
+submit one job per selected image or animation; repeated selections of the same asset are deduplicated.
+
+**New image metadata** creates a sidecar at an image path relative to the game folder, even when that image does not
+exist yet. Enter a prompt and sizes, then **Save & generate image**. The original image and metadata stay intact;
+the generated result is `bell.dds.json.generated.png`, viewable in the studio. **Keep original** also saves the model's
+unresized PNG as `bell.dds.json.generated.original.png`. New drafts can be reopened from the studio before an asset
+report includes their generated images. The per-submission **Replace existing…** checkbox controls regeneration;
+otherwise existing outputs are skipped. Failed or cancelled jobs preserve existing output.
+
+**Generation queue** is one persistent worker for the entire Library, across workspaces. Metadata analysis and
+image generation never run concurrently. Pending jobs with the current operation type and model settings are
+drained together before switching types, reducing vision/diffusion model switches. Jobs capture their workspace,
+input revisions and settings when submitted. Changing workspaces or settings does not redirect queued work; editing
+an input invalidates its queued result. Cancel stops a queued job immediately; an active vision request discards its
+result on return, and an active diffusion runner is terminated. Closing the popup keeps work running. On application
+restart, queued jobs resume and interrupted jobs are marked failed for explicit retry. Queue history is stored in
+`image-jobs.json` in the app-data folder, retaining the newest 1000 completed jobs.
+
+Configure **Local models** once: LM Studio base URL and vision model, and installed diffusion, text encoder, VAE and
+`sd-cli` paths. Defaults match `image-analyzer` (Qwen vision / Qwen-Image generation). Settings live in the app-data
+folder's `image-analyzer.json`; `IMAGE_ANALYZER_CONFIG` selects a different file, including the original project's
+configuration. Relative weights/executable paths resolve against that file. LM Studio authentication uses
+`LM_STUDIO_API_KEY`. No model or runner is downloaded automatically. The runner must support Qwen-Image-2.1;
+the matching VAE is required. Model unloading options are editable because they affect other local model clients.
+
+API: `GET /api/image-studio/catalog?asset=<optional id>`, `GET /metadata?file=<image path or sequence key>` and `POST /metadata`
+with `{file, metadata, revision}`; `GET /jobs`, `POST /jobs` with `{kind: "metadata" | "image", assets?: [id],
+files?: [image path], overwrite?: false}`, and `POST /jobs/cancel` with `{id}`; `GET /settings` and `POST /settings`
+with `{settings}`. These paths share the `/api/image-studio` prefix. `GET /generated?file=<image path>` serves the
+result PNG. Animation entries use the catalog's `sequence:<asset-id>` key in place of an image path;
+`GET /sequence-preview?file=<sequence key>` serves their contact sheet. Mutations use the usual session guard. Reads and writes stay inside workspace resources without links;
+new drafts stay inside the game folder.
+
 ### Report versions
 
 Each report file holds the `version` of the format that wrote it. The app reads every earlier version, but a feature appears only once a **Rescan** writes a report of the version that added it. After updating the app, rescan each workspace once on both pages.

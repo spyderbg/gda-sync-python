@@ -37,6 +37,9 @@ from egt_gda_sync.sync.rss_edit import add_declaration, declaration_keys, parse 
 from egt_gda_sync.sync import rss_refactor
 from egt_gda_sync.sync.rss_jobs import SyncJobs
 from egt_gda_sync.images.image_cache import CACHE_FILE
+from egt_gda_sync.images.metadata.service import (EXTENSIONS as METADATA_EXTENSIONS, MetadataLibrary, checked as metadata_path,
+                                                image_data as metadata_image_data, target_key, target_paths)
+from egt_gda_sync.images.metadata.sequence import storyboard
 from egt_gda_sync.workspace.paths import PLACEHOLDER, contract, expand, expand_fields, global_paths
 from egt_gda_sync.sync.rss_schemas import DOCUMENT_TYPES, parse_dataclass
 from egt_gda_sync.sync.rss_sync import DEFAULT_EXTENSIONS, DEFAULT_MATCH_THRESHOLD, Config, declared_files, declared_paths, expand_path, load_documents
@@ -376,6 +379,7 @@ class Library:
         self._previews_lock = threading.Lock()
         self.reports = SyncJobs(os.path.join(self.home, "sync-reports"))
         self.asset_reports = AssetReports(os.path.join(self.home, "asset-reports"))
+        self.image_metadata = MetadataLibrary(self.home, self._operation)
 
     @property
     def busy(self) -> bool:
@@ -821,6 +825,7 @@ class Library:
         return self.reports.run(workspace_id, *self._comparison(workspace_id, entry, overrides), progress)
 
     def close(self) -> None:
+        self.image_metadata.close()
         self.reports.stop_all()
 
     def _describe(self, config: dict, folder: str, relative: str, name: str) -> dict:
@@ -983,6 +988,119 @@ class Library:
         if row is None:
             raise AppError("The asset is no longer in the asset report. Rescan and try again.", 404)
         return row, rows
+
+    def _metadata_context(self) -> tuple[str, Path, Path]:
+        workspace, entry = self._active_workspace()
+        settings = self._comparison(workspace, entry)[1]
+        game = self._asset_game(settings).resolve()
+        return workspace, Path(settings['resources_dir']).resolve(), game
+
+    def _metadata_sources(self, workspace: str, root: Path, assets: list[str], *, rows: list[dict] | None = None) -> list[Path | dict]:
+        sources = []
+        game = self._metadata_context()[2]
+        if rows is None:
+            report = self.asset_reports.report(workspace)
+            rows = json.loads(report).get('assets', []) if report else []
+        by_id = {row['id']: row for row in rows}
+        for asset in assets:
+            row = by_id.get(asset)
+            if row is None:
+                raise AppError('The asset is no longer in the asset report. Rescan and try again.', 404)
+            if row['type'] != 'texture' or row.get('directory') or row.get('view'):
+                raise AppError('Image metadata is available for Images and ImageSeq assets')
+            for file in _asset_files(row):
+                source = metadata_path(file, root)
+                if source.suffix.lower() not in METADATA_EXTENSIONS:
+                    raise AppError(f'Image analysis does not support {source.suffix} files')
+                if not row.get('sequence'):
+                    sources.append(source)
+            if sequence := row.get('sequence'):
+                if not sequence['frames']:
+                    raise AppError('The animation has no frames')
+                frames = [{'path': os.path.relpath(frame['resourcePath'], game).replace(os.sep, '/'),
+                           **({'source': frame['source']} if frame.get('source') else {})} for frame in sequence['frames']]
+                files = {frame['path']: str(metadata_path(original['resourcePath'], root))
+                         for frame, original in zip(frames, sequence['frames'])}
+                sources.append({'file': f'sequence:{row["id"]}', 'source': next(iter(files.values())),
+                                'path': str(game / '.asset-metadata' / 'sequences' / f'{row["id"]}.imageseq.json'),
+                                'sequence': {'id': sequence['id'], 'frameTime': sequence['frameTime'],
+                                             'loopCount': sequence['loopCount'], 'loopTo': sequence['loopTo'],
+                                             'paths': sequence['paths'], 'frames': frames, 'files': files,
+                                             'descriptors': [str(metadata_path(game / use['descriptor'], root)) for use in row['requiredBy']]}})
+        return list({target_key(target): target for target in sources}.values())
+
+    def metadata_catalog(self, asset: str | None = None) -> dict:
+        workspace, root, game = self._metadata_context()
+        if asset:
+            sources = self._metadata_sources(workspace, root, [asset])
+        else:
+            report = self.asset_reports.report(workspace)
+            rows = json.loads(report).get('assets', []) if report else []
+            eligible = [row['id'] for row in rows if row['type'] == 'texture' and row.get('scope') != 'outside' and all(
+                        Path(file).suffix.lower() in METADATA_EXTENSIONS for file in _asset_files(row))]
+            sources = self._metadata_sources(workspace, root, eligible, rows=rows)
+            # Include manually created image drafts even before their image exists.
+            sources.extend(Path(str(path)[:-5]) for path in game.rglob('*.json')
+                           if Path(str(path)[:-5]).suffix.lower() in METADATA_EXTENSIONS and not path.is_symlink())
+        sources = list({target_key(target): target for target in sources}.values())
+        entries = []
+        for target in sources:
+            source, path, output, sequence = target_paths(target, root)
+            entries.append({'file': target_key(target), 'kind': 'sequence' if sequence else 'image',
+                            'name': (sequence['id'] or sequence['paths'][0]) if sequence else os.path.relpath(source, game).replace(os.sep, '/'),
+                            'frameCount': len(sequence['frames']) if sequence else None,
+                            'exists': all(Path(file).is_file() for file in sequence['files'].values()) if sequence else source.is_file(),
+                            'metadata': path.is_file(), 'generated': output.is_file()})
+        return {'workspace': workspace, 'game': str(game), 'files': entries}
+
+    def _metadata_source(self, file: str, root: Path, game: Path) -> Path | dict:
+        if file.startswith('sequence:'):
+            target = self._metadata_sources(self._active_workspace()[0], root, [file.removeprefix('sequence:')])[0]
+            if not isinstance(target, dict):
+                raise AppError('Choose an ImageSeq asset')
+            return target
+        source = metadata_path(Path(file) if os.path.isabs(file) else game / file, root)
+        if source.suffix.lower() not in METADATA_EXTENSIONS:
+            raise AppError('Choose a supported image file')
+        if not source.is_relative_to(game):
+            # Other games' or common frames must belong to an asset in this report.
+            catalog = self.metadata_catalog()
+            if str(source) not in {item['file'] for item in catalog['files']}:
+                raise AppError('This image does not belong to the active workspace', 404)
+        return source
+
+    def metadata_document(self, file: str) -> dict:
+        _workspace, root, game = self._metadata_context()
+        source = self._metadata_source(file, root, game)
+        return self.image_metadata.document(source, root)
+
+    def save_metadata(self, file: str, metadata: dict, revision: str) -> dict:
+        _workspace, root, game = self._metadata_context()
+        source = self._metadata_source(file, root, game)
+        return self.image_metadata.save(source, root, metadata, revision)
+
+    def queue_image_jobs(self, kind: str, assets: list[str], files: list[str], overwrite: bool = False) -> dict:
+        workspace, root, game = self._metadata_context()
+        sources = [*self._metadata_sources(workspace, root, assets),
+                   *(self._metadata_source(file, root, game) for file in files)]
+        if not sources:
+            raise AppError('Choose at least one image or ImageSeq asset')
+        return self.image_metadata.enqueue(workspace, root, game, sources, kind, overwrite=overwrite)
+
+    def generated_image(self, file: str) -> str:
+        _workspace, root, game = self._metadata_context()
+        source = self._metadata_source(file, root, game)
+        path = target_paths(source, root)[2]
+        if not path.is_file():
+            raise AppError('No generated image exists yet', 404)
+        return str(path)
+
+    def metadata_sequence_preview(self, file: str) -> bytes:
+        _workspace, root, game = self._metadata_context()
+        target = self._metadata_source(file, root, game)
+        if not isinstance(target, dict):
+            raise AppError('Choose an ImageSeq asset')
+        return storyboard(target['sequence'], lambda path: metadata_image_data(metadata_path(path, root)))[0]
 
     @staticmethod
     def _key_uses(row: dict, rows: list[dict], game: Path) -> list[dict]:
