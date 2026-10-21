@@ -22,5 +22,9 @@ export default defineConfig({
     // Fonts and images stay files: the Content-Security-Policy does not allow data: fonts.
     assetsInlineLimit: 0,
     chunkSizeWarningLimit: 1024,
+    // The game's developer panel maps a state machine transition's call stack frame back to its TypeScript line
+    // (src/game/app/SourceLocation.ts): source maps beside the scripts, without the sources and unreferenced by them.
+    sourcemap: 'hidden',
+    rolldownOptions: { output: { sourcemapExcludeSources: true } },
   },
 });

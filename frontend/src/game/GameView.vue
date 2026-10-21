@@ -3,10 +3,11 @@
 // (its asset report) and the game's own descriptors, math and modules config, all read through the backend.
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from 'vue';
 import PageHeader from '../components/PageHeader.vue';
-import { config, navigate, notify, session } from '../workspace';
+import { config, navigate, notify, openGameExport, openGameSource, session } from '../workspace';
 import { GameApp } from '@game/app/GameApp';
 import { type GameAssetReport, GameBackend, type GameProject } from '@game/app/GameBackend';
 import { AudioManager } from '@game/engine/AudioManager/AudioManager';
+import type { TransitionRecord, TransitSource } from '@game/engine/Fsm/Fsm';
 import type { HwButtonName } from '@game/engine/Game/RuntimeImport/HwButtons.bridge';
 import { ResourceManager } from '@game/engine/ResourceManager/ResourceManager';
 import { VideoManager } from '@game/engine/VideoManager/VideoManager';
@@ -35,11 +36,44 @@ const topperOpen = ref(false);
 /** Whether the info screen shows; Info opens it. */
 const infoOpen = ref(false);
 const devOpen = ref(false);
-const exportResult = ref<{ folder: string; files: string[] } | null>(null);
+const exportResult = ref<{ folder: string; id: string; files: string[] } | null>(null);
 const exportReport = shallowRef<PluginExport['report'] | null>(null);
 /** Whether the export translates all the game's views from TypeScript, not only those changed in the browser. */
 const exportAllViews = ref(false);
 let app: GameApp | null = null;
+
+/** A transition as the developer panel shows it, like the C++ GameFsmViewer: the active leaf state before and after,
+ * and the function that asked for it on its state. */
+interface TransitionRow {
+  from: string;
+  to: string;
+  source: TransitSource;
+  details: string;
+}
+
+/** The active states up to the view manager (the managers around the game's states), then the game's states. */
+const managerStates = computed(() => live.states.slice(0, live.states.indexOf('ViewManager') + 1));
+const gameStates = computed(() => live.states.slice(live.states.indexOf('ViewManager') + 1));
+
+/** Opens in VS Code the TypeScript line that asked for a transition. */
+async function openTransitSource(source: TransitSource) {
+  // loaded when first used: only the developer panel's links need it
+  const { OriginalPosition } = await import('@game/app/SourceLocation');
+  const position = await OriginalPosition(source.file, source.line, source.column);
+  if (position) await openGameSource(position.file, position.line);
+  else notify(`Cannot tell where ${source.function} asked for the transition: its script has no source map.`, true);
+}
+
+function TransitionRowOf(record: TransitionRecord, start: number): TransitionRow {
+  const to = record.created[record.created.length - 1] ?? record.to;
+  const lines = [`${record.from} → ${record.to}`, ...record.destroyed.map(name => `  − ${name}`), ...record.created.map(name => `  + ${name}`)];
+  lines.push(`${record.source.function}${record.source.state ? ` on ${record.source.state}` : ''}, at ${((record.time - start) / 1000).toFixed(3)} s`);
+  return {
+    from: record.destroyed[0] ?? '', to,
+    source: record.source,
+    details: lines.join('\n'),
+  };
+}
 
 /** What the page shows of the game, refreshed a few times a second. */
 const live = reactive({
@@ -47,7 +81,7 @@ const live = reactive({
   buttons: {} as Partial<Record<HwButtonName, { enabled: boolean }>>,
   states: [] as string[],
   match: null as ReturnType<AlphaFamilyGameflow['GetMatchSnapshot']>,
-  transitions: [] as string[],
+  transitions: [] as TransitionRow[],
   preset: '',
   history: [] as { roundType: string; bet: number; win: number }[],
   infoPage: '',
@@ -103,7 +137,8 @@ function refreshLive() {
   live.buttons = k.GetButtonStates();
   const fsm = app?.Get(BurningCrownTetraSpins10Fsm)?.GetMachine();
   live.states = fsm?.ActiveStates() ?? [];
-  live.transitions = (fsm?.transitions ?? []).slice(-10).reverse().map(item => `${item.created[item.created.length - 1] ?? item.to} ← ${item.from}`);
+  const transitions = fsm?.transitions ?? [];
+  live.transitions = transitions.slice(-50).reverse().map(item => TransitionRowOf(item, transitions[0].time));
   live.match = flow.GetMatchSnapshot();
   live.preset = flow.GetRoundPreset()?.name ?? '';
   live.history = flow.history.slice(-8).reverse().map(item => ({ roundType: RoundType[item.roundType], bet: item.bet, win: item.win }));
@@ -313,13 +348,31 @@ onBeforeUnmount(() => {
     <div v-if="devOpen" class="card game-dev">
       <div class="card-body">
         <div class="row">
-          <div class="col-lg-4">
+          <div class="col-lg-5">
             <h6>State machine</h6>
-            <p class="game-dev-states"><code>{{ live.states.join(' › ') }}</code></p>
-            <h6>Transitions</h6>
-            <ol class="game-dev-list"><li v-for="(item, index) in live.transitions" :key="index">{{ item }}</li></ol>
+            <dl class="game-dev-states">
+              <dt class="text-muted">Managers</dt><dd><code>{{ managerStates.join(' › ') || '–' }}</code></dd>
+              <dt class="text-muted">Game</dt><dd><code>{{ gameStates.join(' › ') || '–' }}</code></dd>
+            </dl>
+            <h6>Transitions <small class="text-muted">newest first</small></h6>
+            <div class="game-dev-transitions">
+              <table class="table table-sm mb-0">
+                <thead><tr><th scope="col">From → to</th><th scope="col">Source</th></tr></thead>
+                <tbody>
+                  <tr v-for="(item, index) in live.transitions" :key="index" :title="item.details">
+                    <td><code>{{ item.from }}<template v-if="item.from"> → </template>{{ item.to }}</code></td>
+                    <td>
+                      <button v-if="item.source.file" type="button" class="game-dev-source" title="Open in VS Code where the transition was asked for" @click="openTransitSource(item.source)">
+                        <code><template v-if="item.source.state">{{ item.source.state }}::<wbr></template>{{ item.source.function }}</code>
+                      </button>
+                      <code v-else>{{ item.source.function }}</code>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
-          <div class="col-lg-4">
+          <div class="col-lg-3">
             <h6>Match</h6>
             <pre v-if="live.match" class="game-dev-pre">{{ JSON.stringify(live.match, null, 1) }}</pre>
             <p v-else class="text-muted">No match.</p>
@@ -344,10 +397,16 @@ onBeforeUnmount(() => {
               <label class="form-check-label small" for="game-export-all-views">Translate all the game's views from TypeScript (else only those changed in the browser)</label>
             </div>
             <button type="button" class="btn btn-sm btn-outline-primary" @click="exportCpp"><i class="mdi mdi-export" aria-hidden="true" /> Export to C++</button>
-            <p v-if="exportResult" class="small mt-2 mb-0">Exported {{ exportResult.files.length }} files to <code>{{ exportResult.folder }}</code></p>
-            <p v-if="exportReport" class="small mb-0">{{ exportReport.generated.length }} generated, {{ exportReport.copied.length }} copied,
-              {{ exportReport.updated.length }} updated, {{ exportReport.translated.length }} translated, {{ exportReport.skeletons.length }} new view skeletons;
-              <strong :class="{ 'text-danger': exportReport.changed.length }">{{ exportReport.changed.length }} to update by hand</strong> (see its README).</p>
+            <div v-if="exportResult" class="game-export-folder small mt-2">
+              <span>Exported {{ exportResult.files.length }} files to <code>{{ exportResult.folder }}</code></span>
+              <button type="button" class="details-icon" aria-label="Open the export's folder" title="Open the export's folder" @click="openGameExport(exportResult.id)"><i aria-hidden="true" class="mdi mdi-folder-open-outline" /></button>
+            </div>
+            <template v-if="exportReport">
+              <p class="small mb-0">{{ exportReport.generated.length }} generated, {{ exportReport.copied.length }} copied,
+                {{ exportReport.updated.length }} updated, {{ exportReport.translated.length }} translated, {{ exportReport.skeletons.length }} new view skeletons</p>
+              <p class="small mb-0"><strong :class="{ 'text-danger': exportReport.changed.length }">{{ exportReport.changed.length }} to update by hand</strong>
+                (see <button v-if="exportResult" type="button" class="game-dev-link" title="Open the export's README in VS Code" @click="openGameExport(exportResult.id, 'README.md')">its README</button><template v-else>its README</template>)</p>
+            </template>
           </div>
         </div>
         <h6 class="mt-3">Resources <small class="text-muted">images loaded {{ live.images }}<span v-if="!report">, no asset report ({{ reportError || 'none yet' }}): every declared file is used</span></small></h6>
@@ -425,8 +484,82 @@ onBeforeUnmount(() => {
   flex: 1 1 auto;
 }
 
-.game-dev-states code {
-  white-space: normal;
+.game-dev-states {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 0.75rem;
+  row-gap: 0.25rem;
+
+  dt {
+    font-weight: normal;
+  }
+
+  dd {
+    margin: 0;
+  }
+
+  code {
+    white-space: normal;
+  }
+}
+
+.game-dev-transitions {
+  max-height: 260px;
+  margin-bottom: 0.75rem;
+  overflow: auto;
+
+  // the theme's table cells do not wrap and are 35px high
+  th,
+  td {
+    height: auto;
+    white-space: normal;
+    padding: 0.2rem 0.5rem 0.2rem 0;
+    font-size: 0.8rem;
+    line-height: 1.3;
+  }
+
+  code {
+    font-size: inherit;
+  }
+}
+
+// the export's README: a link that opens it
+.game-dev-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #4b49ac;
+  font: inherit;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    text-decoration: underline;
+  }
+}
+
+.game-export-folder {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  code {
+    overflow-wrap: anywhere;
+  }
+}
+
+// a source is a link to the TypeScript
+.game-dev-source {
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover code,
+  &:focus-visible code {
+    text-decoration: underline;
+  }
 }
 
 .game-dev-list {

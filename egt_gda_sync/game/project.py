@@ -37,6 +37,8 @@ MAX_DATA_BYTES = 16 * 1024 * 1024
 MAX_WATCHED_FILES = 500
 MODULES_SUFFIX = "Modules.json"
 EXPORTS_FOLDER = "game-exports"
+# An export's folder name: the export's name and when it was made, and a number if that folder was taken.
+EXPORT_ID = re.compile(r"[A-Za-z0-9_-]{1,64}-\d+(~\d+)?")
 # The descriptor lists the game loads entries of, as the C++ resource manager names them.
 DESCRIPTOR_LISTS = ("images", "imagesSeq", "fonts", "styles", "audioEvents", "idatas", "elements", "movies", "rtfs")
 # An exported file's path: relative, of plain names, without traversal.
@@ -46,9 +48,11 @@ MAX_EXPORT_BYTES = 8 * 1024 * 1024
 # The C++ sources an export copies: sources, headers and their build files.
 CPP_FILE = re.compile(r"(\.(h|hpp|cpp|inl|txt|json|cmake)|/\.clang-format)$")
 MAX_CPP_FILES = 2000
-# The browser game's TypeScript-to-C++ translator (frontend/src/game/export/translator), which runs on Node.js where the
-# app runs from its sources.
-TRANSLATOR = Path(__file__).resolve().parents[2] / "frontend" / "src" / "game" / "export" / "translator" / "translate.mjs"
+# The browser game's sources, there where the app runs from its sources, and its TypeScript-to-C++ translator, which runs
+# on Node.js.
+GAME_SOURCES = Path(__file__).resolve().parents[2] / "frontend" / "src" / "game"
+TRANSLATOR = GAME_SOURCES / "export" / "translator" / "translate.mjs"
+GAME_SOURCE_PATH = re.compile(r"^(?!.*\.\.)[A-Za-z0-9_.-]+(/[A-Za-z0-9_.-]+)*\.(ts|vue)$")
 TS_PATH = re.compile(r"^(alpha_family|plugins)(/[A-Za-z0-9_.-]+)+\.ts$")
 TRANSLATE_TIMEOUT = 300
 
@@ -250,7 +254,35 @@ class GameProject:
             target = folder / relative
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(source.read_bytes())
-        return {"folder": str(folder), "files": sorted([*files, *copies])}
+        return {"folder": str(folder), "id": folder.name, "files": sorted([*files, *copies])}
+
+    def export_path(self, export_id: str, file: str | None = None) -> str:
+        """The folder of an export of the active workspace, by its id (its folder name), or a file of it."""
+        workspace_id = self._folders()[0]
+        if not EXPORT_ID.fullmatch(export_id):
+            raise AppError("Invalid export")
+        folder = Path(self.library.home) / EXPORTS_FOLDER / workspace_id / export_id
+        if not folder.is_dir():
+            raise AppError("Export not found", 404)
+        if file is None:
+            return str(folder)
+        if not EXPORT_PATH.match(file):
+            raise AppError(f"Invalid export path: {file}")
+        path = safe_path(str(folder), file)
+        if not os.path.isfile(path):
+            raise AppError(f"{file} is not in the export", 404)
+        return path
+
+
+def game_source_path(file: str) -> str:
+    """A TypeScript or Vue file of the browser game, by its path in frontend/src/game."""
+    if not GAME_SOURCE_PATH.match(file):
+        raise AppError("Invalid game source path")
+    path = safe_path(str(GAME_SOURCES), file)
+    if not os.path.isfile(path):
+        raise AppError("The game's sources are not here: the app does not run from its sources" if not GAME_SOURCES.is_dir()
+                       else "Game source not found", 404)
+    return path
 
 
 def _entry(entry, game: Path, descriptor: str) -> dict:

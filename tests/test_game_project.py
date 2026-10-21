@@ -8,6 +8,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from egt_gda_sync.app.server import create_app
+from egt_gda_sync.game.project import GAME_SOURCES
 from egt_gda_sync.workspace.library import Library
 from tests.conftest import session_headers
 from tests.test_asset_report import write_game
@@ -42,7 +43,12 @@ def client(tmp_path):
     config.write_text(json.dumps({"config": {"port": 3457}, "defaultWorkspace": "example", "workspaces": [entry]}))
     library = Library(str(tmp_path / "app"), config_path=str(config))
     library.init()
-    with TestClient(create_app(library, dev=True), base_url="http://127.0.0.1") as client:
+    opened = []
+    folders = []
+    with TestClient(create_app(library, dev=True, opener=folders.append, code_opener=lambda file, line: opened.append((file, line))),
+                    base_url="http://127.0.0.1") as client:
+        client.opened = opened
+        client.folders = folders
         client.game = game
         client.home = Path(library.home)
         client.headers.update(session_headers(client))
@@ -111,6 +117,20 @@ def test_an_export_is_written_to_the_app_data_folder(client):
     assert client.post("/api/game/export", json={"name": "Example", "files": files}, headers={"x-gda-token": "wrong"}).status_code == 403
 
 
+def test_an_exports_folder_and_its_readme_open(client):
+    result = client.post("/api/game/export", json={"name": "Example", "files": {"README.md": "# Example\n"}}).json()
+    assert result["id"] == Path(result["folder"]).name
+    assert client.post("/api/game/open-export", json={"id": result["id"]}).json() == {"opened": True}
+    assert client.folders == [result["folder"]]
+    assert client.post("/api/game/open-export", json={"id": result["id"], "file": "README.md"}).json() == {"opened": True}
+    assert client.opened == [(str(Path(result["folder"]) / "README.md"), 1)]
+    # Only the exports of the active workspace, and the files in them.
+    for body in [{"id": "../example"}, {"id": "Example-1"}, {"id": ".."}, {"id": result["id"], "file": "../README.md"},
+                 {"id": result["id"], "file": "/etc/passwd"}, {"id": result["id"], "file": "missing.md"}]:
+        assert client.post("/api/game/open-export", json=body).status_code in (400, 404), body
+    assert len(client.folders) == 1 and len(client.opened) == 1
+
+
 def test_the_cpp_sources_of_a_plugin_are_listed_and_copied_into_an_export(client):
     listing = client.get("/api/game/cpp", params={"folder": "alpha_family/plugins/example"}).json()
     # Only sources, headers and build files, by their paths in the C++ game sources.
@@ -130,6 +150,19 @@ def test_the_cpp_sources_of_a_plugin_are_listed_and_copied_into_an_export(client
     for source in ["secret.key", "alpha_family/plugins/example/src/Egt/ExampleView/notes.bin", "../workspace.json", "/etc/passwd"]:
         response = client.post("/api/game/export", json={"name": "Example", "files": {"README.md": "x"}, "copies": {"x.cpp": source}})
         assert response.status_code == 403, source
+
+
+def test_a_line_of_the_browser_games_sources_opens_in_vs_code(client):
+    # The developer panel's transitions open where the states asked for them.
+    body = {"file": "engine/Fsm/Fsm.ts", "line": 12}
+    assert client.post("/api/game/open-source", json=body).json() == {"opened": True}
+    assert client.opened == [(str(GAME_SOURCES / "engine" / "Fsm" / "Fsm.ts"), 12)]
+    # Only the game's TypeScript and Vue files that exist.
+    for file in ["../../../egt_gda_sync/app/server.py", "/etc/passwd", "engine/Fsm/Missing.ts", "README.md", "engine/../GameView.vue"]:
+        assert client.post("/api/game/open-source", json={**body, "file": file}).status_code in (400, 403, 404), file
+    for line in (0, -1, True, "12"):
+        assert client.post("/api/game/open-source", json={**body, "line": line}).status_code == 400
+    assert len(client.opened) == 1
 
 
 @pytest.mark.skipif(not shutil.which("node"), reason="the translator runs on Node.js")

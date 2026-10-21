@@ -24,7 +24,7 @@ from egt_gda_sync.app.desktop import choose_folder, open_in_code, open_on_deskto
 from egt_gda_sync.app.errors import AppError
 from egt_gda_sync.assets.fonts import FONT_EXTENSIONS, facts_header
 from egt_gda_sync.assets.movies import is_movie
-from egt_gda_sync.game.project import MAX_EXPORT_BYTES, GameProject
+from egt_gda_sync.game.project import MAX_EXPORT_BYTES, GameProject, game_source_path
 from egt_gda_sync.workspace.library import MAX_TEXT_BYTES, Library
 from egt_gda_sync.images.metadata.service import MAX_METADATA
 from egt_gda_sync.app.lifetime import PAGE_CLOSE_GRACE_SECONDS, PageLifetime
@@ -206,6 +206,18 @@ class GameExportBody(_Body):
     files: Annotated[dict[Text4K, str], Field(min_length=1, max_length=500)]
     # C++ sources copied as they are: an export path to its path in the C++ game sources.
     copies: Annotated[dict[Text4K, Text4K], Field(max_length=500)] = {}
+
+
+class GameSourceBody(_Body):
+    """A line of a TypeScript or Vue file of the browser game, by its path in frontend/src/game."""
+    file: Text4K
+    line: Annotated[int, Field(strict=True, ge=1, le=2_147_483_647)]
+
+
+class GameExportFileBody(_Body):
+    """An export of the browser game, by its id (its folder name), and a file of it, by its path in the export."""
+    id: Annotated[str, StringConstraints(max_length=100)]
+    file: Text4K | None = None
 
 
 class GameTranslateBody(_Body):
@@ -639,6 +651,20 @@ def create_app(
     @app.post("/api/game/translate")
     def game_translate(body: GameTranslateBody) -> dict:
         return GameProject(library).translate(body.files)
+
+    @app.post("/api/game/open-source")
+    def game_open_source(body: GameSourceBody) -> dict:
+        code_opener(game_source_path(body.file), body.line)
+        return {"opened": True}
+
+    @app.post("/api/game/open-export")
+    def game_open_export(body: GameExportFileBody) -> dict:
+        path = GameProject(library).export_path(body.id, body.file)
+        if body.file is None:
+            opener(path)
+        else:
+            code_opener(path, 1)
+        return {"opened": True}
 
     @app.post("/api/game/export")
     def game_export(body: GameExportBody) -> dict:

@@ -371,6 +371,22 @@ export async function openDeclaration(descriptor: string, line: number) {
   } catch (e) { notify((e as Error).message, true); }
 }
 
+/** Opens a line of the browser game's sources (a file by its path in frontend/src/game) in VS Code. */
+export async function openGameSource(file: string, line: number) {
+  try {
+    await api('game/open-source', 'POST', { file, line });
+    notify(`Opened ${file}:${line} in VS Code.`);
+  } catch (e) { notify((e as Error).message, true); }
+}
+
+/** Opens an export of the browser game, by its id: its folder, or a file of it in VS Code. */
+export async function openGameExport(id: string, file?: string) {
+  try {
+    await api('game/open-export', 'POST', { id, file });
+    notify(file ? `Opened ${file} in VS Code.` : 'Opened folder.');
+  } catch (e) { notify((e as Error).message, true); }
+}
+
 export async function openViewElement(file: string, index: number) {
   try {
     await api('rss-sync/open-view-element', 'POST', { file, index });

@@ -78,7 +78,7 @@ export const GameBackend = {
   },
 
   /** Writes an export: the files, and copies of C++ sources (an export path to its path in the C++ game sources). */
-  async Export(name: string, files: Record<string, string>, token: string, copies: Record<string, string> = {}): Promise<{ folder: string; files: string[] }> {
+  async Export(name: string, files: Record<string, string>, token: string, copies: Record<string, string> = {}): Promise<{ folder: string; id: string; files: string[] }> {
     const response = await fetch('/api/game/export', {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'x-gda-token': token }, body: JSON.stringify({ name, files, copies }),
     });

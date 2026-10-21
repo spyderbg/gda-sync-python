@@ -9,6 +9,9 @@
 // - Parent(I) is the nearest active ancestor that implements interface I (by the tokens in its static Interfaces).
 // - Nvram(T) is a state's storage of type T (static Nvrams), found in the state or its ancestors; Static(T) is a
 //   machine-wide object of type T (static Statics). Nvrams are what a recovery restores in C++.
+// - Each transition records its source, the function that asked for it and where (C++'s std::source_location default
+//   argument of Transit, which the GameFsmViewer shows): here read from the call stack, a position in the script that
+//   app/SourceLocation maps back to the TypeScript.
 
 import { Event, EventQueue } from '@game/engine/Core/Event';
 import { Runtime, RuntimeHolder, RuntimeToken } from '@game/engine/GameCore/RuntimeAccess';
@@ -17,8 +20,49 @@ type Target = RuntimeToken<unknown> | string;
 type DataClass<T = object> = new () => T;
 export type StateClass = (new () => State) & { Interfaces?: RuntimeToken<unknown>[]; Nvrams?: DataClass[]; Statics?: DataClass[] };
 
+/** Where a transition was asked for: the function that called Transit or TransitLater, the state it was called on, and
+ * the call's position in its script (file is the script's URL; line and column count from 1), if the stack has it. */
+export interface TransitSource {
+  function: string;
+  state: string;
+  file: string;
+  line: number;
+  column: number;
+}
+
+interface Frame {
+  function: string;
+  file: string;
+  line: number;
+  column: number;
+}
+
+/** A call stack frame, in V8's or Firefox's format. The function name is without its class: V8 qualifies a method with
+ * its receiver's class name (mangled in the build), Firefox names a nested function outer/inner<. */
+function ParseFrame(frame: string): Frame {
+  const name = /^\s+at\s+(?:async\s+)?(?:new\s+)?([^\s(]+)(?:\s+\[as [^\]]+\])?\s+\(/.exec(frame)?.[1] ?? /^([^@]*)@/.exec(frame)?.[1] ?? '';
+  const location = /(?:\(|\s|@)([^\s(@]+):(\d+):(\d+)\)?$/.exec(frame);
+  return {
+    function: name.replace(/[/<].*$/, '').split('.').pop() ?? '',
+    file: location?.[1] ?? '', line: Number(location?.[2] ?? 0), column: Number(location?.[3] ?? 0),
+  };
+}
+
+/** The frame of the function that called Transit or TransitLater, from the call stack. */
+function CallerFrame(): Frame | undefined {
+  const frames = (new Error().stack ?? '').split('\n').filter(line => /^\s+at\s|@/.test(line)).map(ParseFrame);
+  const transit = frames.findIndex(frame => frame.function === 'Transit' || frame.function === 'TransitLater');
+  return transit >= 0 ? frames[transit + 1] : undefined;
+}
+
+function SourceOf(state: State): TransitSource {
+  const frame = CallerFrame();
+  return { function: frame?.function || 'anonymous', state: state.node?.name ?? '', file: frame?.file ?? '', line: frame?.line ?? 0, column: frame?.column ?? 0 };
+}
+
 export class Reaction {
-  constructor(readonly kind: 'consume' | 'forward' | 'skip' | 'reject' | 'transit', readonly target: Target | null = null) {}
+  constructor(readonly kind: 'consume' | 'forward' | 'skip' | 'reject' | 'transit', readonly target: Target | null = null,
+    readonly source: TransitSource | null = null) {}
 }
 
 export class State extends RuntimeHolder {
@@ -33,7 +77,7 @@ export class State extends RuntimeHolder {
   OnTransit(_isStartup: boolean, _isRecovery: boolean) {}
 
   Transit(target: Target): Reaction {
-    return new Reaction('transit', target);
+    return new Reaction('transit', target, SourceOf(this));
   }
 
   // Consume: event handled, stop propagation
@@ -60,9 +104,10 @@ export class State extends RuntimeHolder {
   TransitLater(target: Target | Reaction) {
     const resolved = target instanceof Reaction ? target.target : target;
     if (!resolved) return;
+    const source = (target instanceof Reaction ? target.source : null) ?? SourceOf(this);
     const machine = this.machine;
     const node = this.node;
-    machine.queue.AddCallback(() => machine.TransitFrom(node, resolved));
+    machine.queue.AddCallback(() => machine.TransitFrom(node, resolved, source));
   }
 
   ReactOn<A extends unknown[]>(event: Event<A>, handler: (...args: NoInfer<A>) => Reaction) {
@@ -123,6 +168,7 @@ export interface TransitionRecord {
   to: string;
   destroyed: string[];
   created: string[];
+  source: TransitSource;
   time: number;
 }
 
@@ -148,7 +194,7 @@ export class Machine {
     for (const node of this.nodesByName.values()) {
       for (const type of node.type.Statics ?? []) if (!this.statics.has(type)) this.statics.set(type, new type());
     }
-    this.transit(this.root, this.root, true, false);
+    this.transit(this.root, this.root, true, false, { function: 'Start', state: '', file: '', line: 0, column: 0 });
   }
 
   Deinit() {
@@ -204,11 +250,11 @@ export class Machine {
 
   // Transitions
 
-  TransitFrom(from: StateNode, target: Target) {
-    this.transit(from, this.resolve(target), false, false);
+  TransitFrom(from: StateNode, target: Target, source: TransitSource) {
+    this.transit(from, this.resolve(target), false, false, source);
   }
 
-  private transit(current: StateNode, target: StateNode, construct: boolean, recover: boolean) {
+  private transit(current: StateNode, target: StateNode, construct: boolean, recover: boolean, source: TransitSource) {
     const targetPath = this.constructPaths.get(target);
     if (!targetPath) throw new Error(`No path to state ${target.name}`);
     const divergeMax = Math.min(targetPath.length, this.current.length);
@@ -219,7 +265,7 @@ export class Machine {
       divergeIndex++;
     }
     const record: TransitionRecord = {
-      from: current.name, to: target.name, time: performance.now(),
+      from: current.name, to: target.name, source, time: performance.now(),
       destroyed: this.current.slice(divergeIndex).map(ctx => ctx.node.name).reverse(),
       created: targetPath.slice(divergeIndex).map(node => node.name),
     };
@@ -267,7 +313,7 @@ export class Machine {
       const reaction = handler(...args);
       if (reaction.kind === 'consume' || reaction.kind === 'reject') break;
       if (reaction.kind === 'forward' || reaction.kind === 'skip') continue;
-      this.transit(ctx.node, this.resolve(reaction.target!), false, false);
+      this.transit(ctx.node, this.resolve(reaction.target!), false, false, reaction.source ?? { function: 'anonymous', state: ctx.node.name, file: '', line: 0, column: 0 });
       break;
     }
   }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted } from 'vue';
+import { defineAsyncComponent, nextTick, onBeforeUnmount, onMounted } from 'vue';
 import AppDialogs from './components/AppDialogs.vue';
 import AppToast from './components/AppToast.vue';
 import StartupState from './components/StartupState.vue';
@@ -14,8 +14,10 @@ import BackupsView from './views/BackupsView.vue';
 import SyncHistoryView from './views/SyncHistoryView.vue';
 import SyncInProgressView from './views/SyncInProgressView.vue';
 import SyncView from './views/SyncView.vue';
-import GameView from './game/GameView.vue';
 import { data, isLibraryView, load, loadError, stopped, ui } from './workspace';
+
+// The browser game (its engine, states and views) loads when its page first opens.
+const GameView = defineAsyncComponent(() => import('./game/GameView.vue'));
 
 useBackendLifetime(() => !stopped.value);
 
