@@ -10,8 +10,8 @@
 // - Nvram(T) is a state's storage of type T (static Nvrams), found in the state or its ancestors; Static(T) is a
 //   machine-wide object of type T (static Statics). Nvrams are what a recovery restores in C++.
 
-import { Event, EventQueue } from '../Core/Event';
-import { Runtime, RuntimeHolder, RuntimeToken } from '../GameCore/RuntimeAccess';
+import { Event, EventQueue } from '@game/engine/Core/Event';
+import { Runtime, RuntimeHolder, RuntimeToken } from '@game/engine/GameCore/RuntimeAccess';
 
 type Target = RuntimeToken<unknown> | string;
 type DataClass<T = object> = new () => T;

@@ -1,12 +1,12 @@
 // Egt::Game::AlphaFamily::TetraRoundEndingState (AlphaFamilyStatesLibrary/Match/TetraRound/TetraRoundEnding): ends the
 // round with the gameflow; another tetra round follows while the match's credits allow it.
 
-import { State } from '../../../../../engine/Fsm/Fsm';
-import { Currency, RoundType } from '../../../AlphaFamily/Math/Common/Common.data';
-import { IGameflow } from '../../../AlphaFamily/RuntimeImport/IGameflow.bridge';
-import { IBetManager } from '../../../AlphaFamily/States/IBetManager';
-import { IGameManager } from '../../../AlphaFamily/States/IGameManager';
-import { ITetraRound, ITetraRoundEnding, ITetraRoundInput, ITetraRoundOutro } from '../../../AlphaFamily/States/Match/ITetraRound';
+import { State } from '@game/engine/Fsm/Fsm';
+import { Currency, RoundType } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
+import { IGameflow } from '@game/alpha_family/libs/AlphaFamily/RuntimeImport/IGameflow.bridge';
+import { IBetManager } from '@game/alpha_family/libs/AlphaFamily/States/IBetManager';
+import { IGameManager } from '@game/alpha_family/libs/AlphaFamily/States/IGameManager';
+import { ITetraRound, ITetraRoundEnding, ITetraRoundInput, ITetraRoundOutro } from '@game/alpha_family/libs/AlphaFamily/States/Match/ITetraRound';
 import { TetraRoundStorage } from './TetraRound.data';
 
 export class TetraRoundEndingState extends State {

@@ -1,8 +1,8 @@
 // Egt::Game::GameFsm (Egt/Game/Fsm/GameFsm.h): a module that runs the state machine its CreateBuilder describes.
 
-import { Machine, type StateNode } from '../../Fsm/Fsm';
-import type { Runtime } from '../../GameCore/RuntimeAccess';
-import { BaseModule, type ModuleConfig } from '../../ModuleManager/BaseModule';
+import { Machine, type StateNode } from '@game/engine/Fsm/Fsm';
+import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { BaseModule, type ModuleConfig } from '@game/engine/ModuleManager/BaseModule';
 
 export abstract class GameFsm extends BaseModule {
   protected m_machine: Machine | null = null;

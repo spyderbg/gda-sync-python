@@ -3,7 +3,7 @@
 // The C++ std::variant<SpinReelsPhase, TetraSpinPhase> is a union of classes here: std::get_if<SpinReelsPhase>(&phase)
 // is `phase instanceof SpinReelsPhase`.
 
-import { Currencies } from '../../../../../engine/Game/Math/Common.data';
+import { Currencies } from '@game/engine/Game/Math/Common.data';
 import { type CollectorInfo, CombinationType, ECollectorType, Multipliers, PayoutSummary, PayTable, PayTableV2, type Reels, type ReelsOffset, type SymbolGrid, type SymbolId, type SymbolViewInfos } from '../Common/Common.data';
 
 export class ReelCombination {

@@ -1,18 +1,18 @@
 // Egt::Game::AlphaFamily::LinesView (BurningCrownTetraSpins10View/Views/LinesView.h/.cpp): the main reels' winning
 // lines, shown one at a time: fast once (then showFastLinesFinished), then slowly, over and over.
 
-import type { Runtime } from '../../../../../engine/GameCore/RuntimeAccess';
-import { make_sentinel, sentinel } from '../../../../../hat_libs/egt_hpp/sentinel';
-import * as tweeny from '../../../../../hat_libs/tweeny/tweeny';
-import { IAudioApi, type IAudioPlayback } from '../../../../../engine/Game/RuntimeImport/IAudioApi';
-import { IResources, type RssRect } from '../../../../../engine/Game/RuntimeExport/IResources';
-import type { DrawList } from '../../../../../engine/GameVideoCtrl/DrawList';
-import { AnimElement } from '../../../../../engine/GameVideoCtrl/ViewElements/AnimElement';
-import { ImageElement } from '../../../../../engine/GameVideoCtrl/ViewElements/ImageElement';
-import { CombinationType, type ERoundTags, type SymbolId, type SymbolViewInfos } from '../../../../libs/AlphaFamily/Math/Common/Common.data';
-import { CombinationsEqual, type ReelCombination, type ReelCombinations } from '../../../../libs/AlphaFamily/Math/Reel/ReelRoundPhase.data';
-import { ILinesView, ILinesViewEvents, LineType } from '../../../../libs/AlphaFamily/Views/ILinesView.bridge';
-import { BaseView } from '../../../../libs/AlphaFamilyVideoCtrl/BaseView';
+import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { make_sentinel, sentinel } from '@game/hat_libs/egt_hpp/sentinel';
+import * as tweeny from '@game/hat_libs/tweeny/tweeny';
+import { IAudioApi, type IAudioPlayback } from '@game/engine/Game/RuntimeImport/IAudioApi';
+import { IResources, type RssRect } from '@game/engine/Game/RuntimeExport/IResources';
+import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
+import { AnimElement } from '@game/engine/GameVideoCtrl/ViewElements/AnimElement';
+import { ImageElement } from '@game/engine/GameVideoCtrl/ViewElements/ImageElement';
+import { CombinationType, type ERoundTags, type SymbolId, type SymbolViewInfos } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
+import { CombinationsEqual, type ReelCombination, type ReelCombinations } from '@game/alpha_family/libs/AlphaFamily/Math/Reel/ReelRoundPhase.data';
+import { ILinesView, ILinesViewEvents, LineType } from '@game/alpha_family/libs/AlphaFamily/Views/ILinesView.bridge';
+import { BaseView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/BaseView';
 import { LinesVisual } from '../Visuals/LinesVisual';
 import type { LinesVisualConfig } from './ReelsView.data';
 import type { ReelSubScreen } from './ReelSubScreen.data';

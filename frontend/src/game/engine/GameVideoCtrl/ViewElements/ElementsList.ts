@@ -3,10 +3,10 @@
 // It watches its file (IFileWatch): when the file changes, it is dirty, and its view loads it again (BaseView): in
 // place when the file has the same elements (Update), else anew.
 
-import { Runtime, RuntimeHolder } from '../../GameCore/RuntimeAccess';
-import type { Point, ViewElementData } from '../../Game/RuntimeExport/IResources';
-import { IFileWatch } from '../../Game/RuntimeExport/IFileWatch';
-import { IResources } from '../../Game/RuntimeExport/IResources';
+import { Runtime, RuntimeHolder } from '@game/engine/GameCore/RuntimeAccess';
+import type { Point, ViewElementData } from '@game/engine/Game/RuntimeExport/IResources';
+import { IFileWatch } from '@game/engine/Game/RuntimeExport/IFileWatch';
+import { IResources } from '@game/engine/Game/RuntimeExport/IResources';
 import type { DrawList } from '../DrawList';
 import { AnimElement } from './AnimElement';
 import { BaseElement } from './BaseElement';

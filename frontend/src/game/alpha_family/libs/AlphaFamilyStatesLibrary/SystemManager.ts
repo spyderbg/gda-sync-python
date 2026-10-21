@@ -1,15 +1,15 @@
 // Egt::Game::AlphaFamily::SystemManager (AlphaFamilyStatesLibrary/SystemManager.h/.cpp): the root state; pending
 // cashout and exit, the sound volume and the language.
 
-import { State } from '../../../engine/Fsm/Fsm';
-import { IAudioApi } from '../../../engine/Game/RuntimeImport/IAudioApi';
-import { ILocalization } from '../../../engine/Game/RuntimeImport/ILocalization';
-import { IWallet, type TransactionInfo } from '../../../engine/Game/RuntimeImport/IWallet';
-import { ISystemManager, SystemManagerNvrams, SystemManagerStatics } from '../AlphaFamily/States/ISystemManager';
-import { IInfoView } from '../AlphaFamily/Views/IInfoView.bridge';
-import { ILanguageMenuView, ISoundMenuView } from '../AlphaFamily/Views/IMenuViews.bridge';
-import { IStatusLineView } from '../AlphaFamily/Views/IStatusLineView.bridge';
-import { ISoundVolumeSwButtonView } from '../AlphaFamily/Views/SwButtonViews.bridge';
+import { State } from '@game/engine/Fsm/Fsm';
+import { IAudioApi } from '@game/engine/Game/RuntimeImport/IAudioApi';
+import { ILocalization } from '@game/engine/Game/RuntimeImport/ILocalization';
+import { IWallet, type TransactionInfo } from '@game/engine/Game/RuntimeImport/IWallet';
+import { ISystemManager, SystemManagerNvrams, SystemManagerStatics } from '@game/alpha_family/libs/AlphaFamily/States/ISystemManager';
+import { IInfoView } from '@game/alpha_family/libs/AlphaFamily/Views/IInfoView.bridge';
+import { ILanguageMenuView, ISoundMenuView } from '@game/alpha_family/libs/AlphaFamily/Views/IMenuViews.bridge';
+import { IStatusLineView } from '@game/alpha_family/libs/AlphaFamily/Views/IStatusLineView.bridge';
+import { ISoundVolumeSwButtonView } from '@game/alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge';
 
 export class SystemManager extends State implements ISystemManager {
   static Interfaces = [ISystemManager, ISystemManager.Events];

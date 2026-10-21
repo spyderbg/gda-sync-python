@@ -1,9 +1,9 @@
 // Egt::Game::AlphaFamily::BetUpSwButtonView (BurningCrownTetraSpins10View/SwButtons/BetUpSwButtonView.h/.cpp): opens and closes the bet menu.
 
-import type { Runtime } from '../../../../../engine/GameCore/RuntimeAccess';
-import { IButtonViewEvents } from '../../../../libs/AlphaFamily/Views/BaseInterfaces/IControlView';
-import { IBetUpSwButtonView } from '../../../../libs/AlphaFamily/Views/SwButtonViews.bridge';
-import { ButtonView } from '../../../../libs/AlphaFamilyVideoCtrl/Components/ButtonView';
+import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { IButtonViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IControlView';
+import { IBetUpSwButtonView } from '@game/alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge';
+import { ButtonView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/Components/ButtonView';
 
 const BetUpSwButtonViewId = 'BetUpSwButtonView';
 const ButtonId = 'button_bet_up';

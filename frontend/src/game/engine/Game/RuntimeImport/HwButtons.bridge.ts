@@ -1,8 +1,8 @@
 // Egt::Game hardware buttons (Egt/Game/RuntimeImport/HwButtons.bridge.h): the cabinet's buttons, which the browser
 // kernel maps to the keyboard and the panel under the game.
 
-import { Event } from '../../Core/Event';
-import { Interface, type InterfaceToken } from '../../GameCore/RuntimeAccess';
+import { Event } from '@game/engine/Core/Event';
+import { Interface, type InterfaceToken } from '@game/engine/GameCore/RuntimeAccess';
 
 export enum HwButtonLight {
   Off,

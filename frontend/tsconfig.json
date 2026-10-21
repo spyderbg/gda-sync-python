@@ -3,7 +3,10 @@
   "compilerOptions": {
     "strict": true,
     "noEmit": true,
-    "types": ["vite/client"]
+    "types": ["vite/client"],
+    "paths": {
+      "@game/*": ["./src/game/*"]
+    }
   },
   "include": ["src/**/*.ts", "src/**/*.vue"]
 }

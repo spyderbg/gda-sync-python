@@ -1,6 +1,6 @@
 // Egt::Game::AlphaFamily::IMathRules (AlphaFamily/RuntimeExport/IMathRules.h): the rules of the game's rounds.
 
-import { Interface } from '../../../../engine/GameCore/RuntimeAccess';
+import { Interface } from '@game/engine/GameCore/RuntimeAccess';
 import type { RoundType } from '../Math/Common/Common.data';
 import type { ReelRoundRules } from '../Math/Reel/ReelRoundRules';
 

@@ -1,7 +1,7 @@
 // Egt::Game::AlphaFamily::States::IViewManager (AlphaFamily/States/IViewManager.h, IViewManager.data.h).
 
-import { Event } from '../../../../engine/Core/Event';
-import { Interface } from '../../../../engine/GameCore/RuntimeAccess';
+import { Event } from '@game/engine/Core/Event';
+import { Interface } from '@game/engine/GameCore/RuntimeAccess';
 import type { EStatusLine, RoundType } from '../Math/Common/Common.data';
 import type { RoundResult } from '../Math/RoundResult.data';
 

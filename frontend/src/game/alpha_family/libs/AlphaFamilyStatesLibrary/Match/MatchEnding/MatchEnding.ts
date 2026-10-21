@@ -1,14 +1,14 @@
 // Egt::Game::AlphaFamily::MatchEndingState (AlphaFamilyStatesLibrary/Match/MatchEnding): ends the match with the
 // gameflow, which pays its credits to the wallet.
 
-import { State } from '../../../../../engine/Fsm/Fsm';
-import { Currency, RoundType } from '../../../AlphaFamily/Math/Common/Common.data';
-import { IGameflow } from '../../../AlphaFamily/RuntimeImport/IGameflow.bridge';
-import type { EndMatchReply } from '../../../AlphaFamily/RuntimeImport/IGameflow.data';
-import { GameManagerStatics } from '../../../AlphaFamily/States/IGameManager';
-import { IViewManager } from '../../../AlphaFamily/States/IViewManager';
-import { IMatchEndOutro } from '../../../AlphaFamily/States/Match/IMatchEndOutro';
-import { IMatchEnding } from '../../../AlphaFamily/States/Match/IMatchEnding';
+import { State } from '@game/engine/Fsm/Fsm';
+import { Currency, RoundType } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
+import { IGameflow } from '@game/alpha_family/libs/AlphaFamily/RuntimeImport/IGameflow.bridge';
+import type { EndMatchReply } from '@game/alpha_family/libs/AlphaFamily/RuntimeImport/IGameflow.data';
+import { GameManagerStatics } from '@game/alpha_family/libs/AlphaFamily/States/IGameManager';
+import { IViewManager } from '@game/alpha_family/libs/AlphaFamily/States/IViewManager';
+import { IMatchEndOutro } from '@game/alpha_family/libs/AlphaFamily/States/Match/IMatchEndOutro';
+import { IMatchEnding } from '@game/alpha_family/libs/AlphaFamily/States/Match/IMatchEnding';
 
 export class MatchEndingState extends State {
   static Interfaces = [IMatchEnding];

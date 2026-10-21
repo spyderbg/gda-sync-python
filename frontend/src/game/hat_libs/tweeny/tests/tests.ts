@@ -5,7 +5,7 @@
 // are numbers, which it tweens by a reference with a sentinel. Its "tween_by" of a value tests tween_by (C++'s calls
 // tween_to there).
 
-import { make_sentinel, sentinel } from '../../egt_hpp/sentinel';
+import { make_sentinel, sentinel } from '@game/hat_libs/egt_hpp/sentinel';
 import * as detail from '../detail/tweeny_internal';
 import * as tweeny from '../tweeny';
 

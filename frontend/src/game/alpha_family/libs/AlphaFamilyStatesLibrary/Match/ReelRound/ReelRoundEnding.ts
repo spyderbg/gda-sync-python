@@ -1,11 +1,11 @@
 // Egt::Game::AlphaFamily::ReelRoundEndingState (AlphaFamilyStatesLibrary/Match/ReelRound/ReelRoundEnding): ends the
 // round with the gameflow, which adds its rewards to the match, and keeps its result for the reels between rounds.
 
-import { Reaction, State } from '../../../../../engine/Fsm/Fsm';
-import { Currency } from '../../../AlphaFamily/Math/Common/Common.data';
-import { IGameflow } from '../../../AlphaFamily/RuntimeImport/IGameflow.bridge';
-import { IGameManager } from '../../../AlphaFamily/States/IGameManager';
-import { IViewManager } from '../../../AlphaFamily/States/IViewManager';
+import { Reaction, State } from '@game/engine/Fsm/Fsm';
+import { Currency } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
+import { IGameflow } from '@game/alpha_family/libs/AlphaFamily/RuntimeImport/IGameflow.bridge';
+import { IGameManager } from '@game/alpha_family/libs/AlphaFamily/States/IGameManager';
+import { IViewManager } from '@game/alpha_family/libs/AlphaFamily/States/IViewManager';
 import { ReelRoundStorage } from './ReelRound.data';
 
 export abstract class ReelRoundEndingState extends State {

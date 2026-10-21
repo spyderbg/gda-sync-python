@@ -6,9 +6,9 @@
 // C++ overloads the fades for a float alpha (0 to 1) and a uint8_t one (0 to 255): FadeFromTo, FadeTo and FadeBy here
 // are the float ones; FadeIn, FadeOut and Blink use the uint8_t ones, as in C++.
 
-import type { Color, Point, Size } from '../../../Game/RuntimeExport/IResources';
-import { sentinel } from '../../../../hat_libs/egt_hpp/sentinel';
-import * as tweeny from '../../../../hat_libs/tweeny/tweeny';
+import type { Color, Point, Size } from '@game/engine/Game/RuntimeExport/IResources';
+import { sentinel } from '@game/hat_libs/egt_hpp/sentinel';
+import * as tweeny from '@game/hat_libs/tweeny/tweeny';
 import type { BaseElement } from '../BaseElement';
 import { TextElement } from '../TextElement';
 

@@ -1,9 +1,9 @@
 // Egt::Game::AlphaFamily numeric bars (AlphaFamily/Views/BarsView.bridge.h): ICreditBarView, ICreditsWinBarView,
 // IBetBarView, ITetraSpinBarView.
 
-import { Event } from '../../../../engine/Core/Event';
-import type { CurrencyType } from '../../../../engine/Game/Math/Common.data';
-import { Interface } from '../../../../engine/GameCore/RuntimeAccess';
+import { Event } from '@game/engine/Core/Event';
+import type { CurrencyType } from '@game/engine/Game/Math/Common.data';
+import { Interface } from '@game/engine/GameCore/RuntimeAccess';
 import type { PayoutSummary } from '../Math/Common/Common.data';
 import { type IControlView, IControlViewEvents, type INumericBarView, INumericBarViewEvents } from './BaseInterfaces/IControlView';
 

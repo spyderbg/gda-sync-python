@@ -1,11 +1,11 @@
 // Egt::Game::AlphaFamily::KnobsView (BurningCrownTetraSpins10View/Views/KnobsView.h/.cpp): the line knobs beside the
 // reels, one pair for the main reels and two for the tetra screens.
 
-import type { Runtime } from '../../../../../engine/GameCore/RuntimeAccess';
-import type { DrawList } from '../../../../../engine/GameVideoCtrl/DrawList';
-import { IControlViewEvents } from '../../../../libs/AlphaFamily/Views/BaseInterfaces/IControlView';
-import { EKnobsType, IKnobsView } from '../../../../libs/AlphaFamily/Views/IOverlayViews.bridge';
-import { BaseView } from '../../../../libs/AlphaFamilyVideoCtrl/BaseView';
+import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
+import { IControlViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IControlView';
+import { EKnobsType, IKnobsView } from '@game/alpha_family/libs/AlphaFamily/Views/IOverlayViews.bridge';
+import { BaseView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/BaseView';
 
 const KnobsViewId = 'KnobsView';
 const ElementsMainRoundIds = ['image_knobs_left', 'image_knobs_right', 'anim_sparkles_left', 'anim_sparkles_right'];

@@ -1,7 +1,7 @@
 // Egt::ModuleManager IModule and BaseModule: a module of the game, created by name from the game's modules config
 // (configs/<game>/modules/<Name>Modules.json) and run by the GameApp, like the C++ ModuleManager runs it.
 
-import { Runtime, RuntimeHolder } from '../GameCore/RuntimeAccess';
+import { Runtime, RuntimeHolder } from '@game/engine/GameCore/RuntimeAccess';
 
 export type ModuleConfig = Record<string, unknown>;
 

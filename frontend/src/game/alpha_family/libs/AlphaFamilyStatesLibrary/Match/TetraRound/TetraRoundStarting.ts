@@ -1,12 +1,12 @@
 // Egt::Game::AlphaFamily::TetraRoundStartingState (AlphaFamilyStatesLibrary/Match/TetraRound/TetraRoundStarting):
 // starts the four sub screens' reels and asks the gameflow for the round's result.
 
-import { State } from '../../../../../engine/Fsm/Fsm';
-import { IStartHwButton } from '../../../../../engine/Game/RuntimeImport/HwButtons.bridge';
-import { IGameflow } from '../../../AlphaFamily/RuntimeImport/IGameflow.bridge';
-import type { StartRoundReply } from '../../../AlphaFamily/RuntimeImport/IGameflow.data';
-import { IBetManager } from '../../../AlphaFamily/States/IBetManager';
-import { ITetraRound, ITetraRoundPresenting, ITetraRoundStarting } from '../../../AlphaFamily/States/Match/ITetraRound';
+import { State } from '@game/engine/Fsm/Fsm';
+import { IStartHwButton } from '@game/engine/Game/RuntimeImport/HwButtons.bridge';
+import { IGameflow } from '@game/alpha_family/libs/AlphaFamily/RuntimeImport/IGameflow.bridge';
+import type { StartRoundReply } from '@game/alpha_family/libs/AlphaFamily/RuntimeImport/IGameflow.data';
+import { IBetManager } from '@game/alpha_family/libs/AlphaFamily/States/IBetManager';
+import { ITetraRound, ITetraRoundPresenting, ITetraRoundStarting } from '@game/alpha_family/libs/AlphaFamily/States/Match/ITetraRound';
 import { TetraRoundStatics, TetraRoundStorage } from './TetraRound.data';
 
 export class TetraRoundStartingState extends State {

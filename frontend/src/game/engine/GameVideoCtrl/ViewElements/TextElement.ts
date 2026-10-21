@@ -1,8 +1,8 @@
 // Egt::GameVideoCtrl::TextElement (ViewElements/TextElement.h): a text in a text style (rssStyleId), shrunk to fit its
 // fit box. Its alignment places the box (or the text, without a box) and the text within the box.
 
-import type { Size, ViewElementData } from '../../Game/RuntimeExport/IResources';
-import { IResources } from '../../Game/RuntimeExport/IResources';
+import type { Size, ViewElementData } from '@game/engine/Game/RuntimeExport/IResources';
+import { IResources } from '@game/engine/Game/RuntimeExport/IResources';
 import type { DrawList } from '../DrawList';
 import { IVideo } from '../RuntimeExport/IVideo';
 import { BaseElement } from './BaseElement';

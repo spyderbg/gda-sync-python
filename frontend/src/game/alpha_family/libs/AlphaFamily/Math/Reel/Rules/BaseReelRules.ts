@@ -1,6 +1,6 @@
 // Egt::Game::AlphaFamily::BaseReelRules (AlphaFamily/Math/Reel/Rules/BaseReelRules.h/.cpp).
 
-import type { IRng } from '../../../../../../engine/GameCore/Random/IRng';
+import type { IRng } from '@game/engine/GameCore/Random/IRng';
 import { RoundConfigError } from '../../Common/Exceptions';
 import { type Line, type Reels, type ReelsOffset, type SymbolGrid, SymbolGridCoordinates, type SymbolId, type SymbolIds, SymbolViewInfo, type SymbolViewInfos } from '../../Common/Common.data';
 import { SelectRandomValue, type Weighted, type WeightedOffset } from '../../Common/Weighted';

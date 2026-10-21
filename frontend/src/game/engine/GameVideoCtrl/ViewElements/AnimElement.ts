@@ -1,9 +1,9 @@
 // Egt::GameVideoCtrl::AnimElement (ViewElements/AnimElement.h/.cpp): plays its key's movie (RssMoviesData.json) or
 // image sequence (RssImagesSeqData.json), through the animation clip it makes for it (AnimationClip/).
 
-import type { ViewElementData } from '../../Game/RuntimeExport/IResources';
-import { IResources } from '../../Game/RuntimeExport/IResources';
-import { Runtime } from '../../GameCore/RuntimeAccess';
+import type { ViewElementData } from '@game/engine/Game/RuntimeExport/IResources';
+import { IResources } from '@game/engine/Game/RuntimeExport/IResources';
+import { Runtime } from '@game/engine/GameCore/RuntimeAccess';
 import type { DrawList } from '../DrawList';
 import { BaseElement } from './BaseElement';
 import type { IAnimationClip } from './AnimationClip/IAnimationClip';

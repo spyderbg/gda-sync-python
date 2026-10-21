@@ -1,12 +1,12 @@
 // Egt::Game::AlphaFamily::FlyingSymbolsVisual (BurningCrownTetraSpins10View/Visuals/FlyingSymbolsVisual.h/.cpp): a
 // crown flying from its cell in one tetra sub screen to the same cell of a later one.
 
-import type { Point } from '../../../../../engine/Game/RuntimeExport/IResources';
-import { Alignment } from '../../../../../engine/GameVideoCtrl/ViewElements/BaseElement';
-import type { ElementsList } from '../../../../../engine/GameVideoCtrl/ViewElements/ElementsList';
-import { ImageElement } from '../../../../../engine/GameVideoCtrl/ViewElements/ImageElement';
-import { MoveTo } from '../../../../../engine/GameVideoCtrl/ViewElements/TweenyExtend/TweenyExtendElement';
-import * as tweeny from '../../../../../hat_libs/tweeny/tweeny';
+import type { Point } from '@game/engine/Game/RuntimeExport/IResources';
+import { Alignment } from '@game/engine/GameVideoCtrl/ViewElements/BaseElement';
+import type { ElementsList } from '@game/engine/GameVideoCtrl/ViewElements/ElementsList';
+import { ImageElement } from '@game/engine/GameVideoCtrl/ViewElements/ImageElement';
+import { MoveTo } from '@game/engine/GameVideoCtrl/ViewElements/TweenyExtend/TweenyExtendElement';
+import * as tweeny from '@game/hat_libs/tweeny/tweeny';
 import type { FlyingSymbolData } from '../Views/ReelsView.data';
 import { BaseVisual } from './BaseVisual';
 

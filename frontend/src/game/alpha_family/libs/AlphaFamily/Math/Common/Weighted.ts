@@ -1,6 +1,6 @@
 // Egt::Game::AlphaFamily::Weighted<T> (Weighted.h, WeightedValue.h) and the selection functions of WeightedValues.h.
 
-import { type IRng, RngOp } from '../../../../../engine/GameCore/Random/IRng';
+import { type IRng, RngOp } from '@game/engine/GameCore/Random/IRng';
 
 export interface WeightedValue<T> {
   weight: number;

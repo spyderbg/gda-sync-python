@@ -2,10 +2,10 @@
 // list, its control state (enabled, visible, focused, skin) and the touches it takes. When the file of its elements
 // list changes (HandleFileChanged), it loads the list again while it is visible.
 
-import { RuntimeHolder, type Runtime } from '../../../engine/GameCore/RuntimeAccess';
-import { Timers } from '../../../engine/GameCore/Tools/Timers';
-import type { DrawList } from '../../../engine/GameVideoCtrl/DrawList';
-import { ElementsList } from '../../../engine/GameVideoCtrl/ViewElements/ElementsList';
+import { RuntimeHolder, type Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { Timers } from '@game/engine/GameCore/Tools/Timers';
+import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
+import { ElementsList } from '@game/engine/GameVideoCtrl/ViewElements/ElementsList';
 import { ControlView } from './Components/ControlView';
 
 export abstract class BaseView extends RuntimeHolder {

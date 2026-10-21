@@ -1,8 +1,8 @@
 // Egt::GameVideoCtrl::BaseElement (ViewElements/BaseElement.h): an element of a view, placed as GetTransform places
 // it: moved by its alignment and size, scaled and rotated around its pivot, at its position; tinted by its color.
 
-import { Runtime, RuntimeHolder } from '../../GameCore/RuntimeAccess';
-import type { Color, Point, RssRect, Size, ViewElementData } from '../../Game/RuntimeExport/IResources';
+import { Runtime, RuntimeHolder } from '@game/engine/GameCore/RuntimeAccess';
+import type { Color, Point, RssRect, Size, ViewElementData } from '@game/engine/Game/RuntimeExport/IResources';
 import type { DrawList, Transform } from '../DrawList';
 
 export enum Alignment {

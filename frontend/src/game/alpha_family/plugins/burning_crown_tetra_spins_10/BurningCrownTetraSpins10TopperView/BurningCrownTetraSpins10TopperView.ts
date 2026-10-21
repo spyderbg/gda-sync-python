@@ -1,13 +1,13 @@
 // Egt::Game::AlphaFamily::BurningCrownTetraSpins10TopperView (BurningCrownTetraSpins10TopperView.h/.cpp): the module of
 // the topper screen, which creates its views and draws them on it.
 
-import type { Runtime } from '../../../../engine/GameCore/RuntimeAccess';
-import type { DrawList } from '../../../../engine/GameVideoCtrl/DrawList';
-import { IFileWatch } from '../../../../engine/Game/RuntimeExport/IFileWatch';
-import { IVideo } from '../../../../engine/GameVideoCtrl/RuntimeExport/IVideo';
-import { BaseModule, type ModuleConfig } from '../../../../engine/ModuleManager/BaseModule';
-import { VideoManager } from '../../../../engine/VideoManager/VideoManager';
-import type { BaseView } from '../../../libs/AlphaFamilyVideoCtrl/BaseView';
+import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
+import { IFileWatch } from '@game/engine/Game/RuntimeExport/IFileWatch';
+import { IVideo } from '@game/engine/GameVideoCtrl/RuntimeExport/IVideo';
+import { BaseModule, type ModuleConfig } from '@game/engine/ModuleManager/BaseModule';
+import { VideoManager } from '@game/engine/VideoManager/VideoManager';
+import type { BaseView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/BaseView';
 import { TopperView } from './TopperView';
 
 export class BurningCrownTetraSpins10TopperView extends BaseModule {

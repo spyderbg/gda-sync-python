@@ -1,6 +1,6 @@
 // Egt::Game::AlphaFamily::States::IReelRound (AlphaFamily/States/Match/IReelRound.h).
 
-import { Interface } from '../../../../../engine/GameCore/RuntimeAccess';
+import { Interface } from '@game/engine/GameCore/RuntimeAccess';
 import type { ReelRoundRules } from '../../Math/Reel/ReelRoundRules';
 import type { IRound } from './IRound';
 

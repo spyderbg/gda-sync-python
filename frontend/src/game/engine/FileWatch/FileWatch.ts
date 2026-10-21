@@ -5,11 +5,11 @@
 // /api/game/file-stamps) once a second while the game runs, and, when one changes, has IResources read it again before
 // it posts fileChanged, as the C++ resources read the file when a view reloads.
 
-import { GameBackend } from '../../app/GameBackend';
-import { IFileWatch, IFileWatchEvents } from '../Game/RuntimeExport/IFileWatch';
-import { IResources } from '../Game/RuntimeExport/IResources';
-import type { Runtime } from '../GameCore/RuntimeAccess';
-import { BaseModule, type ModuleConfig } from '../ModuleManager/BaseModule';
+import { GameBackend } from '@game/app/GameBackend';
+import { IFileWatch, IFileWatchEvents } from '@game/engine/Game/RuntimeExport/IFileWatch';
+import { IResources } from '@game/engine/Game/RuntimeExport/IResources';
+import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { BaseModule, type ModuleConfig } from '@game/engine/ModuleManager/BaseModule';
 
 const PollIntervalMs = 1000;
 

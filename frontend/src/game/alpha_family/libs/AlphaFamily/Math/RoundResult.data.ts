@@ -3,8 +3,8 @@
 // A round's result keeps its input and the random numbers it used (its replay), its phases and its summary. In C++ the
 // phases can be dropped and recovered from the replay; here they are always kept.
 
-import { Currencies, type CurrencyType } from '../../../../engine/Game/Math/Common.data';
-import type { RngNumber } from '../../../../engine/GameCore/Random/IRng';
+import { Currencies, type CurrencyType } from '@game/engine/Game/Math/Common.data';
+import type { RngNumber } from '@game/engine/GameCore/Random/IRng';
 import { PayoutSummary, RoundErrorCode, RoundType } from './Common/Common.data';
 import type { ReelRoundPhases } from './Reel/ReelRoundPhase.data';
 import { ReelRoundInput } from './Reel/ReelRoundInput.data';

@@ -1,15 +1,15 @@
 // Egt::Game::AlphaFamily::ReelRoundReelingState (AlphaFamilyStatesLibrary/Match/ReelRound/ReelRoundReeling): stops
 // the reels one after another (or all at once on START) at the round's stop.
 
-import { Reaction, State } from '../../../../../engine/Fsm/Fsm';
-import { IStartHwButton } from '../../../../../engine/Game/RuntimeImport/HwButtons.bridge';
-import { EStatusLine } from '../../../AlphaFamily/Math/Common/Common.data';
-import { SpinReelsPhase } from '../../../AlphaFamily/Math/Reel/ReelRoundPhase.data';
-import { IGameManager } from '../../../AlphaFamily/States/IGameManager';
-import { IViewManager } from '../../../AlphaFamily/States/IViewManager';
-import { IReelRound } from '../../../AlphaFamily/States/Match/IReelRound';
-import { IReelsView } from '../../../AlphaFamily/Views/IReelsView.bridge';
-import { IStopSingleReelSwButtonView } from '../../../AlphaFamily/Views/SwButtonViews.bridge';
+import { Reaction, State } from '@game/engine/Fsm/Fsm';
+import { IStartHwButton } from '@game/engine/Game/RuntimeImport/HwButtons.bridge';
+import { EStatusLine } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
+import { SpinReelsPhase } from '@game/alpha_family/libs/AlphaFamily/Math/Reel/ReelRoundPhase.data';
+import { IGameManager } from '@game/alpha_family/libs/AlphaFamily/States/IGameManager';
+import { IViewManager } from '@game/alpha_family/libs/AlphaFamily/States/IViewManager';
+import { IReelRound } from '@game/alpha_family/libs/AlphaFamily/States/Match/IReelRound';
+import { IReelsView } from '@game/alpha_family/libs/AlphaFamily/Views/IReelsView.bridge';
+import { IStopSingleReelSwButtonView } from '@game/alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge';
 import { ReelRoundStatics, ReelRoundStorage } from './ReelRound.data';
 
 export abstract class ReelRoundReelingState extends State {

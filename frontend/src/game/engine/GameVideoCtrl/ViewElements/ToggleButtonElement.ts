@@ -1,7 +1,7 @@
 // Egt::GameVideoCtrl::ToggleButtonElement (ViewElements/ToggleButtonElement.h/.cpp): a button that toggles on each
 // touch, through a pressed state of 250 ms: images (rssKeys) toggled off, pressed on, pressed off, toggled on, disabled.
 
-import type { Point } from '../../Game/RuntimeExport/IResources';
+import type { Point } from '@game/engine/Game/RuntimeExport/IResources';
 import { ButtonElement } from './ButtonElement';
 
 enum EState {

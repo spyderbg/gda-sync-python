@@ -7,7 +7,7 @@
 //
 // The C++ is written as the hand-written MathRules.cpp files are, so that it reads like them.
 
-import type { MathPath, MathRulesDescription, RoundDescription, ScreenDescription } from '../authoring/MathRulesDescription';
+import type { MathPath, MathRulesDescription, RoundDescription, ScreenDescription } from '@game/authoring/MathRulesDescription';
 import { MathModuleFiles, MathRulesCpp } from './MathTemplates';
 
 const I = '    ';

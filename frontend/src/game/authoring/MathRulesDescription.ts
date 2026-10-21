@@ -9,15 +9,15 @@
 // A value of the math file is named by its path, such as 'mainRound.allowedBets'. A new rule is added here, to
 // BuildScreen(), and to MathExporter's ScreenCpp(), in the C++ names of its config.
 
-import { RngOp } from '../engine/GameCore/Random/IRng';
-import { Currency, ERoundTags, PayTable, PayTableV2, RoundType } from '../alpha_family/libs/AlphaFamily/Math/Common/Common.data';
-import type { Weighted } from '../alpha_family/libs/AlphaFamily/Math/Common/Weighted';
-import { ReelRoundRules } from '../alpha_family/libs/AlphaFamily/Math/Reel/ReelRoundRules';
-import { ReelRoundRulesConfig } from '../alpha_family/libs/AlphaFamily/Math/Reel/ReelRoundRules.data';
-import { ExpandPolicy } from '../alpha_family/libs/AlphaFamily/Math/Reel/Rules/ExpandRules.data';
-import { WildSymbol } from '../alpha_family/libs/AlphaFamily/Math/Reel/Rules/LineRules.data';
-import { SubScreenConfig } from '../alpha_family/libs/AlphaFamily/Math/Reel/Rules/TetraSpinRules.data';
-import { VisualAnalyzeConfig } from '../alpha_family/libs/AlphaFamily/Math/Reel/VisualAnalyse/VisualAnalyze.data';
+import { RngOp } from '@game/engine/GameCore/Random/IRng';
+import { Currency, ERoundTags, PayTable, PayTableV2, RoundType } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
+import type { Weighted } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Weighted';
+import { ReelRoundRules } from '@game/alpha_family/libs/AlphaFamily/Math/Reel/ReelRoundRules';
+import { ReelRoundRulesConfig } from '@game/alpha_family/libs/AlphaFamily/Math/Reel/ReelRoundRules.data';
+import { ExpandPolicy } from '@game/alpha_family/libs/AlphaFamily/Math/Reel/Rules/ExpandRules.data';
+import { WildSymbol } from '@game/alpha_family/libs/AlphaFamily/Math/Reel/Rules/LineRules.data';
+import { SubScreenConfig } from '@game/alpha_family/libs/AlphaFamily/Math/Reel/Rules/TetraSpinRules.data';
+import { VisualAnalyzeConfig } from '@game/alpha_family/libs/AlphaFamily/Math/Reel/VisualAnalyse/VisualAnalyze.data';
 
 /** A value of the math file, by its path: 'tetraRound.reelsScreen0'. */
 export type MathPath = string;

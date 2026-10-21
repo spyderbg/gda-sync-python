@@ -1,15 +1,15 @@
 // Egt::Game::AlphaFamily::BetManager (AlphaFamilyStatesLibrary/BetManager.h/.cpp): the bet and the lines, their
 // allowed values and limit, changed by the bet buttons and menu.
 
-import { Event } from '../../../engine/Core/Event';
-import { State } from '../../../engine/Fsm/Fsm';
-import type { CurrencyType } from '../../../engine/Game/Math/Common.data';
-import { IDecreaseBetHwButton, IIncreaseBetHwButton, IMaxBetHwButton } from '../../../engine/Game/RuntimeImport/HwButtons.bridge';
-import { ILimits } from '../../../engine/Game/RuntimeImport/ILimits';
-import { IRecovery, type IStateChangeAction } from '../../../engine/Game/RuntimeImport/IRecovery';
-import { BetManagerNvrams, BetManagerStatics, type Bets, IBetManager, type IBetManagerEvents, type Lines } from '../AlphaFamily/States/IBetManager';
-import { IBetMenuView } from '../AlphaFamily/Views/IBetMenuView.bridge';
-import { ILineDownSwButtonView, ILineUpSwButtonView } from '../AlphaFamily/Views/SwButtonViews.bridge';
+import { Event } from '@game/engine/Core/Event';
+import { State } from '@game/engine/Fsm/Fsm';
+import type { CurrencyType } from '@game/engine/Game/Math/Common.data';
+import { IDecreaseBetHwButton, IIncreaseBetHwButton, IMaxBetHwButton } from '@game/engine/Game/RuntimeImport/HwButtons.bridge';
+import { ILimits } from '@game/engine/Game/RuntimeImport/ILimits';
+import { IRecovery, type IStateChangeAction } from '@game/engine/Game/RuntimeImport/IRecovery';
+import { BetManagerNvrams, BetManagerStatics, type Bets, IBetManager, type IBetManagerEvents, type Lines } from '@game/alpha_family/libs/AlphaFamily/States/IBetManager';
+import { IBetMenuView } from '@game/alpha_family/libs/AlphaFamily/Views/IBetMenuView.bridge';
+import { ILineDownSwButtonView, ILineUpSwButtonView } from '@game/alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge';
 import { ChangeBetAction } from './BetManager.data';
 
 export class BetManager extends State implements IBetManager, IBetManagerEvents {

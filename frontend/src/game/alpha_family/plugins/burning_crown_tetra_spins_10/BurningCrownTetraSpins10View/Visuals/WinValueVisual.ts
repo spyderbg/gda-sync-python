@@ -1,10 +1,10 @@
 // Egt::Game::AlphaFamily::WinValueVisual (BurningCrownTetraSpins10View/Visuals/WinValueVisual.h/.cpp): a tetra sub
 // screen's win, on the plate the view's elements place over the screen.
 
-import { ILocalization } from '../../../../../engine/Game/RuntimeImport/ILocalization';
-import type { DrawList } from '../../../../../engine/GameVideoCtrl/DrawList';
-import type { ElementsList } from '../../../../../engine/GameVideoCtrl/ViewElements/ElementsList';
-import { TextElement } from '../../../../../engine/GameVideoCtrl/ViewElements/TextElement';
+import { ILocalization } from '@game/engine/Game/RuntimeImport/ILocalization';
+import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
+import type { ElementsList } from '@game/engine/GameVideoCtrl/ViewElements/ElementsList';
+import { TextElement } from '@game/engine/GameVideoCtrl/ViewElements/TextElement';
 import { BaseVisual } from './BaseVisual';
 
 const ImageIds = [0, 1, 2, 3].map(i => `image_tetra_screen_win_value_${i}`);

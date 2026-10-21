@@ -1,9 +1,9 @@
 // Egt::Game::AlphaFamily::ExitTetraSwButtonView (BurningCrownTetraSpins10View/SwButtons/ExitTetraSwButtonView.h/.cpp): COLLECT: ends the tetra round.
 
-import type { Runtime } from '../../../../../engine/GameCore/RuntimeAccess';
-import { IButtonViewEvents } from '../../../../libs/AlphaFamily/Views/BaseInterfaces/IControlView';
-import { IExitTetraSwButtonView } from '../../../../libs/AlphaFamily/Views/SwButtonViews.bridge';
-import { ButtonView } from '../../../../libs/AlphaFamilyVideoCtrl/Components/ButtonView';
+import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { IButtonViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IControlView';
+import { IExitTetraSwButtonView } from '@game/alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge';
+import { ButtonView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/Components/ButtonView';
 
 const ExitTetraSwButtonViewId = 'ExitTetraSwButtonView';
 const ButtonId = 'tetra_collect_button';

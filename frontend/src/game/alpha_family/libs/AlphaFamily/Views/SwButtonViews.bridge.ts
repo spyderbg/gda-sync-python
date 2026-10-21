@@ -1,7 +1,7 @@
 // Egt::Game::AlphaFamily software buttons (AlphaFamily/Views/SwButtonViews.bridge.h): the buttons drawn on screen.
 
-import { Event } from '../../../../engine/Core/Event';
-import { Interface, type InterfaceToken } from '../../../../engine/GameCore/RuntimeAccess';
+import { Event } from '@game/engine/Core/Event';
+import { Interface, type InterfaceToken } from '@game/engine/GameCore/RuntimeAccess';
 import { type IButtonView, IButtonViewEvents, type IControlView } from './BaseInterfaces/IControlView';
 
 export interface ISwButtonBase extends IControlView, IButtonView {

@@ -1,7 +1,7 @@
 // Egt::Game::AlphaFamily::RtpRules (AlphaFamily/Math/Reel/Rules/RtpRules.h/.cpp): the RTP reducer, which forces a zero
 // win round for a chance per bet, before other features.
 
-import { RngOp } from '../../../../../../engine/GameCore/Random/IRng';
+import { RngOp } from '@game/engine/GameCore/Random/IRng';
 import { RoundConfigError } from '../../Common/Exceptions';
 import { PayoutSummary } from '../../Common/Common.data';
 import type { ReelRoundRules } from '../ReelRoundRules';

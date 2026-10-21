@@ -1,7 +1,7 @@
 // Egt::Game::AlphaFamily reel round generators (AlphaFamily/Math/Reel/Helpers/ReelRoundGenerators.h/.cpp): search
 // random rounds for one that meets a condition, such as the zero win round the game shows before its first match.
 
-import { HistoryEngine, MonteCarloEngineHat, type RngNumbers } from '../../../../../../engine/GameCore/Random/IRng';
+import { HistoryEngine, MonteCarloEngineHat, type RngNumbers } from '@game/engine/GameCore/Random/IRng';
 import { RoundResult } from '../../RoundResult.data';
 import { ReelRoundInput } from '../ReelRoundInput.data';
 import type { ReelRoundRules } from '../ReelRoundRules';

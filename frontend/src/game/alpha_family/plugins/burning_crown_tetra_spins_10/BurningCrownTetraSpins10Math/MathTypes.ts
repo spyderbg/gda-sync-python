@@ -1,10 +1,10 @@
 // Egt::Game::AlphaFamily::MathTypes (BurningCrownTetraSpins10Math/MathTypes.h/.cpp): the game's round types and
 // currencies by name.
 
-import type { CurrencyType, GameRoundType } from '../../../../engine/Game/Math/Common.data';
-import { IMathTypes } from '../../../../engine/Game/RuntimeExport/IMathTypes';
-import { Currency, RoundType, format_as } from '../../../libs/AlphaFamily/Math/Common/Common.data';
-import { IMathRules } from '../../../libs/AlphaFamily/RuntimeExport/IMathRules';
+import type { CurrencyType, GameRoundType } from '@game/engine/Game/Math/Common.data';
+import { IMathTypes } from '@game/engine/Game/RuntimeExport/IMathTypes';
+import { Currency, RoundType, format_as } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
+import { IMathRules } from '@game/alpha_family/libs/AlphaFamily/RuntimeExport/IMathRules';
 import type { BurningCrownTetraSpins10Math } from './BurningCrownTetraSpins10Math';
 
 export class MathTypes implements IMathTypes {

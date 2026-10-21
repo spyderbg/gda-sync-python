@@ -1,7 +1,7 @@
 // Egt::Game::ILocalization: the language and how money is written.
 
-import { Event } from '../../Core/Event';
-import { Interface } from '../../GameCore/RuntimeAccess';
+import { Event } from '@game/engine/Core/Event';
+import { Interface } from '@game/engine/GameCore/RuntimeAccess';
 
 export interface ILocalization {
   GetLanguage(): string;

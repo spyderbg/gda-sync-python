@@ -4,8 +4,8 @@
 //
 // Its members C++ keeps private are tween_private's (the friend struct); the browser's have no access modifier.
 
-import { event } from '../egt_hpp/event';
-import { sentinel } from '../egt_hpp/sentinel';
+import { event } from '@game/hat_libs/egt_hpp/event';
+import { sentinel } from '@game/hat_libs/egt_hpp/sentinel';
 import { type duration_t, type sentinel_t, state_t, type tween_id_t, tween_inspect_info } from './tween_common';
 import * as inspector from './tween_inspector';
 

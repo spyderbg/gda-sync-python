@@ -4,18 +4,18 @@
 // at its end. The next round is the one whose currency the match has (GetNextRoundType), or a tetra round while the
 // match has credits for it (CheckTetraRound).
 
-import { Currencies, type CurrencyType } from '../../engine/Game/Math/Common.data';
-import { HistoryEngine, type IRng, MonteCarloEngine, type RngNumber, type RngOp, type RngSequence } from '../../engine/GameCore/Random/IRng';
-import type { Runtime } from '../../engine/GameCore/RuntimeAccess';
-import { ECapTiming, ILimits } from '../../engine/Game/RuntimeImport/ILimits';
-import { IMathTypes } from '../../engine/Game/RuntimeExport/IMathTypes';
-import { BaseModule, type ModuleConfig } from '../../engine/ModuleManager/BaseModule';
-import { Currency, RoundErrorCode, RoundType } from '../../alpha_family/libs/AlphaFamily/Math/Common/Common.data';
-import { RoundError, RoundResult, type CappingInfo, type RoundInput } from '../../alpha_family/libs/AlphaFamily/Math/RoundResult.data';
-import { IMathRules } from '../../alpha_family/libs/AlphaFamily/RuntimeExport/IMathRules';
-import { type IGameflow, IGameflow as IGameflowToken, IGameflowEvents } from '../../alpha_family/libs/AlphaFamily/RuntimeImport/IGameflow.bridge';
-import type { EndMatchRequest, EndRoundRequest, StartMatchRequest, StartRoundRequest } from '../../alpha_family/libs/AlphaFamily/RuntimeImport/IGameflow.data';
-import { IKernelIntegration } from '../BrowserKernel/IKernelIntegration';
+import { Currencies, type CurrencyType } from '@game/engine/Game/Math/Common.data';
+import { HistoryEngine, type IRng, MonteCarloEngine, type RngNumber, type RngOp, type RngSequence } from '@game/engine/GameCore/Random/IRng';
+import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { ECapTiming, ILimits } from '@game/engine/Game/RuntimeImport/ILimits';
+import { IMathTypes } from '@game/engine/Game/RuntimeExport/IMathTypes';
+import { BaseModule, type ModuleConfig } from '@game/engine/ModuleManager/BaseModule';
+import { Currency, RoundErrorCode, RoundType } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
+import { RoundError, RoundResult, type CappingInfo, type RoundInput } from '@game/alpha_family/libs/AlphaFamily/Math/RoundResult.data';
+import { IMathRules } from '@game/alpha_family/libs/AlphaFamily/RuntimeExport/IMathRules';
+import { type IGameflow, IGameflow as IGameflowToken, IGameflowEvents } from '@game/alpha_family/libs/AlphaFamily/RuntimeImport/IGameflow.bridge';
+import type { EndMatchRequest, EndRoundRequest, StartMatchRequest, StartRoundRequest } from '@game/alpha_family/libs/AlphaFamily/RuntimeImport/IGameflow.data';
+import { IKernelIntegration } from '@game/integration/BrowserKernel/IKernelIntegration';
 
 const RngBatchCount = 64;
 

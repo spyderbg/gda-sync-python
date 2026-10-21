@@ -1,7 +1,7 @@
 // Egt::Game::AlphaFamily::States::IMatch (AlphaFamily/States/Match/IMatch.h).
 
-import type { Reaction } from '../../../../../engine/Fsm/Fsm';
-import { Interface } from '../../../../../engine/GameCore/RuntimeAccess';
+import type { Reaction } from '@game/engine/Fsm/Fsm';
+import { Interface } from '@game/engine/GameCore/RuntimeAccess';
 
 export interface IMatch {
   ToNextRound(): Reaction;

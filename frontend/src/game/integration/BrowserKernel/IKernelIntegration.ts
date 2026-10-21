@@ -2,8 +2,8 @@
 // cabinet's kernel (playground, hat, astro...); the browser game has the BrowserKernel. Each request is answered later,
 // by an event the kernel posts from its Process.
 
-import { Event } from '../../engine/Core/Event';
-import { Interface } from '../../engine/GameCore/RuntimeAccess';
+import { Event } from '@game/engine/Core/Event';
+import { Interface } from '@game/engine/GameCore/RuntimeAccess';
 
 export interface IKernelApi {
   RequestStartMatch(creditBet: number): void;

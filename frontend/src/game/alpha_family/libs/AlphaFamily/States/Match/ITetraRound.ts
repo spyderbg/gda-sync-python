@@ -1,6 +1,6 @@
 // Egt::Game::AlphaFamily::States::ITetraRound and its substates (AlphaFamily/States/Match/ITetraRound.h).
 
-import { Interface } from '../../../../../engine/GameCore/RuntimeAccess';
+import { Interface } from '@game/engine/GameCore/RuntimeAccess';
 import type { ReelRoundRules } from '../../Math/Reel/ReelRoundRules';
 import type { IRound } from './IRound';
 

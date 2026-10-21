@@ -1,20 +1,20 @@
 // Egt::Game::AlphaFamily::GameManager (AlphaFamilyStatesLibrary/GameManager.h/.cpp): autoplay, the last match win and
 // the last round results, which the reels show between matches.
 
-import { State } from '../../../engine/Fsm/Fsm';
-import { IsValidIndex, RandomDevice } from '../../../engine/GameCore/Common/ContainerHelpers';
-import { IAutoPlayHwButton, IInfoHwButton } from '../../../engine/Game/RuntimeImport/HwButtons.bridge';
-import { IWallet, type TransactionInfo, TransactionType } from '../../../engine/Game/RuntimeImport/IWallet';
-import { RoundType } from '../AlphaFamily/Math/Common/Common.data';
-import { GenerateRandomZeroRewardRound } from '../AlphaFamily/Math/Reel/Helpers/ReelRoundGenerators';
-import { ReelRoundInput } from '../AlphaFamily/Math/Reel/ReelRoundInput.data';
-import { RoundResult } from '../AlphaFamily/Math/RoundResult.data';
-import { IMathRules } from '../AlphaFamily/RuntimeExport/IMathRules';
-import { GameManagerNvrams, GameManagerStatics, IGameManager } from '../AlphaFamily/States/IGameManager';
-import { ICreditBarView } from '../AlphaFamily/Views/BarsView.bridge';
-import { IInfoView } from '../AlphaFamily/Views/IInfoView.bridge';
-import { IAutoPlayView } from '../AlphaFamily/Views/IOverlayViews.bridge';
-import { IInfoSwButtonView } from '../AlphaFamily/Views/SwButtonViews.bridge';
+import { State } from '@game/engine/Fsm/Fsm';
+import { IsValidIndex, RandomDevice } from '@game/engine/GameCore/Common/ContainerHelpers';
+import { IAutoPlayHwButton, IInfoHwButton } from '@game/engine/Game/RuntimeImport/HwButtons.bridge';
+import { IWallet, type TransactionInfo, TransactionType } from '@game/engine/Game/RuntimeImport/IWallet';
+import { RoundType } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
+import { GenerateRandomZeroRewardRound } from '@game/alpha_family/libs/AlphaFamily/Math/Reel/Helpers/ReelRoundGenerators';
+import { ReelRoundInput } from '@game/alpha_family/libs/AlphaFamily/Math/Reel/ReelRoundInput.data';
+import { RoundResult } from '@game/alpha_family/libs/AlphaFamily/Math/RoundResult.data';
+import { IMathRules } from '@game/alpha_family/libs/AlphaFamily/RuntimeExport/IMathRules';
+import { GameManagerNvrams, GameManagerStatics, IGameManager } from '@game/alpha_family/libs/AlphaFamily/States/IGameManager';
+import { ICreditBarView } from '@game/alpha_family/libs/AlphaFamily/Views/BarsView.bridge';
+import { IInfoView } from '@game/alpha_family/libs/AlphaFamily/Views/IInfoView.bridge';
+import { IAutoPlayView } from '@game/alpha_family/libs/AlphaFamily/Views/IOverlayViews.bridge';
+import { IInfoSwButtonView } from '@game/alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge';
 
 export class GameManager extends State implements IGameManager {
   static Interfaces = [IGameManager];

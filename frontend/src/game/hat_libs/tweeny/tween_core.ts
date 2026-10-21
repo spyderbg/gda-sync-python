@@ -4,7 +4,7 @@
 //
 // C++ tweens a T& or a shared_ptr<T>; the browser's tweens a ref_t (ref(object, 'field')), with a sentinel.
 
-import { eternal_sentinel, sentinel as sentinel_class } from '../egt_hpp/sentinel';
+import { eternal_sentinel, sentinel as sentinel_class } from '@game/hat_libs/egt_hpp/sentinel';
 import { type duration_t, type ease_t, type ref_t, type sentinel_t, state_t } from './tween_common';
 import { tween_action, type updater_t } from './tween_action';
 import * as ease from './tween_ease';

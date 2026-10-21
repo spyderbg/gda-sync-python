@@ -1,8 +1,8 @@
 // Egt::GameVideoCtrl::ImageElement (ViewElements/ImageElement.h): an image by RssKey, or one of several (SetSelectedImage).
 
-import type { ViewElementData } from '../../Game/RuntimeExport/IResources';
-import { IResources } from '../../Game/RuntimeExport/IResources';
-import { Runtime } from '../../GameCore/RuntimeAccess';
+import type { ViewElementData } from '@game/engine/Game/RuntimeExport/IResources';
+import { IResources } from '@game/engine/Game/RuntimeExport/IResources';
+import { Runtime } from '@game/engine/GameCore/RuntimeAccess';
 import type { DrawList } from '../DrawList';
 import { IVideo } from '../RuntimeExport/IVideo';
 import { BaseElement } from './BaseElement';

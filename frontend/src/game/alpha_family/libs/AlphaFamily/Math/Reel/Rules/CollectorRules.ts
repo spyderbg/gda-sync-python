@@ -1,6 +1,6 @@
 // Egt::Game::AlphaFamily::CollectorRules (AlphaFamily/Math/Reel/Rules/CollectorRules.h/.cpp): collector symbols.
 
-import { Currencies } from '../../../../../../engine/Game/Math/Common.data';
+import { Currencies } from '@game/engine/Game/Math/Common.data';
 import { ECollectorType, Multipliers } from '../../Common/Common.data';
 import { SelectRandomValue } from '../../Common/Weighted';
 import type { ReelRoundRules } from '../ReelRoundRules';

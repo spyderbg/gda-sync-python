@@ -3,6 +3,8 @@ import vue from '@vitejs/plugin-vue';
 
 export default defineConfig({
   plugins: [vue()],
+  // '@game/...' imports resolve through tsconfig.json's paths.
+  resolve: { tsconfigPaths: true },
   css: {
     preprocessorOptions: {
       scss: {

@@ -1,9 +1,9 @@
 // Egt::Game::AlphaFamily::LineUpSwButtonView (BurningCrownTetraSpins10View/SwButtons/LineUpSwButtonView.h/.cpp): more lines (BurningCrownTetraSpins10 has fixed lines and no element for it).
 
-import type { Runtime } from '../../../../../engine/GameCore/RuntimeAccess';
-import { IButtonViewEvents } from '../../../../libs/AlphaFamily/Views/BaseInterfaces/IControlView';
-import { ILineUpSwButtonView } from '../../../../libs/AlphaFamily/Views/SwButtonViews.bridge';
-import { ButtonView } from '../../../../libs/AlphaFamilyVideoCtrl/Components/ButtonView';
+import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { IButtonViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IControlView';
+import { ILineUpSwButtonView } from '@game/alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge';
+import { ButtonView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/Components/ButtonView';
 
 const LineUpSwButtonViewId = 'LineUpSwButtonView';
 const ButtonId = 'button_line_up';

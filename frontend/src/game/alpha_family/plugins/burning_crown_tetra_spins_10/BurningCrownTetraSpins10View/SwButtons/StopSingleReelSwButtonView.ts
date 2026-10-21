@@ -1,12 +1,12 @@
 // Egt::Game::AlphaFamily::StopSingleReelSwButtonView (BurningCrownTetraSpins10View/SwButtons/StopSingleReelSwButtonView.h/.cpp):
 // touch areas over the reels, each stopping its reel while the reels spin.
 
-import { IAudioApi } from '../../../../../engine/Game/RuntimeImport/IAudioApi';
-import { IsValidIndex } from '../../../../../engine/GameCore/Common/ContainerHelpers';
-import type { Runtime } from '../../../../../engine/GameCore/RuntimeAccess';
-import { ButtonElement } from '../../../../../engine/GameVideoCtrl/ViewElements/ButtonElement';
-import { IStopSingleReelSwButtonView, IStopSingleReelSwButtonViewEvents } from '../../../../libs/AlphaFamily/Views/SwButtonViews.bridge';
-import { BaseView } from '../../../../libs/AlphaFamilyVideoCtrl/BaseView';
+import { IAudioApi } from '@game/engine/Game/RuntimeImport/IAudioApi';
+import { IsValidIndex } from '@game/engine/GameCore/Common/ContainerHelpers';
+import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { ButtonElement } from '@game/engine/GameVideoCtrl/ViewElements/ButtonElement';
+import { IStopSingleReelSwButtonView, IStopSingleReelSwButtonViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge';
+import { BaseView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/BaseView';
 
 const StopSingleReelSwButtonViewId = 'StopSingleReelSwButtonView';
 const SoundPanelButtonTouchId = 'MG_PANEL_BUTTON_TOUCH';

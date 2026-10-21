@@ -2,12 +2,12 @@
 // button element (SetButtonId, or SetToggleButtonId for a toggle button) takes the touches: a touch down on it presses
 // the button (SimulateButtonPress), which posts buttonPressedEvent, as the game's own presses do.
 
-import type { Runtime } from '../../../../engine/GameCore/RuntimeAccess';
-import { BaseElement } from '../../../../engine/GameVideoCtrl/ViewElements/BaseElement';
-import { ButtonElement } from '../../../../engine/GameVideoCtrl/ViewElements/ButtonElement';
-import { ToggleButtonElement } from '../../../../engine/GameVideoCtrl/ViewElements/ToggleButtonElement';
-import { IButtonViewEvents } from '../../AlphaFamily/Views/BaseInterfaces/IControlView';
-import type { ISwButtonBase, SwButtonToken } from '../../AlphaFamily/Views/SwButtonViews.bridge';
+import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { BaseElement } from '@game/engine/GameVideoCtrl/ViewElements/BaseElement';
+import { ButtonElement } from '@game/engine/GameVideoCtrl/ViewElements/ButtonElement';
+import { ToggleButtonElement } from '@game/engine/GameVideoCtrl/ViewElements/ToggleButtonElement';
+import { IButtonViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IControlView';
+import type { ISwButtonBase, SwButtonToken } from '@game/alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge';
 import { BaseView } from '../BaseView';
 
 export class ButtonView<E extends IButtonViewEvents = IButtonViewEvents> extends BaseView implements ISwButtonBase {

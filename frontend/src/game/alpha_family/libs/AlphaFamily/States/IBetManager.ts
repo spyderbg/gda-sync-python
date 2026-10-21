@@ -1,8 +1,8 @@
 // Egt::Game::AlphaFamily::States::IBetManager (AlphaFamily/States/IBetManager.h, IBetManager.data.h).
 
-import { Event } from '../../../../engine/Core/Event';
-import { type CurrencyType, GameCurrency } from '../../../../engine/Game/Math/Common.data';
-import { Interface } from '../../../../engine/GameCore/RuntimeAccess';
+import { Event } from '@game/engine/Core/Event';
+import { type CurrencyType, GameCurrency } from '@game/engine/Game/Math/Common.data';
+import { Interface } from '@game/engine/GameCore/RuntimeAccess';
 
 export type Bets = number[];
 export type Lines = number[];

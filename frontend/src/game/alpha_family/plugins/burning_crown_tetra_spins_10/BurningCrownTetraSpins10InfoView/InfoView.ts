@@ -3,22 +3,22 @@
 // slides the next page in, in the config's order, and an idle non-main page returns to the main one. The page shows
 // the game's stakes: each paytable figure's win at the bet per line, the win capping limit, the certification code...
 
-import { RoundType } from '../../../libs/AlphaFamily/Math/Common/Common.data';
-import type { ReelCombinations } from '../../../libs/AlphaFamily/Math/Reel/ReelRoundPhase.data';
-import { ECurrencyPrize, type FigureId, type IInfoView, IInfoView as IInfoViewToken, IInfoViewEvents, type PaytableCoefficients } from '../../../libs/AlphaFamily/Views/IInfoView.bridge';
-import { EInfoViewPageType } from '../../../libs/AlphaFamily/Views/IInfoView.data';
-import { BaseView } from '../../../libs/AlphaFamilyVideoCtrl/BaseView';
-import { IResources } from '../../../../engine/Game/RuntimeExport/IResources';
-import { ILocalization } from '../../../../engine/Game/RuntimeImport/ILocalization';
-import type { Runtime } from '../../../../engine/GameCore/RuntimeAccess';
-import type { uint32_t } from '../../../../engine/GameCore/Common/Types';
-import { Stopwatch } from '../../../../engine/GameCore/Tools/Timers';
-import { transformf, vec3 } from '../../../../hat_libs/egt_math/transform';
-import { make_sentinel, sentinel } from '../../../../hat_libs/egt_hpp/sentinel';
-import * as tweeny from '../../../../hat_libs/tweeny/tweeny';
-import { move_from_to } from '../../../../hat_libs/tweeny_extend/tweeny_extend_transform/tweeny_extend_transform';
-import type { DrawList } from '../../../../engine/GameVideoCtrl/DrawList';
-import { ERtfTags, type FigureKey, FigureKeyString, type PaytableFiguresTextType, RtfElement } from '../../../../engine/GameVideoCtrl/ViewElements/RtfElement';
+import { RoundType } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
+import type { ReelCombinations } from '@game/alpha_family/libs/AlphaFamily/Math/Reel/ReelRoundPhase.data';
+import { ECurrencyPrize, type FigureId, type IInfoView, IInfoView as IInfoViewToken, IInfoViewEvents, type PaytableCoefficients } from '@game/alpha_family/libs/AlphaFamily/Views/IInfoView.bridge';
+import { EInfoViewPageType } from '@game/alpha_family/libs/AlphaFamily/Views/IInfoView.data';
+import { BaseView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/BaseView';
+import { IResources } from '@game/engine/Game/RuntimeExport/IResources';
+import { ILocalization } from '@game/engine/Game/RuntimeImport/ILocalization';
+import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import type { uint32_t } from '@game/engine/GameCore/Common/Types';
+import { Stopwatch } from '@game/engine/GameCore/Tools/Timers';
+import { transformf, vec3 } from '@game/hat_libs/egt_math/transform';
+import { make_sentinel, sentinel } from '@game/hat_libs/egt_hpp/sentinel';
+import * as tweeny from '@game/hat_libs/tweeny/tweeny';
+import { move_from_to } from '@game/hat_libs/tweeny_extend/tweeny_extend_transform/tweeny_extend_transform';
+import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
+import { ERtfTags, type FigureKey, FigureKeyString, type PaytableFiguresTextType, RtfElement } from '@game/engine/GameVideoCtrl/ViewElements/RtfElement';
 import type { InfoViewConfig } from './InfoView.data';
 
 const InfoViewId = 'InfoView';

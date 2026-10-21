@@ -2,18 +2,18 @@
 // for each sub screen in turn: stop its reels, fly its crowns into the next screens, show its lines, then dim it with
 // its win.
 
-import { State } from '../../../../../engine/Fsm/Fsm';
-import { IsValidIndex } from '../../../../../engine/GameCore/Common/ContainerHelpers';
-import { IStartHwButton } from '../../../../../engine/Game/RuntimeImport/HwButtons.bridge';
-import { Currency } from '../../../AlphaFamily/Math/Common/Common.data';
-import { SpinReelsPhase, TetraSpinPhase } from '../../../AlphaFamily/Math/Reel/ReelRoundPhase.data';
-import { BaseReelRules } from '../../../AlphaFamily/Math/Reel/Rules/BaseReelRules';
-import { IGameManager } from '../../../AlphaFamily/States/IGameManager';
-import { ITetraRound, ITetraRoundEnding, ITetraRoundPresenting } from '../../../AlphaFamily/States/Match/ITetraRound';
-import { ICreditsWinBarView } from '../../../AlphaFamily/Views/BarsView.bridge';
-import { IInfoView } from '../../../AlphaFamily/Views/IInfoView.bridge';
-import { IStatusLineView } from '../../../AlphaFamily/Views/IStatusLineView.bridge';
-import { ITetraRoundView } from '../../../AlphaFamily/Views/ITetraRoundView.bridge';
+import { State } from '@game/engine/Fsm/Fsm';
+import { IsValidIndex } from '@game/engine/GameCore/Common/ContainerHelpers';
+import { IStartHwButton } from '@game/engine/Game/RuntimeImport/HwButtons.bridge';
+import { Currency } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
+import { SpinReelsPhase, TetraSpinPhase } from '@game/alpha_family/libs/AlphaFamily/Math/Reel/ReelRoundPhase.data';
+import { BaseReelRules } from '@game/alpha_family/libs/AlphaFamily/Math/Reel/Rules/BaseReelRules';
+import { IGameManager } from '@game/alpha_family/libs/AlphaFamily/States/IGameManager';
+import { ITetraRound, ITetraRoundEnding, ITetraRoundPresenting } from '@game/alpha_family/libs/AlphaFamily/States/Match/ITetraRound';
+import { ICreditsWinBarView } from '@game/alpha_family/libs/AlphaFamily/Views/BarsView.bridge';
+import { IInfoView } from '@game/alpha_family/libs/AlphaFamily/Views/IInfoView.bridge';
+import { IStatusLineView } from '@game/alpha_family/libs/AlphaFamily/Views/IStatusLineView.bridge';
+import { ITetraRoundView } from '@game/alpha_family/libs/AlphaFamily/Views/ITetraRoundView.bridge';
 import { TetraPresentingStep, TetraRoundPresentingStatics, TetraRoundStatics, TetraRoundStorage } from './TetraRound.data';
 
 export class TetraRoundPresentingState extends State {

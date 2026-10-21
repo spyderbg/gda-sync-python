@@ -1,6 +1,6 @@
 // Egt::Game::IVideo: the screen the game draws on, its images and fonts, and the input it receives.
 
-import { Interface } from '../../GameCore/RuntimeAccess';
+import { Interface } from '@game/engine/GameCore/RuntimeAccess';
 import type { DrawList } from '../DrawList';
 import type { FontCache } from '../Fonts';
 import type { ImageCache } from '../ImageCache';

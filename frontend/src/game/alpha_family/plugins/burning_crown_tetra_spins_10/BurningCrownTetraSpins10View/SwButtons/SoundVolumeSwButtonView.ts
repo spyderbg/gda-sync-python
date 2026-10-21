@@ -2,14 +2,14 @@
 // the sound button, one element for each volume preset, of which it shows the current one; a press shows the next
 // volume's button 200 ms later. It moves to its tetra place in the tetra round.
 
-import { IAudioApi } from '../../../../../engine/Game/RuntimeImport/IAudioApi';
-import type { Runtime } from '../../../../../engine/GameCore/RuntimeAccess';
-import * as tweeny from '../../../../../hat_libs/tweeny/tweeny';
-import { BaseElement } from '../../../../../engine/GameVideoCtrl/ViewElements/BaseElement';
-import { ButtonElement } from '../../../../../engine/GameVideoCtrl/ViewElements/ButtonElement';
-import { IButtonViewEvents } from '../../../../libs/AlphaFamily/Views/BaseInterfaces/IControlView';
-import { ESoundSwButtonType, ISoundVolumeSwButtonView } from '../../../../libs/AlphaFamily/Views/SwButtonViews.bridge';
-import { ButtonView } from '../../../../libs/AlphaFamilyVideoCtrl/Components/ButtonView';
+import { IAudioApi } from '@game/engine/Game/RuntimeImport/IAudioApi';
+import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import * as tweeny from '@game/hat_libs/tweeny/tweeny';
+import { BaseElement } from '@game/engine/GameVideoCtrl/ViewElements/BaseElement';
+import { ButtonElement } from '@game/engine/GameVideoCtrl/ViewElements/ButtonElement';
+import { IButtonViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IControlView';
+import { ESoundSwButtonType, ISoundVolumeSwButtonView } from '@game/alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge';
+import { ButtonView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/Components/ButtonView';
 
 const SoundVolumeSwButtonViewId = 'SoundVolumeSwButtonView';
 const ButtonVolumeMuteId = 'button_volume_mute';

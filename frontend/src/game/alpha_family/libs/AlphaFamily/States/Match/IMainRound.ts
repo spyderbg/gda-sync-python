@@ -1,6 +1,6 @@
 // Egt::Game::AlphaFamily::States::IMainRound and its substates (AlphaFamily/States/Match/IMainRound.h).
 
-import { Interface } from '../../../../../engine/GameCore/RuntimeAccess';
+import { Interface } from '@game/engine/GameCore/RuntimeAccess';
 import type { IReelRound } from './IReelRound';
 
 export const IMainRound = Interface<IReelRound>('IMainRound');

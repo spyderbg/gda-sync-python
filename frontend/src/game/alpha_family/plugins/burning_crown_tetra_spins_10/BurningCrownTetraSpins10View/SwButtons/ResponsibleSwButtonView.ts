@@ -1,9 +1,9 @@
 // Egt::Game::AlphaFamily::ResponsibleSwButtonView (BurningCrownTetraSpins10View/SwButtons/ResponsibleSwButtonView.h/.cpp): opens the responsible gaming setup (no element in this game).
 
-import type { Runtime } from '../../../../../engine/GameCore/RuntimeAccess';
-import { IButtonViewEvents } from '../../../../libs/AlphaFamily/Views/BaseInterfaces/IControlView';
-import { IResponsibleSwButtonView } from '../../../../libs/AlphaFamily/Views/SwButtonViews.bridge';
-import { ButtonView } from '../../../../libs/AlphaFamilyVideoCtrl/Components/ButtonView';
+import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { IButtonViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IControlView';
+import { IResponsibleSwButtonView } from '@game/alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge';
+import { ButtonView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/Components/ButtonView';
 
 const ResponsibleSwButtonViewId = 'ResponsibleSwButtonView';
 const ButtonId = 'button_responsible';

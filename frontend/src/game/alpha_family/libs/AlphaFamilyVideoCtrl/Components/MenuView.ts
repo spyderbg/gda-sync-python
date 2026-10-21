@@ -2,12 +2,12 @@
 // menu, which a menu view owns: its open and close actions (tweeny), their sounds, the menu's state, and the events
 // menuOpening/menuOpened and menuClosing/menuClosed. An opened menu closes after 5 seconds without a touch.
 
-import { IAudioApi } from '../../../../engine/Game/RuntimeImport/IAudioApi';
-import { RuntimeHolder, type Runtime } from '../../../../engine/GameCore/RuntimeAccess';
-import { Stopwatch } from '../../../../engine/GameCore/Tools/Timers';
-import { make_sentinel } from '../../../../hat_libs/egt_hpp/sentinel';
-import * as tweeny from '../../../../hat_libs/tweeny/tweeny';
-import type { IMenuView, IMenuViewEvents } from '../../AlphaFamily/Views/BaseInterfaces/IControlView';
+import { IAudioApi } from '@game/engine/Game/RuntimeImport/IAudioApi';
+import { RuntimeHolder, type Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { Stopwatch } from '@game/engine/GameCore/Tools/Timers';
+import { make_sentinel } from '@game/hat_libs/egt_hpp/sentinel';
+import * as tweeny from '@game/hat_libs/tweeny/tweeny';
+import type { IMenuView, IMenuViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IControlView';
 
 interface Position {
   x: number;

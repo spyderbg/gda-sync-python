@@ -1,26 +1,26 @@
 // Egt::Game::AlphaFamily::ReelRoundPresentingState (AlphaFamilyStatesLibrary/Match/ReelRound/ReelRoundPresenting):
 // shows each phase's symbols, combinations, lines and win, and ends the round once the win is counted.
 
-import { Reaction, State } from '../../../../../engine/Fsm/Fsm';
+import { Reaction, State } from '@game/engine/Fsm/Fsm';
 import {
   IAutoPlayHwButton, ICashoutHwButton, ICollectHwButton, IDecreaseBetHwButton, IExitHwButton, IGambleBlackHwButton, IGambleHwButton, IGambleRedHwButton,
   IIncreaseBetHwButton, IInfoHwButton, IMaxBetHwButton, IStartHwButton, HwButtonLight,
-} from '../../../../../engine/Game/RuntimeImport/HwButtons.bridge';
-import { ILimits } from '../../../../../engine/Game/RuntimeImport/ILimits';
-import { Currency, PayoutSummary } from '../../../AlphaFamily/Math/Common/Common.data';
-import { SpinReelsPhase } from '../../../AlphaFamily/Math/Reel/ReelRoundPhase.data';
-import type { RoundPhases } from '../../../AlphaFamily/Math/RoundResult.data';
-import { IGameflow } from '../../../AlphaFamily/RuntimeImport/IGameflow.bridge';
-import { IGameManager } from '../../../AlphaFamily/States/IGameManager';
-import { IViewManager } from '../../../AlphaFamily/States/IViewManager';
-import { IReelRound } from '../../../AlphaFamily/States/Match/IReelRound';
-import { ICreditsWinBarView } from '../../../AlphaFamily/Views/BarsView.bridge';
-import { IInfoView } from '../../../AlphaFamily/Views/IInfoView.bridge';
-import { ILinesView } from '../../../AlphaFamily/Views/ILinesView.bridge';
-import { IBigWinView } from '../../../AlphaFamily/Views/IOverlayViews.bridge';
-import { IReelsView } from '../../../AlphaFamily/Views/IReelsView.bridge';
-import { IStatusLineView } from '../../../AlphaFamily/Views/IStatusLineView.bridge';
-import { IWinFiguresView } from '../../../AlphaFamily/Views/IWinFiguresView.bridge';
+} from '@game/engine/Game/RuntimeImport/HwButtons.bridge';
+import { ILimits } from '@game/engine/Game/RuntimeImport/ILimits';
+import { Currency, PayoutSummary } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
+import { SpinReelsPhase } from '@game/alpha_family/libs/AlphaFamily/Math/Reel/ReelRoundPhase.data';
+import type { RoundPhases } from '@game/alpha_family/libs/AlphaFamily/Math/RoundResult.data';
+import { IGameflow } from '@game/alpha_family/libs/AlphaFamily/RuntimeImport/IGameflow.bridge';
+import { IGameManager } from '@game/alpha_family/libs/AlphaFamily/States/IGameManager';
+import { IViewManager } from '@game/alpha_family/libs/AlphaFamily/States/IViewManager';
+import { IReelRound } from '@game/alpha_family/libs/AlphaFamily/States/Match/IReelRound';
+import { ICreditsWinBarView } from '@game/alpha_family/libs/AlphaFamily/Views/BarsView.bridge';
+import { IInfoView } from '@game/alpha_family/libs/AlphaFamily/Views/IInfoView.bridge';
+import { ILinesView } from '@game/alpha_family/libs/AlphaFamily/Views/ILinesView.bridge';
+import { IBigWinView } from '@game/alpha_family/libs/AlphaFamily/Views/IOverlayViews.bridge';
+import { IReelsView } from '@game/alpha_family/libs/AlphaFamily/Views/IReelsView.bridge';
+import { IStatusLineView } from '@game/alpha_family/libs/AlphaFamily/Views/IStatusLineView.bridge';
+import { IWinFiguresView } from '@game/alpha_family/libs/AlphaFamily/Views/IWinFiguresView.bridge';
 import { ReelRoundPresentingStatics, ReelRoundStorage } from './ReelRound.data';
 
 export abstract class ReelRoundPresentingState extends State {

@@ -2,7 +2,7 @@
 //
 // A duration is in milliseconds (C++: std::chrono::nanoseconds; the translator writes std::chrono::milliseconds).
 
-import type { sentinel } from '../egt_hpp/sentinel';
+import type { sentinel } from '@game/hat_libs/egt_hpp/sentinel';
 
 export type duration_t = number;
 export type sentinel_t = sentinel;

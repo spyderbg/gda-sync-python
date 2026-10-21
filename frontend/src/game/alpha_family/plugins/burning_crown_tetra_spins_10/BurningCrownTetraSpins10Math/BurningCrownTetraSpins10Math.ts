@@ -1,9 +1,9 @@
 // Egt::Game::AlphaFamily::BurningCrownTetraSpins10Math (BurningCrownTetraSpins10Math.h/.cpp): the math module, which
 // provides IMathTypes and IMathRules from the setup of its config (BurningCrownTetraSpins10Modules.json).
 
-import { IResources } from '../../../../engine/Game/RuntimeExport/IResources';
-import type { Runtime } from '../../../../engine/GameCore/RuntimeAccess';
-import { BaseModule, type ModuleConfig } from '../../../../engine/ModuleManager/BaseModule';
+import { IResources } from '@game/engine/Game/RuntimeExport/IResources';
+import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { BaseModule, type ModuleConfig } from '@game/engine/ModuleManager/BaseModule';
 import type { MathRulesInitConfig } from './MathRules.data';
 import { MathRules } from './MathRules';
 import { MATH_RULES } from './MathRules.description';

@@ -1,14 +1,14 @@
 // Egt::Game::AlphaFamily::WinFiguresView (BurningCrownTetraSpins10View/Views/WinFiguresView.h/.cpp): the animations of
 // the main reels' winning symbols.
 
-import type { Runtime } from '../../../../../engine/GameCore/RuntimeAccess';
-import { IResources } from '../../../../../engine/Game/RuntimeExport/IResources';
-import * as tweeny from '../../../../../hat_libs/tweeny/tweeny';
-import type { DrawList } from '../../../../../engine/GameVideoCtrl/DrawList';
-import { SymbolGridCoordinates, type SymbolViewInfo, type SymbolViewInfos } from '../../../../libs/AlphaFamily/Math/Common/Common.data';
-import type { ReelCombinations } from '../../../../libs/AlphaFamily/Math/Reel/ReelRoundPhase.data';
-import { IWinFiguresView, IWinFiguresViewEvents } from '../../../../libs/AlphaFamily/Views/IWinFiguresView.bridge';
-import { BaseView } from '../../../../libs/AlphaFamilyVideoCtrl/BaseView';
+import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { IResources } from '@game/engine/Game/RuntimeExport/IResources';
+import * as tweeny from '@game/hat_libs/tweeny/tweeny';
+import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
+import { SymbolGridCoordinates, type SymbolViewInfo, type SymbolViewInfos } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
+import type { ReelCombinations } from '@game/alpha_family/libs/AlphaFamily/Math/Reel/ReelRoundPhase.data';
+import { IWinFiguresView, IWinFiguresViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/IWinFiguresView.bridge';
+import { BaseView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/BaseView';
 import { BaseVisual } from '../Visuals/BaseVisual';
 import { EWinFigureType, WinFigureVisual } from '../Visuals/WinFiguresVisual';
 import type { WinFiguresVisualConfig } from './ReelsView.data';

@@ -2,15 +2,15 @@
 // draws on, and IVideoManager, the render layers over it (the capping splash...). The browser's canvas is that screen,
 // scaled to the page; touches are mapped back to the view resolution. Its Process updates the started tweens (tweeny).
 
-import * as tweeny from '../../hat_libs/tweeny/tweeny';
-import { IResources } from '../Game/RuntimeExport/IResources';
-import { Runtime } from '../GameCore/RuntimeAccess';
-import { DrawList } from '../GameVideoCtrl/DrawList';
-import { FontCache } from '../GameVideoCtrl/Fonts';
-import { ImageCache } from '../GameVideoCtrl/ImageCache';
-import { IVideo, type TouchEventData } from '../GameVideoCtrl/RuntimeExport/IVideo';
-import { type DrawHandler, type EventHandler, IVideoManager, type IsOpaqueFullScreenHandler } from '../GameVideoCtrl/RuntimeExport/IVideoManager';
-import { BaseModule, type ModuleConfig } from '../ModuleManager/BaseModule';
+import * as tweeny from '@game/hat_libs/tweeny/tweeny';
+import { IResources } from '@game/engine/Game/RuntimeExport/IResources';
+import { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
+import { FontCache } from '@game/engine/GameVideoCtrl/Fonts';
+import { ImageCache } from '@game/engine/GameVideoCtrl/ImageCache';
+import { IVideo, type TouchEventData } from '@game/engine/GameVideoCtrl/RuntimeExport/IVideo';
+import { type DrawHandler, type EventHandler, IVideoManager, type IsOpaqueFullScreenHandler } from '@game/engine/GameVideoCtrl/RuntimeExport/IVideoManager';
+import { BaseModule, type ModuleConfig } from '@game/engine/ModuleManager/BaseModule';
 
 export const RESOLUTION = { width: 1920, height: 1080 };
 

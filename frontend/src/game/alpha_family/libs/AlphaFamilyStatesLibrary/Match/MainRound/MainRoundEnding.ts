@@ -1,7 +1,7 @@
 // Egt::Game::AlphaFamily::MainRoundEndingState (AlphaFamilyStatesLibrary/Match/MainRound/MainRoundEnding).
 
-import { IMatch } from '../../../AlphaFamily/States/Match/IMatch';
-import { IMainRoundEnding } from '../../../AlphaFamily/States/Match/IMainRound';
+import { IMatch } from '@game/alpha_family/libs/AlphaFamily/States/Match/IMatch';
+import { IMainRoundEnding } from '@game/alpha_family/libs/AlphaFamily/States/Match/IMainRound';
 import { ReelRoundEndingState } from '../ReelRound/ReelRoundEnding';
 
 export class MainRoundEndingState extends ReelRoundEndingState {

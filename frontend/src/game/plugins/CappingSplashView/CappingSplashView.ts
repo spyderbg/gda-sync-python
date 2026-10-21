@@ -3,13 +3,13 @@
 // game, until the state machine hides it or its idle time passes. Its view is the common feature's
 // (resources/common/features/new_capping), which the game's descriptors include.
 
-import { ILocalization } from '../../engine/Game/RuntimeImport/ILocalization';
-import { CountdownTimer } from '../../engine/Game/Utils/CountdownTimer';
-import type { Runtime } from '../../engine/GameCore/RuntimeAccess';
-import { IVideoManager } from '../../engine/GameVideoCtrl/RuntimeExport/IVideoManager';
-import { ElementsList } from '../../engine/GameVideoCtrl/ViewElements/ElementsList';
-import { BaseModule, type ModuleConfig } from '../../engine/ModuleManager/BaseModule';
-import { type ICappingSplashView, ICappingSplashView as ICappingSplashViewToken, ICappingSplashViewEvents } from '../../alpha_family/libs/AlphaFamily/Views/ICappingSplashView.bridge';
+import { ILocalization } from '@game/engine/Game/RuntimeImport/ILocalization';
+import { CountdownTimer } from '@game/engine/Game/Utils/CountdownTimer';
+import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { IVideoManager } from '@game/engine/GameVideoCtrl/RuntimeExport/IVideoManager';
+import { ElementsList } from '@game/engine/GameVideoCtrl/ViewElements/ElementsList';
+import { BaseModule, type ModuleConfig } from '@game/engine/ModuleManager/BaseModule';
+import { type ICappingSplashView, ICappingSplashView as ICappingSplashViewToken, ICappingSplashViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/ICappingSplashView.bridge';
 import { CappingSplashViewConfig } from './CappingSplashView.data';
 
 const CappingSplashViewId = 'CappingSplashView';

@@ -2,17 +2,17 @@
 // credit, which moves between its minimized and maximized places (its _min and _max placeholders) in 132 ms, and which a
 // cabinet's hide and show credit buttons hide and show.
 
-import type { Runtime } from '../../../../../engine/GameCore/RuntimeAccess';
-import { ILocalization } from '../../../../../engine/Game/RuntimeImport/ILocalization';
-import * as tweeny from '../../../../../hat_libs/tweeny/tweeny';
-import type { DrawList } from '../../../../../engine/GameVideoCtrl/DrawList';
-import { BaseElement } from '../../../../../engine/GameVideoCtrl/ViewElements/BaseElement';
-import { ButtonElement } from '../../../../../engine/GameVideoCtrl/ViewElements/ButtonElement';
-import { ImageElement } from '../../../../../engine/GameVideoCtrl/ViewElements/ImageElement';
-import { TextElement } from '../../../../../engine/GameVideoCtrl/ViewElements/TextElement';
-import { PlaceholderFromTo } from '../../../../../engine/GameVideoCtrl/ViewElements/TweenyExtend/TweenyExtendElement';
-import { type ICreditBarView, ICreditBarView as ICreditBarViewToken, ICreditBarViewEvents } from '../../../../libs/AlphaFamily/Views/BarsView.bridge';
-import { NumericBarView } from '../../../../libs/AlphaFamilyVideoCtrl/Components/NumericBarView';
+import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { ILocalization } from '@game/engine/Game/RuntimeImport/ILocalization';
+import * as tweeny from '@game/hat_libs/tweeny/tweeny';
+import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
+import { BaseElement } from '@game/engine/GameVideoCtrl/ViewElements/BaseElement';
+import { ButtonElement } from '@game/engine/GameVideoCtrl/ViewElements/ButtonElement';
+import { ImageElement } from '@game/engine/GameVideoCtrl/ViewElements/ImageElement';
+import { TextElement } from '@game/engine/GameVideoCtrl/ViewElements/TextElement';
+import { PlaceholderFromTo } from '@game/engine/GameVideoCtrl/ViewElements/TweenyExtend/TweenyExtendElement';
+import { type ICreditBarView, ICreditBarView as ICreditBarViewToken, ICreditBarViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/BarsView.bridge';
+import { NumericBarView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/Components/NumericBarView';
 
 const AnimDurationSeconds = 132; // 4s * 0.033f;
 const CreditBarViewId = 'CreditBarView';

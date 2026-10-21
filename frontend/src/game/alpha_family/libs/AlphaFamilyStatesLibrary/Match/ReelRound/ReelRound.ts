@@ -1,12 +1,12 @@
 // Egt::Game::AlphaFamily::ReelRoundState (AlphaFamilyStatesLibrary/Match/ReelRound/ReelRound.h/.cpp): a reel round,
 // whose input it prepares on entering; MainRoundState is the main game's.
 
-import { State } from '../../../../../engine/Fsm/Fsm';
-import type { RoundType } from '../../../AlphaFamily/Math/Common/Common.data';
-import { ReelRoundInput } from '../../../AlphaFamily/Math/Reel/ReelRoundInput.data';
-import { IMathRules } from '../../../AlphaFamily/RuntimeExport/IMathRules';
-import { IGameManager } from '../../../AlphaFamily/States/IGameManager';
-import { IReelRound } from '../../../AlphaFamily/States/Match/IReelRound';
+import { State } from '@game/engine/Fsm/Fsm';
+import type { RoundType } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
+import { ReelRoundInput } from '@game/alpha_family/libs/AlphaFamily/Math/Reel/ReelRoundInput.data';
+import { IMathRules } from '@game/alpha_family/libs/AlphaFamily/RuntimeExport/IMathRules';
+import { IGameManager } from '@game/alpha_family/libs/AlphaFamily/States/IGameManager';
+import { IReelRound } from '@game/alpha_family/libs/AlphaFamily/States/Match/IReelRound';
 import { ReelRoundStatics, ReelRoundStorage } from './ReelRound.data';
 
 export abstract class ReelRoundState extends State implements IReelRound {

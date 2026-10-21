@@ -1,8 +1,8 @@
 // Egt::Game::AlphaFamily::TetraRoundStorage and TetraRoundStatics (AlphaFamilyStatesLibrary/Match/TetraRound/TetraRound.data.h,
 // TetraRoundPresenting.data.h).
 
-import type { ReelRoundInput } from '../../../AlphaFamily/Math/Reel/ReelRoundInput.data';
-import type { RoundResult } from '../../../AlphaFamily/Math/RoundResult.data';
+import type { ReelRoundInput } from '@game/alpha_family/libs/AlphaFamily/Math/Reel/ReelRoundInput.data';
+import type { RoundResult } from '@game/alpha_family/libs/AlphaFamily/Math/RoundResult.data';
 
 export class TetraRoundStorage {
   roundInput: ReelRoundInput | null = null;

@@ -1,6 +1,6 @@
 // Egt::Game::AlphaFamily::ReelRoundRulesConfig (AlphaFamily/Math/Reel/ReelRoundRules.data.h).
 
-import type { CurrencyType } from '../../../../../engine/Game/Math/Common.data';
+import type { CurrencyType } from '@game/engine/Game/Math/Common.data';
 import { Currency, ELastResultSlot, Multipliers, type Reels, RoundType } from '../Common/Common.data';
 import { CollectorRulesConfig } from './Rules/CollectorRules.data';
 import { CopySymbolsRulesConfig } from './Rules/CopySymbolsRules.data';

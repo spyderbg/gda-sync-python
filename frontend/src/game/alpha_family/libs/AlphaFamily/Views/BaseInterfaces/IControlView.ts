@@ -1,6 +1,6 @@
 // Egt::Game::IControlView, IButtonView, IMenuView and INumericBarView (AlphaFamily/Views/BaseInterfaces).
 
-import { Event } from '../../../../../engine/Core/Event';
+import { Event } from '@game/engine/Core/Event';
 import type { AccumulationDescriptor } from '../Tools/AccumulationControl.data';
 
 export interface IControlView {

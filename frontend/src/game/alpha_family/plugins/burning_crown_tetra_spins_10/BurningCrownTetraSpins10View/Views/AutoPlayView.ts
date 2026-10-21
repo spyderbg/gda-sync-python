@@ -1,8 +1,8 @@
 // Egt::Game::AlphaFamily::AutoPlayView (BurningCrownTetraSpins10View/Views/AutoPlayView.h/.cpp): whether autoplay is on.
 
-import type { Runtime } from '../../../../../engine/GameCore/RuntimeAccess';
-import { IAutoPlayView } from '../../../../libs/AlphaFamily/Views/IOverlayViews.bridge';
-import { BaseView } from '../../../../libs/AlphaFamilyVideoCtrl/BaseView';
+import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { IAutoPlayView } from '@game/alpha_family/libs/AlphaFamily/Views/IOverlayViews.bridge';
+import { BaseView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/BaseView';
 
 const AutoPlayViewId = 'AutoPlayView';
 

@@ -1,17 +1,17 @@
 // Egt::Game::AlphaFamily::TetraRoundInputState (AlphaFamilyStatesLibrary/Match/TetraRound/TetraRoundInput): waits for
 // START (with the bet the player chooses) or COLLECT, which ends the tetra round.
 
-import { State } from '../../../../../engine/Fsm/Fsm';
-import { Currencies } from '../../../../../engine/Game/Math/Common.data';
-import { IAutoPlayHwButton, ICashoutHwButton, IStartHwButton } from '../../../../../engine/Game/RuntimeImport/HwButtons.bridge';
-import { Currency } from '../../../AlphaFamily/Math/Common/Common.data';
-import { IBetManager } from '../../../AlphaFamily/States/IBetManager';
-import { IGameManager } from '../../../AlphaFamily/States/IGameManager';
-import { ISystemManager } from '../../../AlphaFamily/States/ISystemManager';
+import { State } from '@game/engine/Fsm/Fsm';
+import { Currencies } from '@game/engine/Game/Math/Common.data';
+import { IAutoPlayHwButton, ICashoutHwButton, IStartHwButton } from '@game/engine/Game/RuntimeImport/HwButtons.bridge';
+import { Currency } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
+import { IBetManager } from '@game/alpha_family/libs/AlphaFamily/States/IBetManager';
+import { IGameManager } from '@game/alpha_family/libs/AlphaFamily/States/IGameManager';
+import { ISystemManager } from '@game/alpha_family/libs/AlphaFamily/States/ISystemManager';
 import {
   ITetraRound, ITetraRoundInput, ITetraRoundOutro, ITetraRoundStarting,
-} from '../../../AlphaFamily/States/Match/ITetraRound';
-import { IExitTetraSwButtonView } from '../../../AlphaFamily/Views/SwButtonViews.bridge';
+} from '@game/alpha_family/libs/AlphaFamily/States/Match/ITetraRound';
+import { IExitTetraSwButtonView } from '@game/alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge';
 import { TetraRoundStorage } from './TetraRound.data';
 
 export class TetraRoundInputState extends State {

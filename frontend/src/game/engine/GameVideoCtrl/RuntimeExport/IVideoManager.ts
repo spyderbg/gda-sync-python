@@ -2,7 +2,7 @@
 // in the order of their ids after the game, and given the input first, the topmost first. The browser game has only the
 // main screen: the info and topper screens' layers are not here.
 
-import { Interface } from '../../GameCore/RuntimeAccess';
+import { Interface } from '@game/engine/GameCore/RuntimeAccess';
 import type { DrawList } from '../DrawList';
 import type { TouchEventData } from './IVideo';
 

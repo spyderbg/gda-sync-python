@@ -1,8 +1,8 @@
 // Egt::Game::AlphaFamily::ReelRoundRules (AlphaFamily/Math/Reel/ReelRoundRules.h/.cpp): the rules of a reel round,
 // which calculate a round's result from its input and random numbers.
 
-import { HistoryEngine, type IRng, MonteCarloEngineHat, ReplayEngine, RngOp } from '../../../../../engine/GameCore/Random/IRng';
-import { Currencies, type CurrencyType } from '../../../../../engine/Game/Math/Common.data';
+import { HistoryEngine, type IRng, MonteCarloEngineHat, ReplayEngine, RngOp } from '@game/engine/GameCore/Random/IRng';
+import { Currencies, type CurrencyType } from '@game/engine/Game/Math/Common.data';
 import { type Line, type Lines, RoundErrorCode, RoundType, type SymbolId } from '../Common/Common.data';
 import { RoundConfigError, RoundInputError } from '../Common/Exceptions';
 import { RoundError, type RoundReplay, RoundResult, type RoundResultOrError } from '../RoundResult.data';

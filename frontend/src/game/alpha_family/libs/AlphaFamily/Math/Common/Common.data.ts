@@ -1,6 +1,6 @@
 // Egt::Game::AlphaFamily common math types (AlphaFamily/Math/Common/Common.data.h).
 
-import { Currencies, type CurrencyType, GameCurrency } from '../../../../../engine/Game/Math/Common.data';
+import { Currencies, type CurrencyType, GameCurrency } from '@game/engine/Game/Math/Common.data';
 
 export enum RoundType {
   Undefined,

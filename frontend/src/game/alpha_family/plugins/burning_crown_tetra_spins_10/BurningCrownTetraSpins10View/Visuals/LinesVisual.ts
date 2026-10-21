@@ -1,10 +1,10 @@
 // Egt::Game::AlphaFamily::LinesVisual (BurningCrownTetraSpins10View/Visuals/LinesVisual.h/.cpp): a winning line: its
 // line image (cut out under its win squares), the squares and their lights, and a darker shadow copy that blinks.
 
-import type { RssRect } from '../../../../../engine/Game/RuntimeExport/IResources';
-import type { DrawList } from '../../../../../engine/GameVideoCtrl/DrawList';
-import type { ElementsList } from '../../../../../engine/GameVideoCtrl/ViewElements/ElementsList';
-import * as tweeny from '../../../../../hat_libs/tweeny/tweeny';
+import type { RssRect } from '@game/engine/Game/RuntimeExport/IResources';
+import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
+import type { ElementsList } from '@game/engine/GameVideoCtrl/ViewElements/ElementsList';
+import * as tweeny from '@game/hat_libs/tweeny/tweeny';
 import { BaseVisual } from './BaseVisual';
 
 export class LinesVisual extends BaseVisual {

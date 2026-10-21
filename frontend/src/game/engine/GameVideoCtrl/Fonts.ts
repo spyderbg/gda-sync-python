@@ -1,7 +1,7 @@
 // The fonts of text styles: a bitmap font (a PNG strip whose first row marks where each glyph starts, in the order of
 // the font's chars) or a TrueType font (loaded as a FontFace).
 
-import type { RssFont } from '../Game/RuntimeExport/IResources';
+import type { RssFont } from '@game/engine/Game/RuntimeExport/IResources';
 
 const CHARS = /\[U\+([0-9A-Fa-f]{1,6})(?:-U\+([0-9A-Fa-f]{1,6}))?\]/g;
 

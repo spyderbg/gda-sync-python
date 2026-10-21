@@ -1,8 +1,8 @@
 // Egt::Game::AlphaFamily::IInfoView (AlphaFamily/Views/IInfoView.bridge.h): the help pages and their paytables.
 
-import { Event } from '../../../../engine/Core/Event';
-import type { int, int64_t, uint32_t } from '../../../../engine/GameCore/Common/Types';
-import { Interface } from '../../../../engine/GameCore/RuntimeAccess';
+import { Event } from '@game/engine/Core/Event';
+import type { int, int64_t, uint32_t } from '@game/engine/GameCore/Common/Types';
+import { Interface } from '@game/engine/GameCore/RuntimeAccess';
 import type { RoundType } from '../Math/Common/Common.data';
 import type { ReelCombinations } from '../Math/Reel/ReelRoundPhase.data';
 import type { EInfoViewPageType } from './IInfoView.data';

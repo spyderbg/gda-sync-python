@@ -1,6 +1,6 @@
 // Egt::Game::AlphaFamily::ReelRoundInput (AlphaFamily/Math/Reel/ReelRoundInput.data.h).
 
-import { Currencies, type CurrencyType } from '../../../../../engine/Game/Math/Common.data';
+import { Currencies, type CurrencyType } from '@game/engine/Game/Math/Common.data';
 import { Currency, RoundType } from '../Common/Common.data';
 
 export class ReelRoundInput {

@@ -1,14 +1,14 @@
 // Egt::Game::AlphaFamily::TetraRoundOverlayView (BurningCrownTetraSpins10View/Views/TetraRoundOverlayView.h/.cpp): the
 // "Tetra activated" and "Tetra completed" splashes, with an event midway through and at the end of each.
 
-import { IAudioApi } from '../../../../../engine/Game/RuntimeImport/IAudioApi';
-import { BrowserOnly } from '../../../../../engine/GameCore/Common/BrowserOnly';
-import type { Runtime } from '../../../../../engine/GameCore/RuntimeAccess';
-import { make_sentinel, sentinel } from '../../../../../hat_libs/egt_hpp/sentinel';
-import * as tweeny from '../../../../../hat_libs/tweeny/tweeny';
-import { AnimElement } from '../../../../../engine/GameVideoCtrl/ViewElements/AnimElement';
-import { ITetraRoundOverlayView, ITetraRoundOverlayViewEvents } from '../../../../libs/AlphaFamily/Views/IOverlayViews.bridge';
-import { BaseView } from '../../../../libs/AlphaFamilyVideoCtrl/BaseView';
+import { IAudioApi } from '@game/engine/Game/RuntimeImport/IAudioApi';
+import { BrowserOnly } from '@game/engine/GameCore/Common/BrowserOnly';
+import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { make_sentinel, sentinel } from '@game/hat_libs/egt_hpp/sentinel';
+import * as tweeny from '@game/hat_libs/tweeny/tweeny';
+import { AnimElement } from '@game/engine/GameVideoCtrl/ViewElements/AnimElement';
+import { ITetraRoundOverlayView, ITetraRoundOverlayViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/IOverlayViews.bridge';
+import { BaseView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/BaseView';
 
 const TetraRoundOverlayViewId = 'TetraRoundOverlayView';
 const AnimIntroId = 'anim_intro';

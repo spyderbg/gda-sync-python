@@ -1,15 +1,15 @@
 // Egt::Game::AlphaFamily::MatchState (AlphaFamilyStatesLibrary/Match/Match.h/.cpp): a match, from its start to taking
 // its win; its next round is the gameflow's.
 
-import { State } from '../../../../engine/Fsm/Fsm';
-import { RoundType } from '../../AlphaFamily/Math/Common/Common.data';
-import { IMathRules } from '../../AlphaFamily/RuntimeExport/IMathRules';
-import { IGameflow } from '../../AlphaFamily/RuntimeImport/IGameflow.bridge';
-import { IGameManager } from '../../AlphaFamily/States/IGameManager';
-import { IMatch, MatchNvrams } from '../../AlphaFamily/States/Match/IMatch';
-import { IMatchCappingApplied } from '../../AlphaFamily/States/Match/IMatchCappingApplied';
-import { IMatchTakeWin } from '../../AlphaFamily/States/Match/IMatchTakeWin';
-import { ITetraRound } from '../../AlphaFamily/States/Match/ITetraRound';
+import { State } from '@game/engine/Fsm/Fsm';
+import { RoundType } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
+import { IMathRules } from '@game/alpha_family/libs/AlphaFamily/RuntimeExport/IMathRules';
+import { IGameflow } from '@game/alpha_family/libs/AlphaFamily/RuntimeImport/IGameflow.bridge';
+import { IGameManager } from '@game/alpha_family/libs/AlphaFamily/States/IGameManager';
+import { IMatch, MatchNvrams } from '@game/alpha_family/libs/AlphaFamily/States/Match/IMatch';
+import { IMatchCappingApplied } from '@game/alpha_family/libs/AlphaFamily/States/Match/IMatchCappingApplied';
+import { IMatchTakeWin } from '@game/alpha_family/libs/AlphaFamily/States/Match/IMatchTakeWin';
+import { ITetraRound } from '@game/alpha_family/libs/AlphaFamily/States/Match/ITetraRound';
 
 export class MatchState extends State implements IMatch {
   static Interfaces = [IMatch];

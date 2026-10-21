@@ -2,11 +2,11 @@
 // rounds, made from the math file the setup names (an IData of math/RssIData.json) and the fake reels, as
 // MathRules.description.ts describes them.
 
-import { IResources } from '../../../../engine/Game/RuntimeExport/IResources';
-import { BuildReelRoundRules } from '../../../../authoring/MathRulesDescription';
-import { RoundType } from '../../../libs/AlphaFamily/Math/Common/Common.data';
-import type { ReelRoundRules } from '../../../libs/AlphaFamily/Math/Reel/ReelRoundRules';
-import { IMathRules } from '../../../libs/AlphaFamily/RuntimeExport/IMathRules';
+import { IResources } from '@game/engine/Game/RuntimeExport/IResources';
+import { BuildReelRoundRules } from '@game/authoring/MathRulesDescription';
+import { RoundType } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
+import type { ReelRoundRules } from '@game/alpha_family/libs/AlphaFamily/Math/Reel/ReelRoundRules';
+import { IMathRules } from '@game/alpha_family/libs/AlphaFamily/RuntimeExport/IMathRules';
 import type { BurningCrownTetraSpins10Math } from './BurningCrownTetraSpins10Math';
 import type { FakeReelsConfig, MathRulesInitConfig } from './MathRules.data';
 import { MATH_RULES } from './MathRules.description';

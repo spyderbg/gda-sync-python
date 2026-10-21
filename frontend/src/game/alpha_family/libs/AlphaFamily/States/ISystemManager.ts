@@ -1,6 +1,6 @@
 // Egt::Game::AlphaFamily::States::ISystemManager (AlphaFamily/States/ISystemManager.h, ISystemManager.data.h).
 
-import { Interface } from '../../../../engine/GameCore/RuntimeAccess';
+import { Interface } from '@game/engine/GameCore/RuntimeAccess';
 
 export interface ISystemManager {
   HasPendingCashout(): boolean;

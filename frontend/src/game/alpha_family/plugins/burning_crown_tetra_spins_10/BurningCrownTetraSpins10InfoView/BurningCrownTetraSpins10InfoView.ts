@@ -1,12 +1,12 @@
 // Egt::Game::AlphaFamily::BurningCrownTetraSpins10InfoView (BurningCrownTetraSpins10InfoView.h/.cpp): the module of the
 // info screen, which creates its views (the help pages, InfoView), processes them and draws them on the info screen.
 
-import type { Runtime } from '../../../../engine/GameCore/RuntimeAccess';
-import type { DrawList } from '../../../../engine/GameVideoCtrl/DrawList';
-import { IFileWatch } from '../../../../engine/Game/RuntimeExport/IFileWatch';
-import { IVideo } from '../../../../engine/GameVideoCtrl/RuntimeExport/IVideo';
-import { BaseModule, type ModuleConfig } from '../../../../engine/ModuleManager/BaseModule';
-import type { BaseView } from '../../../libs/AlphaFamilyVideoCtrl/BaseView';
+import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
+import { IFileWatch } from '@game/engine/Game/RuntimeExport/IFileWatch';
+import { IVideo } from '@game/engine/GameVideoCtrl/RuntimeExport/IVideo';
+import { BaseModule, type ModuleConfig } from '@game/engine/ModuleManager/BaseModule';
+import type { BaseView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/BaseView';
 import { InfoView } from './InfoView';
 
 export class BurningCrownTetraSpins10InfoView extends BaseModule {

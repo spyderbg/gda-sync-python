@@ -1,40 +1,40 @@
 // Egt::Game::AlphaFamily::ViewManager (AlphaFamilyStatesLibrary/ViewManager.h/.cpp): sets up every view for a round
 // type or a round result, as a state asks with its SetupViewsOptions.
 
-import { Event } from '../../../engine/Core/Event';
-import { State } from '../../../engine/Fsm/Fsm';
-import { Currencies } from '../../../engine/Game/Math/Common.data';
+import { Event } from '@game/engine/Core/Event';
+import { State } from '@game/engine/Fsm/Fsm';
+import { Currencies } from '@game/engine/Game/Math/Common.data';
 import {
   HwButtonLight, IAutoPlayHwButton, ICashoutHwButton, ICollectHwButton, IDecreaseBetHwButton, IExitHwButton, IGambleBlackHwButton, IGambleHwButton,
   IGambleRedHwButton, IIncreaseBetHwButton, IInfoHwButton, IMaxBetHwButton, IStartHwButton,
-} from '../../../engine/Game/RuntimeImport/HwButtons.bridge';
-import { ILimits } from '../../../engine/Game/RuntimeImport/ILimits';
-import { IResponsibleGaming } from '../../../engine/Game/RuntimeImport/IResponsibleGaming';
-import { IWallet } from '../../../engine/Game/RuntimeImport/IWallet';
-import { Currency, ELeftStatusLine, ERightStatusLine, EStatusLine, RoundType } from '../AlphaFamily/Math/Common/Common.data';
-import { type ReelCombinations, SpinReelsPhase } from '../AlphaFamily/Math/Reel/ReelRoundPhase.data';
-import { RoundResult } from '../AlphaFamily/Math/RoundResult.data';
-import { IMathRules } from '../AlphaFamily/RuntimeExport/IMathRules';
-import { IGameflow } from '../AlphaFamily/RuntimeImport/IGameflow.bridge';
-import { IBetManager } from '../AlphaFamily/States/IBetManager';
-import { GameManagerNvrams, IGameManager } from '../AlphaFamily/States/IGameManager';
-import { IViewManager, type IViewManagerEvents, type SetupViewsOptions, ViewManagerStatics } from '../AlphaFamily/States/IViewManager';
-import { EWinBarState, IBetBarView, ICreditBarView, ICreditsWinBarView } from '../AlphaFamily/Views/BarsView.bridge';
-import { IBetMenuView } from '../AlphaFamily/Views/IBetMenuView.bridge';
-import { ECurrencyPrize, type FigureId, IInfoView, type PaytableCoefficients } from '../AlphaFamily/Views/IInfoView.bridge';
-import type { uint32_t } from '../../../engine/GameCore/Common/Types';
-import type { CurrencyType } from '../../../engine/Game/Math/Common.data';
-import { ILanguageMenuView } from '../AlphaFamily/Views/IMenuViews.bridge';
-import { ILinesView } from '../AlphaFamily/Views/ILinesView.bridge';
-import { IBigWinView, IKnobsView, ITetraRoundOverlayView, ITopperView } from '../AlphaFamily/Views/IOverlayViews.bridge';
-import { IReelsView } from '../AlphaFamily/Views/IReelsView.bridge';
-import { IStatusLineView } from '../AlphaFamily/Views/IStatusLineView.bridge';
-import { ITetraRoundView } from '../AlphaFamily/Views/ITetraRoundView.bridge';
-import { IWinFiguresView } from '../AlphaFamily/Views/IWinFiguresView.bridge';
+} from '@game/engine/Game/RuntimeImport/HwButtons.bridge';
+import { ILimits } from '@game/engine/Game/RuntimeImport/ILimits';
+import { IResponsibleGaming } from '@game/engine/Game/RuntimeImport/IResponsibleGaming';
+import { IWallet } from '@game/engine/Game/RuntimeImport/IWallet';
+import { Currency, ELeftStatusLine, ERightStatusLine, EStatusLine, RoundType } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
+import { type ReelCombinations, SpinReelsPhase } from '@game/alpha_family/libs/AlphaFamily/Math/Reel/ReelRoundPhase.data';
+import { RoundResult } from '@game/alpha_family/libs/AlphaFamily/Math/RoundResult.data';
+import { IMathRules } from '@game/alpha_family/libs/AlphaFamily/RuntimeExport/IMathRules';
+import { IGameflow } from '@game/alpha_family/libs/AlphaFamily/RuntimeImport/IGameflow.bridge';
+import { IBetManager } from '@game/alpha_family/libs/AlphaFamily/States/IBetManager';
+import { GameManagerNvrams, IGameManager } from '@game/alpha_family/libs/AlphaFamily/States/IGameManager';
+import { IViewManager, type IViewManagerEvents, type SetupViewsOptions, ViewManagerStatics } from '@game/alpha_family/libs/AlphaFamily/States/IViewManager';
+import { EWinBarState, IBetBarView, ICreditBarView, ICreditsWinBarView } from '@game/alpha_family/libs/AlphaFamily/Views/BarsView.bridge';
+import { IBetMenuView } from '@game/alpha_family/libs/AlphaFamily/Views/IBetMenuView.bridge';
+import { ECurrencyPrize, type FigureId, IInfoView, type PaytableCoefficients } from '@game/alpha_family/libs/AlphaFamily/Views/IInfoView.bridge';
+import type { uint32_t } from '@game/engine/GameCore/Common/Types';
+import type { CurrencyType } from '@game/engine/Game/Math/Common.data';
+import { ILanguageMenuView } from '@game/alpha_family/libs/AlphaFamily/Views/IMenuViews.bridge';
+import { ILinesView } from '@game/alpha_family/libs/AlphaFamily/Views/ILinesView.bridge';
+import { IBigWinView, IKnobsView, ITetraRoundOverlayView, ITopperView } from '@game/alpha_family/libs/AlphaFamily/Views/IOverlayViews.bridge';
+import { IReelsView } from '@game/alpha_family/libs/AlphaFamily/Views/IReelsView.bridge';
+import { IStatusLineView } from '@game/alpha_family/libs/AlphaFamily/Views/IStatusLineView.bridge';
+import { ITetraRoundView } from '@game/alpha_family/libs/AlphaFamily/Views/ITetraRoundView.bridge';
+import { IWinFiguresView } from '@game/alpha_family/libs/AlphaFamily/Views/IWinFiguresView.bridge';
 import {
   IBetDownSwButtonView, IBetUpSwButtonView, IExitGameSwButtonView, IExitTetraSwButtonView, IInfoSwButtonView, ILanguageSwButtonView, ILineDownSwButtonView,
   ILineUpSwButtonView, IResponsibleSwButtonView, ISoundVolumeSwButtonView, IStopSingleReelSwButtonView,
-} from '../AlphaFamily/Views/SwButtonViews.bridge';
+} from '@game/alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge';
 
 function IsInMatchTakeWin(roundType: RoundType, options: SetupViewsOptions) {
   return (options.overrideSpecialRoundView ?? roundType) === RoundType.Gamble;

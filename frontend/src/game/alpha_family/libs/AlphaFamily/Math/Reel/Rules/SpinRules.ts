@@ -1,6 +1,6 @@
 // Egt::Game::AlphaFamily::SpinRules (AlphaFamily/Math/Reel/Rules/SpinRules.h/.cpp): choose a reel set and stop the reels.
 
-import { RngOp } from '../../../../../../engine/GameCore/Random/IRng';
+import { RngOp } from '@game/engine/GameCore/Random/IRng';
 import { RoundConfigError } from '../../Common/Exceptions';
 import type { SymbolGrid } from '../../Common/Common.data';
 import { SelectRandomIndex, SelectRandomValue, SelectValueFromIndex } from '../../Common/Weighted';

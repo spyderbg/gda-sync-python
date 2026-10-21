@@ -1,7 +1,7 @@
 // Egt::Game::AlphaFamily::StatusLineVisualConfig (BurningCrownTetraSpins10View/Visuals/StatusLineVisual.data.h): how the
 // status line writes a winning combination.
 
-import type { Point } from '../../../../../engine/Game/RuntimeExport/IResources';
+import type { Point } from '@game/engine/Game/RuntimeExport/IResources';
 
 // (Line # Images|Scatter) Prize
 export interface StatusLineVisualConfig {

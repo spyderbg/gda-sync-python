@@ -1,8 +1,8 @@
 // Egt::Game::AlphaFamily::ILanguageMenuView and ISoundMenuView (AlphaFamily/Views/ILanguageMenuView.bridge.h,
 // ISoundMenuView.bridge.h).
 
-import { Event } from '../../../../engine/Core/Event';
-import { Interface } from '../../../../engine/GameCore/RuntimeAccess';
+import { Event } from '@game/engine/Core/Event';
+import { Interface } from '@game/engine/GameCore/RuntimeAccess';
 import { type IControlView, type IMenuView, IMenuViewEvents } from './BaseInterfaces/IControlView';
 
 export interface ILanguageMenuView extends IControlView, IMenuView {

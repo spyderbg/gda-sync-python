@@ -3,14 +3,14 @@
 // them in order, then runs them every frame: Process in order (the kernel answers, the views move, the state machine
 // reacts), then PostProcess (the video draws the frame).
 
-import { Runtime } from '../engine/GameCore/RuntimeAccess';
-import type { IModule, ModuleConfig } from '../engine/ModuleManager/BaseModule';
-import { AudioManager } from '../engine/AudioManager/AudioManager';
-import { FileWatch } from '../engine/FileWatch/FileWatch';
-import { ResourceManager } from '../engine/ResourceManager/ResourceManager';
-import { VideoManager } from '../engine/VideoManager/VideoManager';
-import { AlphaFamilyGameflow } from '../integration/AlphaFamilyGameflow/AlphaFamilyGameflow';
-import { BrowserKernel, type BrowserKernelConfig } from '../integration/BrowserKernel/BrowserKernel';
+import { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import type { IModule, ModuleConfig } from '@game/engine/ModuleManager/BaseModule';
+import { AudioManager } from '@game/engine/AudioManager/AudioManager';
+import { FileWatch } from '@game/engine/FileWatch/FileWatch';
+import { ResourceManager } from '@game/engine/ResourceManager/ResourceManager';
+import { VideoManager } from '@game/engine/VideoManager/VideoManager';
+import { AlphaFamilyGameflow } from '@game/integration/AlphaFamilyGameflow/AlphaFamilyGameflow';
+import { BrowserKernel, type BrowserKernelConfig } from '@game/integration/BrowserKernel/BrowserKernel';
 import type { GameAssetReport, GameProject, GameProjectModule } from './GameBackend';
 import { MODULES } from './ModuleRegistry';
 

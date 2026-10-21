@@ -6,8 +6,8 @@
 // The C++ element draws with the RTF Tool's renderer and the project's fonts; here the backend lays the project out
 // (the asset library's RTF preview) and the canvas draws it with the app's font, so the text is close, not exact.
 
-import { IResources } from '../../Game/RuntimeExport/IResources';
-import { Runtime } from '../../GameCore/RuntimeAccess';
+import { IResources } from '@game/engine/Game/RuntimeExport/IResources';
+import { Runtime } from '@game/engine/GameCore/RuntimeAccess';
 import type { DrawList } from '../DrawList';
 import { IVideo } from '../RuntimeExport/IVideo';
 import type { RtfLayout, RtfLayoutPage, RtfRun, RtfSection, RtfStyle } from '../Rtf/RtfLayout';

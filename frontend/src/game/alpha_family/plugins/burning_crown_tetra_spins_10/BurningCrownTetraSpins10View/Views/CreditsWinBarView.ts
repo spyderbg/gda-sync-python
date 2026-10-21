@@ -1,17 +1,17 @@
 // Egt::Game::AlphaFamily::CreditsWinBarView (BurningCrownTetraSpins10View/Views/CreditsWinBarView.h/.cpp): the win of
 // the match, labelled WIN, or WINNER PAID once it is paid.
 
-import type { Runtime } from '../../../../../engine/GameCore/RuntimeAccess';
-import { IAudioApi } from '../../../../../engine/Game/RuntimeImport/IAudioApi';
-import { ILocalization } from '../../../../../engine/Game/RuntimeImport/ILocalization';
-import type { DrawList } from '../../../../../engine/GameVideoCtrl/DrawList';
-import { ImageElement } from '../../../../../engine/GameVideoCtrl/ViewElements/ImageElement';
-import { TextElement } from '../../../../../engine/GameVideoCtrl/ViewElements/TextElement';
-import { Currency, type PayoutSummary } from '../../../../libs/AlphaFamily/Math/Common/Common.data';
-import { INumericBarViewEvents } from '../../../../libs/AlphaFamily/Views/BaseInterfaces/IControlView';
-import { EWinBarState, type ICreditsWinBarView, ICreditsWinBarView as ICreditsWinBarViewToken } from '../../../../libs/AlphaFamily/Views/BarsView.bridge';
-import { AccumulationType, type AccumulationDescriptor } from '../../../../libs/AlphaFamily/Views/Tools/AccumulationControl.data';
-import { NumericBarView } from '../../../../libs/AlphaFamilyVideoCtrl/Components/NumericBarView';
+import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { IAudioApi } from '@game/engine/Game/RuntimeImport/IAudioApi';
+import { ILocalization } from '@game/engine/Game/RuntimeImport/ILocalization';
+import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
+import { ImageElement } from '@game/engine/GameVideoCtrl/ViewElements/ImageElement';
+import { TextElement } from '@game/engine/GameVideoCtrl/ViewElements/TextElement';
+import { Currency, type PayoutSummary } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
+import { INumericBarViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IControlView';
+import { EWinBarState, type ICreditsWinBarView, ICreditsWinBarView as ICreditsWinBarViewToken } from '@game/alpha_family/libs/AlphaFamily/Views/BarsView.bridge';
+import { AccumulationType, type AccumulationDescriptor } from '@game/alpha_family/libs/AlphaFamily/Views/Tools/AccumulationControl.data';
+import { NumericBarView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/Components/NumericBarView';
 
 const CreditsWinBarViewId = 'CreditsWinBarView';
 const ImageWinLabelId = 'image_win_label';

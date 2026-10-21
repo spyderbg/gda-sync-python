@@ -1,15 +1,15 @@
 // Egt::Game::AlphaFamily::CreditTaxationState (AlphaFamilyStatesLibrary/Match/CreditTaxation): shows the tax message
 // of a win over the jurisdiction's threshold, until it is closed.
 
-import { State } from '../../../../../engine/Fsm/Fsm';
-import { IStartHwButton } from '../../../../../engine/Game/RuntimeImport/HwButtons.bridge';
-import { ILimits } from '../../../../../engine/Game/RuntimeImport/ILimits';
-import { Currency, RoundType } from '../../../AlphaFamily/Math/Common/Common.data';
-import { IGameflow } from '../../../AlphaFamily/RuntimeImport/IGameflow.bridge';
-import { GameManagerNvrams } from '../../../AlphaFamily/States/IGameManager';
-import { IViewManager } from '../../../AlphaFamily/States/IViewManager';
-import { ICreditTaxation } from '../../../AlphaFamily/States/Match/ICreditTaxation';
-import { IMatchEnding } from '../../../AlphaFamily/States/Match/IMatchEnding';
+import { State } from '@game/engine/Fsm/Fsm';
+import { IStartHwButton } from '@game/engine/Game/RuntimeImport/HwButtons.bridge';
+import { ILimits } from '@game/engine/Game/RuntimeImport/ILimits';
+import { Currency, RoundType } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
+import { IGameflow } from '@game/alpha_family/libs/AlphaFamily/RuntimeImport/IGameflow.bridge';
+import { GameManagerNvrams } from '@game/alpha_family/libs/AlphaFamily/States/IGameManager';
+import { IViewManager } from '@game/alpha_family/libs/AlphaFamily/States/IViewManager';
+import { ICreditTaxation } from '@game/alpha_family/libs/AlphaFamily/States/Match/ICreditTaxation';
+import { IMatchEnding } from '@game/alpha_family/libs/AlphaFamily/States/Match/IMatchEnding';
 
 export class CreditTaxationState extends State {
   static Interfaces = [ICreditTaxation];

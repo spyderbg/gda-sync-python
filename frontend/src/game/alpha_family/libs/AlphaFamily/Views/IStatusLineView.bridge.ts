@@ -1,6 +1,6 @@
 // Egt::Game::AlphaFamily::IStatusLineView (AlphaFamily/Views/IStatusLineView.bridge.h).
 
-import { Interface } from '../../../../engine/GameCore/RuntimeAccess';
+import { Interface } from '@game/engine/GameCore/RuntimeAccess';
 import type { ELeftStatusLine, ERightStatusLine, EStatusLine } from '../Math/Common/Common.data';
 import type { ReelCombinations } from '../Math/Reel/ReelRoundPhase.data';
 import { type IControlView, IControlViewEvents } from './BaseInterfaces/IControlView';

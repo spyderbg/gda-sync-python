@@ -1,15 +1,15 @@
 // Egt::Game::AlphaFamily::StatusLineVisual (BurningCrownTetraSpins10View/Visuals/StatusLineVisual.h/.cpp): a winning
 // combination written on the status line: "LINE n" and its symbols, or the scatter, and the prize, in a row.
 
-import type { Point } from '../../../../../engine/Game/RuntimeExport/IResources';
-import { ILocalization } from '../../../../../engine/Game/RuntimeImport/ILocalization';
-import { Alignment, type BaseElement } from '../../../../../engine/GameVideoCtrl/ViewElements/BaseElement';
-import type { ElementsList } from '../../../../../engine/GameVideoCtrl/ViewElements/ElementsList';
-import { ImageElement } from '../../../../../engine/GameVideoCtrl/ViewElements/ImageElement';
-import { TextElement } from '../../../../../engine/GameVideoCtrl/ViewElements/TextElement';
-import type { CurrencyType } from '../../../../../engine/Game/Math/Common.data';
-import { CombinationType, Currency } from '../../../../libs/AlphaFamily/Math/Common/Common.data';
-import type { ReelCombination } from '../../../../libs/AlphaFamily/Math/Reel/ReelRoundPhase.data';
+import type { Point } from '@game/engine/Game/RuntimeExport/IResources';
+import { ILocalization } from '@game/engine/Game/RuntimeImport/ILocalization';
+import { Alignment, type BaseElement } from '@game/engine/GameVideoCtrl/ViewElements/BaseElement';
+import type { ElementsList } from '@game/engine/GameVideoCtrl/ViewElements/ElementsList';
+import { ImageElement } from '@game/engine/GameVideoCtrl/ViewElements/ImageElement';
+import { TextElement } from '@game/engine/GameVideoCtrl/ViewElements/TextElement';
+import type { CurrencyType } from '@game/engine/Game/Math/Common.data';
+import { CombinationType, Currency } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
+import type { ReelCombination } from '@game/alpha_family/libs/AlphaFamily/Math/Reel/ReelRoundPhase.data';
 import { BaseVisual } from './BaseVisual';
 import type { StatusLineVisualConfig } from './StatusLineVisual.data';
 

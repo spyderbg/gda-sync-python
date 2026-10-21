@@ -1,6 +1,6 @@
 // Egt::Game::AlphaFamily::MainRoundReelingState (AlphaFamilyStatesLibrary/Match/MainRound/MainRoundReeling).
 
-import { IMainRoundPresenting, IMainRoundReeling } from '../../../AlphaFamily/States/Match/IMainRound';
+import { IMainRoundPresenting, IMainRoundReeling } from '@game/alpha_family/libs/AlphaFamily/States/Match/IMainRound';
 import { ReelRoundReelingState } from '../ReelRound/ReelRoundReeling';
 
 export class MainRoundReelingState extends ReelRoundReelingState {

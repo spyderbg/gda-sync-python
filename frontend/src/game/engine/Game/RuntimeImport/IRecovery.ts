@@ -1,8 +1,8 @@
 // Egt::Game::IRecovery: state change actions, which a state requests from a const handler and commits when the
 // machine delivers them back (so a replay repeats them).
 
-import { Event } from '../../Core/Event';
-import { Interface } from '../../GameCore/RuntimeAccess';
+import { Event } from '@game/engine/Core/Event';
+import { Interface } from '@game/engine/GameCore/RuntimeAccess';
 
 export interface IStateChangeAction {
   GetData<T>(type: new () => T): T | null;

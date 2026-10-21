@@ -1,6 +1,6 @@
 // Egt::Game::IAudioApi: plays the descriptors' audio events by id.
 
-import { Interface } from '../../GameCore/RuntimeAccess';
+import { Interface } from '@game/engine/GameCore/RuntimeAccess';
 
 export interface IAudioPlayback {
   Stop(): void;

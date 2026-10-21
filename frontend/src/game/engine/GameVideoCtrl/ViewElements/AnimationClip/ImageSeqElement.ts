@@ -2,9 +2,9 @@
 // frame every frameTime milliseconds, loopCount times (the element's own, or else the sequence's; 0 repeats from frame
 // loopTo forever).
 
-import type { Color, RssImageSequence } from '../../../Game/RuntimeExport/IResources';
-import { IResources } from '../../../Game/RuntimeExport/IResources';
-import { RuntimeHolder, type Runtime } from '../../../GameCore/RuntimeAccess';
+import type { Color, RssImageSequence } from '@game/engine/Game/RuntimeExport/IResources';
+import { IResources } from '@game/engine/Game/RuntimeExport/IResources';
+import { RuntimeHolder, type Runtime } from '@game/engine/GameCore/RuntimeAccess';
 import type { DrawList, Transform } from '../../DrawList';
 import { IVideo } from '../../RuntimeExport/IVideo';
 import { IAnimationClip } from './IAnimationClip';

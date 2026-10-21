@@ -1,13 +1,13 @@
 // Egt::Game::AlphaFamily::ReelRoundStartingState (AlphaFamilyStatesLibrary/Match/ReelRound/ReelRoundStarting): starts
 // the reels and asks the gameflow for the round's result.
 
-import { Reaction, State } from '../../../../../engine/Fsm/Fsm';
-import { IStartHwButton } from '../../../../../engine/Game/RuntimeImport/HwButtons.bridge';
-import { IGameflow } from '../../../AlphaFamily/RuntimeImport/IGameflow.bridge';
-import type { StartRoundReply } from '../../../AlphaFamily/RuntimeImport/IGameflow.data';
-import { IBetManager } from '../../../AlphaFamily/States/IBetManager';
-import { IViewManager } from '../../../AlphaFamily/States/IViewManager';
-import { IReelRound } from '../../../AlphaFamily/States/Match/IReelRound';
+import { Reaction, State } from '@game/engine/Fsm/Fsm';
+import { IStartHwButton } from '@game/engine/Game/RuntimeImport/HwButtons.bridge';
+import { IGameflow } from '@game/alpha_family/libs/AlphaFamily/RuntimeImport/IGameflow.bridge';
+import type { StartRoundReply } from '@game/alpha_family/libs/AlphaFamily/RuntimeImport/IGameflow.data';
+import { IBetManager } from '@game/alpha_family/libs/AlphaFamily/States/IBetManager';
+import { IViewManager } from '@game/alpha_family/libs/AlphaFamily/States/IViewManager';
+import { IReelRound } from '@game/alpha_family/libs/AlphaFamily/States/Match/IReelRound';
 import { ReelRoundStatics, ReelRoundStorage } from './ReelRound.data';
 
 export abstract class ReelRoundStartingState extends State {

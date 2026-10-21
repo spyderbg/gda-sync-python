@@ -3,15 +3,15 @@
 // wallet, the limits, the localization, the hardware buttons (the keyboard and the page's panel), the recovery's state
 // change actions, responsible gaming and the application control.
 
-import { EventQueue } from '../../engine/Core/Event';
-import type { Runtime } from '../../engine/GameCore/RuntimeAccess';
-import { HW_BUTTONS, HwButtonLight, type HwButtonName, type HwButtonState, IHwButtonEvents, type IHwButton } from '../../engine/Game/RuntimeImport/HwButtons.bridge';
-import { ECapTiming, ILimits, ILimitsEvents } from '../../engine/Game/RuntimeImport/ILimits';
-import { ILocalization, ILocalizationEvents } from '../../engine/Game/RuntimeImport/ILocalization';
-import { IRecovery, IRecoveryEvents, type IStateChangeAction } from '../../engine/Game/RuntimeImport/IRecovery';
-import { IAppControl, IResponsibleGaming, IResponsibleGamingEvents } from '../../engine/Game/RuntimeImport/IResponsibleGaming';
-import { IWallet, IWalletEvents, TransactionType } from '../../engine/Game/RuntimeImport/IWallet';
-import { BaseModule, type ModuleConfig } from '../../engine/ModuleManager/BaseModule';
+import { EventQueue } from '@game/engine/Core/Event';
+import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { HW_BUTTONS, HwButtonLight, type HwButtonName, type HwButtonState, IHwButtonEvents, type IHwButton } from '@game/engine/Game/RuntimeImport/HwButtons.bridge';
+import { ECapTiming, ILimits, ILimitsEvents } from '@game/engine/Game/RuntimeImport/ILimits';
+import { ILocalization, ILocalizationEvents } from '@game/engine/Game/RuntimeImport/ILocalization';
+import { IRecovery, IRecoveryEvents, type IStateChangeAction } from '@game/engine/Game/RuntimeImport/IRecovery';
+import { IAppControl, IResponsibleGaming, IResponsibleGamingEvents } from '@game/engine/Game/RuntimeImport/IResponsibleGaming';
+import { IWallet, IWalletEvents, TransactionType } from '@game/engine/Game/RuntimeImport/IWallet';
+import { BaseModule, type ModuleConfig } from '@game/engine/ModuleManager/BaseModule';
 import { IKernelIntegration, IKernelIntegrationEvents, type IKernelApi } from './IKernelIntegration';
 
 const CREDIT_STORAGE_KEY = 'egt-game-credit';

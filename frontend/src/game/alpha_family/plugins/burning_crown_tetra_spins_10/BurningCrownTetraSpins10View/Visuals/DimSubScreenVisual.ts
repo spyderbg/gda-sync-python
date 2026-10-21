@@ -1,10 +1,10 @@
 // Egt::Game::AlphaFamily::DimSubScreenVisual (BurningCrownTetraSpins10View/Visuals/DimSubScreenVisual.h/.cpp): darkens
 // a tetra sub screen once it has been presented.
 
-import { Alignment } from '../../../../../engine/GameVideoCtrl/ViewElements/BaseElement';
-import type { DrawList } from '../../../../../engine/GameVideoCtrl/DrawList';
-import type { ElementsList } from '../../../../../engine/GameVideoCtrl/ViewElements/ElementsList';
-import { ImageElement } from '../../../../../engine/GameVideoCtrl/ViewElements/ImageElement';
+import { Alignment } from '@game/engine/GameVideoCtrl/ViewElements/BaseElement';
+import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
+import type { ElementsList } from '@game/engine/GameVideoCtrl/ViewElements/ElementsList';
+import { ImageElement } from '@game/engine/GameVideoCtrl/ViewElements/ImageElement';
 import type { DimSubScreenVisualConfig } from '../Views/ReelsView.data';
 import type { ReelSubScreensConfig } from '../Views/ReelSubScreen.data';
 import { BaseVisual } from './BaseVisual';

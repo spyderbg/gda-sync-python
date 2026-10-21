@@ -1,12 +1,12 @@
 // Egt::Game::AlphaFamily::BigWinView (BurningCrownTetraSpins10View/Views/BigWinView.h/.cpp): the big, super, epic and
 // mega win animations: movies (RssMoviesData.json) of coins under the win's title, with the coins eruption sound.
 
-import { IAudioApi, type IAudioPlayback } from '../../../../../engine/Game/RuntimeImport/IAudioApi';
-import type { Runtime } from '../../../../../engine/GameCore/RuntimeAccess';
-import { AnimElement } from '../../../../../engine/GameVideoCtrl/ViewElements/AnimElement';
-import { ERoundTags } from '../../../../libs/AlphaFamily/Math/Common/Common.data';
-import { IBigWinView, IBigWinViewEvents } from '../../../../libs/AlphaFamily/Views/IOverlayViews.bridge';
-import { BaseView } from '../../../../libs/AlphaFamilyVideoCtrl/BaseView';
+import { IAudioApi, type IAudioPlayback } from '@game/engine/Game/RuntimeImport/IAudioApi';
+import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { AnimElement } from '@game/engine/GameVideoCtrl/ViewElements/AnimElement';
+import { ERoundTags } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
+import { IBigWinView, IBigWinViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/IOverlayViews.bridge';
+import { BaseView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/BaseView';
 
 const BigWinViewId = 'BigWinView';
 const SoundCoinsEruptionId = 'SOUND_BIG_WIN_COINS_ERUPTION';

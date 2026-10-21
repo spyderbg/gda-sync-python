@@ -1,7 +1,7 @@
 // Egt::Game::IMathTypes (Egt/Game/RuntimeExport/IMathTypes.h): the game's round types and currencies by name.
 
 import type { CurrencyType, GameRoundType } from '../Math/Common.data';
-import { Interface } from '../../GameCore/RuntimeAccess';
+import { Interface } from '@game/engine/GameCore/RuntimeAccess';
 
 export interface IMathTypes {
   GetAvailableRoundTypes(): GameRoundType[];

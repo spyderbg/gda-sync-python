@@ -2,17 +2,17 @@
 // line: a message (insert credit, press start, good luck...), or the winning combinations one after another: "LINE n",
 // the symbols and the prize.
 
-import { IResources } from '../../../../../engine/Game/RuntimeExport/IResources';
-import type { Runtime } from '../../../../../engine/GameCore/RuntimeAccess';
-import type { DrawList } from '../../../../../engine/GameVideoCtrl/DrawList';
-import { Alignment } from '../../../../../engine/GameVideoCtrl/ViewElements/BaseElement';
-import { make_sentinel, sentinel } from '../../../../../hat_libs/egt_hpp/sentinel';
-import * as tweeny from '../../../../../hat_libs/tweeny/tweeny';
-import { ELeftStatusLine, ERightStatusLine, EStatusLine } from '../../../../libs/AlphaFamily/Math/Common/Common.data';
-import { CombinationsEqual, type ReelCombinations } from '../../../../libs/AlphaFamily/Math/Reel/ReelRoundPhase.data';
-import { IControlViewEvents } from '../../../../libs/AlphaFamily/Views/BaseInterfaces/IControlView';
-import { IStatusLineView } from '../../../../libs/AlphaFamily/Views/IStatusLineView.bridge';
-import { BaseView } from '../../../../libs/AlphaFamilyVideoCtrl/BaseView';
+import { IResources } from '@game/engine/Game/RuntimeExport/IResources';
+import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
+import { Alignment } from '@game/engine/GameVideoCtrl/ViewElements/BaseElement';
+import { make_sentinel, sentinel } from '@game/hat_libs/egt_hpp/sentinel';
+import * as tweeny from '@game/hat_libs/tweeny/tweeny';
+import { ELeftStatusLine, ERightStatusLine, EStatusLine } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
+import { CombinationsEqual, type ReelCombinations } from '@game/alpha_family/libs/AlphaFamily/Math/Reel/ReelRoundPhase.data';
+import { IControlViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IControlView';
+import { IStatusLineView } from '@game/alpha_family/libs/AlphaFamily/Views/IStatusLineView.bridge';
+import { BaseView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/BaseView';
 import { BaseVisual } from '../Visuals/BaseVisual';
 import { StatusLineVisual } from '../Visuals/StatusLineVisual';
 import type { StatusLineViewConfig } from './StatusLineView.data';

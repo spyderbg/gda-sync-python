@@ -2,15 +2,15 @@
 // rotation (Euler angles, in radians), and the shake, pulse and dangle made of them. C++ declares them in namespace
 // tweeny, as the translator writes them.
 
-import { type transformf, vec3 } from '../../egt_math/transform';
-import type { duration_t, ease_t, sentinel_t } from '../../tweeny/tween_common';
-import { sequence } from '../../tweeny/tween_core';
-import { tween_action } from '../../tweeny/tween_action';
-import * as ease from '../../tweeny/tween_ease';
-import { create_tween_by_impl, create_tween_from_to_impl, create_tween_to_impl } from '../../tweeny/tween_ex';
-import * as inspector from '../../tweeny/tween_inspector';
-import { clamp, value_mul, value_sub } from '../../tweeny/tween_math';
-import { create_tween_updater } from '../../tweeny/tween_updater';
+import { type transformf, vec3 } from '@game/hat_libs/egt_math/transform';
+import type { duration_t, ease_t, sentinel_t } from '@game/hat_libs/tweeny/tween_common';
+import { sequence } from '@game/hat_libs/tweeny/tween_core';
+import { tween_action } from '@game/hat_libs/tweeny/tween_action';
+import * as ease from '@game/hat_libs/tweeny/tween_ease';
+import { create_tween_by_impl, create_tween_from_to_impl, create_tween_to_impl } from '@game/hat_libs/tweeny/tween_ex';
+import * as inspector from '@game/hat_libs/tweeny/tween_inspector';
+import { clamp, value_mul, value_sub } from '@game/hat_libs/tweeny/tween_math';
+import { create_tween_updater } from '@game/hat_libs/tweeny/tween_updater';
 
 function shake_impl<T>(tr: transformf, force: T,
   action_creator: (tr: transformf, force: T, duration: duration_t, sentinel: sentinel_t, ease_func: ease_t) => tween_action,

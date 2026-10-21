@@ -1,8 +1,8 @@
 // Egt::Game::AlphaFamily::StatusLineViewConfig (BurningCrownTetraSpins10View/Views/StatusLineView.data.h): the IData of
 // the status line (idata/<resolution>/StatusLineView.json).
 
-import type { Point } from '../../../../../engine/Game/RuntimeExport/IResources';
-import type { Alignment } from '../../../../../engine/GameVideoCtrl/ViewElements/BaseElement';
+import type { Point } from '@game/engine/Game/RuntimeExport/IResources';
+import type { Alignment } from '@game/engine/GameVideoCtrl/ViewElements/BaseElement';
 import type { StatusLineVisualConfig } from '../Visuals/StatusLineVisual.data';
 
 export interface StatusLineViewConfig {

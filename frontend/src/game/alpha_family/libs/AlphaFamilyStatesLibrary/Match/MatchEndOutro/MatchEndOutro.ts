@@ -1,15 +1,15 @@
 // Egt::Game::AlphaFamily::MatchEndOutroState (AlphaFamilyStatesLibrary/Match/MatchEndOutro): counts the match's win
 // from the win bar into the credit bar, then returns to idle.
 
-import { State } from '../../../../../engine/Fsm/Fsm';
-import { IWallet, type TransactionInfo } from '../../../../../engine/Game/RuntimeImport/IWallet';
-import { RoundType } from '../../../AlphaFamily/Math/Common/Common.data';
-import { GameManagerNvrams, IGameManager } from '../../../AlphaFamily/States/IGameManager';
-import { IViewManager } from '../../../AlphaFamily/States/IViewManager';
-import { IIdle } from '../../../AlphaFamily/States/Idle/IIdle';
-import { IMatchEndOutro } from '../../../AlphaFamily/States/Match/IMatchEndOutro';
-import { EWinBarState, ICreditBarView, ICreditsWinBarView } from '../../../AlphaFamily/Views/BarsView.bridge';
-import { BarsSync } from '../../../AlphaFamily/Views/Tools/BarsSync';
+import { State } from '@game/engine/Fsm/Fsm';
+import { IWallet, type TransactionInfo } from '@game/engine/Game/RuntimeImport/IWallet';
+import { RoundType } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
+import { GameManagerNvrams, IGameManager } from '@game/alpha_family/libs/AlphaFamily/States/IGameManager';
+import { IViewManager } from '@game/alpha_family/libs/AlphaFamily/States/IViewManager';
+import { IIdle } from '@game/alpha_family/libs/AlphaFamily/States/Idle/IIdle';
+import { IMatchEndOutro } from '@game/alpha_family/libs/AlphaFamily/States/Match/IMatchEndOutro';
+import { EWinBarState, ICreditBarView, ICreditsWinBarView } from '@game/alpha_family/libs/AlphaFamily/Views/BarsView.bridge';
+import { BarsSync } from '@game/alpha_family/libs/AlphaFamily/Views/Tools/BarsSync';
 
 export class MatchEndOutroState extends State {
   static Interfaces = [IMatchEndOutro];

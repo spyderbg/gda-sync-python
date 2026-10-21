@@ -1,8 +1,8 @@
 // Egt::Game::AlphaFamily::BaseVisual (BurningCrownTetraSpins10View/Visuals/BaseVisual.h/.cpp): a part of a view drawn
 // from elements it creates in the view's elements list.
 
-import type { DrawList } from '../../../../../engine/GameVideoCtrl/DrawList';
-import type { ElementsList } from '../../../../../engine/GameVideoCtrl/ViewElements/ElementsList';
+import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
+import type { ElementsList } from '@game/engine/GameVideoCtrl/ViewElements/ElementsList';
 
 export class BaseVisual {
   private readonly m_elementIds = new Set<string>();

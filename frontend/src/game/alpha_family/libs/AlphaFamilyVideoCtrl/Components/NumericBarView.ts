@@ -1,10 +1,10 @@
 // Egt::Game::AlphaFamily::NumericBarView (AlphaFamilyVideoCtrl/Components/NumericBarView.h): a bar that shows a value
 // and counts to new values by an accumulation, posting animatingDone with the value when it gets there.
 
-import type { Runtime, InterfaceToken } from '../../../../engine/GameCore/RuntimeAccess';
-import { Accumulation } from '../../AlphaFamily/Views/Tools/AccumulationControl';
-import { type AccumulationDescriptor, AccumulationType } from '../../AlphaFamily/Views/Tools/AccumulationControl.data';
-import type { INumericBarView, INumericBarViewEvents } from '../../AlphaFamily/Views/BaseInterfaces/IControlView';
+import type { Runtime, InterfaceToken } from '@game/engine/GameCore/RuntimeAccess';
+import { Accumulation } from '@game/alpha_family/libs/AlphaFamily/Views/Tools/AccumulationControl';
+import { type AccumulationDescriptor, AccumulationType } from '@game/alpha_family/libs/AlphaFamily/Views/Tools/AccumulationControl.data';
+import type { INumericBarView, INumericBarViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IControlView';
 import { BaseView } from '../BaseView';
 
 export abstract class NumericBarView<T, E extends INumericBarViewEvents> extends BaseView implements INumericBarView {

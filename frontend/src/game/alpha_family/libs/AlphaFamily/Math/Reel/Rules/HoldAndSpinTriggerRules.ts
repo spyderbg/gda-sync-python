@@ -1,6 +1,6 @@
 // Egt::Game::AlphaFamily::HoldAndSpinTriggerRules (AlphaFamily/Math/Reel/Rules/HoldAndSpinTriggerRules.h/.cpp).
 
-import { Currencies } from '../../../../../../engine/Game/Math/Common.data';
+import { Currencies } from '@game/engine/Game/Math/Common.data';
 import { CombinationType, Currency, Multipliers } from '../../Common/Common.data';
 import type { ReelRoundRules } from '../ReelRoundRules';
 import { ReelCombination, SpinReelsPhase } from '../ReelRoundPhase.data';

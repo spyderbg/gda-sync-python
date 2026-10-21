@@ -2,8 +2,8 @@
 // (idata/1920x1080/DefaultInfoView.json): where the current and the next page are, how long a page change takes, which
 // RTF page each kind of page is and their order.
 
-import type { Point } from '../../../../engine/Game/RuntimeExport/IResources';
-import type { EInfoViewPageType } from '../../../libs/AlphaFamily/Views/IInfoView.data';
+import type { Point } from '@game/engine/Game/RuntimeExport/IResources';
+import type { EInfoViewPageType } from '@game/alpha_family/libs/AlphaFamily/Views/IInfoView.data';
 
 export interface InfoViewConfig {
   currentPageDefault: Point;

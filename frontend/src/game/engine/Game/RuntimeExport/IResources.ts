@@ -1,7 +1,7 @@
 // Egt::Game::IResources: the game's resources by id (RssKey), as its descriptors declare them.
 
-import type { RtfLayout } from '../../GameVideoCtrl/Rtf/RtfLayout';
-import { Interface } from '../../GameCore/RuntimeAccess';
+import type { RtfLayout } from '@game/engine/GameVideoCtrl/Rtf/RtfLayout';
+import { Interface } from '@game/engine/GameCore/RuntimeAccess';
 
 export interface RssRect {
   x: number;

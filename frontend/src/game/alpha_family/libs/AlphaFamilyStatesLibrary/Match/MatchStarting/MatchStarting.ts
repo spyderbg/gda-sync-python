@@ -1,16 +1,16 @@
 // Egt::Game::AlphaFamily::MatchStartingState (AlphaFamilyStatesLibrary/Match/MatchStarting): asks the gameflow to
 // start a match at the bet; a match always starts from the main round.
 
-import { State } from '../../../../../engine/Fsm/Fsm';
-import { RoundType } from '../../../AlphaFamily/Math/Common/Common.data';
-import { IGameflow } from '../../../AlphaFamily/RuntimeImport/IGameflow.bridge';
-import type { StartMatchReply } from '../../../AlphaFamily/RuntimeImport/IGameflow.data';
-import { IBetManager } from '../../../AlphaFamily/States/IBetManager';
-import { IGameManager } from '../../../AlphaFamily/States/IGameManager';
-import { IViewManager } from '../../../AlphaFamily/States/IViewManager';
-import { IIdle } from '../../../AlphaFamily/States/Idle/IIdle';
-import { IMainRound } from '../../../AlphaFamily/States/Match/IMainRound';
-import { IMatchStarting } from '../../../AlphaFamily/States/Match/IMatchStarting';
+import { State } from '@game/engine/Fsm/Fsm';
+import { RoundType } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
+import { IGameflow } from '@game/alpha_family/libs/AlphaFamily/RuntimeImport/IGameflow.bridge';
+import type { StartMatchReply } from '@game/alpha_family/libs/AlphaFamily/RuntimeImport/IGameflow.data';
+import { IBetManager } from '@game/alpha_family/libs/AlphaFamily/States/IBetManager';
+import { IGameManager } from '@game/alpha_family/libs/AlphaFamily/States/IGameManager';
+import { IViewManager } from '@game/alpha_family/libs/AlphaFamily/States/IViewManager';
+import { IIdle } from '@game/alpha_family/libs/AlphaFamily/States/Idle/IIdle';
+import { IMainRound } from '@game/alpha_family/libs/AlphaFamily/States/Match/IMainRound';
+import { IMatchStarting } from '@game/alpha_family/libs/AlphaFamily/States/Match/IMatchStarting';
 
 export class MatchStartingState extends State {
   static Interfaces = [IMatchStarting];

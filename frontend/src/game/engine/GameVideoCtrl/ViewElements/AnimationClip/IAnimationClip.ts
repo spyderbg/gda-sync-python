@@ -1,7 +1,7 @@
 // Egt::Game::IAnimationClip (GameVideoCtrl/ViewElements/AnimationClip/IAnimationClip.h): what an AnimElement plays,
 // an image sequence (ImageSeqElement) or a movie (MovieElement).
 
-import type { Color, Size } from '../../../Game/RuntimeExport/IResources';
+import type { Color, Size } from '@game/engine/Game/RuntimeExport/IResources';
 import type { DrawList, Transform } from '../../DrawList';
 
 export abstract class IAnimationClip {

@@ -1,10 +1,10 @@
 // Egt::Game::AlphaFamily::TopperView (BurningCrownTetraSpins10TopperView/TopperView.h/.cpp): the topper screen's
 // picture (TopperView.json).
 
-import type { Runtime } from '../../../../engine/GameCore/RuntimeAccess';
-import type { DrawList } from '../../../../engine/GameVideoCtrl/DrawList';
-import { type ITopperView, ITopperView as ITopperViewToken } from '../../../libs/AlphaFamily/Views/IOverlayViews.bridge';
-import { BaseView } from '../../../libs/AlphaFamilyVideoCtrl/BaseView';
+import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
+import { type ITopperView, ITopperView as ITopperViewToken } from '@game/alpha_family/libs/AlphaFamily/Views/IOverlayViews.bridge';
+import { BaseView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/BaseView';
 
 const TopperViewId = 'TopperView';
 

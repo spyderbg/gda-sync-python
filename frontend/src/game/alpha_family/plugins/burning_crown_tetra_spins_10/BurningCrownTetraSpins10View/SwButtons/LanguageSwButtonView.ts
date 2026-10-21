@@ -1,11 +1,11 @@
 // Egt::Game::AlphaFamily::LanguageSwButtonView (BurningCrownTetraSpins10View/SwButtons/LanguageSwButtonView.h/.cpp):
 // opens the language menu; it moves to its tetra place in the tetra round.
 
-import type { Runtime } from '../../../../../engine/GameCore/RuntimeAccess';
-import { BaseElement } from '../../../../../engine/GameVideoCtrl/ViewElements/BaseElement';
-import { IButtonViewEvents } from '../../../../libs/AlphaFamily/Views/BaseInterfaces/IControlView';
-import { ELanguageSwButtonType, ILanguageSwButtonView } from '../../../../libs/AlphaFamily/Views/SwButtonViews.bridge';
-import { ButtonView } from '../../../../libs/AlphaFamilyVideoCtrl/Components/ButtonView';
+import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { BaseElement } from '@game/engine/GameVideoCtrl/ViewElements/BaseElement';
+import { IButtonViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IControlView';
+import { ELanguageSwButtonType, ILanguageSwButtonView } from '@game/alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge';
+import { ButtonView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/Components/ButtonView';
 
 const LanguageSwButtonViewId = 'LanguageSwButtonView';
 const ButtonLanguageId = 'button_language';

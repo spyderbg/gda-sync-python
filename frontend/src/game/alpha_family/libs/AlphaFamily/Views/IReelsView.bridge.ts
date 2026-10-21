@@ -1,7 +1,7 @@
 // Egt::Game::AlphaFamily::IReelsView (AlphaFamily/Views/IReelsView.bridge.h).
 
-import { Event } from '../../../../engine/Core/Event';
-import { Interface } from '../../../../engine/GameCore/RuntimeAccess';
+import { Event } from '@game/engine/Core/Event';
+import { Interface } from '@game/engine/GameCore/RuntimeAccess';
 import type { ERoundTags, Reels, SymbolGrid, SymbolViewInfos } from '../Math/Common/Common.data';
 import type { ReelCombinations } from '../Math/Reel/ReelRoundPhase.data';
 import { type IControlView, IControlViewEvents } from './BaseInterfaces/IControlView';

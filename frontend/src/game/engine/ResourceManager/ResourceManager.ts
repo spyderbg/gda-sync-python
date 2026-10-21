@@ -9,13 +9,13 @@
 // moved), it reads the descriptors again, and the elements draw the files they now name (the browser game's: C++ reads
 // its descriptors once).
 
-import type { GameAssetReport, GameProject } from '../../app/GameBackend';
-import { GameBackend } from '../../app/GameBackend';
-import { Runtime } from '../GameCore/RuntimeAccess';
-import { type ElementsListData, IResources, type RssAudioEvent, type RssDescriptors, type RssElement, type RssFont, type RssIData, type RssImage, type RssImageSequence, type RssMovie, type RssRtf, type RssTextStyle } from '../Game/RuntimeExport/IResources';
-import { IFileWatch } from '../Game/RuntimeExport/IFileWatch';
-import { IVideo } from '../GameVideoCtrl/RuntimeExport/IVideo';
-import { BaseModule, type ModuleConfig } from '../ModuleManager/BaseModule';
+import type { GameAssetReport, GameProject } from '@game/app/GameBackend';
+import { GameBackend } from '@game/app/GameBackend';
+import { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { type ElementsListData, IResources, type RssAudioEvent, type RssDescriptors, type RssElement, type RssFont, type RssIData, type RssImage, type RssImageSequence, type RssMovie, type RssRtf, type RssTextStyle } from '@game/engine/Game/RuntimeExport/IResources';
+import { IFileWatch } from '@game/engine/Game/RuntimeExport/IFileWatch';
+import { IVideo } from '@game/engine/GameVideoCtrl/RuntimeExport/IVideo';
+import { BaseModule, type ModuleConfig } from '@game/engine/ModuleManager/BaseModule';
 
 const RESOLUTION = '1920x1080';
 

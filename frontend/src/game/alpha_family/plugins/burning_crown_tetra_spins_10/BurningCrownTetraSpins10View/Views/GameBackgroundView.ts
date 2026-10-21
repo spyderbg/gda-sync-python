@@ -1,11 +1,11 @@
 // Egt::Game::AlphaFamily::GameBackgroundView (BurningCrownTetraSpins10View/Views/GameBackgroundView.h/.cpp): the main
 // or the tetra background, and the panel.
 
-import type { Runtime } from '../../../../../engine/GameCore/RuntimeAccess';
-import type { DrawList } from '../../../../../engine/GameVideoCtrl/DrawList';
-import { IControlViewEvents } from '../../../../libs/AlphaFamily/Views/BaseInterfaces/IControlView';
-import { EBackgroundType, IGameBackgroundView } from '../../../../libs/AlphaFamily/Views/IOverlayViews.bridge';
-import { BaseView } from '../../../../libs/AlphaFamilyVideoCtrl/BaseView';
+import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
+import { IControlViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IControlView';
+import { EBackgroundType, IGameBackgroundView } from '@game/alpha_family/libs/AlphaFamily/Views/IOverlayViews.bridge';
+import { BaseView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/BaseView';
 
 const GameBackgroundViewId = 'GameBackgroundView';
 const ImageBackgroundId = 'image_game_background';

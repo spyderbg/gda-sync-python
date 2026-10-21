@@ -2,8 +2,8 @@
 // descriptors), its JSON data (math, view configs, views), its images, audio and fonts (the asset library's preview),
 // the asset report the asset library lists, and the export of generated files.
 
-import type { RtfLayout } from '../engine/GameVideoCtrl/Rtf/RtfLayout';
-import type { RssDescriptors } from '../engine/Game/RuntimeExport/IResources';
+import type { RtfLayout } from '@game/engine/GameVideoCtrl/Rtf/RtfLayout';
+import type { RssDescriptors } from '@game/engine/Game/RuntimeExport/IResources';
 
 export interface GameProjectModule {
   name: string;

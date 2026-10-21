@@ -1,12 +1,12 @@
 // Egt::Game::AlphaFamily::TetraSpinBarView (BurningCrownTetraSpins10View/Views/TetraSpinBarView.h/.cpp): "TETRA GAMES
 // x OF y".
 
-import type { Runtime } from '../../../../../engine/GameCore/RuntimeAccess';
-import type { DrawList } from '../../../../../engine/GameVideoCtrl/DrawList';
-import { TextElement } from '../../../../../engine/GameVideoCtrl/ViewElements/TextElement';
-import { IControlViewEvents } from '../../../../libs/AlphaFamily/Views/BaseInterfaces/IControlView';
-import { ITetraSpinBarView } from '../../../../libs/AlphaFamily/Views/BarsView.bridge';
-import { BaseView } from '../../../../libs/AlphaFamilyVideoCtrl/BaseView';
+import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
+import { TextElement } from '@game/engine/GameVideoCtrl/ViewElements/TextElement';
+import { IControlViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IControlView';
+import { ITetraSpinBarView } from '@game/alpha_family/libs/AlphaFamily/Views/BarsView.bridge';
+import { BaseView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/BaseView';
 
 const TetraSpinBarViewId = 'TetraSpinBarView';
 const TextTetraSpinCurrentId = 'text_tetra_spin_current';

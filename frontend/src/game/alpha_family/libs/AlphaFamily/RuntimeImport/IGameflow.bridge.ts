@@ -1,9 +1,9 @@
 // Egt::Game::AlphaFamily::IGameflow (AlphaFamily/RuntimeImport/IGameflow.bridge.h): the match and its rounds, with the
 // currencies of the match's wallet. The integration implements it (integration/AlphaFamilyGameflow).
 
-import { Event } from '../../../../engine/Core/Event';
-import { Currencies, type CurrencyType } from '../../../../engine/Game/Math/Common.data';
-import { Interface } from '../../../../engine/GameCore/RuntimeAccess';
+import { Event } from '@game/engine/Core/Event';
+import { Currencies, type CurrencyType } from '@game/engine/Game/Math/Common.data';
+import { Interface } from '@game/engine/GameCore/RuntimeAccess';
 import type { RoundType } from '../Math/Common/Common.data';
 import type {
   EndMatchReply, EndMatchRequest, EndRoundReply, EndRoundRequest, StartMatchReply, StartMatchRequest, StartRoundReply, StartRoundRequest,

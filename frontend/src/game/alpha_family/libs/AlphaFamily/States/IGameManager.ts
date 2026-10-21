@@ -1,6 +1,6 @@
 // Egt::Game::AlphaFamily::States::IGameManager (AlphaFamily/States/IGameManager.h, IGameManager.data.h).
 
-import { Interface } from '../../../../engine/GameCore/RuntimeAccess';
+import { Interface } from '@game/engine/GameCore/RuntimeAccess';
 import type { RoundType } from '../Math/Common/Common.data';
 import type { RoundResult } from '../Math/RoundResult.data';
 

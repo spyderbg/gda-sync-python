@@ -1,9 +1,9 @@
 // Egt::GameVideoCtrl::ButtonElement (ViewElements/ButtonElement.h): an image for each state (rssKeys: idle, pressed,
 // disabled) and the area that takes touches (touchArea, else the image).
 
-import type { Point, RssRect, ViewElementData } from '../../Game/RuntimeExport/IResources';
-import { IResources } from '../../Game/RuntimeExport/IResources';
-import { IAudioApi } from '../../Game/RuntimeImport/IAudioApi';
+import type { Point, RssRect, ViewElementData } from '@game/engine/Game/RuntimeExport/IResources';
+import { IResources } from '@game/engine/Game/RuntimeExport/IResources';
+import { IAudioApi } from '@game/engine/Game/RuntimeImport/IAudioApi';
 import type { DrawList } from '../DrawList';
 import { IVideo } from '../RuntimeExport/IVideo';
 import { BaseElement } from './BaseElement';

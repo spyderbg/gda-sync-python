@@ -1,12 +1,12 @@
 // Egt::Game::AlphaFamily::MainRoundState (AlphaFamilyStatesLibrary/Match/MainRound/MainRound): the main game's reel
 // round, which consumes the MainSpinEnergy the match starts with.
 
-import { Currencies } from '../../../../../engine/Game/Math/Common.data';
-import { Currency, RoundType } from '../../../AlphaFamily/Math/Common/Common.data';
-import { ReelRoundInput } from '../../../AlphaFamily/Math/Reel/ReelRoundInput.data';
-import { IBetManager } from '../../../AlphaFamily/States/IBetManager';
-import { IMainRound } from '../../../AlphaFamily/States/Match/IMainRound';
-import { IReelRound } from '../../../AlphaFamily/States/Match/IReelRound';
+import { Currencies } from '@game/engine/Game/Math/Common.data';
+import { Currency, RoundType } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
+import { ReelRoundInput } from '@game/alpha_family/libs/AlphaFamily/Math/Reel/ReelRoundInput.data';
+import { IBetManager } from '@game/alpha_family/libs/AlphaFamily/States/IBetManager';
+import { IMainRound } from '@game/alpha_family/libs/AlphaFamily/States/Match/IMainRound';
+import { IReelRound } from '@game/alpha_family/libs/AlphaFamily/States/Match/IReelRound';
 import { ReelRoundState } from '../ReelRound/ReelRound';
 
 export class MainRoundState extends ReelRoundState {

@@ -1,8 +1,8 @@
 // Egt::Game::AlphaFamily overlay and decoration views: ITetraRoundOverlayView, IBigWinView, IKnobsView,
 // IGameBackgroundView, IAutoPlayView, ITopperView (AlphaFamily/Views/*.bridge.h).
 
-import { Event } from '../../../../engine/Core/Event';
-import { Interface } from '../../../../engine/GameCore/RuntimeAccess';
+import { Event } from '@game/engine/Core/Event';
+import { Interface } from '@game/engine/GameCore/RuntimeAccess';
 import type { ERoundTags } from '../Math/Common/Common.data';
 import { type IControlView, IControlViewEvents } from './BaseInterfaces/IControlView';
 

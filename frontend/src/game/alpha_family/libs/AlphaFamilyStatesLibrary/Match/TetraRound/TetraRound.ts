@@ -1,27 +1,27 @@
 // Egt::Game::AlphaFamily::TetraRoundState (AlphaFamilyStatesLibrary/Match/TetraRound/TetraRound.h/.cpp): the tetra
 // round, four sub screens played with the match's credits at four times the bet, while the credits last.
 
-import { State } from '../../../../../engine/Fsm/Fsm';
-import { Currencies } from '../../../../../engine/Game/Math/Common.data';
-import { Currency, RoundType } from '../../../AlphaFamily/Math/Common/Common.data';
-import { ReelRoundInput } from '../../../AlphaFamily/Math/Reel/ReelRoundInput.data';
-import { IMathRules } from '../../../AlphaFamily/RuntimeExport/IMathRules';
-import { IGameflow } from '../../../AlphaFamily/RuntimeImport/IGameflow.bridge';
-import { IBetManager } from '../../../AlphaFamily/States/IBetManager';
-import { IGameManager } from '../../../AlphaFamily/States/IGameManager';
-import { IViewManager } from '../../../AlphaFamily/States/IViewManager';
-import { ITetraRound, type TetraViewOptions } from '../../../AlphaFamily/States/Match/ITetraRound';
-import { IBetBarView, ITetraSpinBarView } from '../../../AlphaFamily/Views/BarsView.bridge';
-import { IBetMenuView } from '../../../AlphaFamily/Views/IBetMenuView.bridge';
-import { ILinesView } from '../../../AlphaFamily/Views/ILinesView.bridge';
-import { EBackgroundType, EKnobsType, IGameBackgroundView, IKnobsView } from '../../../AlphaFamily/Views/IOverlayViews.bridge';
-import { IReelsView } from '../../../AlphaFamily/Views/IReelsView.bridge';
-import { ITetraRoundView } from '../../../AlphaFamily/Views/ITetraRoundView.bridge';
-import { IWinFiguresView } from '../../../AlphaFamily/Views/IWinFiguresView.bridge';
+import { State } from '@game/engine/Fsm/Fsm';
+import { Currencies } from '@game/engine/Game/Math/Common.data';
+import { Currency, RoundType } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
+import { ReelRoundInput } from '@game/alpha_family/libs/AlphaFamily/Math/Reel/ReelRoundInput.data';
+import { IMathRules } from '@game/alpha_family/libs/AlphaFamily/RuntimeExport/IMathRules';
+import { IGameflow } from '@game/alpha_family/libs/AlphaFamily/RuntimeImport/IGameflow.bridge';
+import { IBetManager } from '@game/alpha_family/libs/AlphaFamily/States/IBetManager';
+import { IGameManager } from '@game/alpha_family/libs/AlphaFamily/States/IGameManager';
+import { IViewManager } from '@game/alpha_family/libs/AlphaFamily/States/IViewManager';
+import { ITetraRound, type TetraViewOptions } from '@game/alpha_family/libs/AlphaFamily/States/Match/ITetraRound';
+import { IBetBarView, ITetraSpinBarView } from '@game/alpha_family/libs/AlphaFamily/Views/BarsView.bridge';
+import { IBetMenuView } from '@game/alpha_family/libs/AlphaFamily/Views/IBetMenuView.bridge';
+import { ILinesView } from '@game/alpha_family/libs/AlphaFamily/Views/ILinesView.bridge';
+import { EBackgroundType, EKnobsType, IGameBackgroundView, IKnobsView } from '@game/alpha_family/libs/AlphaFamily/Views/IOverlayViews.bridge';
+import { IReelsView } from '@game/alpha_family/libs/AlphaFamily/Views/IReelsView.bridge';
+import { ITetraRoundView } from '@game/alpha_family/libs/AlphaFamily/Views/ITetraRoundView.bridge';
+import { IWinFiguresView } from '@game/alpha_family/libs/AlphaFamily/Views/IWinFiguresView.bridge';
 import {
   ELanguageSwButtonType, ESoundSwButtonType, IExitGameSwButtonView, IExitTetraSwButtonView, IInfoSwButtonView, ILanguageSwButtonView, ISoundVolumeSwButtonView,
   IStopSingleReelSwButtonView,
-} from '../../../AlphaFamily/Views/SwButtonViews.bridge';
+} from '@game/alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge';
 import { TetraRoundPresentingStatics, TetraRoundStatics, TetraRoundStorage } from './TetraRound.data';
 
 export class TetraRoundState extends State implements ITetraRound {

@@ -2,7 +2,7 @@
 // in BurningCrownTetraSpins10Math/MathRules.cpp fills by hand. The browser game builds its rules from it, and the C++
 // export writes MathRules.cpp from it.
 
-import type { MathRulesDescription, ScreenDescription } from '../../../../authoring/MathRulesDescription';
+import type { MathRulesDescription, ScreenDescription } from '@game/authoring/MathRulesDescription';
 
 const tetraSubScreen = (screen: number): ScreenDescription => ({
   reels: `tetraRound.reelsScreen${screen}`,

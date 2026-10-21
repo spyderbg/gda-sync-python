@@ -1,7 +1,7 @@
 // video_ctrl::draw_list: what the views draw each frame, onto the game's 2D canvas of the view resolution.
 
-import { transformf } from '../../hat_libs/egt_math/transform';
-import type { Color, RssRect } from '../Game/RuntimeExport/IResources';
+import { transformf } from '@game/hat_libs/egt_math/transform';
+import type { Color, RssRect } from '@game/engine/Game/RuntimeExport/IResources';
 
 export interface Transform {
   x: number;

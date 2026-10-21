@@ -1,8 +1,8 @@
 // Egt::Game::AlphaFamily::ReelsViewConfig (BurningCrownTetraSpins10View/Views/ReelsView.data.h): the IData of the reels
 // views (idata/<resolution>/ReelsView.json, TetraRoundView.json).
 
-import type { SymbolId } from '../../../../libs/AlphaFamily/Math/Common/Common.data';
-import type { Point, RssRect } from '../../../../../engine/Game/RuntimeExport/IResources';
+import type { SymbolId } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
+import type { Point, RssRect } from '@game/engine/Game/RuntimeExport/IResources';
 import type { ReelSubScreensConfig } from './ReelSubScreen.data';
 
 export interface SymbolVisualConfig {

@@ -1,11 +1,11 @@
 // Egt::Game::AlphaFamily::ReelVisual (BurningCrownTetraSpins10View/Visuals/ReelVisual.h/.cpp): one reel strip, which
 // spins over the fake reel and stops on the round's stop, a tick (tickDuration) at a time.
 
-import { Alignment } from '../../../../../engine/GameVideoCtrl/ViewElements/BaseElement';
-import type { DrawList } from '../../../../../engine/GameVideoCtrl/DrawList';
-import type { ElementsList } from '../../../../../engine/GameVideoCtrl/ViewElements/ElementsList';
-import { ImageElement } from '../../../../../engine/GameVideoCtrl/ViewElements/ImageElement';
-import { ERoundTags, type SymbolId, type SymbolIds } from '../../../../libs/AlphaFamily/Math/Common/Common.data';
+import { Alignment } from '@game/engine/GameVideoCtrl/ViewElements/BaseElement';
+import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
+import type { ElementsList } from '@game/engine/GameVideoCtrl/ViewElements/ElementsList';
+import { ImageElement } from '@game/engine/GameVideoCtrl/ViewElements/ImageElement';
+import { ERoundTags, type SymbolId, type SymbolIds } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
 import type { BaseReelsView } from '../Views/BaseReelsView';
 import type { ReelSubScreensConfig } from '../Views/ReelSubScreen.data';
 import { BaseVisual } from './BaseVisual';

@@ -2,10 +2,10 @@
 // BurningCrownTetraSpins10 cycles them with the sound button; the menu has no elements and no animations, so it opens
 // and closes at once.
 
-import type { Runtime } from '../../../../../engine/GameCore/RuntimeAccess';
-import { type ISoundMenuView, ISoundMenuView as ISoundMenuViewToken, ISoundMenuViewEvents } from '../../../../libs/AlphaFamily/Views/IMenuViews.bridge';
-import { BaseView } from '../../../../libs/AlphaFamilyVideoCtrl/BaseView';
-import { MenuView } from '../../../../libs/AlphaFamilyVideoCtrl/Components/MenuView';
+import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { type ISoundMenuView, ISoundMenuView as ISoundMenuViewToken, ISoundMenuViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/IMenuViews.bridge';
+import { BaseView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/BaseView';
+import { MenuView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/Components/MenuView';
 
 const SoundMenuViewId = 'SoundMenuView';
 

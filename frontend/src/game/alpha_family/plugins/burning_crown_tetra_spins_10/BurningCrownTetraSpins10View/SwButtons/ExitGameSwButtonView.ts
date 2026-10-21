@@ -1,11 +1,11 @@
 // Egt::Game::AlphaFamily::ExitGameSwButtonView (BurningCrownTetraSpins10View/SwButtons/ExitGameSwButtonView.h/.cpp): the
 // home button: requests the exit, then tells the game when the exit has been presented.
 
-import { CountdownTimer } from '../../../../../engine/Game/Utils/CountdownTimer';
-import { IAudioApi } from '../../../../../engine/Game/RuntimeImport/IAudioApi';
-import type { Runtime } from '../../../../../engine/GameCore/RuntimeAccess';
-import { IExitGameSwButtonView, IExitGameSwButtonViewEvents } from '../../../../libs/AlphaFamily/Views/SwButtonViews.bridge';
-import { ButtonView } from '../../../../libs/AlphaFamilyVideoCtrl/Components/ButtonView';
+import { CountdownTimer } from '@game/engine/Game/Utils/CountdownTimer';
+import { IAudioApi } from '@game/engine/Game/RuntimeImport/IAudioApi';
+import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { IExitGameSwButtonView, IExitGameSwButtonViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge';
+import { ButtonView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/Components/ButtonView';
 
 const ExitGameSwButtonViewId = 'ExitGameSwButtonView';
 const ButtonExitGameId = 'button_exit_game';

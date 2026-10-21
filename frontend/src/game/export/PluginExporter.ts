@@ -15,7 +15,7 @@
 // The TypeScript ports C++ (PortManifest.json): a ported file that changed in the browser since, which the export does
 // not generate, update or translate, is listed in the README as C++ to update, with why it was not translated.
 
-import { GameBackend } from '../app/GameBackend';
+import { GameBackend } from '@game/app/GameBackend';
 import { type CppExportInput, ExportCpp } from './CppExporter';
 import PortManifest from './PortManifest.json';
 import { ViewSkeleton } from './ViewSkeleton';

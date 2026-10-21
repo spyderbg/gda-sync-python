@@ -1,14 +1,14 @@
 // Egt::Game::AlphaFamily::WinFigureVisual (BurningCrownTetraSpins10View/Visuals/WinFiguresVisual.h/.cpp): the
 // animation of a winning symbol over its cell.
 
-import type { Point } from '../../../../../engine/Game/RuntimeExport/IResources';
-import { Alignment, BaseElement } from '../../../../../engine/GameVideoCtrl/ViewElements/BaseElement';
-import { AnimElement } from '../../../../../engine/GameVideoCtrl/ViewElements/AnimElement';
-import type { ElementsList } from '../../../../../engine/GameVideoCtrl/ViewElements/ElementsList';
-import { ImageElement } from '../../../../../engine/GameVideoCtrl/ViewElements/ImageElement';
-import { FadeIn, FadeOut } from '../../../../../engine/GameVideoCtrl/ViewElements/TweenyExtend/TweenyExtendElement';
-import * as tweeny from '../../../../../hat_libs/tweeny/tweeny';
-import type { SymbolGridCoordinates, SymbolViewInfo } from '../../../../libs/AlphaFamily/Math/Common/Common.data';
+import type { Point } from '@game/engine/Game/RuntimeExport/IResources';
+import { Alignment, BaseElement } from '@game/engine/GameVideoCtrl/ViewElements/BaseElement';
+import { AnimElement } from '@game/engine/GameVideoCtrl/ViewElements/AnimElement';
+import type { ElementsList } from '@game/engine/GameVideoCtrl/ViewElements/ElementsList';
+import { ImageElement } from '@game/engine/GameVideoCtrl/ViewElements/ImageElement';
+import { FadeIn, FadeOut } from '@game/engine/GameVideoCtrl/ViewElements/TweenyExtend/TweenyExtendElement';
+import * as tweeny from '@game/hat_libs/tweeny/tweeny';
+import type { SymbolGridCoordinates, SymbolViewInfo } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
 import type { WinFiguresVisualConfig } from '../Views/ReelsView.data';
 import type { ReelSubScreensConfig } from '../Views/ReelSubScreen.data';
 import { BaseVisual } from './BaseVisual';

@@ -5,9 +5,9 @@
 // C++ loads and starts a movie when the element is made. Here it loads once the game's images have loaded (so that
 // they come first), or when it is played, and starts when it is played.
 
-import type { Color, RssMovie } from '../../../Game/RuntimeExport/IResources';
-import { IResources } from '../../../Game/RuntimeExport/IResources';
-import { RuntimeHolder, type Runtime } from '../../../GameCore/RuntimeAccess';
+import type { Color, RssMovie } from '@game/engine/Game/RuntimeExport/IResources';
+import { IResources } from '@game/engine/Game/RuntimeExport/IResources';
+import { RuntimeHolder, type Runtime } from '@game/engine/GameCore/RuntimeAccess';
 import type { DrawList, Transform } from '../../DrawList';
 import { MovieFrame } from '../../MovieFrame';
 import { IVideo } from '../../RuntimeExport/IVideo';

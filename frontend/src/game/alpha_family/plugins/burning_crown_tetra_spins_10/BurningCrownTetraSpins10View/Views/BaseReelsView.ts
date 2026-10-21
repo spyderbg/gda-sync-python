@@ -1,7 +1,7 @@
 // Egt::Game::AlphaFamily::BaseReelsView (BurningCrownTetraSpins10View/Views/BaseReelsView.h/.cpp): what a ReelVisual
 // asks of the view that owns it.
 
-import type { IAudioPlayback } from '../../../../../engine/Game/RuntimeImport/IAudioApi';
+import type { IAudioPlayback } from '@game/engine/Game/RuntimeImport/IAudioApi';
 import type { ReelsViewConfig } from './ReelsView.data';
 
 export interface BaseReelsView {

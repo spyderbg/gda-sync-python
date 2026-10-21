@@ -1,16 +1,16 @@
 // Egt::Game::AlphaFamily::ReelsView (BurningCrownTetraSpins10View/Views/ReelsView.h/.cpp): the main game's five reels.
 
-import { IsArrayOf } from '../../../../../engine/GameCore/Common/ContainerHelpers';
-import type { Runtime } from '../../../../../engine/GameCore/RuntimeAccess';
-import { IAudioApi, type IAudioPlayback } from '../../../../../engine/Game/RuntimeImport/IAudioApi';
-import { IResources } from '../../../../../engine/Game/RuntimeExport/IResources';
-import type { DrawList } from '../../../../../engine/GameVideoCtrl/DrawList';
-import { Stopwatch } from '../../../../../engine/GameCore/Tools/Timers';
-import { type ERoundTags, type Reels, type SymbolGrid, SymbolViewInfo, type SymbolViewInfos } from '../../../../libs/AlphaFamily/Math/Common/Common.data';
-import { ReelCombination, type ReelCombinations } from '../../../../libs/AlphaFamily/Math/Reel/ReelRoundPhase.data';
-import { ILinesView } from '../../../../libs/AlphaFamily/Views/ILinesView.bridge';
-import { IReelsView, IReelsViewEvents } from '../../../../libs/AlphaFamily/Views/IReelsView.bridge';
-import { BaseView } from '../../../../libs/AlphaFamilyVideoCtrl/BaseView';
+import { IsArrayOf } from '@game/engine/GameCore/Common/ContainerHelpers';
+import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { IAudioApi, type IAudioPlayback } from '@game/engine/Game/RuntimeImport/IAudioApi';
+import { IResources } from '@game/engine/Game/RuntimeExport/IResources';
+import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
+import { Stopwatch } from '@game/engine/GameCore/Tools/Timers';
+import { type ERoundTags, type Reels, type SymbolGrid, SymbolViewInfo, type SymbolViewInfos } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
+import { ReelCombination, type ReelCombinations } from '@game/alpha_family/libs/AlphaFamily/Math/Reel/ReelRoundPhase.data';
+import { ILinesView } from '@game/alpha_family/libs/AlphaFamily/Views/ILinesView.bridge';
+import { IReelsView, IReelsViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/IReelsView.bridge';
+import { BaseView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/BaseView';
 import { ReelVisual } from '../Visuals/ReelVisual';
 import type { BaseReelsView } from './BaseReelsView';
 import { ECategory, type ReelsViewConfig } from './ReelsView.data';

@@ -1,7 +1,7 @@
 // Egt::Game::AlphaFamily::ILinesView (AlphaFamily/Views/ILinesView.bridge.h).
 
-import { Event } from '../../../../engine/Core/Event';
-import { Interface } from '../../../../engine/GameCore/RuntimeAccess';
+import { Event } from '@game/engine/Core/Event';
+import { Interface } from '@game/engine/GameCore/RuntimeAccess';
 import type { ERoundTags } from '../Math/Common/Common.data';
 import type { ReelCombination, ReelCombinations } from '../Math/Reel/ReelRoundPhase.data';
 import { type IControlView, IControlViewEvents } from './BaseInterfaces/IControlView';

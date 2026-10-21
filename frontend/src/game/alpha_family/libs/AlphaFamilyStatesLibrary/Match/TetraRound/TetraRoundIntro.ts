@@ -1,9 +1,9 @@
 // Egt::Game::AlphaFamily::TetraRoundIntroState (AlphaFamilyStatesLibrary/Match/TetraRound/TetraRoundIntro): the
 // "Tetra activated" splash, which switches to the tetra views midway.
 
-import { State } from '../../../../../engine/Fsm/Fsm';
-import { ITetraRound, ITetraRoundInput, ITetraRoundIntro } from '../../../AlphaFamily/States/Match/ITetraRound';
-import { ITetraRoundOverlayView } from '../../../AlphaFamily/Views/IOverlayViews.bridge';
+import { State } from '@game/engine/Fsm/Fsm';
+import { ITetraRound, ITetraRoundInput, ITetraRoundIntro } from '@game/alpha_family/libs/AlphaFamily/States/Match/ITetraRound';
+import { ITetraRoundOverlayView } from '@game/alpha_family/libs/AlphaFamily/Views/IOverlayViews.bridge';
 
 export class TetraRoundIntroState extends State {
   static Interfaces = [ITetraRoundIntro];

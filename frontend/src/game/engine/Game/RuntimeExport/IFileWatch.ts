@@ -3,8 +3,8 @@
 //
 // In the browser game a file is its path relative to the game folder, as the descriptors name it (IResources).
 
-import { Event } from '../../Core/Event';
-import { Interface } from '../../GameCore/RuntimeAccess';
+import { Event } from '@game/engine/Core/Event';
+import { Interface } from '@game/engine/GameCore/RuntimeAccess';
 
 export interface IFileWatch {
   StartWatchFile(filepath: string): void;

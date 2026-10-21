@@ -1,14 +1,14 @@
 // Egt::Game::AlphaFamily::BurningCrownTetraSpins10View (BurningCrownTetraSpins10View.h/.cpp): the view module, which
 // creates the game's views, processes and draws them in order, and gives them the touches, the topmost first.
 
-import type { Runtime } from '../../../../engine/GameCore/RuntimeAccess';
-import { ILocalization } from '../../../../engine/Game/RuntimeImport/ILocalization';
-import { IResources } from '../../../../engine/Game/RuntimeExport/IResources';
-import type { DrawList } from '../../../../engine/GameVideoCtrl/DrawList';
-import { IFileWatch } from '../../../../engine/Game/RuntimeExport/IFileWatch';
-import { IVideo, type TouchEventData } from '../../../../engine/GameVideoCtrl/RuntimeExport/IVideo';
-import { BaseModule, type ModuleConfig } from '../../../../engine/ModuleManager/BaseModule';
-import type { BaseView } from '../../../libs/AlphaFamilyVideoCtrl/BaseView';
+import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { ILocalization } from '@game/engine/Game/RuntimeImport/ILocalization';
+import { IResources } from '@game/engine/Game/RuntimeExport/IResources';
+import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
+import { IFileWatch } from '@game/engine/Game/RuntimeExport/IFileWatch';
+import { IVideo, type TouchEventData } from '@game/engine/GameVideoCtrl/RuntimeExport/IVideo';
+import { BaseModule, type ModuleConfig } from '@game/engine/ModuleManager/BaseModule';
+import type { BaseView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/BaseView';
 import { BetDownSwButtonView } from './SwButtons/BetDownSwButtonView';
 import { BetUpSwButtonView } from './SwButtons/BetUpSwButtonView';
 import { ExitGameSwButtonView } from './SwButtons/ExitGameSwButtonView';

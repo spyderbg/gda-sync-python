@@ -1,20 +1,20 @@
 // Egt::Game::AlphaFamily::TetraRoundOutroState (AlphaFamilyStatesLibrary/Match/TetraRound/TetraRoundOutro): the
 // "Tetra completed" splash, which switches back to the main views midway; then the match's win is taken.
 
-import { State } from '../../../../../engine/Fsm/Fsm';
-import { Currency, RoundType } from '../../../AlphaFamily/Math/Common/Common.data';
-import { IGameflow } from '../../../AlphaFamily/RuntimeImport/IGameflow.bridge';
-import { IBetManager } from '../../../AlphaFamily/States/IBetManager';
-import { IViewManager } from '../../../AlphaFamily/States/IViewManager';
-import { IMatch } from '../../../AlphaFamily/States/Match/IMatch';
-import { ITetraRound, ITetraRoundOutro } from '../../../AlphaFamily/States/Match/ITetraRound';
-import { ITetraSpinBarView } from '../../../AlphaFamily/Views/BarsView.bridge';
-import { EBackgroundType, EKnobsType, IGameBackgroundView, IKnobsView, ITetraRoundOverlayView } from '../../../AlphaFamily/Views/IOverlayViews.bridge';
-import { IReelsView } from '../../../AlphaFamily/Views/IReelsView.bridge';
-import { ITetraRoundView } from '../../../AlphaFamily/Views/ITetraRoundView.bridge';
+import { State } from '@game/engine/Fsm/Fsm';
+import { Currency, RoundType } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
+import { IGameflow } from '@game/alpha_family/libs/AlphaFamily/RuntimeImport/IGameflow.bridge';
+import { IBetManager } from '@game/alpha_family/libs/AlphaFamily/States/IBetManager';
+import { IViewManager } from '@game/alpha_family/libs/AlphaFamily/States/IViewManager';
+import { IMatch } from '@game/alpha_family/libs/AlphaFamily/States/Match/IMatch';
+import { ITetraRound, ITetraRoundOutro } from '@game/alpha_family/libs/AlphaFamily/States/Match/ITetraRound';
+import { ITetraSpinBarView } from '@game/alpha_family/libs/AlphaFamily/Views/BarsView.bridge';
+import { EBackgroundType, EKnobsType, IGameBackgroundView, IKnobsView, ITetraRoundOverlayView } from '@game/alpha_family/libs/AlphaFamily/Views/IOverlayViews.bridge';
+import { IReelsView } from '@game/alpha_family/libs/AlphaFamily/Views/IReelsView.bridge';
+import { ITetraRoundView } from '@game/alpha_family/libs/AlphaFamily/Views/ITetraRoundView.bridge';
 import {
   ELanguageSwButtonType, ESoundSwButtonType, IExitTetraSwButtonView, ILanguageSwButtonView, ISoundVolumeSwButtonView,
-} from '../../../AlphaFamily/Views/SwButtonViews.bridge';
+} from '@game/alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge';
 
 export class TetraRoundOutroState extends State {
   static Interfaces = [ITetraRoundOutro];

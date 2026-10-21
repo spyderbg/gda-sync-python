@@ -1,8 +1,8 @@
 // Egt::Game::AlphaFamily::IBetMenuView (AlphaFamily/Views/IBetMenuView.bridge.h).
 
-import { Event } from '../../../../engine/Core/Event';
-import type { CurrencyType } from '../../../../engine/Game/Math/Common.data';
-import { Interface } from '../../../../engine/GameCore/RuntimeAccess';
+import { Event } from '@game/engine/Core/Event';
+import type { CurrencyType } from '@game/engine/Game/Math/Common.data';
+import { Interface } from '@game/engine/GameCore/RuntimeAccess';
 import { type IControlView, type IMenuView, IMenuViewEvents } from './BaseInterfaces/IControlView';
 
 export interface IBetMenuView extends IControlView, IMenuView {

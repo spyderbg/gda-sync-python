@@ -2,10 +2,10 @@
 // RssAudioData.json by id, one of an event's samples at a time; an event of a polyphony group stops the group's other
 // sounds. The volume presets cycle with the sound button.
 
-import { IAudioApi, type IAudioPlayback } from '../Game/RuntimeImport/IAudioApi';
-import { IResources } from '../Game/RuntimeExport/IResources';
-import { Runtime } from '../GameCore/RuntimeAccess';
-import { BaseModule, type ModuleConfig } from '../ModuleManager/BaseModule';
+import { IAudioApi, type IAudioPlayback } from '@game/engine/Game/RuntimeImport/IAudioApi';
+import { IResources } from '@game/engine/Game/RuntimeExport/IResources';
+import { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { BaseModule, type ModuleConfig } from '@game/engine/ModuleManager/BaseModule';
 
 const VOLUME_PRESETS = [0, 0.25, 0.5, 1];
 

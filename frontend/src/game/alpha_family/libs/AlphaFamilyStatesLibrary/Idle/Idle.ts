@@ -1,19 +1,19 @@
 // Egt::Game::AlphaFamily::IdleState (AlphaFamilyStatesLibrary/Idle/Idle.h/.cpp): between matches; START begins one.
 
-import { State } from '../../../../engine/Fsm/Fsm';
-import { IAutoPlayHwButton, ICashoutHwButton, IExitHwButton, IStartHwButton } from '../../../../engine/Game/RuntimeImport/HwButtons.bridge';
-import { ILimits } from '../../../../engine/Game/RuntimeImport/ILimits';
-import { IAppControl, IResponsibleGaming } from '../../../../engine/Game/RuntimeImport/IResponsibleGaming';
-import { IWallet, type TransactionInfo } from '../../../../engine/Game/RuntimeImport/IWallet';
-import { RoundType } from '../../AlphaFamily/Math/Common/Common.data';
-import { IMathRules } from '../../AlphaFamily/RuntimeExport/IMathRules';
-import { IBetManager } from '../../AlphaFamily/States/IBetManager';
-import { IGameManager } from '../../AlphaFamily/States/IGameManager';
-import { ISystemManager } from '../../AlphaFamily/States/ISystemManager';
-import { IViewManager } from '../../AlphaFamily/States/IViewManager';
-import { IIdle } from '../../AlphaFamily/States/Idle/IIdle';
-import { IMatch } from '../../AlphaFamily/States/Match/IMatch';
-import { IExitGameSwButtonView, IResponsibleSwButtonView } from '../../AlphaFamily/Views/SwButtonViews.bridge';
+import { State } from '@game/engine/Fsm/Fsm';
+import { IAutoPlayHwButton, ICashoutHwButton, IExitHwButton, IStartHwButton } from '@game/engine/Game/RuntimeImport/HwButtons.bridge';
+import { ILimits } from '@game/engine/Game/RuntimeImport/ILimits';
+import { IAppControl, IResponsibleGaming } from '@game/engine/Game/RuntimeImport/IResponsibleGaming';
+import { IWallet, type TransactionInfo } from '@game/engine/Game/RuntimeImport/IWallet';
+import { RoundType } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
+import { IMathRules } from '@game/alpha_family/libs/AlphaFamily/RuntimeExport/IMathRules';
+import { IBetManager } from '@game/alpha_family/libs/AlphaFamily/States/IBetManager';
+import { IGameManager } from '@game/alpha_family/libs/AlphaFamily/States/IGameManager';
+import { ISystemManager } from '@game/alpha_family/libs/AlphaFamily/States/ISystemManager';
+import { IViewManager } from '@game/alpha_family/libs/AlphaFamily/States/IViewManager';
+import { IIdle } from '@game/alpha_family/libs/AlphaFamily/States/Idle/IIdle';
+import { IMatch } from '@game/alpha_family/libs/AlphaFamily/States/Match/IMatch';
+import { IExitGameSwButtonView, IResponsibleSwButtonView } from '@game/alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge';
 
 export class IdleState extends State {
   static Interfaces = [IIdle];
