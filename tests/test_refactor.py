@@ -61,7 +61,7 @@ def codes(plan):
 def test_copy_in_updates_five_entries_preserves_other_game_and_restore_undoes(client):
     original = {file: file.read_bytes() for file in client.root.rglob('*') if file.is_file()}
     report = client.get('/api/asset-report').json()
-    assert report['version'] == 8 and report['summary']['otherGame'] == 2
+    assert report['version'] == 9 and report['summary']['otherGame'] == 2
     assert [f['kind'] for f in report['folders']] == ['game', 'other-game']
     assert {row['scope'] for row in report['assets']} == {'other-game'}
     body = {'folder': str(client.root / 'other'), 'target': ''}
@@ -149,6 +149,145 @@ def test_sequence_template_and_audio_samples_move_together(client):
     index = references(client.game, client.root)
     split = plan_move(index, {client.game / 'anim' / 'a_00.dds': client.game / 'elsewhere' / 'a_00.dds'}, client.game, client.root)
     assert 'split-sequence' in codes(split.json())
+
+
+@pytest.mark.parametrize('declared_sequence', [True, False])
+def test_move_bell_animation_updates_images_using_first_middle_and_last_frame(client, declared_sequence):
+    source = client.game / 'bell' / 'DDS'
+    source.mkdir(parents=True)
+    contents = {f'Bell_330x284px_{index:05}.dds': bytes([index]) for index in range(50)}
+    for name, value in contents.items():
+        (source / name).write_bytes(value)
+    images = {'images': [{'id': f'IMAGE_REEL_BCTS_{index}', 'path': f'bell/DDS/Bell_330x284px_{index:05}.dds'}
+                         for index in (0, 25, 49)]}
+    write(client.game / 'RssImagesData.json', images)
+    sequence = {'id': 'ANIM_REEL_BELL_ANIM', 'frameTime': 60, 'loopCount': 0, 'loopTo': 16,
+                'frames': [{'path': 'bell/DDS/Bell_330x284px_{00000-00049}.dds'}]}
+    if declared_sequence:
+        write(client.game / 'RssImagesSeqData.json', {'imagesSeq': [sequence]})
+    assert client.post('/api/asset-report').status_code == 200
+    row = asset(client, 'bell/DDS/Bell_330x284px_{00000-00049}.dds')
+    assert len(row['sequence']['frames']) == 50
+    body = {'assets': [row['id']], 'target': 'moved/bell'}
+    plan = preview(client, **body)
+    assert not plan['blockers'] and len(plan['files']) == 50
+    updates = [edit['new'] for edits in plan['edits'].values() for edit in edits]
+    for index in (0, 25, 49):
+        assert f'moved/bell/Bell_330x284px_{index:05}.dds' in updates
+    if declared_sequence:
+        assert 'moved/bell/Bell_330x284px_{00000-00049}.dds' in updates
+    response = client.post('/api/asset-report/move', json={**body, 'fingerprint': plan['fingerprint']})
+    assert response.status_code == 200, response.text
+    moved_images = json.loads((client.game / 'RssImagesData.json').read_text())
+    assert moved_images == {'images': [{**entry, 'path': entry['path'].replace('bell/DDS/', 'moved/bell/')} for entry in images['images']]}
+    if declared_sequence:
+        assert json.loads((client.game / 'RssImagesSeqData.json').read_text()) == {'imagesSeq': [
+            {**sequence, 'frames': [{'path': 'moved/bell/Bell_330x284px_{00000-00049}.dds'}]}]}
+    for name, value in contents.items():
+        assert not (source / name).exists()
+        assert (client.game / 'moved' / 'bell' / name).read_bytes() == value
+    moved = asset(client, 'moved/bell/Bell_330x284px_{00000-00049}.dds')
+    assert len(moved['sequence']['frames']) == 50
+    assert response.json()['assets'][row['id']] == moved['id']
+    assert asset(client, 'moved/bell/Bell_330x284px_00000.dds')['category'] == 'available'
+    operation = client.get('/api/backups').json()['backups'][0]
+    assert not client.post('/api/backups/restore', json={'id': operation['id']}).json()['failures']
+    assert json.loads((client.game / 'RssImagesData.json').read_text()) == images
+    for name, value in contents.items():
+        assert (source / name).read_bytes() == value
+        assert not (client.game / 'moved' / 'bell' / name).exists()
+
+
+def test_move_shared_frames_updates_all_sequences_and_keeps_their_identity(client):
+    source = client.game / 'shared'
+    source.mkdir()
+    for index in range(3):
+        (source / f'a_{index:02}.dds').write_bytes(bytes([index]))
+    (client.game / 'cover.dds').write_bytes(b'cover')
+    sequences = {'imagesSeq': [
+        {'id': 'NORMAL', 'frameTime': 60, 'loopCount': 0, 'loopTo': 1, 'frames': [{'path': 'shared/a_{00-02}.dds'}]},
+        {'id': 'FAST', 'frameTime': 30, 'loopCount': 2, 'frames': [{'path': 'shared/a_{00-02}.dds'}]},
+        {'id': 'MIXED', 'frameTime': 40, 'loopCount': 1, 'frames': [
+            {'path': 'shared/a_00.dds', 'source': {'x': 0, 'y': 0, 'w': 4, 'h': 4}},
+            {'path': 'cover.dds'},
+            {'path': 'shared/a_00.dds', 'source': {'x': 4, 'y': 0, 'w': 4, 'h': 4}},
+        ]},
+    ]}
+    images = {'images': [{'id': 'FIRST', 'path': 'shared/a_00.dds'}]}
+    descriptor = client.game / 'RssImagesSeqData.json'
+    write(descriptor, sequences)
+    write(client.game / 'RssImagesData.json', images)
+    assert client.post('/api/asset-report').status_code == 200
+    rows = {row['sequence']['id']: row for row in client.get('/api/asset-report').json()['assets'] if row.get('sequence')}
+    assert set(rows) == {'NORMAL', 'FAST', 'MIXED'}
+    assert all(len(row['sequence']['frames']) == 3 for row in rows.values())
+    body = {'assets': [rows['FAST']['id']], 'target': 'moved'}
+    plan = preview(client, **body)
+    assert not plan['blockers']
+    assert len(plan['files']) == len({item['source'] for item in plan['files']}) == 3
+    assert all(item['mode'] == 'move' for item in plan['files'])
+    response = client.post('/api/asset-report/move', json={**body, 'fingerprint': plan['fingerprint']})
+    assert response.status_code == 200, response.text
+    # All ranges, repeated atlas frames and standalone images follow the shared files. Playback settings stay intact.
+    assert json.loads(descriptor.read_text()) == json.loads(json.dumps(sequences).replace('shared/', 'moved/'))
+    assert json.loads((client.game / 'RssImagesData.json').read_text()) == {
+        'images': [{'id': 'FIRST', 'path': 'moved/a_00.dds'}]}
+    moved = {row['sequence']['id']: row for row in client.get('/api/asset-report').json()['assets'] if row.get('sequence')}
+    assert set(moved) == set(rows) and len({row['id'] for row in moved.values()}) == 3
+    assert response.json()['assets'][rows['FAST']['id']] == moved['FAST']['id']
+    assert all(row['category'] == 'available' and len(row['sequence']['frames']) == 3 for row in moved.values())
+    for index in range(3):
+        assert not (source / f'a_{index:02}.dds').exists()
+        assert (client.game / 'moved' / f'a_{index:02}.dds').read_bytes() == bytes([index])
+    assert (client.game / 'cover.dds').read_bytes() == b'cover'
+    operation = client.get('/api/backups').json()['backups'][0]
+    assert not client.post('/api/backups/restore', json={'id': operation['id']}).json()['failures']
+    assert json.loads(descriptor.read_text()) == sequences
+    assert json.loads((client.game / 'RssImagesData.json').read_text()) == images
+    for index in range(3):
+        assert (source / f'a_{index:02}.dds').read_bytes() == bytes([index])
+        assert not (client.game / 'moved' / f'a_{index:02}.dds').exists()
+
+
+def test_overlapping_ranges_block_a_partial_move_and_move_together_once(client):
+    source = client.game / 'shared'
+    source.mkdir()
+    for index in range(8):
+        (source / f'a_{index:02}.dds').write_bytes(bytes([index]))
+    sequences = {'imagesSeq': [
+        {'id': 'FIRST', 'frameTime': 60, 'loopCount': 0, 'frames': [{'path': 'shared/a_{00-04}.dds'}]},
+        {'id': 'SECOND', 'frameTime': 30, 'loopCount': 2, 'loopTo': 1, 'frames': [{'path': 'shared/a_{03-07}.dds'}]},
+    ]}
+    descriptor = client.game / 'RssImagesSeqData.json'
+    write(descriptor, sequences)
+    original = descriptor.read_bytes()
+    assert client.post('/api/asset-report').status_code == 200
+    rows = {row['sequence']['id']: row for row in client.get('/api/asset-report').json()['assets'] if row.get('sequence')}
+    assert set(rows) == {'FIRST', 'SECOND'}
+    assert all(len(row['sequence']['frames']) == 5 for row in rows.values())
+    body = {'assets': [rows['FIRST']['id']], 'target': 'moved'}
+    blocked = preview(client, **body)
+    assert 'split-sequence' in codes(blocked)
+    assert client.post('/api/asset-report/move', json={**body, 'fingerprint': blocked['fingerprint']}).status_code == 409
+    assert descriptor.read_bytes() == original
+    assert not (client.game / 'moved').exists()
+    for index in range(8):
+        assert (source / f'a_{index:02}.dds').read_bytes() == bytes([index])
+    body['assets'] = [row['id'] for row in rows.values()]
+    plan = preview(client, **body)
+    assert not plan['blockers']
+    assert len(plan['files']) == len({item['source'] for item in plan['files']}) == 8
+    response = client.post('/api/asset-report/move', json={**body, 'fingerprint': plan['fingerprint']})
+    assert response.status_code == 200, response.text
+    assert json.loads(descriptor.read_text()) == json.loads(json.dumps(sequences).replace('shared/', 'moved/'))
+    moved = {row['sequence']['id']: row for row in client.get('/api/asset-report').json()['assets'] if row.get('sequence')}
+    assert set(moved) == set(rows)
+    for key, row in rows.items():
+        assert response.json()['assets'][row['id']] == moved[key]['id']
+        assert moved[key]['category'] == 'available' and len(moved[key]['sequence']['frames']) == 5
+    for index in range(8):
+        assert not (source / f'a_{index:02}.dds').exists()
+        assert (client.game / 'moved' / f'a_{index:02}.dds').read_bytes() == bytes([index])
 
 
 def test_rtf_moves_whole_folder(client):

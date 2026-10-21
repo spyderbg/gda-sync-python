@@ -13,7 +13,7 @@ function onKeydown(event: KeyboardEvent) {
   if (event.key === 'Escape') emit('close');
   if (event.key !== 'Tab') return;
   // Keep keyboard focus inside the dialog.
-  const elements = dialog.value?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), select:not(:disabled), [tabindex="0"]');
+  const elements = dialog.value?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]');
   if (!elements?.length) return;
   const first = elements[0], last = elements[elements.length - 1];
   if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }

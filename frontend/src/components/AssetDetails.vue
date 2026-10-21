@@ -15,6 +15,7 @@ import RtfPreview from './RtfPreview.vue';
 import TextEditor from './TextEditor.vue';
 import SequencePreview from './SequencePreview.vue';
 import ViewPreview from './ViewPreview.vue';
+import ImageStudio from './ImageStudio.vue';
 
 // The details of one asset of the asset report in a dialog, like the details of a GDA sync report resource: a large
 // preview, what the status means, the descriptor entries that load the asset, its game path with buttons to copy it or
@@ -35,10 +36,11 @@ const unsaved = ref(false);
 // The dialog that declares the asset, over this one.
 const declaring = ref(false);
 const moving = ref(false);
+const metadataOpen = ref(false);
 const renaming = ref<AssetDeclaration | null>(null);
 watch(() => props.row.id, () => { declaring.value = false; });
 function close() {
-  if (declaring.value || moving.value || renaming.value) return;
+  if (declaring.value || moving.value || renaming.value || metadataOpen.value) return;
   if (unsaved.value && !window.confirm('Discard your changes without saving them?')) return;
   emit('close');
 }
@@ -180,7 +182,9 @@ const note = computed(() => {
     case 'invalid': return { icon: 'mdi-alert-circle-outline', tone: 'is-invalid', title: 'The declared path cannot be used.', text: props.row.status.replace(/^invalid: /, '') };
     default: return {
       icon: 'mdi-file-question-outline', tone: 'is-supplementary', title: 'Not declared.',
-      text: `No descriptor declares ${project || (many ? 'these files' : 'this file')}, so the game does not load ${many ? 'them' : 'it'}.${sequence.value?.guessed ? ' The sequence is guessed from the file names.' : ''}`,
+      text: sequence.value?.guessed
+        ? 'No descriptor declares this animation as a sequence. It is guessed from the file names. Individual frames can also be declared as images.'
+        : `No descriptor declares ${project || (many ? 'these files' : 'this file')}, so the game does not load ${many ? 'them' : 'it'}.`,
     };
   }
 });
@@ -352,6 +356,7 @@ const scope = computed(() => ({ game: 'Belongs to this game only.', common: 'A c
     </div>
     <div class="modal-footer details-footer">
       <span class="text-muted">{{ row.resource }}</span>
+      <button v-if="row.type === 'texture' && row.scope !== 'outside'" type="button" class="btn btn-outline-primary" :disabled="unsaved" @click="metadataOpen = true">Image metadata…</button>
       <button type="button" class="btn btn-outline-primary" :disabled="unsaved" @click="moving = true">Move…</button>
       <button type="button" class="btn btn-light" @click="close">Close</button>
     </div>
@@ -359,6 +364,7 @@ const scope = computed(() => ({ game: 'Belongs to this game only.', common: 'A c
   <MoveAssets v-if="moving" :row="row" @close="moving = false" />
   <RenameKey v-if="renaming?.id && renaming?.type" :kind="renaming.type" :rss-key="renaming.id" @close="renaming = null" />
   <DeclareAsset v-if="declaring" :row="row" @close="declaring = false" />
+  <ImageStudio v-if="metadataOpen" :row="row" stacked @close="metadataOpen = false" />
 </template>
 
 <style scoped>

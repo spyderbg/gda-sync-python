@@ -149,6 +149,13 @@ python -m egt_gda_sync report --all --gpu --match-threshold 30   # image matchin
 
 ### Asset reports
 
+An image can be a standalone `Image` and a frame of an `ImageSequence` at the same time. Explicit sequence ranges
+include both endpoints and keep their declared order and playback settings. When inferring an animation from numbered
+files, the asset inventory includes matching frames also declared as Images, while preserving their separate Image
+cards. It does not infer another animation from an entirely declared set of still images or extend an explicit sequence
+beyond its declared boundaries. The inferred animation has no sequence declaration; its individual frames retain their
+own loaded or supplementary status. GDA sync cleanup continues to group only undeclared files.
+
 The **Asset library** shows the newest asset report of the selected workspace, which its **Rescan** writes as `<app-data>/asset-reports/<workspace id>-<Unix timestamp>.json`, named like a GDA sync report. It is an inventory of the game without a comparison with the GDA folder, and takes about a second, since it only reads the descriptors and the files' sizes and image headers. It lists every file that the `*Data.json` descriptors, and the descriptors they `include`, (or `resource_paths`) declare, wherever it is, such as the shared files of `../common` and the views and images of an included `../common/features/taxation/RssData.json`, with the descriptor, line, entry type (`Image`, `ImageSequence`, `Font`, `AudioEvent`, `RawFile`…) and id of each entry that loads it, and the files of `game_path` with a compared extension that nothing declares. Only `game_path` is searched for such supplementary files: an included or shared folder's files that nothing declares are not listed. (The GDA sync report is unchanged: it leaves out a declared file outside `game_path` that has no GDA copy, and compares only the game's own views.) Each asset is **available** (declared, and the file exists), **missing** (declared, but the file does not exist), **invalid** (the declared path leads outside the resources folder), or **supplementary** (not declared). Image sequences follow the GDA sync: a sequence is one asset with its frames, it takes the first of invalid, missing and available that any of its files has, with a count such as `missing: source file does not exist (1 of 3 files)`, and supplementary numbered images are guessed to be sequences. A report holds `version`, the `workspace` settings it used, the parsed `descriptors`, its `folders`, a `summary` with the run's state and times and the counts of assets by status, type and library section (`sections`) and their total size, and the `assets`. The sidebar lists the library's sections: textures are split into **Images**, the single images (`image`), and **ImagesSeq**, the image sequences (`sequence`), declared or guessed; the other sections are the other types. The `folders` are where the assets are, the game folder first, each with its `path`, its `relative` path from the game folder, its `kind` and its number of `assets`: `game`, `shared` (a folder directly in the resources folder that holds other declared files, such as `../common` or another game's folder), and `outside` (the folder of a path outside the resources folder). Each asset's `folder` is the path of the one that holds it, so the files of an included feature, such as `../common/features/taxation/p/tax.dds`, are in `../common`. Above the assets, the library lists the folders on separate lines with their kinds and asset counts: clicking one shows only its assets, and the status counts count them, clicking it again shows every folder, and its open button opens it (`POST /api/rss-sync/open-folder` with `isFolder`).
 
 An asset's details show its type (its library section, and the format of its files) and, under **Loaded by**, the entries that load it. An asset that no descriptor declares, and whose files exist, has **Create** beside *No JSON descriptor*: it opens the **Create RssKey** dialog, which adds an entry declaring the asset to a `*Data.json` descriptor of the game folder. The asset's type gives the kinds of entries that can declare it, the usual one first: an image as an `Image` (in `images`), or the bitmap of a `Font`, an image sequence, declared or guessed, as an `ImageSequence` (`imagesSeq`), whose frames are written as one `{N-M}` range when that names them all, an audio file as an `AudioEvent` (`audioEvents`, with the file as its sample), a font as a `Font` (`fonts`), an RTF as an `Rtf` (`rtfs`, its `.rtf` file), a view as an `Element` (`elements`), a `.mov` file as a `Movie` (`movies`), and any single file as a `RawFile` (`rawFiles`), which has no key. The descriptor is the one dedicated to the list, such as `RssImagesData.json`, wherever it is in the game folder, or another of the game folder's descriptors whose list of that kind has entries; when several can hold it, the dialog lets you choose. The dialog has its fields on the left and the entry as it will be written on the right, where the part that the field being edited writes is highlighted. It asks for the RSS key (the entry's `id`) and the fields that the games' descriptors give each kind: `resolution`, `language`, `integration` and the `source` area of an `Image`; `frameTime`, `loopCount`, `loopTo`, `resolution` and `language` of an `ImageSequence`; `polyphonyGroup`, `loop`, `fadeIn` and `fadeOut` of an `AudioEvent`; `chars`, `size` and `resolution` of a `Font`; `integration` of an `Rtf`; `resolution` and `integration` of an `Element`; and `movieFormat` of a `Movie`. The game's own entries of the kind suggest the rest: a key with their usual prefix and case (such as `IMAGE_`, `ANIM_`, `SOUND_` and `FONT_`, or those when the game has none) and the asset's name, a number added when another entry has it; for each field, the values its entries have, most common first, and how many have it; and as each field's default, its most common value when most entries have it, except an `integration`, a `language` and a `loopTo`, which pick a variant or depend on the sequence. The form starts with the fields an entry needs and those with a default; **Add field** adds the kind's other fields, and an optional field can be removed again. A resolution and a language are chosen from a dropdown of those that the game's entries of every kind use (and a resolution in the asset's path), most common first, or typed with **Other…**. A key that another entry of the kind has is allowed, since the game picks between the entries of one key by resolution, language or integration, and the dialog says so. The entry goes after the last entry of the descriptor's list, laid out like the others (their indentation, line endings and key order), and the rest of the descriptor stays as it is; the descriptor it replaces is saved in your backups, the activity records the edit, and a new asset report is generated, whose details then show the entry (`GET /api/asset-report/declaration?asset=<id>` gives the dialog's options and `POST /api/asset-report/declaration` adds the entry). An asset that a descriptor declares now, or whose files are gone, is refused: rescan to update the report. The GDA sync report is not changed until the next GDA sync.
@@ -181,6 +188,10 @@ file copies, moves or reuse of identical files, every descriptor edit, and warni
 matching declarations, including audio samples and every sequence frame; `{N-M}` templates stay templates. An RTF
 moves with its whole folder so its `app:/` paths keep working. A target with different contents, split sequence,
 unsafe path or a file named by `resource_paths` blocks the operation.
+
+Moving a sequence updates its frame paths and every Image or other descriptor entry that points to one of those frames.
+For example, moving `Bell_{00000-00049}.dds` updates an Image pointing at `Bell_00000.dds` to the same destination;
+the Image id and the sequence's timing and loop settings stay the same.
 
 The move dialog browses the game's actual folders, including empty ones: the scrolling path breadcrumbs jump to any
 parent, and the compact **Open subfolder** dropdown goes one level deeper. **Browse destination folder** opens a native
@@ -215,6 +226,66 @@ assets or one folder. An empty target preserves the original subfolders when cop
 `POST /api/asset-report/rename-key/preview` and `/rename-key` take `{kind, key, newKey, excluded?: [referenceId]}`.
 Apply also requires the preview's `fingerprint`. Preview is read-only; all four endpoints use the usual session guard.
 
+### Image metadata and generation
+
+**Image studio** in the Asset library, or **Image metadata…** in an Image/ImageSeq's details, analyzes image assets
+with a local LM Studio vision model. The backend Python package `egt_gda_sync.images.metadata` adapts the analyzer,
+metadata format and stable-diffusion.cpp runner from the sibling `image-analyzer` project. It also decodes DDS
+(including BC7) to PNG for vision input. Width, height, transparency and the original file's SHA-256 come from the
+image, rather than the model. Supported inputs are DDS, PNG, JPEG, WebP, BMP, TGA and TIFF.
+
+Metadata is UTF-8 JSON beside the image: `bell.dds.json`. Its structured editor shows description, scene, objects,
+tags, OCR text and provenance, and edits **Output resolution**, **Model render resolution**, transparency and an
+optional **Generation prompt**. An empty custom prompt uses the description and scene. Render sizes are multiples
+of 32; generated PNGs are resized to the exact output size. **Save metadata** works without a model. Existing
+image-analyzer sidecars use the same schema. Saving refuses a stale revision instead of overwriting another edit.
+
+An ImageSeq has **one description and generation prompt for the entire animation**, with one JSON file in the game's
+`.asset-metadata/sequences/<asset-id>.imageseq.json`. Its metadata includes the ordered frame list, source rectangles,
+range paths, timing and loop settings. Each animation has its own metadata even when it shares DDS files with another
+animation or an Image. A separately declared Image still has its own image sidecar.
+
+**Analyze animation** submits one model request containing a chronological contact sheet of up to 12 representative
+frames, evenly covering the animation and including its first and last frame. Atlas frames are cropped to their
+declared source rectangles before analysis. The model is asked for one description of the subject, appearance, motion
+and changes over time; sampled frame indices are recorded. Long animations are sampled, so short events between
+samples may need manual description. Analysis creates no per-frame metadata files and never edits the descriptor.
+The editor shows this one animation entry, its representative frames, and shared description/prompt. Output sizes
+start with the first frame's dimensions. Generating from animation metadata creates one still PNG from its shared
+prompt; it does not synthesize an animated sequence. **Analyze batch** / **Generate batch** in the library studio
+submit one job per selected image or animation; repeated selections of the same asset are deduplicated.
+
+**New image metadata** creates a sidecar at an image path relative to the game folder, even when that image does not
+exist yet. Enter a prompt and sizes, then **Save & generate image**. The original image and metadata stay intact;
+the generated result is `bell.dds.json.generated.png`, viewable in the studio. **Keep original** also saves the model's
+unresized PNG as `bell.dds.json.generated.original.png`. New drafts can be reopened from the studio before an asset
+report includes their generated images. The per-submission **Replace existing…** checkbox controls regeneration;
+otherwise existing outputs are skipped. Failed or cancelled jobs preserve existing output.
+
+**Generation queue** is one persistent worker for the entire Library, across workspaces. Metadata analysis and
+image generation never run concurrently. Pending jobs with the current operation type and model settings are
+drained together before switching types, reducing vision/diffusion model switches. Jobs capture their workspace,
+input revisions and settings when submitted. Changing workspaces or settings does not redirect queued work; editing
+an input invalidates its queued result. Cancel stops a queued job immediately; an active vision request discards its
+result on return, and an active diffusion runner is terminated. Closing the popup keeps work running. On application
+restart, queued jobs resume and interrupted jobs are marked failed for explicit retry. Queue history is stored in
+`image-jobs.json` in the app-data folder, retaining the newest 1000 completed jobs.
+
+Configure **Local models** once: LM Studio base URL and vision model, and installed diffusion, text encoder, VAE and
+`sd-cli` paths. Defaults match `image-analyzer` (Qwen vision / Qwen-Image generation). Settings live in the app-data
+folder's `image-analyzer.json`; `IMAGE_ANALYZER_CONFIG` selects a different file, including the original project's
+configuration. Relative weights/executable paths resolve against that file. LM Studio authentication uses
+`LM_STUDIO_API_KEY`. No model or runner is downloaded automatically. The runner must support Qwen-Image-2.1;
+the matching VAE is required. Model unloading options are editable because they affect other local model clients.
+
+API: `GET /api/image-studio/catalog?asset=<optional id>`, `GET /metadata?file=<image path or sequence key>` and `POST /metadata`
+with `{file, metadata, revision}`; `GET /jobs`, `POST /jobs` with `{kind: "metadata" | "image", assets?: [id],
+files?: [image path], overwrite?: false}`, and `POST /jobs/cancel` with `{id}`; `GET /settings` and `POST /settings`
+with `{settings}`. These paths share the `/api/image-studio` prefix. `GET /generated?file=<image path>` serves the
+result PNG. Animation entries use the catalog's `sequence:<asset-id>` key in place of an image path;
+`GET /sequence-preview?file=<sequence key>` serves their contact sheet. Mutations use the usual session guard. Reads and writes stay inside workspace resources without links;
+new drafts stay inside the game folder.
+
 ### Report versions
 
 Each report file holds the `version` of the format that wrote it. The app reads every earlier version, but a feature appears only once a **Rescan** writes a report of the version that added it. After updating the app, rescan each workspace once on both pages.
@@ -239,10 +310,11 @@ GDA sync reports are at version 7. The Sync page's **Rescan** writes a new one.
 
 #### Assets report
 
-Asset reports are at version 8. The Asset library's **Rescan** writes a new one.
+Asset reports are at version 9. The Asset library's **Rescan** writes a new one.
 
 | Feature | Added in version | With an older report |
 | --- | --- | --- |
+| Inferred animations include matching frames also declared as standalone Images | 9 | Declared still frames are excluded from inferred animations; rescan to include them. |
 | Common and other-game folder kinds and scopes, with the summary's `otherGame` count | 8 | Other games are grouped as shared folders; rescan to enable **Copy all into this game…**. |
 | Movies as their own type, with frame dimensions, frame rate, duration and codec | 7 | Movies are other files. |
 | The summary's `sections`: the counts of the sidebar's **Images** and **ImagesSeq** | 6 | The sidebar counts image sequences as images and shows 0 for **ImagesSeq**, though both sections list the right assets; the library notes that the report is out of date. |

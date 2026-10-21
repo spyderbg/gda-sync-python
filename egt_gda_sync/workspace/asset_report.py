@@ -6,7 +6,8 @@ the game folder that no descriptor declares: other folders are not searched for 
 when it does not, and "invalid" when its path leads outside the resources folder; a file that nothing declares is
 "supplementary". Image sequences follow the GDA sync (rss_sync): a sequence is one asset with its frames, and takes the
 status of its frames, the first of invalid, missing and available that any of its files has; supplementary numbered
-images are guessed to be sequences. An RTF, a project of the RTF Tool, is one asset with every file of its folder, named
+images are guessed to be sequences, including matching frames also declared as standalone Images. Declared sequence
+ranges keep their exact boundaries and order. An RTF, a project of the RTF Tool, is one asset with every file of its folder, named
 by the folder: it takes the status of its .rtf file, and the files in its folder are not assets of their own unless a
 descriptor declares them. A declared .json file in a v folder is a view, in the game folder or any other. A movie, such as
 a .mov file that RssMoviesData.json declares, has the facts that OpenCV reads of it (egt_gda_sync.assets.movies).
@@ -40,7 +41,8 @@ from egt_gda_sync.assets.views import describe_view, is_view, view_root
 # list images and image sequences apart. Version 7 reports movies as their own type, with their frame size, frame rate,
 # frames, duration and codec, and the format of each Movie entry that declares one.
 # Version 8 distinguishes common assets from other games and counts the latter as otherGame.
-ASSET_REPORT_VERSION = 8
+# Version 9 includes standalone Image frames in inferred animations without losing their individual declarations.
+ASSET_REPORT_VERSION = 9
 CATEGORIES = ("available", "missing", "invalid", "supplementary")
 # The status a sequence takes from its frames: the first of these that any of its files has.
 SEQUENCE_PRECEDENCE = ("invalid", "missing", "available")
@@ -53,7 +55,7 @@ RTF_FILE_FACTS = ("resourcePath", "type", "size", "modifiedAt", "dimensions")
 
 def inventory(config: Config, facts: Facts) -> dict:
     """The parsed descriptors, the summary and the assets of the game, sorted by resource path."""
-    found = gather(config, required=False)
+    found = gather(config, required=False, include_declared_images=True)
     game_dir = found.game_dir
     common_dir = config.resources_dir / COMMON_DIR
     checked: dict[Path, dict] = {}
@@ -136,11 +138,11 @@ def inventory(config: Config, facts: Facts) -> dict:
         }
 
     def guessed_sequence_row(files: list[Path]) -> dict:
-        """Supplementary numbered images guessed to be a sequence; it has no id and plays with the guessed settings."""
+        """An undeclared animation, including any frames also declared as individual images."""
         first, last = NUMBERED_NAME.match(files[0].name), NUMBERED_NAME.match(files[-1].name)
         template = files[0].parent / f"{first[1]}{{{first[2]}-{last[2]}}}{first[3]}"
         display = os.path.relpath(template, game_dir)
-        entries = [file_entry(source, supplementary=True) for source in files]
+        entries = [file_entry(source, supplementary=source not in found.declared) for source in files]
         return {
             "id": row_id(f"{display}\0supplementary"), "category": "supplementary", "status": "supplementary",
             "resource": display, "resourcePath": str(template), **sequence_facts(entries), "scope": scope(files[0]), "requiredBy": [],

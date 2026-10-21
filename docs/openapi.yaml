@@ -237,6 +237,82 @@ components:
       - files
       title: GameTranslateBody
       description: TypeScript files of the browser game, by their paths in frontend/src/game.
+    ImageJobBody:
+      properties:
+        id:
+          type: string
+          pattern: ^[a-f0-9]{32}$
+          title: Id
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      title: ImageJobBody
+    ImageJobsBody:
+      properties:
+        kind:
+          type: string
+          enum:
+          - metadata
+          - image
+          title: Kind
+        assets:
+          items:
+            type: string
+            maxLength: 4096
+          type: array
+          maxItems: 10000
+          title: Assets
+          default: []
+        files:
+          items:
+            type: string
+            maxLength: 4096
+          type: array
+          maxItems: 10000
+          title: Files
+          default: []
+        overwrite:
+          type: boolean
+          title: Overwrite
+          default: false
+      additionalProperties: false
+      type: object
+      required:
+      - kind
+      title: ImageJobsBody
+    ImageSettingsBody:
+      properties:
+        settings:
+          additionalProperties: true
+          type: object
+          title: Settings
+      additionalProperties: false
+      type: object
+      required:
+      - settings
+      title: ImageSettingsBody
+    MetadataBody:
+      properties:
+        file:
+          type: string
+          maxLength: 4096
+          title: File
+        metadata:
+          additionalProperties: true
+          type: object
+          title: Metadata
+        revision:
+          type: string
+          maxLength: 64
+          title: Revision
+          default: ''
+      additionalProperties: false
+      type: object
+      required:
+      - file
+      - metadata
+      title: MetadataBody
     MoveBody:
       properties:
         assets:
@@ -1895,6 +1971,275 @@ paths:
           $ref: '#/components/responses/ServerError'
       tags:
       - Asset library
+
+  # ─── Image studio ───────────────────────────────────────────────────
+  /api/image-studio/catalog:
+    get:
+      summary: Metadata Catalog
+      operationId: metadata_catalog_api_image_studio_catalog_get
+      parameters:
+      - name: asset
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 4096
+          - type: 'null'
+          title: Asset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Metadata Catalog Api Image Studio Catalog Get
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Image studio
+  /api/image-studio/metadata:
+    get:
+      summary: Metadata Document
+      operationId: metadata_document_api_image_studio_metadata_get
+      parameters:
+      - name: file
+        in: query
+        required: true
+        schema:
+          type: string
+          maxLength: 4096
+          title: File
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Metadata Document Api Image Studio Metadata Get
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Image studio
+    post:
+      summary: Save Metadata
+      operationId: save_metadata_api_image_studio_metadata_post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MetadataBody'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Save Metadata Api Image Studio Metadata Post
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '413':
+          description: The request body is larger than 6272 KiB
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Image studio
+  /api/image-studio/jobs:
+    get:
+      summary: Image Jobs
+      operationId: image_jobs_api_image_studio_jobs_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Image Jobs Api Image Studio Jobs Get
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Image studio
+    post:
+      summary: Queue Image Jobs
+      operationId: queue_image_jobs_api_image_studio_jobs_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImageJobsBody'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Queue Image Jobs Api Image Studio Jobs Post
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '413':
+          $ref: '#/components/responses/ContentTooLarge'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Image studio
+  /api/image-studio/jobs/cancel:
+    post:
+      summary: Cancel Image Job
+      operationId: cancel_image_job_api_image_studio_jobs_cancel_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImageJobBody'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Cancel Image Job Api Image Studio Jobs Cancel Post
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '413':
+          $ref: '#/components/responses/ContentTooLarge'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Image studio
+  /api/image-studio/settings:
+    get:
+      summary: Image Settings
+      operationId: image_settings_api_image_studio_settings_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Image Settings Api Image Studio Settings Get
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Image studio
+    post:
+      summary: Save Image Settings
+      operationId: save_image_settings_api_image_studio_settings_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImageSettingsBody'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Save Image Settings Api Image Studio Settings Post
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '413':
+          $ref: '#/components/responses/ContentTooLarge'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Image studio
+  /api/image-studio/generated:
+    get:
+      summary: Generated Image
+      operationId: generated_image_api_image_studio_generated_get
+      parameters:
+      - name: file
+        in: query
+        required: true
+        schema:
+          type: string
+          maxLength: 4096
+          title: File
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Image studio
+  /api/image-studio/sequence-preview:
+    get:
+      summary: Metadata Sequence Preview
+      operationId: metadata_sequence_preview_api_image_studio_sequence_preview_get
+      parameters:
+      - name: file
+        in: query
+        required: true
+        schema:
+          type: string
+          maxLength: 4096
+          title: File
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Image studio
 
   # ─── Browser game ───────────────────────────────────────────────────
   /api/game/project:

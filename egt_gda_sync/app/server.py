@@ -26,6 +26,7 @@ from egt_gda_sync.assets.fonts import FONT_EXTENSIONS, facts_header
 from egt_gda_sync.assets.movies import is_movie
 from egt_gda_sync.game.project import MAX_EXPORT_BYTES, GameProject
 from egt_gda_sync.workspace.library import MAX_TEXT_BYTES, Library
+from egt_gda_sync.images.metadata.service import MAX_METADATA
 from egt_gda_sync.app.lifetime import PAGE_CLOSE_GRACE_SECONDS, PageLifetime
 from egt_gda_sync.app.ports import dev_ui_url
 
@@ -35,7 +36,8 @@ BODY_LIMIT = 128 * 1024
 # as at most six bytes (\u001f); the rest of the body fits in BODY_LIMIT.
 TEXT_BODY_LIMIT = 6 * MAX_TEXT_BYTES + BODY_LIMIT
 # A game export's files come whole, each byte of which JSON escapes as at most six bytes.
-BODY_LIMITS = {"/api/asset-report/text": TEXT_BODY_LIMIT, "/api/game/export": 6 * MAX_EXPORT_BYTES + BODY_LIMIT}
+BODY_LIMITS = {"/api/asset-report/text": TEXT_BODY_LIMIT, "/api/game/export": 6 * MAX_EXPORT_BYTES + BODY_LIMIT,
+               '/api/image-studio/metadata': 6 * MAX_METADATA + BODY_LIMIT}
 LOCAL_HOSTS = {"127.0.0.1", "localhost", "[::1]"}
 APP_CSP = (
     "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self'; "
@@ -95,6 +97,26 @@ class OpenFolderBody(_Body):
 
 class ResourceFileBody(_Body):
     file: Text4K
+
+
+class MetadataBody(ResourceFileBody):
+    metadata: dict
+    revision: Annotated[str, StringConstraints(max_length=64)] = ''
+
+
+class ImageJobsBody(_Body):
+    kind: Literal['metadata', 'image']
+    assets: Annotated[list[Text4K], Field(max_length=10000)] = []
+    files: Annotated[list[Text4K], Field(max_length=10000)] = []
+    overwrite: bool = False
+
+
+class ImageSettingsBody(_Body):
+    settings: dict
+
+
+class ImageJobBody(_Body):
+    id: Annotated[str, StringConstraints(pattern=r'^[a-f0-9]{32}$')]
 
 
 class ViewPosition(_Body):
@@ -306,6 +328,7 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI):
+        library.image_metadata.start()
         yield
         lifetime.dispose()
         # An HTTP request can disconnect while its file operation is still running.
@@ -509,6 +532,46 @@ def create_app(
     @app.get("/api/asset-report/move/folders")
     def move_folders(path: Annotated[str, Query(max_length=4096)] = '') -> dict:
         return library.move_folders(path)
+
+    @app.get('/api/image-studio/catalog')
+    def metadata_catalog(asset: Annotated[str | None, Query(max_length=4096)] = None) -> dict:
+        return library.metadata_catalog(asset)
+
+    @app.get('/api/image-studio/metadata')
+    def metadata_document(file: Annotated[str, Query(max_length=4096)]) -> dict:
+        return library.metadata_document(file)
+
+    @app.post('/api/image-studio/metadata')
+    def save_metadata(body: MetadataBody) -> dict:
+        return library.save_metadata(body.file, body.metadata, body.revision)
+
+    @app.get('/api/image-studio/jobs')
+    def image_jobs() -> dict:
+        return library.image_metadata.status(library._active_workspace()[0])
+
+    @app.post('/api/image-studio/jobs')
+    def queue_image_jobs(body: ImageJobsBody) -> dict:
+        return library.queue_image_jobs(body.kind, body.assets, body.files, body.overwrite)
+
+    @app.post('/api/image-studio/jobs/cancel')
+    def cancel_image_job(body: ImageJobBody) -> dict:
+        return library.image_metadata.cancel(library._active_workspace()[0], body.id)
+
+    @app.get('/api/image-studio/settings')
+    def image_settings() -> dict:
+        return library.image_metadata.settings()
+
+    @app.post('/api/image-studio/settings')
+    def save_image_settings(body: ImageSettingsBody) -> dict:
+        return library.image_metadata.save_settings(body.settings)
+
+    @app.get('/api/image-studio/generated')
+    def generated_image(file: Annotated[str, Query(max_length=4096)]) -> Response:
+        return FileResponse(library.generated_image(file), media_type='image/png', headers={'Cache-Control': 'no-store'})
+
+    @app.get('/api/image-studio/sequence-preview')
+    def metadata_sequence_preview(file: Annotated[str, Query(max_length=4096)]) -> Response:
+        return Response(library.metadata_sequence_preview(file), media_type='image/png', headers={'Cache-Control': 'no-store'})
 
     @app.post("/api/asset-report/move/browse")
     def browse_move_folder() -> dict:

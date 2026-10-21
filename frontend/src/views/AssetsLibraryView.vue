@@ -9,6 +9,7 @@ import ButtonTooltip from '../components/ButtonTooltip.vue';
 import ReportThumbnail from '../components/ReportThumbnail.vue';
 import MoveAssets from '../components/MoveAssets.vue';
 import WorkspaceHeader from '../components/WorkspaceHeader.vue';
+import ImageStudio from '../components/ImageStudio.vue';
 import { useAssetReport } from '../composables/useAssetReport';
 import { assetBadges, assetMatches, assetSection, baseName, declarationLabel, number, plural, size, splitPath, stackedAlpha } from '../format';
 import type { AssetCategory, AssetFolder, ReportAsset } from '../types';
@@ -50,7 +51,7 @@ const FILTERS: { key: Filter; label: string; hint: string }[] = [
 ];
 const PAGE_SIZE = 200;
 // The asset report version this release writes, ASSET_REPORT_VERSION in egt_gda_sync/asset_report.py.
-const REPORT_VERSION = 8;
+const REPORT_VERSION = 9;
 
 const { report, loadError } = useAssetReport();
 const filter = ref<Filter>('all');
@@ -58,6 +59,7 @@ const filter = ref<Filter>('all');
 const folder = ref<string | null>(null);
 const movingFolder = ref<AssetFolder | null>(null);
 const shown = ref(PAGE_SIZE);
+const studioOpen = ref(false);
 const state = computed(() => (!assetReport.value?.reportPath ? 'none' : loadError.value ? 'error' : report.value ? 'ready' : 'loading'));
 const revision = computed(() => report.value?.summary.finishedAt ?? '');
 const outdated = computed(() => !!assetReport.value?.reportPath && (assetReport.value.version ?? 1) < REPORT_VERSION);
@@ -66,6 +68,7 @@ const outdated = computed(() => !!assetReport.value?.reportPath && (assetReport.
 // ImagesSeq before version 6, and movies before version 7.
 const outdatedNote = computed(() => {
   const version = assetReport.value?.version ?? 1;
+  if (version >= 8) return 'Rescan to include frames also declared as Images in inferred animations.';
   if (version >= 7) return 'Rescan to distinguish common assets from files borrowed from another game, and enable copying a folder into this game.';
   if (version >= 6) return 'This report was written by an earlier version, which listed movies as other files and did not read them. Rescan to update it.';
   if (version >= 5) return 'This report was written by an earlier version, which did not count images and image sequences apart, so the sidebar counts image sequences as images. Rescan to update it.';
@@ -133,6 +136,7 @@ const folderName = computed(() => folders.value.find(item => item.path === folde
 
 <template>
   <WorkspaceHeader v-model:filter="filter" v-model:folder="folder" :folders="folders" @move="movingFolder = $event" />
+  <div class="studio-launch"><button type="button" class="btn btn-outline-primary" @click="studioOpen = true"><i aria-hidden="true" class="mdi mdi-image-edit-outline" /> Image studio</button><span class="text-muted">Analyze image assets, edit metadata, or create a new image.</span></div>
 
   <div v-if="state !== 'ready'" class="card empty-state grid-margin">
     <div class="card-body">
@@ -240,10 +244,12 @@ const folderName = computed(() => folders.value.find(item => item.path === folde
   <RemoveAsset v-if="removing" :row="removing" @close="removing = null" />
   <AssetDetails v-if="detailsRow" :row="detailsRow" :revision="revision" @close="ui.inspecting = null" />
   <ViewsDetails v-if="viewsOpen && stackRows.length > 1" :rows="stackRows" :revision="revision" @close="viewsOpen = false" />
+  <ImageStudio v-if="studioOpen" :assets="rows" @close="studioOpen = false" />
 </template>
 
 <style scoped>
 .library-controls { margin-bottom: 22px; }
+.studio-launch { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; font-size: 12px; }
 .asset-search { flex: 1; min-width: 220px; max-width: 340px; margin-left: auto; }
 @media (max-width: 767px) { .asset-search { flex-basis: 100%; max-width: none; } }
 .library-filter-toolbar { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; padding: 14px 16px; border: 1px solid #e0e5e9; border-radius: 8px; background: #fff; }

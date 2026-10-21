@@ -126,6 +126,52 @@ def test_declaring_a_guessed_sequence_writes_its_frames_as_a_range_and_follows_t
     assert declared["sequence"]["id"] == "LOOP" and declared["category"] == "available"
 
 
+def test_declaring_an_inferred_animation_keeps_standalone_frame_images(client):
+    descriptor = client.game / 'RssImagesData.json'
+    images = json.loads(descriptor.read_text())
+    images['images'].append({'id': 'LOOP_FIRST', 'path': 'loop00.png'})
+    descriptor.write_text(json.dumps(images))
+    assert client.post('/api/asset-report').status_code == 200
+    row = asset(client, 'loop{00-04}.png')
+    result = client.post('/api/asset-report/declaration', json={
+        'asset': row['id'], 'kind': 'ImageSequence', 'descriptor': 'RssImagesSeqData.json',
+        'id': 'LOOP', 'frameTime': 60, 'loopCount': 0, 'loopTo': 1})
+    assert result.status_code == 200, result.text
+    assert json.loads(descriptor.read_text()) == images
+    declared = next(item for item in client.get('/api/asset-report').json()['assets'] if item['id'] == result.json()['asset'])
+    assert len(declared['sequence']['frames']) == 5 and declared['sequence']['loopTo'] == 1
+    assert asset(client, 'loop00.png')['requiredBy'][0]['id'] == 'LOOP_FIRST'
+
+
+def test_declaring_an_inferred_animation_refuses_a_sequence_added_since_the_report(client):
+    row = asset(client, 'loop{00-04}.png')
+    descriptor = client.game / 'RssImagesSeqData.json'
+    sequences = json.loads(descriptor.read_text())
+    sequences['imagesSeq'].append({'id': 'ADDED_LATER', 'frameTime': 60, 'loopCount': 0,
+                                 'frames': [{'path': 'loop{00-04}.png'}]})
+    descriptor.write_text(json.dumps(sequences))
+    response = client.post('/api/asset-report/declaration', json={
+        'asset': row['id'], 'kind': 'ImageSequence', 'descriptor': descriptor.name,
+        'id': 'LOOP', 'frameTime': 60, 'loopCount': 0})
+    assert response.status_code == 409
+    assert json.loads(descriptor.read_text()) == sequences
+
+
+def test_removing_an_inferred_animation_keeps_its_declared_still_frame(client):
+    descriptor = client.game / 'RssImagesData.json'
+    images = json.loads(descriptor.read_text())
+    images['images'].append({'id': 'LOOP_FIRST', 'path': 'loop00.png'})
+    descriptor.write_text(json.dumps(images))
+    client.post('/api/asset-report')
+    row = asset(client, 'loop{00-04}.png')
+    response = client.post('/api/asset-report/remove', json={'asset': row['id']})
+    assert response.status_code == 200, response.text
+    assert response.json()['kept'] == ['loop00.png'] and response.json()['files'] == 4
+    assert (client.game / 'loop00.png').is_file()
+    assert all(not (client.game / f'loop{index:02}.png').exists() for index in range(1, 5))
+    assert json.loads(descriptor.read_text()) == images
+
+
 def test_a_declaration_is_refused_for_another_kind_or_descriptor_or_a_missing_value(client):
     row = asset(client, "song.wav")
     post = lambda **body: client.post("/api/asset-report/declaration", json={"asset": row["id"], **body})
