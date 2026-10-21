@@ -3,6 +3,7 @@
 import { Interface } from '@game/engine/GameCore/RuntimeAccess';
 import type { RoundType } from '../Math/Common/Common.data';
 import type { ReelRoundRules } from '../Math/Reel/ReelRoundRules';
+import type { WheelRoundRules } from '../Math/Wheel/WheelRoundRules';
 
 export interface IMathRules {
   GetAvailableRoundTypes(): RoundType[];
@@ -11,6 +12,7 @@ export interface IMathRules {
   GetReelRoundRules(roundType: RoundType): ReelRoundRules;
   HasHoldAndSpinRules(roundType: RoundType): boolean;
   HasWheelRoundRules(roundType: RoundType): boolean;
+  GetWheelRoundRules(roundType: RoundType): WheelRoundRules;
 }
 
 export const IMathRules = Interface<IMathRules>('IMathRules');

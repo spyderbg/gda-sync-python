@@ -4,10 +4,12 @@ import { Event } from '@game/engine/Core/Event';
 import { Interface } from '@game/engine/GameCore/RuntimeAccess';
 
 export enum TransactionType {
+  Undefined,
+  Bet,
+  Win,
   CashIn,
-  CashOut,
-  MatchStart,
-  MatchEnd,
+  Cashout,
+  BetCanceled,
 }
 
 export interface TransactionInfo {

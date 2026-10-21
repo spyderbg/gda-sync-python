@@ -4,6 +4,7 @@
 
 import { Node, type StateNode } from '@game/engine/Fsm/Fsm';
 import { GameFsm } from '@game/engine/Game/Fsm/GameFsm';
+import { EgtALogCategoryClass } from '@game/engine/GameCore/Log/LogCategory';
 import { BetManager } from '@game/alpha_family/libs/AlphaFamilyStatesLibrary/BetManager';
 import { GameManager } from '@game/alpha_family/libs/AlphaFamilyStatesLibrary/GameManager';
 import { IdleState } from '@game/alpha_family/libs/AlphaFamilyStatesLibrary/Idle/Idle';
@@ -64,3 +65,5 @@ export class BurningCrownTetraSpins10Fsm extends GameFsm {
     ]);
   }
 }
+
+EgtALogCategoryClass(BurningCrownTetraSpins10Fsm, 'BurningCrownTetraSpins10Fsm');

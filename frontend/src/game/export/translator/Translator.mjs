@@ -30,14 +30,20 @@ const FUNCTIONS = {
   // the C++ options structs have their defaults in their fields
   WithDefaults: { cpp: ([options]) => options, include: null },
   String: { cpp: ([value]) => `std::to_string(${value})`, include: 'string' },
+  // Egt/GameCore/Log/LogCategory.h's macros (engine/GameCore/Log/LogCategory.ts): the header of a class with a log
+  // category includes it
+  ...Object.fromEntries(['EgtATrace', 'EgtADebug', 'EgtAInfo', 'EgtAWarning', 'EgtAError'].map(name => [name, { cpp: args => `${name}(${args.join(', ')})`, include: null }])),
 };
+/** Egt/GameCore/Common/Defensive.h's conditions (engine/GameCore/Common/Defensive.ts): an if without braces of a return,
+ * continue or break with one of them is the macro. */
+const DEFENSIVE = { Unless: { prefix: '', suffix: 'Unless' }, AssertIf: { prefix: 'Assert', suffix: 'If' }, AssertUnless: { prefix: 'Assert', suffix: 'Unless' } };
 
 /** Methods of the browser game's types whose C++ is an operator or a copy. */
 const OPERATOR_METHODS = {
   Currencies: {
     AddAll: (base, [other]) => `${base} += ${other}`, SubtractAll: (base, [other]) => `${base} -= ${other}`,
     Plus: (base, [other]) => `(${base} + ${other})`, Minus: (base, [other]) => `(${base} - ${other})`, Clone: base => `Currencies(${base})`,
-    empty: base => `${base}.data.empty()`,
+    empty: base => `${base}.empty()`,
   },
   PayoutSummary: { Clone: base => `PayoutSummary(${base})`, AddSummary: (base, [other]) => `${base} += ${other}` },
   // the browser's Stopwatch measures in ms, C++'s in Clock::duration
@@ -127,6 +133,12 @@ export class Translator {
     this.pointerFields = new Set();
     this.fieldTypes = new Map();
     this.importedFunctions = new Map();
+    this.logCategory = null;
+    // the module's string constants, ids: C++ string_views, which a string parameter takes as std::string(id)
+    this.stringViews = new Set(sourceFile.statements.filter(statement => ts.isVariableStatement(statement))
+      .flatMap(statement => statement.declarationList.declarations)
+      .filter(item => ts.isIdentifier(item.name) && item.initializer && (ts.isStringLiteral(item.initializer) || ts.isNoSubstitutionTemplateLiteral(item.initializer)))
+      .map(item => this.checker.getSymbolAtLocation(item.name)));
 
     const base = declaration.heritageClauses.find(clause => clause.token === ts.SyntaxKind.ExtendsKeyword)?.types[0].expression.getText();
     const isAbstract = declaration.modifiers?.some(modifier => modifier.kind === ts.SyntaxKind.AbstractKeyword);
@@ -135,7 +147,9 @@ export class Translator {
     for (const member of declaration.members) {
       const isStatic = member.modifiers?.some(modifier => modifier.kind === ts.SyntaxKind.StaticKeyword);
       if (isStatic && ts.isPropertyDeclaration(member) && member.name.text in statics && ts.isArrayLiteralExpression(member.initializer)) {
-        statics[member.name.text] = member.initializer.elements.map(element => element.getText());
+        // ...Base.Interfaces: the base state's, C++'s Base::Interfaces
+        statics[member.name.text] = member.initializer.elements.map(element => (ts.isSpreadElement(element) && ts.isPropertyAccessExpression(element.expression)
+          ? `${element.expression.expression.getText()}::${element.expression.name.text}` : element.getText()));
         continue;
       }
       members.push(member);
@@ -152,6 +166,7 @@ export class Translator {
     const inherited = this.InheritedInterfaces(declaration);
     this.inheritedEvents = new Set();
     for (const name of statics.Interfaces) {
+      if (name.includes('::')) continue;
       const events = /^(\w+)\.Events$/.exec(name);
       if (events) {
         // the interface's events, which the class posts: its C++ derives from them
@@ -166,7 +181,7 @@ export class Translator {
     }
     statics.Interfaces = statics.Interfaces.map(name => name.replace('.Events', '::Events'));
     // the classes whose nested names a signature's bare names are: the class's and its interfaces'
-    this.ownerScopes = [this.className, ...statics.Interfaces.map(name => name.replace('::Events', '')), ...this.index.Class(this.className)?.bases ?? [],
+    this.ownerScopes = [this.className, ...statics.Interfaces.filter(name => !name.endsWith('::Interfaces')).map(name => name.replace('::Events', '')), ...this.index.Class(this.className)?.bases ?? [],
       ...(view?.scopes ?? [])];
     if (base !== 'State') for (const [method, signature] of this.index.Methods(base)) if (signature.isVirtual && !interfaceMethods.has(method)) interfaceMethods.set(method, signature);
     for (const data of [...statics.Nvrams, ...statics.Statics]) this.UseHeader(data, true);
@@ -239,11 +254,13 @@ export class Translator {
       }
     }
     if (view) {
-      // an interface's methods the TypeScript class inherits from its TypeScript base: the C++ base's, which C++ overrides
+      // an interface's methods the TypeScript class inherits from its TypeScript base: the C++ base's, which C++ overrides,
+      // unless the base is the class template of that interface (ButtonView<IBetDownSwButtonView>), which implements them
       const declared = new Set(members.filter(member => member.name).map(member => member.name.getText()));
       const baseMethods = this.index.Methods(this.baseCpp);
+      const templateMethods = view.templateArg ? this.index.Methods(view.templateArg) : new Map();
       for (const [method, signature] of view.methods) {
-        if (declared.has(method) || !signature.isPure) continue;
+        if (declared.has(method) || !signature.isPure || templateMethods.has(method)) continue;
         const own = baseMethods.get(method);
         if (!own || own.isPure) continue;
         const list = cppParams(signature.params).map((param, i) => ({ type: this.QualifyCppType(param.type), name: param.name ?? `arg${i}` }));
@@ -293,14 +310,24 @@ export class Translator {
     const list = names => names.join(', ');
     const head = [];
     if (statics.Interfaces.length) head.push(`using Interfaces = Fsm::List<${list(statics.Interfaces)}>;`);
-    if (statics.Nvrams.length) head.push(`using Nvrams = Fsm::List<${list(statics.Nvrams)}>;`);
-    if (statics.Statics.length) head.push(`using Statics = Fsm::List<${list(statics.Statics)}>;`);
+    // a data class an interface names (IBetManager's using Nvrams = BetManagerNvrams;): by that name, as C++ does
+    const named = (kind, names) => names.map(name => (this.index.dataAliases.get(name)?.endsWith(`::${kind}`) ? this.index.dataAliases.get(name) : name));
+    if (statics.Nvrams.length) head.push(`using Nvrams = Fsm::List<${list(named('Nvrams', statics.Nvrams))}>;`);
+    if (statics.Statics.length) head.push(`using Statics = Fsm::List<${list(named('Statics', statics.Statics))}>;`);
     const section = (name, lines) => (lines.length ? `\n${I}${name}:\n${lines.map(line => `${I}${I}${line}`).join('\n')}\n` : '');
     // the module's functions: the .cpp's own, in an anonymous namespace
     const functions = [];
     for (const statement of sourceFile.statements) {
+      // EgtALogCategoryClass(Class, 'Name'); after the class: its log category
+      if (ts.isExpressionStatement(statement) && ts.isCallExpression(statement.expression) && ts.isIdentifier(statement.expression.expression)
+        && statement.expression.expression.text === 'EgtALogCategoryClass') {
+        const [type, name] = statement.expression.arguments;
+        if (type?.getText() === this.className && name && ts.isStringLiteral(name)) this.logCategory = name.text;
+        continue;
+      }
       if (ts.isVariableStatement(statement)) {
         try {
+          this.Leading(statement, `${I}${I}`, functions, !functions.length);
           functions.push(...statement.declarationList.declarations.map(item => this.ModuleConstant(item)));
         } catch (error) {
           if (!(error instanceof TranslationError)) throw error;
@@ -318,31 +345,28 @@ export class Translator {
     }
     for (const translated of this.importedFunctions.values()) if (translated) functions.unshift(translated);
     if (this.errors.length) throw new TranslationError(this.errors.join('\n'));
-    const tsPath = this.TsPath(sourceFile);
     const header = `#pragma once
-
-// Translated by the browser game from frontend/src/game/${tsPath}.
 
 ${[...this.headerIncludes].filter(path => path !== this.index.Include(this.className)).sort().map(path => `#include <${path}>`).join('\n')}
 
 namespace Egt::Game::AlphaFamily
 {
-    class ${this.className}${isAbstract ? '' : ' final'}
+    class ${this.className}${isAbstract || this.kind !== 'state' ? '' : ' final'}
         : ${bases.map((item, i) => `${i ? '        , ' : ''}public ${item}`).join('\n')}
     {
-    public:
+${this.logCategory ? `${I}${I}EgtALogCategoryClassDeclaration();\n\n` : ''}    public:
 ${head.map(line => `${I}${I}${line}`).join('\n')}${head.length ? '\n' : ''}${section('public', declarations.public).replace(/^\n {4}public:\n/, '')}${section('protected', declarations.protected)}${section('private', declarations.private)}    };
 }
 `.replace(/\n{3,}/g, '\n\n');
+    if (this.logCategory) this.headerIncludes.add('Egt/GameCore/Log/LogCategory.h');
     for (const include of this.headerIncludes) this.includes.delete(include);
-    const source = `// Translated by the browser game from frontend/src/game/${tsPath}.
-#include "${this.FileName(sourceFile)}.h"
+    const source = `#include "${this.FileName(sourceFile)}.h"
 
 ${[...this.includes].sort().map(path => `#include <${path}>`).join('\n')}
 
 namespace Egt::Game::AlphaFamily
 {
-${this.kind === 'state' ? `${I}using namespace States;\n${I}using Reaction = Fsm::State::Reaction;\n` : ''}${functions.length ? `\n${I}namespace\n${I}{\n${functions.join('\n')}\n${I}}\n` : ''}
+${functions.length ? `${I}namespace\n${I}{\n${functions.join('\n')}\n${I}}\n\n` : ''}${this.kind === 'state' ? `${I}using namespace States;\n${I}using Reaction = Fsm::State::Reaction;\n` : ''}${this.logCategory ? `\n${I}EgtALogCategoryClass(${this.className}, "${this.logCategory}");\n` : ''}
 ${[...getterDefinitions, ...definitions].join('\n\n')}
 }
 `.replace(/\n{3,}/g, '\n\n');
@@ -362,7 +386,7 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
       if (!base || !ts.isClassDeclaration(base)) break;
       for (const member of base.members) {
         if (ts.isPropertyDeclaration(member) && member.name.getText() === 'Interfaces' && member.initializer && ts.isArrayLiteralExpression(member.initializer)) {
-          for (const element of member.initializer.elements) names.add(element.getText());
+          for (const element of member.initializer.elements) if (!ts.isSpreadElement(element)) names.add(element.getText());
         }
       }
       current = base;
@@ -761,8 +785,8 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
       params = [];
       isConst = !!this.forceConst;
     } else if (!signature && this.ownMethods.has(name) && !this.handlers.has(name) && !this.pointerMethods.has(name)
-      && cppParams(this.ownMethods.get(name).params).length === member.parameters.length && this.OwnParamsMatch(this.ownMethods.get(name), member)) {
-      const own = this.ownMethods.get(name);
+      && cppParams(this.OwnOverload(name, member).params).length === member.parameters.length && this.OwnParamsMatch(this.OwnOverload(name, member), member)) {
+      const own = this.OwnOverload(name, member);
       ret = own.ret === 'Fsm::Reaction' ? 'Reaction' : this.QualifyCppType(own.ret);
       for (const id of `${own.ret} ${own.params}`.match(/[A-Za-z_]\w*/g) ?? []) if (/^[A-Z]/.test(id) && this.index.HasTopLevel(id)) this.UseHeader(id, true);
       params = cppParams(own.params).map(param => ({ ...param, type: this.QualifyCppType(param.type) })).map((param, i) => {
@@ -791,6 +815,8 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
     } else if (this.handlers.has(name)) {
       ret = 'Reaction';
       handlerAccess = 'private';
+      // a handler the C++ declares const (it requests a state change action): const
+      isConst = this.ownMethods.get(name)?.overloads?.some(item => item.isConst && cppParams(item.params).length === member.parameters.length) ?? false;
       const types = cppParams(this.handlers.get(name)).map(param => this.QualifyCppType(param.type));
       for (const type of types) for (const id of type.match(/[A-Za-z_]\w*/g) ?? []) if (/^[A-Z]/.test(id) && this.index.HasTopLevel(id)) this.UseHeader(id, true);
       params = types.map((type, i) => {
@@ -829,6 +855,10 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
         this.pointers.add(this.checker.getSymbolAtLocation(param.name));
       }
     }
+    // a parameter named _x is C++'s [[maybe_unused]] x
+    for (const param of member.parameters) {
+      if (ts.isIdentifier(param.name) && /^_\w/.test(param.name.text)) this.renames.set(this.checker.getSymbolAtLocation(param.name), param.name.text.slice(1));
+    }
     const body = this.Block(member.body, 2);
     this.inConstMethod = false;
     const definedRet = this.localEnums?.has(ret) || this.localStructs?.has(ret) ? `${this.className}::${ret}` : ret;
@@ -838,6 +868,13 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
 
   /** Whether a C++ method's parameters are the TypeScript method's (a translated class keeps the C++ declarations that
    * say the same as its TypeScript). */
+  /** The C++ class's own declaration of a method: of as many parameters, the const one where it has both. */
+  OwnOverload(name, member) {
+    const own = this.ownMethods.get(name);
+    const overloads = (own.overloads ?? [own]).filter(item => cppParams(item.params).length === member.parameters.length);
+    return overloads.find(item => item.isConst) ?? overloads[0] ?? own;
+  }
+
   OwnParamsMatch(own, member) {
     const list = cppParams(own.params);
     // a reference returned: only of what outlives the call (no literal, no temporary)
@@ -877,17 +914,22 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
 
   /** Whether a call returns a C++ reference (GetReelRoundRules returns const ReelRoundRules&). */
   ReturnsReference(node) {
-    if (!ts.isCallExpression(node) || !ts.isPropertyAccessExpression(node.expression)) return false;
+    return this.ReferenceReturn(node) !== null;
+  }
+
+  /** The C++ return type of a call that returns a reference, or null. */
+  ReferenceReturn(node) {
+    if (!ts.isCallExpression(node) || !ts.isPropertyAccessExpression(node.expression)) return null;
     const owner = node.expression.expression;
     const ownerName = owner.kind === ts.SyntaxKind.ThisKeyword ? this.className : this.checker.getNonNullableType(this.checker.getTypeAtLocation(owner)).symbol?.name;
     if (owner.kind !== ts.SyntaxKind.ThisKeyword && ts.isCallExpression(owner) && ts.isPropertyAccessExpression(owner.expression) && REFERENCE_METHODS.has(owner.expression.name.text)) {
       const token = owner.arguments[0];
       const tokenName = token && ts.isIdentifier(token) ? this.OriginalName(token) : null;
       const ret = tokenName ? this.index.Methods(tokenName).get(node.expression.name.text)?.ret : null;
-      return /&\s*$/.test(ret ?? '');
+      return /&\s*$/.test(ret ?? '') ? ret : null;
     }
     const ret = ownerName ? this.index.Methods(ownerName).get(node.expression.name.text)?.ret : null;
-    return /&\s*$/.test(ret ?? '');
+    return /&\s*$/.test(ret ?? '') ? ret : null;
   }
 
   /** A method of a union parameter that starts with `if (p instanceof A) { ...; return; }`: the C++ overloads of it, one
@@ -942,6 +984,20 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
 
   /** A function of the module, for the .cpp's anonymous namespace. */
   Function(declaration) {
+    // a module function is in the .cpp: the headers of its types are the .cpp's
+    const headerIncludes = new Set(this.headerIncludes);
+    try {
+      return this.ModuleFunction(declaration);
+    } finally {
+      for (const include of this.headerIncludes) {
+        if (headerIncludes.has(include)) continue;
+        this.headerIncludes.delete(include);
+        this.includes.add(include);
+      }
+    }
+  }
+
+  ModuleFunction(declaration) {
     const signature = this.checker.getSignatureFromDeclaration(declaration);
     const ret = (declaration.type && this.CppTypeNode(declaration.type)) || this.CppType(this.checker.getReturnTypeOfSignature(signature), declaration);
     const params = declaration.parameters.map(param => `${this.DeclaredType(param, true)} ${param.name.getText()}`);
@@ -957,7 +1013,10 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
     if (!ts.isIdentifier(declaration.name) || !declaration.initializer) this.Fail(declaration, 'a module variable');
     const name = declaration.name.text;
     const init = declaration.initializer;
-    if (ts.isStringLiteral(init) || ts.isNoSubstitutionTemplateLiteral(init)) return `${I}${I}[[maybe_unused]] const std::string ${name} = ${JSON.stringify(init.text)};`;
+    // a string: an id, as the C++ names them
+    if (ts.isStringLiteral(init) || ts.isNoSubstitutionTemplateLiteral(init)) {
+      return `${I}${I}[[maybe_unused]] constexpr std::string_view ${name} = ${JSON.stringify(init.text)};`;
+    }
     if (ts.isArrayLiteralExpression(init) && init.elements.every(item => ts.isStringLiteral(item) || ts.isIdentifier(item))
       && init.elements.length && this.checker.getTypeAtLocation(init.elements[0]).flags & ts.TypeFlags.StringLike
       && !(this.checker.getTypeAtLocation(init.elements[0]).flags & ts.TypeFlags.EnumLike)) {
@@ -1168,6 +1227,18 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
       return element ? `std::vector<${element}>` : null;
     }
     if (ts.isTypeOperatorNode(node) && node.operator === ts.SyntaxKind.ReadonlyKeyword) return this.CppTypeNode(node.type);
+    // ConstPointer<T> (engine/GameCore/Common/Types.ts): C++'s const T*
+    if (ts.isTypeReferenceNode(node) && node.typeName.getText() === 'ConstPointer' && node.typeArguments?.length === 1) {
+      const inner = this.CppTypeNode(node.typeArguments[0]);
+      return inner ? `const ${inner}*` : null;
+    }
+    // AnyData (engine/GameCore/Common/Types.ts): Egt's
+    if (ts.isTypeReferenceNode(node) && node.typeName.getText() === 'AnyData') return 'AnyData';
+    // the runtime a function outside a state is passed: GameCore's RuntimeAccess
+    if (ts.isTypeReferenceNode(node) && node.typeName.getText() === 'Runtime') {
+      this.UseHeader('RuntimeAccess', true);
+      return '::Egt::GameCore::RuntimeAccess';
+    }
     if (ts.isParenthesizedTypeNode(node)) return this.CppTypeNode(node.type);
     if (ts.isIndexedAccessTypeNode(node)) return this.CppType(this.checker.getTypeFromTypeNode(node), node);
     if (ts.isTupleTypeNode(node)) {
@@ -1304,11 +1375,50 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
 
   // Statements --------------------------------------------------------------------------------------------------------
 
+  /** What the TypeScript has before a statement or member, as C++ keeps it: a blank line, the comments on their own
+   * lines, and a comment that ends the line before (which goes on the previous C++ line). */
+  Leading(node, pad, lines, isFirst) {
+    const text = node.getSourceFile().text;
+    const start = node.getFullStart();
+    const comments = ts.getLeadingCommentRanges(text, start) ?? [];
+    let last = start;
+    let blank = false;
+    for (const comment of comments) {
+      const before = text.slice(last, comment.pos);
+      const comment_ = text.slice(comment.pos, comment.end);
+      if (!before.includes('\n') && lines.length && last === start) {
+        lines[lines.length - 1] += ` ${comment_}`;
+      } else {
+        if (/\n[ \t]*\n/.test(before) && !isFirst) blank = true;
+        if (blank && lines.length) lines.push('');
+        blank = false;
+        lines.push(...comment_.split('\n').map((line, index) => (index ? line.replace(/^\s*/, `${pad} `) : `${pad}${line}`)));
+        isFirst = false;
+      }
+      last = comment.end;
+    }
+    if (/\n[ \t]*\n/.test(text.slice(last, node.getStart())) && !isFirst && lines.length) lines.push('');
+  }
+
   Block(block, depth) {
     const pad = I.repeat(depth - 1);
     const lines = [];
     const narrowings = [];
-    for (const statement of block.statements) {
+    for (const [index, statement] of block.statements.entries()) {
+      if (this.IsDropped(statement)) continue;
+      this.Leading(statement, I.repeat(depth), lines, index === 0);
+      // const x = <pointer>; if (x) {...} with x used nowhere else: C++'s if (const auto x = ...)
+      const next = block.statements[index + 1];
+      const folded = next && this.IfInitializer(statement, next, block.statements.slice(index + 2), depth);
+      if (folded) {
+        lines.push(folded);
+        this.foldedIf = next;
+        continue;
+      }
+      if (this.foldedIf === statement) {
+        this.foldedIf = null;
+        continue;
+      }
       lines.push(this.Statement(statement, depth));
       // if (!(x instanceof T)) return ...; narrows x for the rest of the block
       if (ts.isIfStatement(statement) && !statement.elseStatement && ts.isPrefixUnaryExpression(statement.expression)
@@ -1325,6 +1435,33 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
     for (const symbol of narrowings) this.renames.delete(symbol);
     const inner = lines.join('\n');
     return `{\n${inner}${inner ? '\n' : ''}${pad}}`;
+  }
+
+  /** A statement the C++ has not (p = p.Clone() of a by-value parameter). */
+  IsDropped(statement) {
+    return ts.isExpressionStatement(statement) && this.ExpressionStatement(statement.expression, '') === '';
+  }
+
+  /** const x = <a pointer>; and if (x) {...} after it, x not used after the if: if (const auto x = ...) {...}. */
+  IfInitializer(statement, next, rest, depth) {
+    if (!ts.isVariableStatement(statement) || !ts.isIfStatement(next) || !ts.isBlock(next.thenStatement)) return null;
+    if (!(statement.declarationList.flags & ts.NodeFlags.Const) || statement.declarationList.declarations.length !== 1) return null;
+    const declaration = statement.declarationList.declarations[0];
+    if (!ts.isIdentifier(declaration.name) || declaration.type || !declaration.initializer || !ts.isIdentifier(next.expression)) return null;
+    if (next.expression.text !== declaration.name.text || !this.IsPointer(declaration.initializer)) return null;
+    const symbol = this.checker.getSymbolAtLocation(declaration.name);
+    const usedAfter = node => (ts.isIdentifier(node) && this.checker.getSymbolAtLocation(node) === symbol) || ts.forEachChild(node, usedAfter);
+    if (rest.some(item => usedAfter(item))) return null;
+    if (ts.getLeadingCommentRanges(next.getSourceFile().text, next.getFullStart())?.length) return null;
+    const pad = I.repeat(depth);
+    this.MarkVariable(declaration);
+    this.pointers.add(symbol);
+    const init = this.Expr(declaration.initializer);
+    // the if (an else too, in the initializer's scope as well) with the declaration as its condition
+    const text = this.If(next, depth);
+    const head = `${pad}if (${declaration.name.text})`;
+    if (!text.startsWith(head)) return null;
+    return `${pad}if (const auto ${declaration.name.text} = ${init})${text.slice(head.length)}`;
   }
 
   Statement(node, depth) {
@@ -1377,6 +1514,14 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
       const loopBody = this.Body(node.statement, depth);
       // a loop of what C++ does elsewhere (a tween's Process): nothing
       if (!loopBody.replace(/\/\/[^\n]*/g, '').replace(/[{}\s]/g, '')) return `${pad}// (tweeny's manager runs the tweens)`;
+      // over [...x].reverse(): x's view in reverse
+      const iterated = node.expression;
+      if (ts.isCallExpression(iterated) && ts.isPropertyAccessExpression(iterated.expression) && iterated.expression.name.text === 'reverse' && !iterated.arguments.length
+        && ts.isArrayLiteralExpression(iterated.expression.expression) && iterated.expression.expression.elements.length === 1
+        && ts.isSpreadElement(iterated.expression.expression.elements[0])) {
+        this.includes.add('ranges');
+        return `${pad}for (auto&& ${name} : ${this.Expr(iterated.expression.expression.elements[0].expression)} | std::views::reverse)\n${loopBody}`;
+      }
       return `${pad}for (auto&& ${name} : ${this.Expr(node.expression)})\n${loopBody}`;
     }
     if (ts.isForStatement(node)) {
@@ -1388,8 +1533,16 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
     if (ts.isWhileStatement(node)) return `${pad}while (${this.Expr(node.expression)})\n${this.Body(node.statement, depth)}`;
     if (ts.isSwitchStatement(node)) {
       const clauses = node.caseBlock.clauses.map(clause => {
-        const label = ts.isCaseClause(clause) ? `case ${this.Expr(clause.expression)}:` : 'default:';
-        const statements = clause.statements.map(statement => this.Statement(statement, depth + 2)).join('\n');
+        let label = ts.isCaseClause(clause) ? `case ${this.Expr(clause.expression)}:` : 'default:';
+        // case X: // [[fallthrough]] (an empty case falling through): C++'s attribute
+        const after = clause.getSourceFile().text.slice(clause.getEnd(), node.caseBlock.clauses[node.caseBlock.clauses.indexOf(clause) + 1]?.getStart() ?? clause.getEnd());
+        if (!clause.statements.length && /\/\/\s*\[\[fallthrough\]\]/.test(after)) label += ' [[fallthrough]];';
+        const lines = [];
+        for (const [index, statement] of clause.statements.entries()) {
+          this.Leading(statement, I.repeat(depth + 2), lines, index === 0);
+          lines.push(this.Statement(statement, depth + 2));
+        }
+        const statements = lines.join('\n');
         return `${pad}${I}${label}${statements ? `\n${statements}` : ''}`;
       });
       return `${pad}switch (${this.Expr(node.expression)})\n${pad}{\n${clauses.join('\n')}\n${pad}}`;
@@ -1437,8 +1590,38 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
     return `${pad}auto&& ${name} = std::get<${this.Name(narrowed.type)}>(${narrowed.name});`;
   }
 
+  /** if (x) return v; without braces (or continue, break), its condition maybe Unless/AssertIf/AssertUnless(x): the
+   * Defensive.h macro. */
+  DefensiveMacro(node) {
+    if (node.elseStatement || ts.isBlock(node.thenStatement)) return null;
+    const exit = node.thenStatement;
+    const kind = ts.isReturnStatement(exit) ? 'Return' : exit.kind === ts.SyntaxKind.ContinueStatement ? 'Continue' : exit.kind === ts.SyntaxKind.BreakStatement ? 'Break' : null;
+    if (!kind) return null;
+    let condition = node.expression;
+    let form = { prefix: '', suffix: 'If' };
+    if (ts.isCallExpression(condition) && ts.isIdentifier(condition.expression) && condition.arguments.length === 1) {
+      const declaration = this.checker.getSymbolAtLocation(condition.expression);
+      const target = declaration && declaration.flags & ts.SymbolFlags.Alias ? this.checker.getAliasedSymbol(declaration) : declaration;
+      const file = target?.declarations?.[0]?.getSourceFile().fileName ?? '';
+      if (DEFENSIVE[condition.expression.text] && /\/engine\/GameCore\/Common\/Defensive\.ts$/.test(file)) {
+        form = DEFENSIVE[condition.expression.text];
+        condition = condition.arguments[0];
+      }
+    }
+    this.UseHeader(`${form.prefix}${kind}${form.suffix}`) || this.includes.add('Egt/GameCore/Common/Defensive.h');
+    // a pointer's truthiness: the pointer
+    if (ts.isIdentifier(condition) && this.IsPointer(condition) && form.suffix === 'Unless') {
+      const value = kind === 'Return' ? this.Statement(exit, 0).replace(/^return\s*/, '').replace(/;$/, '') : '';
+      return `${form.prefix}${kind}${form.suffix}(${this.renames.get(this.checker.getSymbolAtLocation(condition)) ?? condition.text}${value ? `, ${value}` : ''});`;
+    }
+    const value = kind === 'Return' ? this.Statement(exit, 0).replace(/^return\s*/, '').replace(/;$/, '') : '';
+    return `${form.prefix}${kind}${form.suffix}(${this.Condition(condition)}${value ? `, ${value}` : ''});`;
+  }
+
   If(node, depth) {
     const pad = I.repeat(depth);
+    const macro = this.DefensiveMacro(node);
+    if (macro) return `${pad}${macro}`;
     const narrowed = this.InstanceOf(node.expression);
     if (narrowed) {
       const condition = this.Condition(node.expression);
@@ -1489,6 +1672,12 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
     const isConst = (list.flags & ts.NodeFlags.Const) !== 0;
     if (!declaration.initializer) return `${pad}${this.DeclaredType(declaration)} ${name}{};`;
     // a declared type: the C++ of it (new Map(), [], a number of a C++ integer type...)
+    // a constant of a literal named in capitals (MAX_HISTORY_SIZE): constexpr, as C++ names them
+    if (declaration.type && isConst && /^[A-Z][A-Z0-9_]*$/.test(name) && (ts.isNumericLiteral(declaration.initializer) || ts.isStringLiteral(declaration.initializer))
+      && this.CppTypeNode(declaration.type)) {
+      this.MarkVariable(declaration);
+      return `${pad}constexpr ${this.CppTypeNode(declaration.type)} ${name} = ${this.Expr(declaration.initializer)};`;
+    }
     if (declaration.type && this.CppTypeNode(declaration.type)) {
       this.MarkVariable(declaration);
       return `${pad}${isConst && !ts.isNewExpression(declaration.initializer) && !ts.isArrayLiteralExpression(declaration.initializer) ? 'const ' : ''}${this.CppTypeNode(declaration.type)} ${name} = ${this.Expr(declaration.initializer)};`;
@@ -1500,6 +1689,11 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
     const primitive = (type.flags & (ts.TypeFlags.NumberLike | ts.TypeFlags.BooleanLike | ts.TypeFlags.StringLike | ts.TypeFlags.EnumLike)) !== 0;
     // a C++ size or unsigned value: TypeScript's number, signed
     if (type.flags & ts.TypeFlags.NumberLike && /^(size_t|unsigned|uint\d+_t|unsigned\s+\w+)$/.test(this.CppReturnOf(declaration.initializer) ?? '')) {
+      // kept unsigned, as the C++, unless it takes part in arithmetic
+      if (!this.HasArithmetic(declaration)) {
+        (this.unsignedVariables ??= new Set()).add(this.checker.getSymbolAtLocation(declaration.name));
+        return `${pad}${isConst ? 'const ' : ''}auto ${name} = ${init};`;
+      }
       return `${pad}${isConst ? 'const ' : ''}auto ${name} = int64_t(${init});`;
     }
     if (primitive) return `${pad}${isConst ? 'const ' : ''}auto ${name} = ${init};`;
@@ -1510,10 +1704,26 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
     if (ts.isNewExpression(declaration.initializer) || !isConst) return `${pad}auto ${name} = ${init};`;
     // an element of a temporary (filter(...)[i]): a copy
     if (ts.isElementAccessExpression(declaration.initializer) && ts.isCallExpression(declaration.initializer.expression)) return `${pad}auto ${name} = ${init};`;
+    // a reference, as C++ names it: Parent<I>() is auto&, RuntimeGetConst<I>() const auto&, and so a method's reference
+    const call = declaration.initializer;
+    // y.Clone(): auto copies
+    if (ts.isCallExpression(call) && ts.isPropertyAccessExpression(call.expression) && call.expression.name.text === 'Clone' && !call.arguments.length
+      && OPERATOR_METHODS[this.checker.getTypeAtLocation(call.expression.expression).symbol?.name]?.Clone) return `${pad}auto ${name} = ${this.Expr(call.expression.expression)};`;
+    if (ts.isCallExpression(call) && ts.isPropertyAccessExpression(call.expression) && call.expression.expression.kind === ts.SyntaxKind.ThisKeyword
+      && REFERENCE_METHODS.has(call.expression.name.text)) return `${pad}${REFERENCE_METHODS.get(call.expression.name.text)}auto& ${name} = ${init};`;
+    const reference = this.ReferenceReturn(call);
+    if (reference) return `${pad}${/^\s*const\b/.test(reference) ? 'const ' : ''}auto& ${name} = ${init};`;
     return `${pad}auto&& ${name} = ${init};`;
   }
 
   ExpressionStatement(expression, pad) {
+    // p = p.Clone() of a parameter: C++ takes it by value, a copy already
+    if (ts.isBinaryExpression(expression) && expression.operatorToken.kind === ts.SyntaxKind.EqualsToken && ts.isIdentifier(expression.left)
+      && ts.isCallExpression(expression.right) && ts.isPropertyAccessExpression(expression.right.expression) && expression.right.expression.name.text === 'Clone'
+      && ts.isIdentifier(expression.right.expression.expression) && expression.right.expression.expression.text === expression.left.text
+      && ts.isParameter(this.checker.getSymbolAtLocation(expression.left)?.valueDeclaration ?? expression)) return '';
+    // void x; of a parameter or variable: C++'s (void)x;
+    if (ts.isVoidExpression(expression) && ts.isIdentifier(expression.expression)) return `${pad}(void)${this.Expr(expression.expression)};`;
     if (ts.isVoidExpression(expression)) return this.ExpressionStatement(expression.expression, pad);
     // what only the browser game does (engine/GameCore/Common/BrowserOnly.ts)
     if (ts.isCallExpression(expression) && ts.isIdentifier(expression.expression) && expression.expression.text === 'BrowserOnly') return `${pad}// (browser only)`;
@@ -1589,6 +1799,11 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
   /** Whether an expression is a C++ pointer: a RuntimeTryGet, or a variable initialized with one. */
   IsPointer(node) {
     while (ts.isParenthesizedExpression(node)) node = node.expression;
+    // a function or method that returns ConstPointer<T>
+    if (ts.isCallExpression(node)) {
+      const returned = this.checker.getResolvedSignature(node)?.declaration?.type;
+      if (returned && ts.isTypeReferenceNode(returned) && returned.typeName.getText() === 'ConstPointer') return true;
+    }
     if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)) {
       if (POINTER_METHODS.has(node.expression.name.text)) return true;
       if (node.expression.name.text === 'find' && this.checker.isArrayType(this.checker.getNonNullableType(this.checker.getTypeAtLocation(node.expression.expression)))) return true;
@@ -1723,6 +1938,14 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
   }
 
   /** The C++ name of a token: IX, IX::Events, a data class. */
+  /** A state's data class by the name its interface gives it (IGameManager::Nvrams), whose header it includes. */
+  DataName(name) {
+    const alias = this.index.dataAliases.get(name);
+    if (!alias) return name;
+    this.UseHeader(alias.split('::')[0]);
+    return alias;
+  }
+
   TokenName(node) {
     if (ts.isIdentifier(node)) {
       const renamed = this.tokenRenames.get(this.checker.getSymbolAtLocation(node));
@@ -1780,7 +2003,7 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
       if (indexes && ts.isElementAccessExpression(node) && node.questionDotToken && questionDots === 1 && root === node.expression
         && this.DeclaredRecordType(node.expression)) {
         const map = this.Expr(node.expression, chain);
-        const key = this.Expr(node.argumentExpression, chain);
+        const key = this.Key(node.argumentExpression, this.Expr(node.argumentExpression, chain));
         const valueType = this.CppType(this.checker.getNonNullableType(this.checker.getTypeAtLocation(node)), node);
         return `(${map}.contains(${key}) ? ${map}.at(${key}) : ${valueType}{})`;
       }
@@ -1853,6 +2076,9 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
       return inner;
     }
     if (ts.isPrefixUnaryExpression(node)) {
+      // !!x of a boolean (an options struct's, whose C++ field always has its value): x
+      if (node.operator === ts.SyntaxKind.ExclamationToken && ts.isPrefixUnaryExpression(node.operand) && node.operand.operator === ts.SyntaxKind.ExclamationToken
+        && this.checker.getNonNullableType(this.checker.getTypeAtLocation(node.operand.operand)).flags & ts.TypeFlags.BooleanLike) return expr(node.operand.operand);
       // !arr[i]: the index is not valid
       if (node.operator === ts.SyntaxKind.ExclamationToken && ts.isElementAccessExpression(node.operand)
         && this.checker.isArrayType(this.checker.getNonNullableType(this.checker.getTypeAtLocation(node.operand.expression)))) {
@@ -1911,7 +2137,7 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
         && (recordType.aliasSymbol?.name === 'Record' || recordType.aliasSymbol?.name === 'Partial' || recordType.getStringIndexType() || recordType.getNumberIndexType()
           || this.DeclaredRecord(node.expression))) {
         const map = expr(node.expression);
-        const key = expr(node.argumentExpression);
+        const key = this.Key(node.argumentExpression, expr(node.argumentExpression));
         const valueType = this.CppType(this.checker.getNonNullableType(this.checker.getTypeAtLocation(node)), node);
         return `(${map}.contains(${key}) ? ${map}.at(${key}) : ${valueType}{})`;
       }
@@ -2051,11 +2277,19 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
       return `std::fmod(${expr(node.left)}, ${expr(node.right)})`;
     }
     // a comparison with a container's size or a C++ unsigned value: both sides as int64_t
-    const isSize = side => (ts.isPropertyAccessExpression(side) && ['length', 'size'].includes(side.name.text))
-      || /^(size_t|unsigned|uint\d+_t)$/.test(this.CppReturnOf(side) ?? '')
-      || (ts.isIdentifier(side) && this.unsignedParams?.has(side.text));
+    const isUnsigned = side => this.IsUnsigned(side);
+    const isSize = side => (ts.isPropertyAccessExpression(side) && ['length', 'size'].includes(side.name.text)) || isUnsigned(side);
     const relational = [ts.SyntaxKind.LessThanToken, ts.SyntaxKind.LessThanEqualsToken, ts.SyntaxKind.GreaterThanToken, ts.SyntaxKind.GreaterThanEqualsToken,
       ts.SyntaxKind.EqualsEqualsEqualsToken, ts.SyntaxKind.ExclamationEqualsEqualsToken].includes(op);
+    // two unsigned values, or one and a literal not below 0: as C++ compares them
+    const isNonNegativeLiteral = side => ts.isNumericLiteral(side);
+    if (relational && ((isUnsigned(node.left) && (isUnsigned(node.right) || isNonNegativeLiteral(node.right)))
+      || (isUnsigned(node.right) && isNonNegativeLiteral(node.left)))) return `${expr(node.left)} ${text} ${expr(node.right)}`;
+    // a container's length and an unsigned value: its size(), unsigned too
+    const rawSize = side => expr(side).replace(/^int64_t\((.*)\)$/, '$1');
+    const isLengthOf = side => ts.isPropertyAccessExpression(side) && side.name.text === 'length' && /^int64_t\(.*\.size\(\)\)$/.test(expr(side));
+    if (relational && isLengthOf(node.left) && isUnsigned(node.right)) return `${rawSize(node.left)} ${text} ${expr(node.right)}`;
+    if (relational && isLengthOf(node.right) && isUnsigned(node.left)) return `${expr(node.left)} ${text} ${rawSize(node.right)}`;
     if (relational && (isSize(node.left) || isSize(node.right))) {
       const isLength = side => ts.isPropertyAccessExpression(side) && ['length', 'size'].includes(side.name.text);
       const wrap = side => (isLength(side) ? expr(side) : `int64_t(${expr(side)})`);
@@ -2067,6 +2301,39 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
     }
     if (op === ts.SyntaxKind.QuestionQuestionEqualsToken) this.Fail(node, 'logical assignment ??=');
     return `${expr(node.left)} ${text} ${expr(node.right)}`;
+  }
+
+  /** Whether a number is unsigned in C++: a C++ call's size_t, a parameter or variable of an unsigned type. */
+  IsUnsigned(node) {
+    while (ts.isParenthesizedExpression(node)) node = node.expression;
+    if (/^(size_t|unsigned|uint\d+_t)$/.test(this.CppReturnOf(node) ?? '')) return true;
+    if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === 'static_cast') return /^(size_t|unsigned|uint\d+_t)$/.test(node.typeArguments?.[0]?.getText() ?? '');
+    if (!ts.isIdentifier(node)) return false;
+    if (this.unsignedParams?.has(node.text)) return true;
+    const declaration = this.checker.getSymbolAtLocation(node)?.valueDeclaration;
+    if (!declaration || !(ts.isVariableDeclaration(declaration) || ts.isParameter(declaration))) return false;
+    if (declaration.type) return /^(size_t|unsigned|uint\d+_t)$/.test(declaration.type.getText());
+    if (this.unsignedVariables?.has(this.checker.getSymbolAtLocation(node))) return true;
+    return !!declaration.initializer && ts.isVariableDeclaration(declaration) && this.IsUnsigned(declaration.initializer) && !this.HasArithmetic(declaration);
+  }
+
+  /** Whether a number variable takes part in arithmetic, where C++'s unsigned would wrap below 0. */
+  HasArithmetic(declaration) {
+    const symbol = this.checker.getSymbolAtLocation(declaration.name);
+    const scope = declaration.parent?.parent?.parent ?? declaration.getSourceFile();
+    let found = false;
+    const visit = node => {
+      if (found) return;
+      if (ts.isIdentifier(node) && this.checker.getSymbolAtLocation(node) === symbol && node !== declaration.name) {
+        const parent = node.parent;
+        if ((ts.isBinaryExpression(parent) && [ts.SyntaxKind.MinusToken, ts.SyntaxKind.PlusToken, ts.SyntaxKind.AsteriskToken, ts.SyntaxKind.SlashToken,
+          ts.SyntaxKind.MinusEqualsToken, ts.SyntaxKind.PlusEqualsToken].includes(parent.operatorToken.kind))
+          || ts.isPrefixUnaryExpression(parent) || ts.isPostfixUnaryExpression(parent)) found = true;
+      }
+      ts.forEachChild(node, visit);
+    };
+    visit(scope);
+    return found;
   }
 
   /** Whether a number is fractional in C++: performance.now(), a division, or a variable of one. */
@@ -2129,7 +2396,13 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
   }
 
   /** A call's C++ return type, by the C++ declaration of its method. */
+  /** A map's or set's key: a string_view id as the std::string the container's keys are. */
+  Key(node, text) {
+    return ts.isIdentifier(node) && this.stringViews.has(this.checker.getSymbolAtLocation(node)) ? `std::string(${text})` : text;
+  }
+
   CppReturnOf(node) {
+    if (ts.isIdentifier(node) && this.stringViews.has(this.checker.getSymbolAtLocation(node))) return 'std::string_view';
     if (!ts.isCallExpression(node) || !ts.isPropertyAccessExpression(node.expression)) return null;
     const owner = node.expression.expression;
     const ownerName = owner.kind === ts.SyntaxKind.ThisKeyword ? this.className : this.checker.getTypeAtLocation(owner).symbol?.name;
@@ -2208,7 +2481,7 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
       // m.get(k) ?? d
       if (method === 'get' && ownerType.symbol?.name === 'Map') {
         const map = expr(owner);
-        const key = expr(left.arguments[0]);
+        const key = this.Key(left.arguments[0], expr(left.arguments[0]));
         return `(${map}.contains(${key}) ? ${map}.at(${key}) : ${fallback})`;
       }
     }
@@ -2216,7 +2489,7 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
     // record[k] ?? d
     if (ts.isElementAccessExpression(left) && this.DeclaredRecord(left.expression)) {
       const map = expr(left.expression);
-      const key = expr(left.argumentExpression);
+      const key = this.Key(left.argumentExpression, expr(left.argumentExpression));
       return `(${map}.contains(${key}) ? ${map}.at(${key}) : ${fallback})`;
     }
     const leftChain = this.OptionalChainRoot(left);
@@ -2317,11 +2590,14 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
       const token = node.arguments[0];
       const constMethod = { Parent: 'ConstParent', Nvram: 'ConstNvram', Static: 'ConstStatic', RuntimeGet: 'RuntimeGetConst', RuntimeTryGet: 'RuntimeTryGetConst' };
       if (this.inConstMethod && constMethod[method] && node.arguments.length === 1) {
-        return `${constMethod[method]}<${this.TokenName(token)}>()`;
+        const name = this.TokenName(token);
+        return `${constMethod[method]}<${/Nvram|Static/.test(method) ? this.DataName(name) : name}>()`;
       }
       if (TOKEN_METHODS.has(method) && node.arguments.length === 1 && (ts.isIdentifier(token) || (ts.isPropertyAccessExpression(token) && token.name.text === 'Events'))
         && !(method === 'TransitLater' && !this.IsToken(token) && !ts.isIdentifier(token))) {
-        return `${method}<${this.TokenName(node.arguments[0])}>()`;
+        const name = this.TokenName(node.arguments[0]);
+        // a state's data by the interface's name of it: Nvram<IGameManager::Nvrams>()
+        return `${method}<${/Nvram|Static/.test(method) ? this.DataName(name) : name}>()`;
       }
       if ((method === 'Transit' || method === 'TransitLater') && node.arguments.length === 1 && ts.isConditionalExpression(node.arguments[0])) {
         const choice = node.arguments[0];
@@ -2370,9 +2646,19 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
       }
       if (owner.getText() === 'Math') {
         if (method === 'min' || method === 'max') {
+          // of unsigned values (sizes): C++'s
+          const unsignedArg = (arg, text) => this.IsUnsigned(arg) || (ts.isPropertyAccessExpression(arg) && arg.name.text === 'length' && /^int64_t\(.*\.size\(\)\)$/.test(text));
+          if (args.length === 2 && node.arguments.every((arg, i) => unsignedArg(arg, args[i]))) {
+            return `std::${method}(${args.map(arg => arg.replace(/^int64_t\((.*\.size\(\))\)$/, '$1')).join(', ')})`;
+          }
           if (args.length === 2) return `std::${method}<std::common_type_t<decltype(${args[0]}), decltype(${args[1]})>>(${args[0]}, ${args[1]})`;
           return `std::${method}<int64_t>({${args.join(', ')}})`;
         }
+        // an integer division: C++'s truncates as Math.trunc
+        let argument = node.arguments[0];
+        while (argument && ts.isParenthesizedExpression(argument)) argument = argument.expression;
+        if (method === 'trunc' && argument && ts.isBinaryExpression(argument) && argument.operatorToken.kind === ts.SyntaxKind.SlashToken
+          && !this.IsFractional(argument.left) && !this.IsFractional(argument.right) && !/\bdouble\(/.test(args[0])) return args[0];
         if (method === 'trunc' || method === 'floor') return `int64_t(${args[0]})`;
         if (method === 'round') return `int64_t(std::llround(${args[0]}))`;
         if (method === 'ceil') return `int64_t(std::ceil(${args[0]}))`;
@@ -2382,7 +2668,8 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
       if (this.checker.isArrayType(ownerType)) {
         let base = this.Expr(owner, chain);
         if (ts.isArrayLiteralExpression(owner) && base.startsWith('{')) base = `${this.CppType(ownerType, owner)}${base}`;
-        this.includes.add('algorithm');
+        // the std algorithms (a vector's own push_back, pop_back need none)
+        if (!['push', 'pop'].includes(method)) this.includes.add('algorithm');
         switch (method) {
           case 'push': {
             const pushed = node.arguments[0];
@@ -2391,6 +2678,12 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
             return `${base}.push_back(${args[0]})`;
           }
           case 'pop': return `${base}.pop_back()`;
+          // splice(i, 0, x): an insertion at i
+          case 'splice': {
+            if (node.arguments.length === 3 && ts.isNumericLiteral(node.arguments[1]) && node.arguments[1].text === '0') return `${base}.insert(${base}.begin() + ${args[0]}, ${args[2]})`;
+            this.Fail(node, 'array method splice (but an insertion)');
+            break;
+          }
           case 'sort': {
             // (a, b) => a - b and (a, b) => b - a; [...c].sort(...) sorts a copy
             const compare = node.arguments[0];
@@ -2476,9 +2769,9 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
       if (ownerType.symbol?.name === 'Map') {
         const base = this.Expr(owner, chain);
         switch (method) {
-          case 'has': return `${base}.contains(${args[0]})`;
-          case 'get': return `${base}.at(${args[0]})`;
-          case 'set': return `${base}[${args[0]}] = ${args[1]}`;
+          case 'has': return `${base}.contains(${this.Key(node.arguments[0], args[0])})`;
+          case 'get': return `${base}.at(${this.Key(node.arguments[0], args[0])})`;
+          case 'set': return `${base}[${this.Key(node.arguments[0], args[0])}] = ${args[1]}`;
           case 'delete': return `${base}.erase(${args[0]})`;
           case 'clear': return `${base}.clear()`;
           case 'keys':
@@ -2493,9 +2786,9 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
       if (ownerType.symbol?.name === 'Set') {
         const base = this.Expr(owner, chain);
         switch (method) {
-          case 'has': return `${base}.contains(${args[0]})`;
-          case 'add': return `${base}.insert(${args[0]})`;
-          case 'delete': return `${base}.erase(${args[0]})`;
+          case 'has': return `${base}.contains(${this.Key(node.arguments[0], args[0])})`;
+          case 'add': return `${base}.insert(${this.Key(node.arguments[0], args[0])})`;
+          case 'delete': return `${base}.erase(${this.Key(node.arguments[0], args[0])})`;
           case 'clear': return `${base}.clear()`;
           default: this.Fail(node, `Set method ${method}`);
         }
@@ -2503,6 +2796,14 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
     }
     this.UnhandledOptional(node, chain);
     if (ts.isIdentifier(callee)) {
+      // get_if(T, x) (engine/GameCore/Common/Types.ts): std::get_if<T>(&x)
+      if (callee.text === 'get_if' && node.arguments.length === 2) {
+        return `std::get_if<${this.Name(this.OriginalName(node.arguments[0]))}>(&${expr(node.arguments[1])})`;
+      }
+      // static_cast<T>(x) (engine/GameCore/Common/Types.ts): C++'s, of the C++ type T names
+      if (callee.text === 'static_cast' && node.typeArguments?.length === 1 && node.arguments.length === 1) {
+        return `static_cast<${this.CppTypeNode(node.typeArguments[0]) ?? node.typeArguments[0].getText()}>(${expr(node.arguments[0])})`;
+      }
       const known = FUNCTIONS[callee.text];
       if (known) {
         if (known.include) this.includes.add(known.include);

@@ -3,6 +3,7 @@
 
 import { State } from '@game/engine/Fsm/Fsm';
 import { ILimits } from '@game/engine/Game/RuntimeImport/ILimits';
+import { EgtALogCategoryClass, EgtATrace } from '@game/engine/GameCore/Log/LogCategory';
 import { Currency, RoundType } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
 import { IGameflow } from '@game/alpha_family/libs/AlphaFamily/RuntimeImport/IGameflow.bridge';
 import { IViewManager } from '@game/alpha_family/libs/AlphaFamily/States/IViewManager';
@@ -14,9 +15,12 @@ import { ICappingSplashView } from '@game/alpha_family/libs/AlphaFamily/Views/IC
 export class MatchCappingAppliedState extends State {
   static Interfaces = [IMatchCappingApplied];
 
-  OnTransit() {
+  OnTransit(_isStartup: boolean, _isRecovery: boolean) {
+    EgtATrace('OnTransit {} {}', _isStartup ? 'isStartup' : '', _isRecovery ? 'isRecovery' : '');
+
     this.AttachCallbacks();
     this.RefreshViews();
+
     const showAllFeaturesEnd = this.RuntimeGetConst(IGameflow).HasRemainingFeaturesOnCap();
     this.RuntimeGet(ICappingSplashView).ShowCappingSplashView(showAllFeaturesEnd);
   }
@@ -32,12 +36,22 @@ export class MatchCappingAppliedState extends State {
 
   private CloseSplash() {
     this.RuntimeGet(ICappingSplashView).HideCappingSplashView();
-    if (this.CheckForTax()) return this.Transit(ICreditTaxation);
+
+    if (this.CheckForTax()) {
+      return this.Transit(ICreditTaxation);
+    }
+
     return this.Transit(IMatchEnding);
   }
 
   private CheckForTax() {
-    const credits = this.RuntimeGetConst(IGameflow).GetMatchCurrenciesAvailable().Get(Currency.Credits);
-    return this.RuntimeTryGetConst(ILimits)?.IsTaxThresholdBreached(credits) ?? false;
+    const available = this.RuntimeGetConst(IGameflow).GetMatchCurrenciesAvailable();
+    const credits = available.Get(Currency.Credits);
+
+    const limits = this.RuntimeTryGetConst(ILimits);
+
+    return limits!.IsTaxThresholdBreached(credits);
   }
 }
+
+EgtALogCategoryClass(MatchCappingAppliedState, 'MatchCappingAppliedState');

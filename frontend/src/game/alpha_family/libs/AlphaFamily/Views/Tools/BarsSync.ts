@@ -4,13 +4,13 @@
 import { Accumulation } from './AccumulationControl';
 import type { AccumulationDescriptor } from './AccumulationControl.data';
 
-export interface BarSyncTakeWinInput {
-  currentWin: number;
-  currentCredit: number;
-  targetWin?: number;
-  isAutoplayOn?: boolean;
-  isAfterGamble?: boolean;
-  oneStepTakeWin?: boolean;
+export class BarSyncTakeWinInput {
+  currentWin = 0;
+  currentCredit = 0;
+  targetWin = 0;
+  isAutoplayOn = false;
+  isAfterGamble = false;
+  oneStepTakeWin = false;
 }
 
 export interface BarSyncTakeWinOutput {

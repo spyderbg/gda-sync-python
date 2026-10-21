@@ -5,6 +5,7 @@ import { Alignment } from '@game/engine/GameVideoCtrl/ViewElements/BaseElement';
 import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
 import type { ElementsList } from '@game/engine/GameVideoCtrl/ViewElements/ElementsList';
 import { ImageElement } from '@game/engine/GameVideoCtrl/ViewElements/ImageElement';
+import { EgtALogCategoryClass } from '@game/engine/GameCore/Log/LogCategory';
 import type { DimSubScreenVisualConfig } from '../Views/ReelsView.data';
 import type { ReelSubScreensConfig } from '../Views/ReelSubScreen.data';
 import { BaseVisual } from './BaseVisual';
@@ -50,3 +51,5 @@ export class DimSubScreenVisual extends BaseVisual {
     this.StoreElementId(this.m_elementId);
   }
 }
+
+EgtALogCategoryClass(DimSubScreenVisual, 'DimSubScreenVisual');

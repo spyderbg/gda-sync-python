@@ -7,6 +7,7 @@ import { AnimElement } from '@game/engine/GameVideoCtrl/ViewElements/AnimElement
 import type { ElementsList } from '@game/engine/GameVideoCtrl/ViewElements/ElementsList';
 import { ImageElement } from '@game/engine/GameVideoCtrl/ViewElements/ImageElement';
 import { FadeIn, FadeOut } from '@game/engine/GameVideoCtrl/ViewElements/TweenyExtend/TweenyExtendElement';
+import { EgtALogCategoryClass } from '@game/engine/GameCore/Log/LogCategory';
 import * as tweeny from '@game/hat_libs/tweeny/tweeny';
 import type { SymbolGridCoordinates, SymbolViewInfo } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
 import type { WinFiguresVisualConfig } from '../Views/ReelsView.data';
@@ -156,3 +157,5 @@ export class WinFigureVisual extends BaseVisual {
     element.Play();
   }
 }
+
+EgtALogCategoryClass(WinFigureVisual, 'WinFigureVisual');

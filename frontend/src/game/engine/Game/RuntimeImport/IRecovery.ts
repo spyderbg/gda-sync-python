@@ -11,6 +11,7 @@ export interface IStateChangeAction {
 
 export interface IRecovery {
   RequestStateChangeAction(action: object): void;
+  IsReplayStateChangeAction(): boolean;
 }
 
 export class IRecoveryEvents {

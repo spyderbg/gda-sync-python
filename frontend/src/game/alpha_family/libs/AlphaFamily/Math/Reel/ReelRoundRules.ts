@@ -3,6 +3,7 @@
 
 import { HistoryEngine, type IRng, MonteCarloEngineHat, ReplayEngine, RngOp } from '@game/engine/GameCore/Random/IRng';
 import { Currencies, type CurrencyType } from '@game/engine/Game/Math/Common.data';
+import { EgtALogCategoryClass } from '@game/engine/GameCore/Log/LogCategory';
 import { type Line, type Lines, RoundErrorCode, RoundType, type SymbolId } from '../Common/Common.data';
 import { RoundConfigError, RoundInputError } from '../Common/Exceptions';
 import { RoundError, type RoundReplay, RoundResult, type RoundResultOrError } from '../RoundResult.data';
@@ -339,3 +340,5 @@ export class ReelRoundRules extends BaseReelRules {
     spinPhase.combinations = kept;
   }
 }
+
+EgtALogCategoryClass(ReelRoundRules, 'ReelRoundRules');

@@ -79,6 +79,8 @@ export class CppIndex {
     this.texts = new Map();
     /** alias name -> its definition */
     this.aliases = new Map();
+    /** a state's data class -> the interface name C++ gives it (BetManagerNvrams -> IBetManager::Nvrams) */
+    this.dataAliases = new Map();
     /** function name -> its parameter list */
     this.functionParams = new Map();
     // the translated headers first: they replace the C++ sources' of the same paths
@@ -102,6 +104,15 @@ export class CppIndex {
           if (nested) nestedNames.add(name);
         }
         for (const match of text.matchAll(/\busing\s+(\w+)\s*=\s*([^;]+);/g)) if (!this.aliases.has(match[1])) this.aliases.set(match[1], match[2].trim());
+        for (const match of text.matchAll(/\busing\s+(Nvrams|Statics)\s*=\s*(\w+)\s*;/g)) {
+          // the class whose braces hold it, the innermost
+          let owner = null;
+          for (const open of text.slice(0, match.index).matchAll(/\b(?:class|struct)\s+(?:EGT_\w+\s+)?(\w+)\b[^;{]*\{/g)) {
+            const start = open.index + open[0].length - 1;
+            if (start + braceBody(text, start).length + 1 > match.index) owner = open[1];
+          }
+          if (owner && !this.dataAliases.has(match[2])) this.dataAliases.set(match[2], `${owner}::${match[1]}`);
+        }
         // functions at namespace level (indented by at most one level): exported helpers, GameCore's
         for (const match of text.matchAll(/\n( {0,4})(?:template\s*<[^>]*>\s*)?(?:EGT_\w+\s+)?(?:inline\s+|constexpr\s+|\[\[nodiscard\]\]\s+)*((?:const\s+)?[\w:]+(?:<[^;{}()]*>)?[\s*&]+)(\w+)\s*\(/g)) {
           const name = match[3];

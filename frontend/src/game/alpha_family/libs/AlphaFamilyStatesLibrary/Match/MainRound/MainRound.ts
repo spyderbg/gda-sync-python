@@ -2,15 +2,15 @@
 // round, which consumes the MainSpinEnergy the match starts with.
 
 import { Currencies } from '@game/engine/Game/Math/Common.data';
+import { EgtALogCategoryClass } from '@game/engine/GameCore/Log/LogCategory';
 import { Currency, RoundType } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
 import { ReelRoundInput } from '@game/alpha_family/libs/AlphaFamily/Math/Reel/ReelRoundInput.data';
 import { IBetManager } from '@game/alpha_family/libs/AlphaFamily/States/IBetManager';
 import { IMainRound } from '@game/alpha_family/libs/AlphaFamily/States/Match/IMainRound';
-import { IReelRound } from '@game/alpha_family/libs/AlphaFamily/States/Match/IReelRound';
 import { ReelRoundState } from '../ReelRound/ReelRound';
 
 export class MainRoundState extends ReelRoundState {
-  static Interfaces = [IReelRound, IMainRound];
+  static Interfaces = [IMainRound, ...ReelRoundState.Interfaces];
 
   GetRoundType() {
     return RoundType.Main;
@@ -26,3 +26,5 @@ export class MainRoundState extends ReelRoundState {
     input.consume = new Currencies(Currency.MainSpinEnergy, input.bet);
   }
 }
+
+EgtALogCategoryClass(MainRoundState, 'MainRoundState');

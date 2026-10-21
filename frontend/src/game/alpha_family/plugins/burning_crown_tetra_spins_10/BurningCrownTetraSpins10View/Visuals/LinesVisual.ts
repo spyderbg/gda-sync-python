@@ -4,6 +4,7 @@
 import type { RssRect } from '@game/engine/Game/RuntimeExport/IResources';
 import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
 import type { ElementsList } from '@game/engine/GameVideoCtrl/ViewElements/ElementsList';
+import { EgtALogCategoryClass } from '@game/engine/GameCore/Log/LogCategory';
 import * as tweeny from '@game/hat_libs/tweeny/tweeny';
 import { BaseVisual } from './BaseVisual';
 
@@ -121,3 +122,5 @@ export class LinesVisual extends BaseVisual {
     this.m_shadowVisible = visible;
   }
 }
+
+EgtALogCategoryClass(LinesVisual, 'LinesVisual');

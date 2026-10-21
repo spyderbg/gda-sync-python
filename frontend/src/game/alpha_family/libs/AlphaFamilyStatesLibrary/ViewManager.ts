@@ -24,6 +24,7 @@ import { IBetMenuView } from '@game/alpha_family/libs/AlphaFamily/Views/IBetMenu
 import { ECurrencyPrize, type FigureId, IInfoView, type PaytableCoefficients } from '@game/alpha_family/libs/AlphaFamily/Views/IInfoView.bridge';
 import type { uint32_t } from '@game/engine/GameCore/Common/Types';
 import type { CurrencyType } from '@game/engine/Game/Math/Common.data';
+import { EgtALogCategoryClass } from '@game/engine/GameCore/Log/LogCategory';
 import { ILanguageMenuView } from '@game/alpha_family/libs/AlphaFamily/Views/IMenuViews.bridge';
 import { ILinesView } from '@game/alpha_family/libs/AlphaFamily/Views/ILinesView.bridge';
 import { IBigWinView, IKnobsView, ITetraRoundOverlayView, ITopperView } from '@game/alpha_family/libs/AlphaFamily/Views/IOverlayViews.bridge';
@@ -592,3 +593,5 @@ export class ViewManager extends State implements IViewManager, IViewManagerEven
     return phase instanceof SpinReelsPhase ? phase.combinations : null;
   }
 }
+
+EgtALogCategoryClass(ViewManager, 'ViewManager');

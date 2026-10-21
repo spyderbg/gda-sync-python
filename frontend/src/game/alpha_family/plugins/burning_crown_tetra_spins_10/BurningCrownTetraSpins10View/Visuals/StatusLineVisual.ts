@@ -8,6 +8,7 @@ import type { ElementsList } from '@game/engine/GameVideoCtrl/ViewElements/Eleme
 import { ImageElement } from '@game/engine/GameVideoCtrl/ViewElements/ImageElement';
 import { TextElement } from '@game/engine/GameVideoCtrl/ViewElements/TextElement';
 import type { CurrencyType } from '@game/engine/Game/Math/Common.data';
+import { EgtALogCategoryClass } from '@game/engine/GameCore/Log/LogCategory';
 import { CombinationType, Currency } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
 import type { ReelCombination } from '@game/alpha_family/libs/AlphaFamily/Math/Reel/ReelRoundPhase.data';
 import { BaseVisual } from './BaseVisual';
@@ -166,3 +167,5 @@ export class StatusLineVisual extends BaseVisual {
     }
   }
 }
+
+EgtALogCategoryClass(StatusLineVisual, 'StatusLineVisual');

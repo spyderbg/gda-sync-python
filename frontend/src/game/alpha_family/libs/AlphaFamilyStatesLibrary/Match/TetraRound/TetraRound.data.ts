@@ -11,6 +11,7 @@ export class TetraRoundStorage {
 
 export class TetraRoundStatics {
   requestedFastStop = false;
+  showFastLines = false;
 }
 
 export enum TetraPresentingStep {

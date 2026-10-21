@@ -39,6 +39,7 @@ interface Round {
   result: RoundResult | null;
   kernelStarted: boolean;
   kernelOutcome: boolean;
+  showFastLines: boolean;
 }
 
 class InsufficientRandomBits extends Error {}
@@ -147,7 +148,7 @@ export class AlphaFamilyGameflow extends BaseModule implements IGameflow {
     if (!this.match?.kernelStarted) throw new Error('RequestStartRound: match not started');
     if (this.round) throw new Error('RequestStartRound: round already exists');
     if (!this.HasMatchCurrenciesAvailable(request.roundInput.consume)) throw new Error('Insufficient match currencies');
-    this.round = { input: request.roundInput.Clone(), result: null, kernelStarted: false, kernelOutcome: false };
+    this.round = { input: request.roundInput.Clone(), result: null, kernelStarted: false, kernelOutcome: false, showFastLines: request.showFastLines };
     // blocking the currencies that will be used for starting the round
     this.match.wallet.blocked.AddAll(this.round.input.consume);
     this.Kernel().RequestStartRound(this.RuntimeGetConst(IMathTypes).GetRoundTypeName(this.round.input.roundType));
@@ -226,7 +227,7 @@ export class AlphaFamilyGameflow extends BaseModule implements IGameflow {
     this.history.push({ roundType: result.GetRoundType(), bet: result.GetBet(), win: result.GetSummary().rewards.Get(Currency.Credits), rngs: result.m_replay.rngs });
     if (this.history.length > 100) this.history.shift();
     /// Finaly complete the round
-    this.m_events.startRoundReply.Post({ roundResult: result });
+    this.m_events.startRoundReply.Post({ roundResult: result, showFastLines: round.showFastLines });
   }
 
   ////////////////////////////////////////////////////////////////////////////////

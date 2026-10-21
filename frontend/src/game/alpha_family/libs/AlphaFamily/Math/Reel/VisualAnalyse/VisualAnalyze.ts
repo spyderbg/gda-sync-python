@@ -1,6 +1,7 @@
 // Egt::Game::AlphaFamily::VisualAnalyze (AlphaFamily/Math/Reel/VisualAnalyse/VisualAnalyze.h/.cpp): what a result
 // shows besides its math: big win tags, attraction on reels, stacked figures.
 
+import { EgtALogCategoryClass } from '@game/engine/GameCore/Log/LogCategory';
 import { Currency, ERoundTags, SymbolViewInfo, type SymbolViewInfos, SymbolGridCoordinates } from '../../Common/Common.data';
 import type { RoundResult } from '../../RoundResult.data';
 import type { ReelCombinations, SpinReelsPhase } from '../ReelRoundPhase.data';
@@ -80,3 +81,5 @@ export class VisualAnalyze {
     return stackedFigures;
   }
 }
+
+EgtALogCategoryClass(VisualAnalyze, 'VisualAnalyze');

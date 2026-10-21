@@ -9,3 +9,10 @@ export interface IReelRound extends IRound {
 }
 
 export const IReelRound = Interface<IReelRound>('IReelRound');
+export const IReelRoundIntro = Interface<object>('IReelRoundIntro');
+export const IReelRoundInput = Interface<object>('IReelRoundInput');
+export const IReelRoundStarting = Interface<object>('IReelRoundStarting');
+export const IReelRoundReeling = Interface<object>('IReelRoundReeling');
+export const IReelRoundPresenting = Interface<object>('IReelRoundPresenting');
+export const IReelRoundEnding = Interface<object>('IReelRoundEnding');
+export const IReelRoundOutro = Interface<object>('IReelRoundOutro');

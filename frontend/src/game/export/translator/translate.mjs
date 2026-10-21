@@ -8,10 +8,12 @@
 // alpha_family/plugins/<plugin>/src/Egt/<Module>/x.h and .cpp.
 
 import ts from 'typescript';
+import { spawnSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { Align } from './Align.mjs';
 import { CppIndex } from './CppIndex.mjs';
 import { TranslationError, Translator } from './Translator.mjs';
 
@@ -28,7 +30,25 @@ export function CppPathOf(tsPath) {
   return null;
 }
 
+// The C++ game sources are formatted by clang-format 17 (their .clang-format files name it), from the .clang-format
+// nearest each file: the translation is too, where clang-format is installed.
+const CLANG_FORMAT = ['clang-format-17', 'clang-format'].find(command => spawnSync(command, ['--version']).status === 0) ?? null;
+
+/** The C++ of a file formatted as the C++ game sources' file at its path would be, if clang-format is installed. */
+function Format(cppRoot, path, text) {
+  if (!CLANG_FORMAT) return text;
+  const result = spawnSync(CLANG_FORMAT, [`--assume-filename=${join(cppRoot, path)}`], { input: text, encoding: 'utf8' });
+  return result.status === 0 ? result.stdout : text;
+}
+
 export function TranslateFiles(cppRoot, tsPaths) {
+  const result = Translate(cppRoot, tsPaths);
+  // formatted, aligned with the C++ it ports (what aligning moves is formatted again)
+  for (const [path, text] of Object.entries(result.files)) result.files[path] = Format(cppRoot, path, Align(cppRoot, path, Format(cppRoot, path, text), result.aliases));
+  return result;
+}
+
+function Translate(cppRoot, tsPaths) {
   const config = ts.getParsedCommandLineOfConfigFile(join(frontend, 'tsconfig.json'), {}, { ...ts.sys, onUnRecoverableConfigFileDiagnostic: () => {} });
   const files = tsPaths.map(path => resolve(gameSources, path));
   const program = ts.createProgram(files, { ...config.options, noEmit: true });
@@ -57,6 +77,8 @@ export function TranslateFiles(cppRoot, tsPaths) {
 function TranslatePass(program, index, files) {
   const translator = new Translator(program, index);
   const result = { files: {}, errors: {} };
+  // the C++ aliases, for the alignment (not in the JSON)
+  Object.defineProperty(result, 'aliases', { value: index.aliases, enumerable: false });
   for (const file of files) {
     const tsPath = relative(gameSources, file).replaceAll('\\', '/');
     const cppPath = CppPathOf(tsPath);

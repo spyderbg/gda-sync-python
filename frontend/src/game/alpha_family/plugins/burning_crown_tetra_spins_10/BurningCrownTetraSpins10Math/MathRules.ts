@@ -2,6 +2,7 @@
 // rounds, made from the math file the setup names (an IData of math/RssIData.json) and the fake reels, as
 // MathRules.description.ts describes them.
 
+import type { WheelRoundRules } from '@game/alpha_family/libs/AlphaFamily/Math/Wheel/WheelRoundRules';
 import { IResources } from '@game/engine/Game/RuntimeExport/IResources';
 import { BuildReelRoundRules } from '@game/authoring/MathRulesDescription';
 import { RoundType } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
@@ -54,6 +55,10 @@ export class MathRules implements IMathRules {
 
   HasWheelRoundRules(_roundType: RoundType) {
     return false;
+  }
+
+  GetWheelRoundRules(roundType: RoundType): WheelRoundRules {
+    throw new Error(`BurningCrownTetraSpins10 has no wheel round rules (${roundType})`);
   }
 
   /** The rules of the math file's game, without the runtime: what the simulator and the tests use. */

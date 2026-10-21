@@ -98,6 +98,8 @@ export class BrowserKernel extends BaseModule implements IKernelApi, IKernelInte
     this.RuntimeAdd(IRecovery, {
       // The action comes back as an event the machine delivers to the states, which commit it.
       RequestStateChangeAction: action => kernel.recoveryEvents.onStateChangeAction.Post(BrowserKernel.StateChangeAction(action)),
+      // the browser game does not recover: nothing is a replay
+      IsReplayStateChangeAction: () => false,
     });
     this.RuntimeAdd(IRecovery.Events, this.recoveryEvents);
     this.RuntimeAdd(IResponsibleGaming, {
@@ -177,7 +179,7 @@ export class BrowserKernel extends BaseModule implements IKernelApi, IKernelInte
     const amount = this.credit;
     this.walletEvents.onCashoutStart.Post();
     this.queue.AddCallback(() => {
-      this.SetCredit(0, TransactionType.CashOut, -amount);
+      this.SetCredit(0, TransactionType.Cashout, -amount);
       this.walletEvents.onCashoutEnd.Post(true);
     });
   }
@@ -224,7 +226,7 @@ export class BrowserKernel extends BaseModule implements IKernelApi, IKernelInte
   RequestStartMatch(creditBet: number) {
     this.queue.AddCallback(() => {
       const approved = creditBet > 0 && creditBet <= this.credit;
-      if (approved) this.SetCredit(this.credit - creditBet, TransactionType.MatchStart, -creditBet);
+      if (approved) this.SetCredit(this.credit - creditBet, TransactionType.Bet, -creditBet);
       this.kernelEvents.startMatchReply.Post(approved);
     });
   }
@@ -243,7 +245,7 @@ export class BrowserKernel extends BaseModule implements IKernelApi, IKernelInte
 
   RequestEndMatch(creditWin: number) {
     this.queue.AddCallback(() => {
-      if (creditWin > 0) this.SetCredit(this.credit + creditWin, TransactionType.MatchEnd, creditWin);
+      if (creditWin > 0) this.SetCredit(this.credit + creditWin, TransactionType.Win, creditWin);
       this.kernelEvents.endMatchReply.Post(creditWin);
     });
   }

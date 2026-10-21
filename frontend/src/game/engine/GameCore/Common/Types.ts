@@ -10,3 +10,19 @@ export type uint64_t = number;
 export type size_t = number;
 export type float = number;
 export type double = number;
+
+/** C++'s const T*: a T, or none (a function's result the C++ returns by its pointer, std::get_if's). */
+export type ConstPointer<T> = T | null;
+
+/** C++'s static_cast<T>(x) between number types (T one of the names above): x, as TypeScript has only number. */
+export function static_cast<_T>(x: number): number {
+  return x;
+}
+
+/** Egt's AnyData: any data struct, as IRecovery's state change actions carry. */
+export type AnyData = object;
+
+/** C++'s std::get_if<T>(&x) of a variant: x if it is a T, else none. */
+export function get_if<T>(type: abstract new (...args: never[]) => T, x: unknown): ConstPointer<T> {
+  return x instanceof type ? (x as T) : null;
+}

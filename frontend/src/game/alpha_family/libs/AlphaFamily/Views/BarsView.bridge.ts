@@ -1,5 +1,6 @@
 // Egt::Game::AlphaFamily numeric bars (AlphaFamily/Views/BarsView.bridge.h): ICreditBarView, ICreditsWinBarView,
-// IBetBarView, ITetraSpinBarView.
+// IBetBarView, ITetraSpinBarView; and the other games' bars the states library uses (ICoinsWinBarView,
+// IExtraSpinBarView, IHoldAndSpinBarView), which BurningCrownTetraSpins10 has not.
 
 import { Event } from '@game/engine/Core/Event';
 import type { CurrencyType } from '@game/engine/Game/Math/Common.data';
@@ -37,6 +38,27 @@ export interface IBetBarView extends IControlView, INumericBarView {
 }
 
 export const IBetBarView = Interface<IBetBarView, INumericBarViewEvents>('IBetBarView');
+
+export interface IWinBarViewWithShow {
+  ShowRemainder(visible: boolean): void;
+  AddWinResult(summary: PayoutSummary): void;
+}
+
+export interface IExtraSpinBarView extends IWinBarViewWithShow {}
+
+export const IExtraSpinBarView = Interface<IExtraSpinBarView>('IExtraSpinBarView');
+
+export interface IHoldAndSpinBarView extends IWinBarViewWithShow {
+  SetBet(bet: number): void;
+}
+
+export const IHoldAndSpinBarView = Interface<IHoldAndSpinBarView>('IHoldAndSpinBarView');
+
+export interface ICoinsWinBarView extends IControlView, INumericBarView {
+  AddWinResult(summary: PayoutSummary): void;
+}
+
+export const ICoinsWinBarView = Interface<ICoinsWinBarView, INumericBarViewEvents>('ICoinsWinBarView');
 
 export interface IBaseCounterBarView extends IControlView {
   SetCurrentCounter(current: number): void;

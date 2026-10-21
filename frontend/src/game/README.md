@@ -188,7 +188,33 @@ All 29 states of the states library, and all 37 views, visuals and software butt
 - keep the C++'s names: view names are their class names, interface methods are the C++ interface's (all of them), a
   config struct's fields are its `.data.h`'s;
 - wrap what only the browser needs (preloading frames) in `BrowserOnly(() => ...)` (`engine/GameCore/Common/BrowserOnly.ts`):
-  the translation leaves it out.
+  the translation leaves it out;
+- write a function statement for statement as its C++, with its blank lines and comments (the translation keeps them),
+  its locals (`const credit = ...;`) and its braces: an `if` without braces of a `return`, `continue` or `break` is
+  `Defensive.h`'s macro (`if (x) return v;` is `ReturnIf(x, v);`, `if (Unless(x)) return v;` `ReturnUnless(x, v);`,
+  `AssertIf`/`AssertUnless` the `Assert...` ones: `engine/GameCore/Common/Defensive.ts`), one with braces an `if`;
+  `assert(x)` is C's; `void x;` is `(void)x;`; a parameter `_x` is `[[maybe_unused]] x`; an empty `case X: //
+  [[fallthrough]]` is `case X: [[fallthrough]];`; `const x = this.RuntimeTryGet(I); if (x) {...}` is
+  `if (const auto x = ...)`;
+- log as the C++ does, with its macros (`EgtATrace`, `EgtADebug`, `EgtAInfo`, `EgtAWarning`, `EgtAError` and a
+  class's `EgtALogCategoryClass(Class, 'Name');` after it: `engine/GameCore/Log/LogCategory.ts`);
+- say the C++ types TypeScript has not: `ConstPointer<T>` (a `const T*` result), `get_if(T, x)`
+  (`std::get_if<T>(&x)`), `static_cast<size_t>(x)`, `AnyData` (`engine/GameCore/Common/Types.ts`); a derived state's
+  interfaces with its base's (`[IMainRound, ...ReelRoundState.Interfaces]` is `Fsm::List<IMainRound, ReelRoundState::Interfaces>`).
+
+### Fidelity: the translation is the C++ it ports
+
+The translation is formatted by clang-format 17 with the C++ game's `.clang-format` files, then aligned with the C++
+file it ports (`export/translator/Align.mjs`), which changes nothing of what the code means: the original's order of
+declarations and definitions, its text where a declaration, signature or statement means the same (`ReturnUnless(x, v)`
+and `ReturnIf(!x, v)`, `final` and `override`, a header's parameter names), its blank and comment lines between the
+statements both have, its includes (the translation's added only where the original's do not include them already).
+So a file whose TypeScript mirrors its C++ translates to that C++, and a change in the browser changes only its lines.
+
+`node export/translator/compare.mjs <games/game> [--diff <path>] [--compile <compile_commands.json>] [--errors]`
+translates every ported file and counts the lines each differs from its C++ (on 2026-10-21: 45 of 132 files the
+same, 7272 lines in all, most in `ViewManager` and the plugin's views, whose TypeScript is not yet re-ported
+statement for statement); `--compile` checks that the translation compiles with the games repository's build flags.
 
 Not translated yet: the info and topper modules themselves (`BurningCrownTetraSpins10InfoView.ts`, the C++ of which the
 export copies), the capping splash plugin, the math rules, and new interfaces (`*.bridge.ts`): a view that implements an interface the C++ does not declare is listed

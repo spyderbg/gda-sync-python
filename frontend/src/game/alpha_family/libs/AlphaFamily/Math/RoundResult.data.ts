@@ -5,6 +5,7 @@
 
 import { Currencies, type CurrencyType } from '@game/engine/Game/Math/Common.data';
 import type { RngNumber } from '@game/engine/GameCore/Random/IRng';
+import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
 import { PayoutSummary, RoundErrorCode, RoundType } from './Common/Common.data';
 import type { ReelRoundPhases } from './Reel/ReelRoundPhase.data';
 import { ReelRoundInput } from './Reel/ReelRoundInput.data';
@@ -49,11 +50,12 @@ export class RoundResult {
     return this.m_replay.input.bet;
   }
 
-  GetPhases(): RoundPhases {
+  /** C++'s takes the runtime (the browser's needs none): a function outside a state passes its own. */
+  GetPhases(_runtime?: Runtime): RoundPhases {
     return this.m_phases;
   }
 
-  GetSummary(): PayoutSummary {
+  GetSummary(_runtime?: Runtime): PayoutSummary {
     return this.m_summary;
   }
 

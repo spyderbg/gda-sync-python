@@ -1,4 +1,4 @@
-// Egt::Game::IResponsibleGaming, IAppControl, IAttendance and IAutoExit: the cabinet services around the game.
+// Egt::Game::IResponsibleGaming and IAppControl: the cabinet services around the game.
 
 import { Event } from '@game/engine/Core/Event';
 import { Interface } from '@game/engine/GameCore/RuntimeAccess';

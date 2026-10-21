@@ -1,28 +1,49 @@
 // Egt::Game::AlphaFamily gameflow requests and replies (AlphaFamily/RuntimeImport/IGameflow.data.h).
 
+import { ReelRoundInput } from '../Math/Reel/ReelRoundInput.data';
 import type { RoundInput, RoundResult } from '../Math/RoundResult.data';
 
-export interface StartMatchRequest {
-  bet: number;
+////////////////////////////////////////
+/// Start Match
+////////////////////////////////////////
+
+export class StartMatchRequest {
+  bet = 0;
 }
 
-export interface StartMatchReply {
-  approved: boolean;
-  bet: number;
+export class StartMatchReply {
+  approved = false;
+  bet = 0;
 }
 
-export interface StartRoundRequest {
-  roundInput: RoundInput;
+////////////////////////////////////////
+/// Start Round
+////////////////////////////////////////
+
+export class StartRoundRequest {
+  roundInput: RoundInput = new ReelRoundInput();
+  showFastLines = false;
 }
 
-export interface StartRoundReply {
-  roundResult: RoundResult;
+export class StartRoundReply {
+  roundResult!: RoundResult;
+  showFastLines = false;
 }
 
-export type EndRoundRequest = Record<string, never>;
-export type EndRoundReply = Record<string, never>;
-export type EndMatchRequest = Record<string, never>;
+////////////////////////////////////////
+/// End Round
+////////////////////////////////////////
 
-export interface EndMatchReply {
-  totalMatchWin: number;
+export class EndRoundRequest {}
+
+export class EndRoundReply {}
+
+////////////////////////////////////////
+/// End Match
+////////////////////////////////////////
+
+export class EndMatchRequest {}
+
+export class EndMatchReply {
+  totalMatchWin = 0;
 }

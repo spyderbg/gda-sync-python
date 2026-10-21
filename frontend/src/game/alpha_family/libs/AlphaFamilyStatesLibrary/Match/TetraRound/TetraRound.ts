@@ -3,6 +3,9 @@
 
 import { State } from '@game/engine/Fsm/Fsm';
 import { Currencies } from '@game/engine/Game/Math/Common.data';
+import { assert } from '@game/engine/GameCore/Common/Defensive';
+import type { int } from '@game/engine/GameCore/Common/Types';
+import { EgtALogCategoryClass, EgtATrace } from '@game/engine/GameCore/Log/LogCategory';
 import { Currency, RoundType } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
 import { ReelRoundInput } from '@game/alpha_family/libs/AlphaFamily/Math/Reel/ReelRoundInput.data';
 import { IMathRules } from '@game/alpha_family/libs/AlphaFamily/RuntimeExport/IMathRules';
@@ -22,20 +25,32 @@ import {
   ELanguageSwButtonType, ESoundSwButtonType, IExitGameSwButtonView, IExitTetraSwButtonView, IInfoSwButtonView, ILanguageSwButtonView, ISoundVolumeSwButtonView,
   IStopSingleReelSwButtonView,
 } from '@game/alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge';
-import { TetraRoundPresentingStatics, TetraRoundStatics, TetraRoundStorage } from './TetraRound.data';
+import { TetraRoundStatics, TetraRoundStorage } from './TetraRound.data';
 
 export class TetraRoundState extends State implements ITetraRound {
   static Interfaces = [ITetraRound];
   static Nvrams = [TetraRoundStorage];
-  static Statics = [TetraRoundStatics, TetraRoundPresentingStatics];
+  static Statics = [TetraRoundStatics];
 
-  OnTransit() {
+  OnTransit(isStartup: boolean, isRecovery: boolean) {
+    EgtATrace('OnTransit {} {} {}', this.GetRoundType(), isStartup ? 'isStartup' : '', isRecovery ? 'isRecovery' : '');
+    void isStartup;
+    void isRecovery;
+
     if (!this.ConstNvram(TetraRoundStorage).roundInput) {
       const input = new ReelRoundInput();
       this.InitRoundInput(input);
       this.PrepareInput(input);
+
+      assert(input.roundType === this.GetRoundType());
+      assert(input.bet > 0);
+      assert(input.lines > 0);
+      assert(input.betPerLine > 0);
+      assert(!input.consume.empty());
+
       this.Nvram(TetraRoundStorage).roundInput = input;
     }
+
     this.Parent(IGameManager).SetHasEnteredRound(this.GetRoundType(), true);
   }
 
@@ -44,72 +59,132 @@ export class TetraRoundState extends State implements ITetraRound {
   }
 
   GetRoundRules() {
-    return this.RuntimeGetConst(IMathRules).GetReelRoundRules(this.GetRoundType());
+    const roundType = this.GetRoundType();
+    const roundRules = this.RuntimeGetConst(IMathRules).GetReelRoundRules(roundType);
+    return roundRules;
   }
 
   private InitRoundInput(input: ReelRoundInput) {
+    const gameflow = this.RuntimeGetConst(IGameflow);
     const betManager = this.ConstParent(IBetManager);
     const initialBet = betManager.GetInitialBet();
     const subscreens = this.GetRoundRules().GetTetraSpinRules().GetSubScreenCount();
+
     input.roundType = RoundType.Tetra;
     input.bet = initialBet * subscreens;
     input.betType = Currency.Credits;
     input.lines = betManager.GetInitialLines();
     input.betPerLine = initialBet / input.lines;
     input.consume = new Currencies(Currency.Credits, input.bet);
-    input.initialMatchCreditBet = this.RuntimeGetConst(IGameflow).GetInitialCreditsBet();
+    input.initialMatchCreditBet = gameflow.GetInitialCreditsBet();
   }
 
   private PrepareInput(input: ReelRoundInput) {
     const betManager = this.Parent(IBetManager);
     betManager.SetCurrentBet(input.bet);
     betManager.SetCurrentLines(input.lines);
-    this.GetRoundRules().PrepareInput(input, this.Parent(IGameManager).GetLastRoundResult());
+
+    const lastResult = this.Parent(IGameManager).GetLastRoundResult();
+    const rules = this.GetRoundRules();
+
+    rules.PrepareInput(input, lastResult);
   }
 
   SetupViews(options: TetraViewOptions) {
     // bet
-    const input = this.ConstNvram(TetraRoundStorage).roundInput!;
+    const input = this.ConstNvram(TetraRoundStorage).roundInput;
     const roundRules = this.GetRoundRules();
-    const initialBet = input.initialMatchCreditBet;
-    const maxBet = initialBet * roundRules.GetMaxBetMultiplier();
-    const minBet = initialBet * roundRules.GetMinBetMultiplier();
-    const betManager = this.Parent(IBetManager);
-    betManager.SetEditMode(!!options.enableInput);
-    betManager.SetAllowedBets(roundRules.GetAllowedBets(minBet, maxBet));
-    betManager.SetAllowedLines(roundRules.GetAllowedLines());
-    betManager.SetBetLimit(this.RuntimeGetConst(IGameflow).GetMatchCurrencyAvailable(Currency.Credits));
+    assert(input);
+    {
+      const initialBet = input.initialMatchCreditBet;
+
+      const maxBet = initialBet * roundRules.GetMaxBetMultiplier();
+      const minBetMultiplier = roundRules.GetMinBetMultiplier();
+      const minBet = initialBet * minBetMultiplier;
+
+      const betManager = this.Parent(IBetManager);
+
+      const allowedBets = roundRules.GetAllowedBets(minBet, maxBet);
+
+      betManager.SetEditMode(!!options.enableInput);
+      betManager.SetAllowedBets(allowedBets);
+      betManager.SetAllowedLines(roundRules.GetAllowedLines());
+      const availableCredit = this.RuntimeGetConst(IGameflow).GetMatchCurrencyAvailable(Currency.Credits);
+      const betLimit = availableCredit;
+      betManager.SetBetLimit(betLimit);
+    }
+
+    // update bet
+    // RuntimeGet<IBetMenuView>().SetSelectedTotalBet(bet);
+    // RuntimeGet<IBetBarView>().SetValueNow(betManager.GetCurrentBet());
 
     // setup views
+
     this.Parent(IViewManager).SetupViews(RoundType.Tetra, {
-      blockGameInput: false, enableButtons: options.enableButtons, setupOverlay: false, autoSelectInfoPage: options.autoSelectInfoPage,
+      blockGameInput: false, //! options.enableInput,
+      enableButtons: options.enableButtons,
+      setupOverlay: false,
+      autoSelectInfoPage: options.autoSelectInfoPage,
       overrideSpecialRoundView: RoundType.Tetra,
     });
+
+    // setup buttons
     this.SetupSwButtons(options);
+
+    // hw buttons
+    // {
+    //     RuntimeGet<IStartHwButton>().SetButtonState({.enabled = options.enableInput});
+    //     RuntimeGet<IIncreaseBetHwButton>().SetButtonState({.enabled = false});
+    //     RuntimeGet<IDecreaseBetHwButton>().SetButtonState({.enabled = false});
+    //     RuntimeGet<IMaxBetHwButton>().SetButtonState({.enabled = false});
+    //     RuntimeGet<IAutoPlayHwButton>().SetButtonState({.enabled = false});
+    //     RuntimeGet<IInfoHwButton>().SetButtonState({.enabled = true});
+    //     RuntimeGet<IExitHwButton>().SetButtonState({.enabled = options.enableInput});
+    //     RuntimeGet<IGambleHwButton>().SetButtonState({.enabled = false});
+    //     RuntimeGet<ICashoutHwButton>().SetButtonState({.enabled = options.enableInput});
+    //     RuntimeGet<ICollectHwButton>().SetButtonState({.enabled = options.enableInput});
+    //     RuntimeGet<IGambleRedHwButton>().SetButtonState(
+    //         {.enabled = options.enableInput, .light = HwButtonLight::BlinkFastA});
+    //     RuntimeGet<IGambleBlackHwButton>().SetButtonState(
+    //         {.enabled = options.enableInput, .light = HwButtonLight::BlinkFastB});
+    // }
+
+    // bars
+    // menus
     this.SetupBetMenuView(options);
-
     // tetra reels
-    const tetraView = this.RuntimeGet(ITetraRoundView);
-    const fakeReels = roundRules.GetFakeReels();
-    const subScreenCount = roundRules.GetTetraSpinRules().GetSubScreenCount();
-    for (let i = 0; i < subScreenCount; ++i) tetraView.SetupFakeReels(i, fakeReels);
-    if (options.startReeling) tetraView.StartReeling();
-
+    {
+      const tetraView = this.RuntimeGet(ITetraRoundView);
+      const rules = this.GetRoundRules();
+      const fakeReels = rules.GetFakeReels();
+      const subScreenCount: int = rules.GetTetraSpinRules().GetSubScreenCount();
+      for (let i: int = 0; i < subScreenCount; ++i) {
+        tetraView.SetupFakeReels(i, fakeReels);
+      }
+      if (options.startReeling) {
+        tetraView.StartReeling();
+      }
+    }
     // tetra bar
     const tetraSpinBarView = this.RuntimeTryGet(ITetraSpinBarView);
     if (tetraSpinBarView) {
-      const currentConsecutiveRound = this.RuntimeGetConst(IGameflow).GetLastConsecutiveRoundCount(RoundType.Tetra);
+      const gameflow = this.RuntimeGetConst(IGameflow);
+
+      const currentConsecutiveRound = gameflow.GetLastConsecutiveRoundCount(RoundType.Tetra);
+
       tetraSpinBarView.SetCurrentCounter(currentConsecutiveRound);
       tetraSpinBarView.SetTotalCounterTarget(this.CalculateTetraRemainingSpins(currentConsecutiveRound));
       tetraSpinBarView.SetVisible(true);
     }
-    tetraView.SetVisible(true);
+
+    this.RuntimeGet(ITetraRoundView).SetVisible(true);
 
     // hide
     this.RuntimeGet(IKnobsView).SetKnobsType(EKnobsType.Tetra);
     this.RuntimeGet(IGameBackgroundView).SetBackgroundType(EBackgroundType.Tetra);
     this.RuntimeGet(ISoundVolumeSwButtonView).SetButtonType(ESoundSwButtonType.Tetra);
     this.RuntimeGet(ILanguageSwButtonView).SetButtonType(ELanguageSwButtonType.Tetra);
+
     this.RuntimeGet(IWinFiguresView).ClearFigures();
     this.RuntimeGet(ILinesView).ClearLines();
     this.RuntimeGet(IReelsView).ClearCombinations();
@@ -117,30 +192,46 @@ export class TetraRoundState extends State implements ITetraRound {
   }
 
   private CalculateTetraRemainingSpins(currentSpin: number) {
-    const currentCredit = this.RuntimeGetConst(IGameflow).GetMatchCurrencyAvailable(Currency.Credits);
-    const currentBet = this.Parent(IBetManager).GetCurrentBet();
-    const tetraMaxRounds = this.RuntimeGetConst(IMathRules).GetReelRoundRules(RoundType.Tetra).GetTetraSpinRules().GetTetraMaxRounds();
-    return Math.min(Math.trunc(currentCredit / currentBet) + currentSpin, tetraMaxRounds);
+    const gameflow = this.RuntimeGetConst(IGameflow);
+
+    const currentCredit = gameflow.GetMatchCurrencyAvailable(Currency.Credits);
+
+    const betManager = this.Parent(IBetManager);
+    const currentBet = betManager.GetCurrentBet();
+
+    const mathRules = this.RuntimeGetConst(IMathRules);
+
+    const roundRules = mathRules.GetReelRoundRules(RoundType.Tetra);
+
+    return Math.min(Math.trunc(currentCredit / currentBet) + currentSpin, roundRules.GetTetraSpinRules().GetTetraMaxRounds());
   }
 
   private SetupBetMenuView(options: TetraViewOptions) {
     const betManager = this.Parent(IBetManager);
-    const subScreenCount = this.GetRoundRules().GetTetraSpinRules().GetSubScreenCount();
+    const rules = this.GetRoundRules();
+    const subScreenCount = rules.GetTetraSpinRules().GetSubScreenCount();
     const menu = this.RuntimeGet(IBetMenuView);
     const currentBetPerSubscreen = betManager.GetCurrentBet() / subScreenCount;
     const allowedBetsPerSubscreen = betManager.GetAllowedBetsIncludingSelected().map(bet => bet / subScreenCount);
     const betLimitPerSubscreen = betManager.GetBetLimit() / subScreenCount;
     const minAllowedBetPerSubscreen = allowedBetsPerSubscreen[0];
     const maxAllowedBetPerSubscreen = Math.min(betLimitPerSubscreen, allowedBetsPerSubscreen[allowedBetsPerSubscreen.length - 1]);
+
     menu.SetPossibleTotalBets(allowedBetsPerSubscreen);
-    menu.SetPossibleLines(this.GetRoundRules().GetAllowedLines());
+    menu.SetPossibleLines(rules.GetAllowedLines());
     menu.SetSelectedTotalBet(currentBetPerSubscreen);
     menu.SetBetLimit(betLimitPerSubscreen);
     menu.SetSelectedLines(betManager.GetCurrentLines());
     menu.SetCurrency(betManager.GetBetCurrency());
-    if (options.startReeling) menu.CloseMenu();
-    menu.SetButtonUpEnabled(currentBetPerSubscreen < maxAllowedBetPerSubscreen);
-    menu.SetButtonDownEnabled(currentBetPerSubscreen > minAllowedBetPerSubscreen);
+    if (options.startReeling) {
+      menu.CloseMenu();
+    }
+
+    const canChangeBetUp = (currentBetPerSubscreen < maxAllowedBetPerSubscreen);
+    menu.SetButtonUpEnabled(canChangeBetUp);
+    const canChangeBetDown = (currentBetPerSubscreen > minAllowedBetPerSubscreen);
+    menu.SetButtonDownEnabled(canChangeBetDown);
+
     const bar = this.RuntimeGet(IBetBarView);
     bar.SetValueNow(betManager.GetCurrentBet());
     bar.SetCurrency(betManager.GetBetCurrency());
@@ -150,14 +241,20 @@ export class TetraRoundState extends State implements ITetraRound {
   private SetupSwButtons(options: TetraViewOptions) {
     const enableInput = !!options.enableInput;
     const collectTetraButton = this.RuntimeTryGet(IExitTetraSwButtonView);
-    collectTetraButton?.SetEnabled(enableInput);
-    collectTetraButton?.SetVisible(true);
+    if (collectTetraButton) {
+      collectTetraButton.SetEnabled(enableInput);
+      collectTetraButton.SetVisible(true);
+    }
+
     this.RuntimeGet(IExitGameSwButtonView).SetEnabled(false);
     this.RuntimeGet(IInfoSwButtonView).SetEnabled(false);
     this.RuntimeGet(ISoundVolumeSwButtonView).SetEnabled(enableInput);
     this.RuntimeGet(ILanguageSwButtonView).SetEnabled(enableInput);
     this.RuntimeGet(IStopSingleReelSwButtonView).SetEnabled(false);
+
     // visible
     this.RuntimeGet(IExitGameSwButtonView).SetVisible(false);
   }
 }
+
+EgtALogCategoryClass(TetraRoundState, 'TetraRoundState');

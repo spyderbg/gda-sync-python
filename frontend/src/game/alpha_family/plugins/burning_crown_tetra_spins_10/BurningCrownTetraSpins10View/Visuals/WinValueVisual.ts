@@ -5,6 +5,7 @@ import { ILocalization } from '@game/engine/Game/RuntimeImport/ILocalization';
 import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
 import type { ElementsList } from '@game/engine/GameVideoCtrl/ViewElements/ElementsList';
 import { TextElement } from '@game/engine/GameVideoCtrl/ViewElements/TextElement';
+import { EgtALogCategoryClass } from '@game/engine/GameCore/Log/LogCategory';
 import { BaseVisual } from './BaseVisual';
 
 const ImageIds = [0, 1, 2, 3].map(i => `image_tetra_screen_win_value_${i}`);
@@ -50,3 +51,5 @@ export class WinValueVisual extends BaseVisual {
     this.m_hidden = hidden;
   }
 }
+
+EgtALogCategoryClass(WinValueVisual, 'WinValueVisual');

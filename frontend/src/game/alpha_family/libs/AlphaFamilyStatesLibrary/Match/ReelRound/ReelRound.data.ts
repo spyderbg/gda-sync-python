@@ -10,7 +10,10 @@ export class ReelRoundStorage {
 
 export class ReelRoundStatics {
   requestedFastStop = false;
+  showFastLines = false;
 }
+
+export class ReelRoundPresentingStorage {}
 
 export class ReelRoundPresentingStatics {
   phaseIdx = 0;

@@ -4,6 +4,8 @@
 import { State } from '@game/engine/Fsm/Fsm';
 import { Currencies } from '@game/engine/Game/Math/Common.data';
 import { IAutoPlayHwButton, ICashoutHwButton, IStartHwButton } from '@game/engine/Game/RuntimeImport/HwButtons.bridge';
+import { assert } from '@game/engine/GameCore/Common/Defensive';
+import { EgtALogCategoryClass, EgtATrace } from '@game/engine/GameCore/Log/LogCategory';
 import { Currency } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
 import { IBetManager } from '@game/alpha_family/libs/AlphaFamily/States/IBetManager';
 import { IGameManager } from '@game/alpha_family/libs/AlphaFamily/States/IGameManager';
@@ -17,19 +19,31 @@ import { TetraRoundStorage } from './TetraRound.data';
 export class TetraRoundInputState extends State {
   static Interfaces = [ITetraRoundInput];
 
-  OnTransit(isStartup: boolean) {
+  OnTransit(isStartup: boolean, isRecovery: boolean) {
+    EgtATrace('OnTransit {} {} {}', this.Parent(ITetraRound).GetRoundType(), isStartup ? 'isStartup' : '', isRecovery ? 'isRecovery' : '');
+    void isStartup;
+    void isRecovery;
+
     this.AttachCallbacks();
+
     this.RefreshViews(isStartup);
-    if (this.Parent(IGameManager).IsAutoPlayOn()) this.RuntimeGet(IStartHwButton).SimulateButtonPress();
+
+    if (this.Parent(IGameManager).IsAutoPlayOn()) {
+      this.RuntimeGet(IStartHwButton).SimulateButtonPress();
+    }
   }
 
   private AttachCallbacks() {
     this.ReactOn(this.RuntimeGetConst(IStartHwButton.Events).buttonPressedEvent, this.OnStartHwButtonPressed);
     this.ReactOn(this.RuntimeGetConst(IAutoPlayHwButton.Events).buttonPressedEvent, this.OnAutoPlayHwButtonPressed);
+
     this.ReactOn(this.Parent(IBetManager.Events).betChanged, this.OnBetChanged);
     this.ReactOn(this.RuntimeGetConst(ICashoutHwButton.Events).buttonPressedEvent, this.OnCashoutButtonPressed);
+
     const collectTetraButtonEvents = this.RuntimeTryGetConst(IExitTetraSwButtonView.Events);
-    if (collectTetraButtonEvents) this.ReactOn(collectTetraButtonEvents.buttonPressedEvent, this.OnCollectTetraButtonPressed);
+    if (collectTetraButtonEvents) {
+      this.ReactOn(collectTetraButtonEvents.buttonPressedEvent, this.OnCollectTetraButtonPressed);
+    }
   }
 
   ToRoundStarting() {
@@ -37,39 +51,53 @@ export class TetraRoundInputState extends State {
   }
 
   private RefreshViews(autoSelectInfoPage: boolean) {
-    this.Parent(ITetraRound).SetupViews({ autoSelectInfoPage, enableButtons: true, enableInput: true });
+    this.Parent(ITetraRound).SetupViews({
+      autoSelectInfoPage: autoSelectInfoPage,
+      enableButtons: true,
+      enableInput: true,
+    });
   }
 
   private SetupBetInput() {
     const betManager = this.Parent(IBetManager);
-    const subscreens = this.Parent(ITetraRound).GetRoundRules().GetTetraSpinRules().GetSubScreenCount();
+    const rules = this.Parent(ITetraRound).GetRoundRules();
+    const subscreens = rules.GetTetraSpinRules().GetSubScreenCount();
     const currentBet = betManager.GetCurrentBet();
-    const input = this.Nvram(TetraRoundStorage).roundInput!;
+
+    const storage = this.Nvram(TetraRoundStorage);
+    assert(storage.roundInput);
+    const input = storage.roundInput!;
+
     input.bet = currentBet;
     input.lines = betManager.GetCurrentLines();
     input.betPerLine = input.bet / (subscreens * input.lines);
     input.consume = new Currencies(Currency.Credits, currentBet);
   }
 
-  OnStartHwButtonPressed() {
+  private OnStartHwButtonPressed() {
     this.SetupBetInput();
+
     return this.ToRoundStarting();
   }
 
-  OnAutoPlayHwButtonPressed() {
+  private OnAutoPlayHwButtonPressed() {
     if (this.Parent(IGameManager).IsAutoPlayOn()) return this.Skip();
+
     this.Parent(IGameManager).SetAutoPlay(true);
     this.RuntimeGet(IStartHwButton).SimulateButtonPress();
     return this.Consume();
   }
 
-  OnBetChanged(_bet: number) {
-    this.Parent(IBetManager).SetInitialBetFromCurrent();
+  private OnBetChanged(_bet: number) {
+    const betManager = this.Parent(IBetManager);
+    betManager.SetInitialBetFromCurrent();
+
     this.RefreshViews(true);
+
     return this.Forward();
   }
 
-  OnCashoutButtonPressed() {
+  private OnCashoutButtonPressed() {
     this.Parent(ISystemManager).RequestPendingCashout();
     // Fixed in the browser game: C++ goes to TetraRoundPresenting, which has no round to present at the input (the last
     // one has ended, or none has started), so TetraRoundEnding requests the end of a round that does not exist and the
@@ -77,7 +105,9 @@ export class TetraRoundInputState extends State {
     return this.Transit(ITetraRoundOutro);
   }
 
-  OnCollectTetraButtonPressed() {
+  private OnCollectTetraButtonPressed() {
     return this.Transit(ITetraRoundOutro);
   }
 }
+
+EgtALogCategoryClass(TetraRoundInputState, 'TetraRoundInputState');
