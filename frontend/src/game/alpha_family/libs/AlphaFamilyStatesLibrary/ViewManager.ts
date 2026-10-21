@@ -412,8 +412,8 @@ export class ViewManager extends State implements IViewManager, IViewManagerEven
     const available = this.GetAvailableCredits(roundType);
     const isAutoPlayOn = this.Parent(IGameManager).IsAutoPlayOn();
     let status = EStatusLine.None;
-    if (options.startReeling) status = EStatusLine.GoodLuck;
-    else if (!options.enableButtons) status = options.statusLine ?? EStatusLine.None;
+    if (!options.enableButtons) status = options.statusLine ?? EStatusLine.None;
+    else if (options.startReeling) status = EStatusLine.GoodLuck;
     else if (available === 0) status = EStatusLine.InsertCredit_NoCredit;
     else if (available < minBet && roundType !== RoundType.Extra && roundType !== RoundType.Coins) status = EStatusLine.InsertCredit_LessThenBet;
     else if (isAutoPlayOn) status = EStatusLine.None;

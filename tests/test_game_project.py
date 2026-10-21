@@ -2,6 +2,7 @@
 
 import json
 import shutil
+import time
 from pathlib import Path
 
 import pytest
@@ -174,3 +175,64 @@ def test_typescript_states_are_translated_against_the_cpp_game_sources(client):
     state = "alpha_family/libs/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRoundInput.ts"
     result = client.post("/api/game/translate", json={"files": [state]}).json()
     assert result["files"] == {} and state in result["errors"]
+
+
+FAKE_IMPORTER = """
+const agent = process.argv.includes('--agent');
+const files = process.argv.slice(3).filter(arg => !arg.startsWith('--'));
+if (agent) console.error('porting ' + (files[0] ?? 'all') + ' with Claude Code...');
+process.stdout.write(JSON.stringify({ head: 'abc', changed: [{ ts: 'alpha_family/x.ts', cpp: ['alpha_family/x.h'] }],
+  ported: agent ? [{ ts: 'alpha_family/x.ts' }] : [], failed: [] }));
+"""
+
+
+@pytest.mark.skipif(not shutil.which("node"), reason="the importer runs on Node.js")
+def test_the_cpp_changes_are_reported_and_ported_in_the_background(client, tmp_path, monkeypatch):
+    from egt_gda_sync.game import project
+    importer = tmp_path / "import-cpp.mjs"
+    importer.write_text(FAKE_IMPORTER)
+    monkeypatch.setattr(project, "IMPORTER", importer)
+    (client.game.parent / "game").mkdir(exist_ok=True)
+    report = client.get("/api/game/import").json()
+    assert report["changed"][0]["ts"] == "alpha_family/x.ts" and report["ported"] == []
+
+    real_which = shutil.which
+    monkeypatch.setattr(project.shutil, "which", lambda name: "/usr/bin/claude" if name == "claude" else real_which(name))
+    assert client.post("/api/game/import", json={"files": ["../../etc/passwd.ts"]}).status_code == 403
+    started = client.post("/api/game/import", json={"files": ["alpha_family/libs/AlphaFamilyVideoCtrl/Components/NumericBarView.ts"]}).json()
+    assert started["running"] or started["result"]
+    for _ in range(100):
+        status = client.get("/api/game/agent/status").json()
+        if not status["running"]:
+            break
+        time.sleep(0.05)
+    assert status["result"]["ported"] == [{"ts": "alpha_family/x.ts"}]
+    assert status["log"] == ["porting alpha_family/libs/AlphaFamilyVideoCtrl/Components/NumericBarView.ts with Claude Code..."]
+
+
+@pytest.mark.skipif(not shutil.which("node"), reason="the export agent runs on Node.js")
+def test_an_exports_changes_the_translator_left_are_ported_by_an_agent_in_the_background(client, tmp_path, monkeypatch):
+    from egt_gda_sync.game import project
+    agent = tmp_path / "export-agent.mjs"
+    agent.write_text("""
+console.error('porting into ' + process.argv[2].split('/').pop());
+process.stdout.write(JSON.stringify({ ported: [{ ts: 'alpha_family/x.ts', cpp: ['alpha_family/x.cpp'] }], failed: [] }));
+""")
+    monkeypatch.setattr(project, "EXPORT_AGENT", agent)
+    (client.game.parent / "game").mkdir(exist_ok=True)
+    real_which = shutil.which
+    monkeypatch.setattr(project.shutil, "which", lambda name: "/usr/bin/claude" if name == "claude" else real_which(name))
+    exported = client.post("/api/game/export", json={"name": "Example", "files": {"README.md": "# Example\n"}}).json()
+    # an export without export.json (made before the agent) cannot be ported
+    assert client.post("/api/game/export-agent", json={"id": exported["id"]}).status_code == 404
+    exported = client.post("/api/game/export", json={"name": "Example", "files": {"README.md": "# Example\n", "export.json": "{}"}}).json()
+    assert client.post("/api/game/export-agent", json={"id": "../x"}).status_code in (400, 404)
+    client.post("/api/game/export-agent", json={"id": exported["id"]})
+    for _ in range(100):
+        status = client.get("/api/game/agent/status").json()
+        if not status["running"]:
+            break
+        time.sleep(0.05)
+    assert status["kind"] == "export" and status["result"]["ported"][0]["ts"] == "alpha_family/x.ts"
+    assert status["log"] == [f"porting into {exported['id']}"]
+

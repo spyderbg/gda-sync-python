@@ -3,7 +3,7 @@
 // (its asset report) and the game's own descriptors, math and modules config, all read through the backend.
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from 'vue';
 import PageHeader from '../components/PageHeader.vue';
-import { config, navigate, notify, openGameExport, openGameSource, session } from '../workspace';
+import { api, config, navigate, notify, openGameExport, openGameSource, session } from '../workspace';
 import { GameApp } from '@game/app/GameApp';
 import { type GameAssetReport, GameBackend, type GameProject } from '@game/app/GameBackend';
 import { AudioManager } from '@game/engine/AudioManager/AudioManager';
@@ -38,6 +38,18 @@ const infoOpen = ref(false);
 const devOpen = ref(false);
 const exportResult = ref<{ folder: string; id: string; files: string[] } | null>(null);
 const exportReport = shallowRef<PluginExport['report'] | null>(null);
+
+/** The C++ changes to import into the TypeScript (export/import-cpp.mjs), and the agent's port of them. */
+interface ImportChange { ts: string; cpp: string[]; commits: string[]; uncommitted: boolean }
+interface ImportOutcome { ts: string; files?: string[]; before?: number | null; after?: number | null; reason?: string; account?: string }
+interface ImportReport { changed: ImportChange[]; ported: ImportOutcome[]; upToDate?: ImportOutcome[]; failed: ImportOutcome[] }
+/** A Claude Code agent's run: porting the C++ changes into the TypeScript (import), or an export's TypeScript changes
+ * the translator could not translate into its C++ (export). */
+interface ImportStatus { running: boolean; kind: 'import' | 'export' | null; log: string[]; result: ImportReport | null; error: string | null }
+const importReport = shallowRef<ImportReport | null>(null);
+const importStatus = shallowRef<ImportStatus | null>(null);
+const importChecking = ref(false);
+let importTimer: number | undefined;
 /** Whether the export translates all the game's views from TypeScript, not only those changed in the browser. */
 const exportAllViews = ref(false);
 let app: GameApp | null = null;
@@ -267,6 +279,57 @@ async function exportCpp() {
   }
 }
 
+async function checkCppChanges() {
+  importChecking.value = true;
+  try {
+    importReport.value = await api<ImportReport>('game/import', 'GET');
+  } catch (failure) {
+    notify(`Comparing the C++ failed: ${(failure as Error).message}`, true);
+  } finally {
+    importChecking.value = false;
+  }
+}
+
+async function followAgent() {
+  window.clearTimeout(importTimer);
+  try {
+    importStatus.value = await api<ImportStatus>('game/agent/status', 'GET');
+  } catch (failure) {
+    notify(`The agent's status failed: ${(failure as Error).message}`, true);
+    return;
+  }
+  if (importStatus.value.running) {
+    importTimer = window.setTimeout(followAgent, 2000);
+    return;
+  }
+  const result = importStatus.value.result;
+  const what = importStatus.value.kind === 'export' ? 'into the export\'s C++' : 'from the C++';
+  if (result) notify(`Ported ${what}: ${result.ported.length} files${result.failed.length ? `, ${result.failed.length} not` : ''}`, !!result.failed.length);
+  else if (importStatus.value.error) notify(importStatus.value.error, true);
+  if (importStatus.value.kind === 'import') void checkCppChanges();
+}
+
+/** Has a Claude Code agent port the C++ changes into the TypeScript (all, or one file's). */
+async function portCppChanges(ts?: string) {
+  try {
+    importStatus.value = await api<ImportStatus>('game/import', 'POST', { files: ts ? [ts] : [] });
+    void followAgent();
+  } catch (failure) {
+    notify(`Porting the C++ changes failed: ${(failure as Error).message}`, true);
+  }
+}
+
+/** Has a Claude Code agent port into the export's C++ the TypeScript changes the translator could not translate. */
+async function portExportChanges() {
+  if (!exportResult.value) return;
+  try {
+    importStatus.value = await api<ImportStatus>('game/export-agent', 'POST', { id: exportResult.value.id });
+    void followAgent();
+  } catch (failure) {
+    notify(`Porting the export's changes failed: ${(failure as Error).message}`, true);
+  }
+}
+
 watch(() => config.value?.defaultWorkspace, (workspace, previous) => {
   if (previous !== undefined && workspace !== previous) void load();
 });
@@ -275,6 +338,7 @@ onMounted(() => {
   window.addEventListener('keydown', onKeydown);
   void load();
 });
+onBeforeUnmount(() => window.clearTimeout(importTimer));
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeydown);
   stop();
@@ -406,6 +470,31 @@ onBeforeUnmount(() => {
                 {{ exportReport.updated.length }} updated, {{ exportReport.translated.length }} translated, {{ exportReport.skeletons.length }} new view skeletons</p>
               <p class="small mb-0"><strong :class="{ 'text-danger': exportReport.changed.length }">{{ exportReport.changed.length }} to update by hand</strong>
                 (see <button v-if="exportResult" type="button" class="game-dev-link" title="Open the export's README in VS Code" @click="openGameExport(exportResult.id, 'README.md')">its README</button><template v-else>its README</template>)</p>
+              <button v-if="exportResult && exportReport.changed.length" type="button" class="btn btn-sm btn-outline-primary mt-1" :disabled="importStatus?.running" title="A Claude Code agent ports them into the export's C++; the export keeps what compiles" @click="portExportChanges"><i class="mdi mdi-robot-outline" aria-hidden="true" /> Port them with Claude Code</button>
+            </template>
+            <h6 class="mt-3">Import from C++</h6>
+            <p class="small mb-2">The C++ that changed since the TypeScript ported it (the games repository's commits). A Claude Code agent ports each change into a copy of the TypeScript; the import keeps what type-checks and translates no farther from the new C++, and leaves the sources as they are for the rest.</p>
+            <div class="btn-group btn-group-sm mb-2">
+              <button type="button" class="btn btn-outline-primary" :disabled="importChecking || importStatus?.running" @click="checkCppChanges"><i class="mdi mdi-source-branch-sync" aria-hidden="true" /> Check the C++</button>
+              <button type="button" class="btn btn-outline-primary" :disabled="!importReport?.changed.length || importStatus?.running" @click="portCppChanges()"><i class="mdi mdi-robot-outline" aria-hidden="true" /> Port with Claude Code</button>
+            </div>
+            <template v-if="importReport">
+              <p v-if="!importReport.changed.length" class="small text-muted mb-1">The TypeScript ports the C++ as it is.</p>
+              <ul v-else class="game-dev-list small">
+                <li v-for="change in importReport.changed" :key="change.ts">
+                  <code>{{ change.ts.split('/').pop() }}</code><span v-if="change.uncommitted" class="text-muted"> (uncommitted C++)</span>
+                  <button type="button" class="game-dev-link" :disabled="importStatus?.running" title="Port this file's C++ changes with Claude Code" @click="portCppChanges(change.ts)">port</button>
+                  <ul class="game-import-commits"><li v-for="commit in change.commits" :key="commit">{{ commit }}</li></ul>
+                </li>
+              </ul>
+            </template>
+            <template v-if="importStatus">
+              <p v-if="importStatus.running" class="small mb-1"><i class="mdi mdi-loading mdi-spin" aria-hidden="true" /> {{ importStatus.log[importStatus.log.length - 1] ?? 'Starting Claude Code...' }}</p>
+              <template v-else-if="importStatus.result">
+                <p v-for="item in importStatus.result.ported" :key="`ported:${item.ts}`" class="small mb-1" :title="item.account">Ported <code>{{ item.ts.split('/').pop() }}</code>{{ importStatus.kind === 'export' ? ' into the export\'s C++' : `: ${item.files?.length ?? 0} files changed` }}</p>
+                <p v-for="item in importStatus.result.upToDate ?? []" :key="`up:${item.ts}`" class="small text-muted mb-1" :title="item.account"><code>{{ item.ts.split('/').pop() }}</code> ports the change already</p>
+                <p v-for="item in importStatus.result.failed" :key="`failed:${item.ts}`" class="small text-danger mb-1" :title="item.account">Not ported <code>{{ item.ts.split('/').pop() }}</code>: {{ item.reason?.split('\n')[0] }}</p>
+              </template>
             </template>
           </div>
         </div>
@@ -536,6 +625,11 @@ onBeforeUnmount(() => {
   &:focus-visible {
     text-decoration: underline;
   }
+}
+
+.game-import-commits {
+  padding-left: 1rem;
+  color: #6c757d;
 }
 
 .game-export-folder {

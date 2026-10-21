@@ -202,6 +202,25 @@ All 29 states of the states library, and all 37 views, visuals and software butt
   (`std::get_if<T>(&x)`), `static_cast<size_t>(x)`, `AnyData` (`engine/GameCore/Common/Types.ts`); a derived state's
   interfaces with its base's (`[IMainRound, ...ReelRoundState.Interfaces]` is `Fsm::List<IMainRound, ReelRoundState::Interfaces>`).
 
+### Import: the C++'s changes into the TypeScript
+
+The other direction: the C++ game changes too (bug fixes, other games' needs), and the TypeScript follows. Each entry of
+`PortManifest.json` records the C++ it ports: the games repository's commit (`cppCommit`) and each file's SHA-256 there
+(`cppSha256`). `node export/import-cpp.mjs <games/game>` lists the ported files whose C++ changed since, with the commits;
+with `--agent`, a Claude Code agent (`claude -p`) ports each change into the TypeScript, statement for statement. It works
+in a git worktree of the app's sources, may only edit `frontend/src/game` and run the type check and `compare.mjs`, and
+what it does is checked deterministically: the TypeScript type-checks and its translation is no farther from the new C++
+than before. Only what passes is copied into the sources (never over a file changed there meanwhile), and its manifest
+entry then ports the new C++; an agent that finds the change ported already says so (`ALREADY PORTED`), and the entry is
+moved on. The Developer panel has the same (**Import from C++**: Check the C++, Port with Claude Code; the backend's
+`/api/game/import` and `/api/game/agent/status`). Review and commit what it ported: the export finds the TypeScript as it
+was ported in the git history.
+
+The export's agent is the other way (`node export/export-agent.mjs <export folder> <games/game>`, or **Port them with
+Claude Code** after an export): the TypeScript changes the translator could not translate (the export's `export.json`) are
+ported into the export's C++ by an agent, with the TypeScript's diff since it was ported; it stays only if it compiles
+(`export/translator/CompileCheck.mjs`, with the games repository's `compile_commands.json`), and the README lists it.
+
 ### Fidelity: the translation is the C++ it ports
 
 The translation is formatted by clang-format 17 with the C++ game's `.clang-format` files, then aligned with the C++

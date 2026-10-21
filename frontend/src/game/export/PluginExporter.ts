@@ -198,6 +198,8 @@ export async function ExportPlugin(input: CppExportInput, token: string, options
     translated, changed, unported,
   };
   files['README.md'] = Readme(gameName, report);
+  // what the export left to update by hand, for an agent to port (export-agent.mjs): with the TypeScript as it was ported
+  files['export.json'] = `${JSON.stringify({ game: gameName, plugin, changed: changed.map(item => ({ ...item, sha256: MANIFEST[item.ts]?.sha256 ?? null })) }, null, 1)}\n`;
   return { files, copies, report };
 }
 

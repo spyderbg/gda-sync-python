@@ -54,13 +54,17 @@ export abstract class NumericBarView<T, E extends INumericBarViewEvents> extends
   /** Counts a win up from the value shown, as AddValueWithGeometricAccumulation does. */
   protected AddValueWithGeometricAccumulation(value: number) {
     const start = this.m_accumulation ? this.m_accumulation.targetValue : this.m_currentValue;
-    const descriptor = Accumulation.CreateGeometryAccumulationByFactor(this.m_currentValue, start + value, 8, 200);
+    const descriptor = Accumulation.CreateGeometryAccumulationByFactor(this.m_currentValue, start + value, 8, 220);
     this.SetAccumulation(descriptor);
   }
 
   protected AddValueWithSteppedAccumulation(value: number) {
     const start = this.m_accumulation ? this.m_accumulation.targetValue : this.m_currentValue;
     this.SetAccumulation(Accumulation.CreateLinearAccumulationBySpeed(this.m_currentValue, start + value, 4, 60));
+  }
+
+  IsCurrentlyAccumulating() {
+    return this.m_accumulation !== null;
   }
 
   FastForward() {

@@ -9,12 +9,12 @@
 // writes the translated files there; --compile checks that each translated .cpp compiles
 // (-fsyntax-only) with the command the games repository's build has for its C++, the translated headers first.
 
-import { exec, execFileSync } from 'node:child_process';
-import { cpus } from 'node:os';
+import { execFileSync } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { CompileErrors } from './CompileCheck.mjs';
 import { TranslateFiles } from './translate.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -44,29 +44,6 @@ for (const [path, text] of Object.entries(files)) {
 }
 rows.sort((a, b) => b.changed - a.changed);
 
-/** The translated .cpp files that do not compile, with clang's first errors. */
-async function CompileErrors(commandsFile) {
-  const commands = new Map(JSON.parse(readFileSync(commandsFile, 'utf8')).map(entry => [entry.file, entry]));
-  const roots = [...new Set(Object.keys(files).map(path => /^(.*?\/src)\//.exec(path)?.[1]).filter(Boolean))].map(root => `-I${join(out, root)}`);
-  // the original's folders, for the quoted includes of the files that are not translated (BaseReelsView.h)
-  roots.push(...[...new Set(Object.keys(files).map(path => dirname(join(cppRoot, path))))].map(folder => `-iquote${folder}`));
-  const queue = Object.keys(files).filter(path => path.endsWith('.cpp'));
-  const failures = {};
-  const run = path => new Promise(done => {
-    const entry = commands.get(join(cppRoot, path));
-    if (!entry) return done((failures[path] = 'no compile command'));
-    const command = entry.command.replace(/\s-o\s+\S+/, '').replace(/\s-c\s+\S+$/, '').replace(entry.file, '');
-    exec(`${command.replace(/^(\S+)/, `$1 ${roots.join(' ')}`)} -fsyntax-only -c ${join(out, path)}`, { cwd: entry.directory, maxBuffer: 1 << 24 }, (error, _stdout, stderr) => {
-      if (error) failures[path] = stderr.split('\n').filter(line => /error:/.test(line)).slice(0, 3).join('\n');
-      done();
-    });
-  });
-  const workers = Array.from({ length: Math.max(1, cpus().length - 1) }, async () => {
-    while (queue.length) await run(queue.shift());
-  });
-  await Promise.all(workers);
-  return failures;
-}
 if (filter) {
   for (const row of rows) if (row.path.includes(filter)) process.stdout.write(row.diff);
 } else {
@@ -78,7 +55,7 @@ if (args.includes('--errors')) {
   for (const [path, message] of Object.entries(errors)) if (!/no class$|: not in /.test(message.split('\n')[0])) console.log(`NOT TRANSLATED ${path}\n  ${message.split('\n').slice(0, 4).join('\n  ')}`);
 }
 if (option('--compile')) {
-  const failures = await CompileErrors(option('--compile'));
+  const failures = await CompileErrors(cppRoot, option('--compile'), out, Object.keys(files));
   for (const [path, message] of Object.entries(failures)) console.log(`DOES NOT COMPILE ${path}\n${message}`);
   console.log(`${Object.keys(failures).length} of ${Object.keys(files).filter(path => path.endsWith('.cpp')).length} translated .cpp files do not compile`);
 }

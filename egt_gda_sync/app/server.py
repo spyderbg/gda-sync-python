@@ -24,7 +24,7 @@ from egt_gda_sync.app.desktop import choose_folder, open_in_code, open_on_deskto
 from egt_gda_sync.app.errors import AppError
 from egt_gda_sync.assets.fonts import FONT_EXTENSIONS, facts_header
 from egt_gda_sync.assets.movies import is_movie
-from egt_gda_sync.game.project import MAX_EXPORT_BYTES, GameProject, game_source_path
+from egt_gda_sync.game.project import MAX_EXPORT_BYTES, GameProject, agent_status, game_source_path
 from egt_gda_sync.workspace.library import MAX_TEXT_BYTES, Library
 from egt_gda_sync.images.metadata.service import MAX_METADATA
 from egt_gda_sync.app.lifetime import PAGE_CLOSE_GRACE_SECONDS, PageLifetime
@@ -218,6 +218,11 @@ class GameExportFileBody(_Body):
     """An export of the browser game, by its id (its folder name), and a file of it, by its path in the export."""
     id: Annotated[str, StringConstraints(max_length=100)]
     file: Text4K | None = None
+
+
+class GameImportBody(_Body):
+    """Ported TypeScript files of the browser game whose C++ changes to port (none: all of them)."""
+    files: Annotated[list[Text4K], Field(max_length=200)] = []
 
 
 class GameTranslateBody(_Body):
@@ -651,6 +656,22 @@ def create_app(
     @app.post("/api/game/translate")
     def game_translate(body: GameTranslateBody) -> dict:
         return GameProject(library).translate(body.files)
+
+    @app.get("/api/game/import")
+    def game_import_report() -> dict:
+        return GameProject(library).import_report()
+
+    @app.post("/api/game/import")
+    def game_import(body: GameImportBody) -> dict:
+        return GameProject(library).start_import(body.files)
+
+    @app.post("/api/game/export-agent")
+    def game_export_agent(body: GameExportFileBody) -> dict:
+        return GameProject(library).start_export_agent(body.id)
+
+    @app.get("/api/game/agent/status")
+    def game_agent_status() -> dict:
+        return agent_status()
 
     @app.post("/api/game/open-source")
     def game_open_source(body: GameSourceBody) -> dict:

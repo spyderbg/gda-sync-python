@@ -26,6 +26,7 @@ import os
 import re
 import shutil
 import subprocess
+import threading
 import time
 from pathlib import Path
 
@@ -55,6 +56,16 @@ TRANSLATOR = GAME_SOURCES / "export" / "translator" / "translate.mjs"
 GAME_SOURCE_PATH = re.compile(r"^(?!.*\.\.)[A-Za-z0-9_.-]+(/[A-Za-z0-9_.-]+)*\.(ts|vue)$")
 TS_PATH = re.compile(r"^(alpha_family|plugins)(/[A-Za-z0-9_.-]+)+\.ts$")
 TRANSLATE_TIMEOUT = 300
+# The import of the C++ game sources' changes into the TypeScript (frontend/src/game/export/import-cpp.mjs), its report;
+# and the Claude Code agents: porting those changes into the TypeScript, or an export's TypeScript changes the
+# translator could not translate into its C++ (export-agent.mjs), one at a time, in the background (an agent takes
+# minutes per file).
+IMPORTER = GAME_SOURCES / "export" / "import-cpp.mjs"
+EXPORT_AGENT = GAME_SOURCES / "export" / "export-agent.mjs"
+IMPORT_REPORT_TIMEOUT = 300
+AGENT_LOG_LINES = 400
+_agent_lock = threading.Lock()
+_agent_job: dict = {"running": False, "kind": None, "log": [], "result": None, "error": None, "files": []}
 
 
 class GameProject:
@@ -225,6 +236,49 @@ class GameProject:
             raise AppError(f"The translator failed: {result.stderr.strip()[-2000:]}", 500)
         return json.loads(result.stdout)
 
+    def _importer(self) -> tuple[str, Path]:
+        node = shutil.which("node")
+        if not node or not IMPORTER.is_file():
+            raise AppError("Importing the C++ changes needs the app's sources and Node.js", 501)
+        root = self._cpp_root(self._folders()[2])
+        if not root.is_dir():
+            raise AppError("The C++ game sources do not exist", 404)
+        return node, root
+
+    def import_report(self) -> dict:
+        """The ported files whose C++ changed since they were ported: their C++ files, the commits and the diff's size."""
+        node, root = self._importer()
+        try:
+            result = subprocess.run([node, str(IMPORTER), str(root), "--json"], cwd=IMPORTER.parents[3], capture_output=True, text=True,
+                                    timeout=IMPORT_REPORT_TIMEOUT, check=False)
+        except subprocess.TimeoutExpired as error:
+            raise AppError("Comparing the C++ took too long", 504) from error
+        if result.returncode:
+            raise AppError(f"The import failed: {result.stderr.strip()[-2000:]}", 500)
+        return json.loads(result.stdout)
+
+    def start_import(self, files: list[str]) -> dict:
+        """Starts a Claude Code agent porting the C++ changes of these ported files (all with C++ changes, when none) into
+        their TypeScript, in the background; agent_status follows it."""
+        node, root = self._importer()
+        if not shutil.which("claude"):
+            raise AppError("Porting with an agent needs Claude Code (the claude command)", 501)
+        for file in files:
+            if not TS_PATH.match(file) or ".." in file:
+                raise AppError(f"Not a TypeScript file of the browser game: {file}", 403)
+        return _start_agent("import", [node, str(IMPORTER), str(root), "--agent", "--json", *files], files)
+
+    def start_export_agent(self, export_id: str) -> dict:
+        """Starts a Claude Code agent porting into an export's C++ the TypeScript changes the translator could not
+        translate (its export.json's changed), in the background; agent_status follows it."""
+        node, root = self._importer()
+        if not shutil.which("claude"):
+            raise AppError("Porting with an agent needs Claude Code (the claude command)", 501)
+        folder = Path(self.export_path(export_id))
+        if not (folder / "export.json").is_file():
+            raise AppError("The export has no export.json: export again", 404)
+        return _start_agent("export", [node, str(EXPORT_AGENT), str(folder), str(root), "--json"], [export_id])
+
     def export(self, name: str, files: dict[str, str], copies: dict[str, str] | None = None) -> dict:
         """Write the files of an export, by their relative paths, to a new folder of the app data folder's game exports,
         with copies of C++ sources (an export path to its path in the C++ game sources), and return where they are."""
@@ -272,6 +326,44 @@ class GameProject:
         if not os.path.isfile(path):
             raise AppError(f"{file} is not in the export", 404)
         return path
+
+
+def agent_status() -> dict:
+    """The running or last agent: what it does (import, export), whether it runs, its progress log, and its report
+    (ported, failed) when it ended."""
+    with _agent_lock:
+        return {key: (list(value) if isinstance(value, list) else value) for key, value in _agent_job.items()}
+
+
+def _start_agent(kind: str, command: list[str], files: list[str]) -> dict:
+    with _agent_lock:
+        if _agent_job["running"]:
+            raise AppError("An agent is running", 409)
+        _agent_job.update(running=True, kind=kind, log=[], result=None, error=None, files=list(files))
+    threading.Thread(target=_run_agent, args=(command,), daemon=True).start()
+    return agent_status()
+
+
+def _run_agent(command: list[str]) -> None:
+    try:
+        process = subprocess.Popen(command, cwd=IMPORTER.parents[3], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        for line in process.stderr:
+            with _agent_lock:
+                _agent_job["log"].append(line.rstrip("\n"))
+                del _agent_job["log"][:-AGENT_LOG_LINES]
+        output = process.stdout.read()
+        process.wait()
+        with _agent_lock:
+            if process.returncode:
+                _agent_job["error"] = f"The agent failed ({process.returncode}): {' '.join(_agent_job['log'][-3:])}"
+            else:
+                _agent_job["result"] = json.loads(output)
+    except (OSError, ValueError) as error:
+        with _agent_lock:
+            _agent_job["error"] = f"The agent failed: {error}"
+    finally:
+        with _agent_lock:
+            _agent_job["running"] = False
 
 
 def game_source_path(file: str) -> str:
