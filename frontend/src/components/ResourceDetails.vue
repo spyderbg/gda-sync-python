@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { algorithmValues, baseName, viewTable, type GdaCandidate, declarationLabel, directoryOf, extensionOf, fileType, matchBadge, matchText, number, plural, previewFrames, relativePath, rssBadges, rtfChangeBadges, rtfChangeNames, rtfChangeSummary, sequenceName, size, splitPath, stackedAlpha, time } from '../format';
+import { PREVIEW_EXTENSIONS, algorithmValues, baseName, viewTable, type GdaCandidate, declarationLabel, directoryOf, extensionOf, fileType, matchBadge, matchText, number, plural, previewFrames, relativePath, rssBadges, rtfChangeBadges, rtfChangeNames, rtfChangeSummary, sequenceName, size, splitPath, stackedAlpha, time } from '../format';
 import type { RssFileDetails, RssResource, RtfFacts } from '../types';
 import { busy, copy, data, openDeclaration, openResourceFolder, requestResourceSync, resourceDetails, rssSync } from '../workspace';
 import AppModal from './AppModal.vue';
@@ -11,6 +11,7 @@ import ReportThumbnail from './ReportThumbnail.vue';
 import RtfPreview from './RtfPreview.vue';
 import SequencePreview from './SequencePreview.vue';
 import ViewPreview from './ViewPreview.vue';
+import ImageCompare from './ImageCompare.vue';
 
 // The details of one resource of the GDA sync report in a dialog, like the asset library's asset details (AssetDetails):
 // a large preview, beside the GDA file's when the GDA has one, what the status means, the files' format, size,
@@ -30,6 +31,8 @@ const props = withDefaults(defineProps<{
   row: RssResource; revision: string; reportVersion?: number; candidate?: GdaCandidate | null; candidates?: GdaCandidate[];
 }>(), { reportVersion: undefined, candidate: null, candidates: () => [] });
 const emit = defineEmits<{ close: []; choose: [file: string] }>();
+const comparing = ref(false);
+function close() { if (!comparing.value) emit('close'); }
 
 const sequence = computed(() => props.row.sequence);
 const name = computed(() => splitPath(props.row.resource).name);
@@ -61,7 +64,7 @@ const candidateIndex = computed(() => props.candidates.findIndex(candidate => ca
 function onKeydown(event: KeyboardEvent) {
   const direction = { ArrowLeft: -1, ArrowRight: 1 }[event.key];
   const target = event.target as HTMLElement | null;
-  if (!direction || props.candidates.length < 2 || event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey
+  if (comparing.value || !direction || props.candidates.length < 2 || event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey
       || target?.closest('input, textarea, select, [contenteditable="true"]')) return;
   event.preventDefault();
   let index = candidateIndex.value + direction;
@@ -95,6 +98,10 @@ const gameFrames = computed(() => (sequence.value ? previewFrames(sequence.value
 const gdaFrames = computed(() => (sequence.value ? previewFrames(sequence.value, 'gda') : []));
 // The GDA preview shows beside the game's for a resource that the GDA has.
 const pairedPreview = computed(() => hasGda.value && (props.row.category === 'different' || props.row.category === 'identical' || !!props.candidate));
+const canCompare = computed(() => pairedPreview.value && !sequence.value && !directory.value && !!gdaShown.value
+  && PREVIEW_EXTENSIONS.includes(extensionOf(name.value)) && PREVIEW_EXTENSIONS.includes(extensionOf(baseName(gdaShown.value.path)))
+  && props.row.category !== 'invalid');
+watch(() => props.row.id, () => { comparing.value = false; });
 // The Font entries that declare characters of a font, and the one whose characters the previews draw.
 const isFont = computed(() => !sequence.value && fileType(extensionOf(name.value)) === 'font');
 const fontUses = computed(() => props.row.requiredBy.filter(use => use.chars));
@@ -315,7 +322,7 @@ function sync() {
 </script>
 
 <template>
-  <AppModal :title="name" xl @close="emit('close')">
+  <AppModal :title="name" xl @close="close">
     <template #header>
       <div :class="['details-note', note.tone]">
         <i aria-hidden="true" :class="['mdi', note.icon]" />
@@ -355,6 +362,10 @@ function sync() {
           <ReportThumbnail v-else :file="gdaShown!.absolutePath" :name="baseName(gdaShown!.path)" :revision="revision" :stacked="stacked" />
         </figure>
       </div>
+
+      <p v-if="canCompare" class="text-right">
+        <button type="button" class="btn btn-outline-primary btn-sm" @click="comparing = true"><i aria-hidden="true" class="mdi mdi-image-search-outline" /> Detailed image compare</button>
+      </p>
 
       <div class="details-columns">
         <section class="details-summary" aria-label="Status">
@@ -499,4 +510,5 @@ function sync() {
       </button>
     </div>
   </AppModal>
+  <ImageCompare v-if="comparing && gdaShown" :game="row.resourcePath" :gda="gdaShown.absolutePath" :revision="revision" @close="comparing = false" />
 </template>

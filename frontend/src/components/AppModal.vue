@@ -10,6 +10,9 @@ const dialog = ref<HTMLDivElement>();
 let previous: HTMLElement | null = null;
 
 function onKeydown(event: KeyboardEvent) {
+  // Only the top dialog handles Escape and traps focus when another modal is stacked over this one.
+  const modals = document.querySelectorAll('.modal');
+  if (dialog.value?.closest('.modal') !== modals[modals.length - 1]) return;
   if (event.key === 'Escape') emit('close');
   if (event.key !== 'Tab') return;
   // Keep keyboard focus inside the dialog.
