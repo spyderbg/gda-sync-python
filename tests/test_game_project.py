@@ -236,3 +236,51 @@ process.stdout.write(JSON.stringify({ ported: [{ ts: 'alpha_family/x.ts', cpp: [
     assert status["kind"] == "export" and status["result"]["ported"][0]["ts"] == "alpha_family/x.ts"
     assert status["log"] == [f"porting into {exported['id']}"]
 
+
+
+FAKE_GAME_IMPORTER = """
+const [root, plugin, ...rest] = process.argv.slice(2);
+const agent = rest.includes('--agent');
+const copies = rest.includes('--copies');
+if (agent || copies) console.error('copying 1 files of Other...');
+process.stdout.write(JSON.stringify({ plugin, gameName: 'Example', units: [{ ts: 'alpha_family/plugins/' + plugin + '/ExampleView/ExampleView.ts', mode: 'copy' }],
+  copied: agent || copies ? [{ ts: 'alpha_family/plugins/' + plugin + '/ExampleView/ExampleView.ts' }] : [], ported: [], failed: [], skipped: [],
+  args: rest }));
+"""
+
+
+@pytest.mark.skipif(not shutil.which("node"), reason="the importer runs on Node.js")
+def test_a_cpp_game_of_the_family_is_planned_and_imported_in_the_background(client, tmp_path, monkeypatch):
+    from egt_gda_sync.game import project
+    importer = tmp_path / "import-game.mjs"
+    importer.write_text(FAKE_GAME_IMPORTER)
+    monkeypatch.setattr(project, "GAME_IMPORTER", importer)
+    games = client.get("/api/game/import-game").json()
+    assert games["workspace"] == "example"
+    assert [game["plugin"] for game in games["games"]] == ["example"]
+    plan = client.get("/api/game/import-game", params={"plugin": "example"}).json()
+    assert plan["units"][0]["mode"] == "copy" and plan["copied"] == []
+    # only a C++ game of the family, by its folder's name
+    assert client.get("/api/game/import-game", params={"plugin": "../game"}).status_code == 404
+    assert client.get("/api/game/import-game", params={"plugin": "missing"}).status_code == 404
+
+    # the copies need no agent
+    client.post("/api/game/import-game", json={"plugin": "example", "copiesOnly": True})
+    for _ in range(100):
+        status = client.get("/api/game/agent/status").json()
+        if not status["running"]:
+            break
+        time.sleep(0.05)
+    assert status["kind"] == "import-game" and status["result"]["args"] == ["--copies", "--json"]
+    assert status["log"] == ["copying 1 files of Other..."]
+
+    real_which = shutil.which
+    monkeypatch.setattr(project.shutil, "which", lambda name: "/usr/bin/claude" if name == "claude" else real_which(name))
+    assert client.post("/api/game/import-game", json={"plugin": "example", "files": ["../x.ts"]}).status_code == 403
+    client.post("/api/game/import-game", json={"plugin": "example", "files": ["alpha_family/plugins/example/ExampleView/ExampleView.ts"]})
+    for _ in range(100):
+        status = client.get("/api/game/agent/status").json()
+        if not status["running"]:
+            break
+        time.sleep(0.05)
+    assert status["result"]["args"] == ["--agent", "--json", "alpha_family/plugins/example/ExampleView/ExampleView.ts"]

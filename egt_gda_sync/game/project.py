@@ -62,6 +62,8 @@ TRANSLATE_TIMEOUT = 300
 # minutes per file).
 IMPORTER = GAME_SOURCES / "export" / "import-cpp.mjs"
 EXPORT_AGENT = GAME_SOURCES / "export" / "export-agent.mjs"
+GAME_IMPORTER = GAME_SOURCES / "export" / "import-game.mjs"
+PLUGIN_NAME = re.compile(r"^[a-z0-9_]{1,64}$")
 IMPORT_REPORT_TIMEOUT = 300
 AGENT_LOG_LINES = 400
 _agent_lock = threading.Lock()
@@ -267,6 +269,57 @@ class GameProject:
             if not TS_PATH.match(file) or ".." in file:
                 raise AppError(f"Not a TypeScript file of the browser game: {file}", 403)
         return _start_agent("import", [node, str(IMPORTER), str(root), "--agent", "--json", *files], files)
+
+    def game_imports(self) -> dict:
+        """The C++ games of the family (games/game/alpha_family/plugins/<plugin>/src/Egt) and how much of each the browser
+        game has: its TypeScript files (frontend/src/game/alpha_family/plugins/<plugin>), and the active workspace's."""
+        _node, root = self._importer()
+        plugins = root / "alpha_family" / "plugins"
+        games = []
+        for folder in sorted(plugins.iterdir()) if plugins.is_dir() else []:
+            source = folder / "src" / "Egt"
+            if not source.is_dir() or not PLUGIN_NAME.match(folder.name):
+                continue
+            ported = GAME_SOURCES / "alpha_family" / "plugins" / folder.name
+            games.append({
+                "plugin": folder.name,
+                "cppFiles": sum(1 for path in source.rglob("*.h") if path.is_file()),
+                "tsFiles": sum(1 for path in ported.rglob("*.ts") if path.is_file()) if ported.is_dir() else 0,
+            })
+        return {"games": games, "workspace": self._folders()[0]}
+
+    def game_import_plan(self, plugin: str) -> dict:
+        """How a C++ game of the family imports into the browser game (import-game.mjs): each file copied from a ported
+        game, ported by its diff, or ported; and what is imported already."""
+        node, root = self._game_importer(plugin)
+        try:
+            result = subprocess.run([node, str(GAME_IMPORTER), str(root), plugin, "--json"], cwd=GAME_IMPORTER.parents[3], capture_output=True,
+                                    text=True, timeout=IMPORT_REPORT_TIMEOUT, check=False)
+        except subprocess.TimeoutExpired as error:
+            raise AppError("Comparing the C++ took too long", 504) from error
+        if result.returncode:
+            raise AppError(f"The import failed: {result.stderr.strip()[-2000:]}", 500)
+        return json.loads(result.stdout)
+
+    def start_game_import(self, plugin: str, files: list[str], copies_only: bool = False) -> dict:
+        """Starts importing a C++ game of the family in the background (import-game.mjs): the copies, and with Claude Code
+        the files to port (these, when some are named); agent_status follows it."""
+        node, root = self._game_importer(plugin)
+        if not copies_only and not shutil.which("claude"):
+            raise AppError("Porting with an agent needs Claude Code (the claude command)", 501)
+        for file in files:
+            if not TS_PATH.match(file) or ".." in file:
+                raise AppError(f"Not a TypeScript file of the browser game: {file}", 403)
+        mode = "--copies" if copies_only else "--agent"
+        return _start_agent("import-game", [node, str(GAME_IMPORTER), str(root), plugin, mode, "--json", *files], [plugin, *files])
+
+    def _game_importer(self, plugin: str) -> tuple[str, Path]:
+        node, root = self._importer()
+        if not PLUGIN_NAME.match(plugin) or not (root / "alpha_family" / "plugins" / plugin / "src" / "Egt").is_dir():
+            raise AppError(f"No C++ game of the family is named {plugin}", 404)
+        if not GAME_IMPORTER.is_file():
+            raise AppError("Importing a game needs the app's sources and Node.js", 501)
+        return node, root
 
     def start_export_agent(self, export_id: str) -> dict:
         """Starts a Claude Code agent porting into an export's C++ the TypeScript changes the translator could not

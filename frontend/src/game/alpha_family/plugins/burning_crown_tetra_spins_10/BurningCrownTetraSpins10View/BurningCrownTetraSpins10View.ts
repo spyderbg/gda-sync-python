@@ -38,11 +38,9 @@ import { TetraRoundView } from './Views/TetraRoundView';
 import { TetraSpinBarView } from './Views/TetraSpinBarView';
 import { WinFiguresView } from './Views/WinFiguresView';
 
-/** Views that CreateViews() adds together, under a comment (none: after a blank line). */
-export interface ViewGroup {
-  comment: string;
-  views: string[];
-}
+import type { ViewGroup } from '@game/app/GameModules';
+
+export type { ViewGroup };
 
 export class BurningCrownTetraSpins10View extends BaseModule {
   private m_views: BaseView[] = [];

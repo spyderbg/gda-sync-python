@@ -35,6 +35,48 @@
    "alpha_family/libs/src/Egt/AlphaFamily/Math/Common/Weighted.cpp": "e25aa348e3c2241a6dbc8fbd736b8a9aa5db365a967d11f8d0ca196f3941b999"
   }
  },
+ "alpha_family/libs/AlphaFamily/Math/HoldAndSpin/HoldAndSpinRoundInput.data.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/HoldAndSpin/HoldAndSpinRoundInput.data.h"
+  ],
+  "sha256": "d21908be93b1f44d757172bcfef6dfee7d935d822ac37127023521eae170cd3d",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/HoldAndSpin/HoldAndSpinRoundInput.data.h": "cdb5448b034d0f4a206bc9a153caf06ef483a3c92910a6bb7d034ed6a7f53f94"
+  }
+ },
+ "alpha_family/libs/AlphaFamily/Math/HoldAndSpin/HoldAndSpinRoundPhase.data.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/HoldAndSpin/HoldAndSpinRoundPhase.data.h"
+  ],
+  "sha256": "f72d7977480ae2756627b625ed21ebde825ef1e609deaed284b0dc69fae4dc70",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/HoldAndSpin/HoldAndSpinRoundPhase.data.h": "75f5297043f3aa5accc75e64e2d0ada9a109bcb3ade269233fa28b9ab7ce5127"
+  }
+ },
+ "alpha_family/libs/AlphaFamily/Math/HoldAndSpin/HoldAndSpinRoundRules.data.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/HoldAndSpin/HoldAndSpinRoundRules.data.h"
+  ],
+  "sha256": "d5a65f6e18d0612c4112330ed7c1f7a35d2b0197a0f07284d26c975ffb5e6114",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/HoldAndSpin/HoldAndSpinRoundRules.data.h": "861361b5e49a688893a08d4940c9442631164feb64b759626d32feb3951d3f94"
+  }
+ },
+ "alpha_family/libs/AlphaFamily/Math/HoldAndSpin/HoldAndSpinRoundRules.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/HoldAndSpin/HoldAndSpinRoundRules.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/HoldAndSpin/HoldAndSpinRoundRules.cpp"
+  ],
+  "sha256": "c1d9224abe06bb4d9006e9d97111bf25b869f38af67b9a151eb9c4eb354fc43b",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/HoldAndSpin/HoldAndSpinRoundRules.h": "91b625f684787a75ea89e5471139ce1bfce616493adf13b40cb373d7f6baef13",
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/HoldAndSpin/HoldAndSpinRoundRules.cpp": "a0f6f7787600817c0ebc7dbe23b8cfa8bc1f4377ee2e3375b49df4db5a8a03fc"
+  }
+ },
  "alpha_family/libs/AlphaFamily/Math/Reel/Helpers/ReelRoundGenerators.ts": {
   "cpp": [
    "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/Helpers/ReelRoundGenerators.h",
@@ -84,8 +126,8 @@
    "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/ReelRoundRules.h",
    "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/ReelRoundRules.cpp"
   ],
-  "sha256": "817d7970cfc7aa956a694e25e54cd55a577e646a3568521719d9f36c2dc6ceb3",
-  "cppCommit": "f0c46d2a37422c811dea77221127db2101f537dd",
+  "sha256": "d293c42041d4a6765d3d97acfe5e9fb39a5133700cf8f1694c27ec9a3276b681",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/ReelRoundRules.h": "e62f61b566ce5d97799476f22feda8966e09e1bd81dfd8d77224ae0bd3c1a4c3",
    "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/ReelRoundRules.cpp": "90c2e76ac3012e0a84e6193f3367ed05f74f7b0e0b75fb4ce40939071b07609f"
@@ -327,8 +369,8 @@
   "cpp": [
    "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/VisualAnalyse/VisualAnalyze.data.h"
   ],
-  "sha256": "3c2ae7f3fd003ca14632206ff034ffea69eef9f2d13d7ac083b3ca97effc0d37",
-  "cppCommit": "f0c46d2a37422c811dea77221127db2101f537dd",
+  "sha256": "f9e9ef97c26fffab2d1f6dcc0ad78aaa0772b5c34ca61af9dca7d6f52b90920c",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/VisualAnalyse/VisualAnalyze.data.h": "588dfb5690fe1a450e1e7e22720c908c1d48fc64da7099bbf4aad95e587a4363"
   }
@@ -345,16 +387,70 @@
    "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/VisualAnalyse/VisualAnalyze.cpp": "29162d532748b0d3ed7e9265c85209a40e5ea9f7911f841b165ef71a01441e2e"
   }
  },
+ "alpha_family/libs/AlphaFamily/Math/RoundInput.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/RoundInput.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/RoundInput.cpp"
+  ],
+  "sha256": "1cf18573be237d165620b2fa6f3b7342e4df58ee8b5be3dc48cb3890514835f4",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/RoundInput.h": "1e8fd5785fc401e340192b86a75f70fd7a093b9c7fcf54297214fd9f893188a5",
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/RoundInput.cpp": "97aa9223bf7bebd5edcb91e823e33d1dffc4bf633b5cb95856f811caa96a3fbc"
+  }
+ },
+ "alpha_family/libs/AlphaFamily/Math/RoundPhase.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/RoundPhase.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/RoundPhase.cpp"
+  ],
+  "sha256": "f17419a86db1697302b26cb4d152e0b5adc0bfb29ee2811f81c98d91c9e67484",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/RoundPhase.h": "6317b26245850e330b3b00d5625322cc3b8b2d708561e283b688bbede96d9feb",
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/RoundPhase.cpp": "d50fc9ed5108cfe4cfaec190127e37429ad4ff51b4022ce63fc5704367ca49b6"
+  }
+ },
  "alpha_family/libs/AlphaFamily/Math/RoundResult.data.ts": {
   "cpp": [
    "alpha_family/libs/src/Egt/AlphaFamily/Math/RoundResult.data.h",
    "alpha_family/libs/src/Egt/AlphaFamily/Math/RoundResult.data.cpp"
   ],
-  "sha256": "2d13f63854b2c19dbfb3448750d7092b68df4fc5df67e4a71fcc468d8630ad20",
-  "cppCommit": "f0c46d2a37422c811dea77221127db2101f537dd",
+  "sha256": "374074dd36df1ae3e7b3f456269b9db8b93786e3db8102b4351d5ee2991c6e63",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamily/Math/RoundResult.data.h": "8ea78c0a1afeb1c795b973222bc5bec07bca1fc1bfe90e068172afa574456e5f",
    "alpha_family/libs/src/Egt/AlphaFamily/Math/RoundResult.data.cpp": "cd9d6c3a6abedc8e4ba7d884dba8a3690acc1fc753e33c295831398fa0d0a902"
+  }
+ },
+ "alpha_family/libs/AlphaFamily/Math/Wheel/WheelRoundInput.data.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Wheel/WheelRoundInput.data.h"
+  ],
+  "sha256": "7642f92ab93434dfe143e62312436233eb31a0f5662c675b1245208b6046802f",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Wheel/WheelRoundInput.data.h": "189cf25847a151ee4c015868c5c5caa7841caf97265ad4fbc31d04aec87207eb"
+  }
+ },
+ "alpha_family/libs/AlphaFamily/Math/Wheel/WheelRoundPhase.data.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Wheel/WheelRoundPhase.data.h"
+  ],
+  "sha256": "8606494664d5e744346060225b58a68532a10950a01c0efcbf232e293073370c",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Wheel/WheelRoundPhase.data.h": "0f342bcffb1841f61da84e6c390b2c0b691413c114ae3880ea807d23716f6fa7"
+  }
+ },
+ "alpha_family/libs/AlphaFamily/Math/Wheel/WheelRoundRules.data.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Wheel/WheelRoundRules.data.h"
+  ],
+  "sha256": "23cf9a4c2501897525c8f528578ac1c4472ede11c708e44f9d96059c34a1678b",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamily/Math/Wheel/WheelRoundRules.data.h": "74a3ec174de5b1f89ecd7232f09e4e4ae7c4cf7a7b444870a63b6b0d4228ea1f"
   }
  },
  "alpha_family/libs/AlphaFamily/Math/Wheel/WheelRoundRules.ts": {
@@ -362,7 +458,7 @@
    "alpha_family/libs/src/Egt/AlphaFamily/Math/Wheel/WheelRoundRules.h",
    "alpha_family/libs/src/Egt/AlphaFamily/Math/Wheel/WheelRoundRules.cpp"
   ],
-  "sha256": "20417a472a200b1961179ac49028238cc3cab8345c797f3a93a73e560b641a4d",
+  "sha256": "fdb2c5e822e043a9a4c5e224fb68c69b2e974f0f15fed969e2680307af8a061e",
   "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamily/Math/Wheel/WheelRoundRules.h": "1052269ef422d71b38a368507dcade539e9186da874812e30bd3e24ceb2f46a6",
@@ -374,8 +470,8 @@
    "alpha_family/libs/src/Egt/AlphaFamily/RuntimeExport/IMathRules.h",
    "alpha_family/libs/src/Egt/AlphaFamily/RuntimeExport/IMathRules.cpp"
   ],
-  "sha256": "0690611a94326bc5b3c94ae50f4b8a9960a3b9cc4a2d388f96c328da86b16515",
-  "cppCommit": "f0c46d2a37422c811dea77221127db2101f537dd",
+  "sha256": "cbe0ba8b9d35c635b39327837f6f0fd9905554eb4bc7d7436dc332563d0d3ea1",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamily/RuntimeExport/IMathRules.h": "05ea72eb4d8c6fc76f1ff312fb3ee95f05d1a8d4de7210fe806b106732030adf",
    "alpha_family/libs/src/Egt/AlphaFamily/RuntimeExport/IMathRules.cpp": "573891fd2ab97b31ae136949988991bb2aebdc5bdcc4a5e8f2c3fd07b7efa3c1"
@@ -466,7 +562,7 @@
    "alpha_family/libs/src/Egt/AlphaFamily/States/Match/ICoinsFreeRound.h",
    "alpha_family/libs/src/Egt/AlphaFamily/States/Match/ICoinsFreeRound.cpp"
   ],
-  "sha256": "23b92091b50877d70269089f08b673215854c27910e39403b3e0b68027568fec",
+  "sha256": "4a53fd3e3963054d2a400ad44b1e437b21bbd1082b70b9874f68831e56e27ca5",
   "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamily/States/Match/ICoinsFreeRound.h": "f066b0766b020a522539c08a5ffd2885d7b9f133a0173024b411af99e1561d10",
@@ -478,7 +574,7 @@
    "alpha_family/libs/src/Egt/AlphaFamily/States/Match/ICoinsRound.h",
    "alpha_family/libs/src/Egt/AlphaFamily/States/Match/ICoinsRound.cpp"
   ],
-  "sha256": "93b04b5f65a3c2809d194afe92f3f2688654f59e4e227286b4c3b4c59fd6b4b4",
+  "sha256": "30613ea796b32960d0338facdb43eeca24456a27824884982bfaff9d81d958a7",
   "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamily/States/Match/ICoinsRound.h": "58c717dc9b951ea50f70abb10905f0408daf60ad295c6282b5ce382080bb8abf",
@@ -526,7 +622,7 @@
    "alpha_family/libs/src/Egt/AlphaFamily/States/Match/IFreeRound.h",
    "alpha_family/libs/src/Egt/AlphaFamily/States/Match/IFreeRound.cpp"
   ],
-  "sha256": "6e45ba55353232ae72347a28d4b2b13aaf78b379f5c2bf82d378fb0bbd56e0a7",
+  "sha256": "d632f7cbb28f8c9aa82e7d8a25ad2ccc3f6230b194971f3d4069dad74b65f41b",
   "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamily/States/Match/IFreeRound.h": "8f117217f30ae4771d01d152602a6d398366fef90af1c56ba89679aa54ab0d64",
@@ -550,7 +646,7 @@
    "alpha_family/libs/src/Egt/AlphaFamily/States/Match/IHoldAndSpinRound.h",
    "alpha_family/libs/src/Egt/AlphaFamily/States/Match/IHoldAndSpinRound.cpp"
   ],
-  "sha256": "e7f48958cf3ee90a04ae67ff71ae0e89bef4691dd181e1f3b0a679be247304d1",
+  "sha256": "255513a58d6c73ec2c1dc488ff09930dea199b3b175da8d7992047f7575f582b",
   "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamily/States/Match/IHoldAndSpinRound.h": "4c36b4008d1c1a1ba76db4510a8c253febaf0e7c32ac9c5906ace115ef8d8bf1",
@@ -682,7 +778,7 @@
    "alpha_family/libs/src/Egt/AlphaFamily/States/Match/IWheelRound.h",
    "alpha_family/libs/src/Egt/AlphaFamily/States/Match/IWheelRound.cpp"
   ],
-  "sha256": "a6aa4d7b66d5b791d93b1ef9c05f8e8ff519d9ae1cd9ff6520c12c94d30a15a9",
+  "sha256": "8cf1692838f5f0bf791c640fc0c3702a8a9e1d18300bf39100bd4a6d14025870",
   "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamily/States/Match/IWheelRound.h": "383acf0679986e50cbeda80cc54873dd699db04191ed5d375143bc878d4d98a0",
@@ -694,8 +790,8 @@
    "alpha_family/libs/src/Egt/AlphaFamily/Views/BarsView.bridge.h",
    "alpha_family/libs/src/Egt/AlphaFamily/Views/BarsView.bridge.cpp"
   ],
-  "sha256": "4b605d4a0b8e487504692609c2f2e6a8be2279b90b7c2f40f2c90b1d43fcbf65",
-  "cppCommit": "f0c46d2a37422c811dea77221127db2101f537dd",
+  "sha256": "4fdc1b57d7f9bdf03d07c6f747b32fcdb58aec066a697f0662c7cf9e512180de",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamily/Views/BarsView.bridge.h": "7ff30fb33332d2599df0f6f7390dc7b24cbe4df0792da5ea113224350c2db12c",
    "alpha_family/libs/src/Egt/AlphaFamily/Views/BarsView.bridge.cpp": "8c32c865067d8853e30fe96c0aca9ddff1d86f1c26ba6e5267817e902a62958b"
@@ -730,7 +826,7 @@
    "alpha_family/libs/src/Egt/AlphaFamily/Views/IBigWinInfoView.bridge.h",
    "alpha_family/libs/src/Egt/AlphaFamily/Views/IBigWinInfoView.bridge.cpp"
   ],
-  "sha256": "006d16c42b79115c05e9cc904bd40c3dc732d98077f526bd011f037d088ade76",
+  "sha256": "4e9f1d84136afa5e4c1b32c8b9f97773bab2f8d3c0be5ac10f852ce177615c40",
   "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamily/Views/IBigWinInfoView.bridge.h": "0674a59be2000b8d060974bcfc24cbb91a56c178cff3a782f136c6d301cb6ffa",
@@ -749,13 +845,97 @@
    "alpha_family/libs/src/Egt/AlphaFamily/Views/ICappingSplashView.bridge.cpp": "e8139555e3286555fe8d5ed356b6b7a46c0c181acb09036e427f686e7f8f3f90"
   }
  },
+ "alpha_family/libs/AlphaFamily/Views/ICoinsRoundOverlayView.bridge.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/ICoinsRoundOverlayView.bridge.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/ICoinsRoundOverlayView.bridge.cpp"
+  ],
+  "sha256": "446e731a739d55b7a5086bfec9ca299892c8c3aa6a8fbc8a0d53ee46c4b0337f",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/ICoinsRoundOverlayView.bridge.h": "360cf3e8a36d5084c0e9b5c8a565fdd7dc90da9aba8c1c37c5acc044e8b02c24",
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/ICoinsRoundOverlayView.bridge.cpp": "4c804160e42d03476ea1c6575758f1450bc78699b5b91bd230302bdb86467c0e"
+  }
+ },
+ "alpha_family/libs/AlphaFamily/Views/IExtraRoundOverlayView.bridge.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IExtraRoundOverlayView.bridge.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IExtraRoundOverlayView.bridge.cpp"
+  ],
+  "sha256": "1006bb636ff64305359b3914dc5b08a2154288b01216194d4af227e6e1e23ab5",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IExtraRoundOverlayView.bridge.h": "fa856ec52e690d234c046d81cd80d334cd7ee9c1558e2b51b54d6b8c937d4bc5",
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IExtraRoundOverlayView.bridge.cpp": "5aef0f7ad232ec9ac952beb074e497d6a2f3b5ee9a940894fe323b5b7969d39c"
+  }
+ },
+ "alpha_family/libs/AlphaFamily/Views/IFreeRoundOverlayView.bridge.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IFreeRoundOverlayView.bridge.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IFreeRoundOverlayView.bridge.cpp"
+  ],
+  "sha256": "ae201d2c6f898a4552199aa59e5376cd61dd7cd8992de12e2723604b3fe24d73",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IFreeRoundOverlayView.bridge.h": "c18a9ffe5a658552046c1d5562f62e2c993c8db9cc1a6b2100193abe8fd5e257",
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IFreeRoundOverlayView.bridge.cpp": "2e0e2d64a8528339fcc38cf91ef882d435aace29057eab4d5167811dbabd302c"
+  }
+ },
+ "alpha_family/libs/AlphaFamily/Views/IFreeRoundRetriggerView.bridge.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IFreeRoundRetriggerView.bridge.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IFreeRoundRetriggerView.bridge.cpp"
+  ],
+  "sha256": "ea3996a390a6193efc8ac6bee59fa94c538c4e93b0d292ba69f2cd5e442f1b37",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IFreeRoundRetriggerView.bridge.h": "0b82157b1ed48462c02129282d7fa4a9486124113fdc7be0cb0eeb7cfbdbd8da",
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IFreeRoundRetriggerView.bridge.cpp": "b70338b1f51f09c3356634829b3200bf10dd09eb9797dd97fc1ee1bc560896f2"
+  }
+ },
+ "alpha_family/libs/AlphaFamily/Views/IGambleRoundOverlayView.bridge.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IGambleRoundOverlayView.bridge.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IGambleRoundOverlayView.bridge.cpp"
+  ],
+  "sha256": "ae08d4d5764778b8ae042cbd9e1f3bde2c7607d5a79cc55bc4248ee71b83a970",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IGambleRoundOverlayView.bridge.h": "c44e75fbfe508bc9992d7a04e38143254737419053916ad7b31cd3a387ccbaf9",
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IGambleRoundOverlayView.bridge.cpp": "d77c7094b6f1221cf36be21e4d790eb46f4d8faf0e9b2ce977ce9c06eb822a4f"
+  }
+ },
+ "alpha_family/libs/AlphaFamily/Views/IHoldAndSpinRoundInfoView.bridge.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IHoldAndSpinRoundInfoView.bridge.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IHoldAndSpinRoundInfoView.bridge.cpp"
+  ],
+  "sha256": "03ca362f262cb60e66b25adcc4655f9459e653e0b6ae2f2529ea52dbac1faafe",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IHoldAndSpinRoundInfoView.bridge.h": "957d6e3d3a4a443cb902e7f7ebcbfd74d763b49536af3f5459133ff374d63149",
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IHoldAndSpinRoundInfoView.bridge.cpp": "2b9baa2e5760875632bd8b22ffaeef70d5b9418ca7c7e0347476d2aed0376bb9"
+  }
+ },
+ "alpha_family/libs/AlphaFamily/Views/IHoldAndSpinRoundOverlayView.bridge.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IHoldAndSpinRoundOverlayView.bridge.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IHoldAndSpinRoundOverlayView.bridge.cpp"
+  ],
+  "sha256": "97eef3d19825f66178d2d8444d9494ae796ee0e98f6b94208def550d56d8e218",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IHoldAndSpinRoundOverlayView.bridge.h": "2c7d4cf8409fb97cc19f1ca42406e708dedc598a906c6bb5bba7b76ae413b728",
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IHoldAndSpinRoundOverlayView.bridge.cpp": "fcef9436632c1dd04edfdeb0381a9e582af91d4ba701f65170dd2f7fafea2180"
+  }
+ },
  "alpha_family/libs/AlphaFamily/Views/IInfoView.bridge.ts": {
   "cpp": [
    "alpha_family/libs/src/Egt/AlphaFamily/Views/IInfoView.bridge.h",
    "alpha_family/libs/src/Egt/AlphaFamily/Views/IInfoView.bridge.cpp"
   ],
-  "sha256": "ee37771a02f240f2195d31dbd5c7b5aad98125e2d4b73845a8c995fe296c7915",
-  "cppCommit": "f0c46d2a37422c811dea77221127db2101f537dd",
+  "sha256": "57cb175d6c99f3b1b86950884a5ab09ad7d36b60d15aa75fa96842a9eb0b4622",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamily/Views/IInfoView.bridge.h": "2cbf8d76904beb18b4761844b86fe6499591a3aeae69a9fc03fe8bca8ff632ff",
    "alpha_family/libs/src/Egt/AlphaFamily/Views/IInfoView.bridge.cpp": "990afb4195e8ffae373340ed00eeadfe73bc13fbb0594662fe94be6e47aa537f"
@@ -783,6 +963,18 @@
    "alpha_family/libs/src/Egt/AlphaFamily/Views/ILinesView.bridge.cpp": "cf0c3fea5ea8f853c67f676043f2d7c52bea497091bd9e293a62f2f3c2afc4b3"
   }
  },
+ "alpha_family/libs/AlphaFamily/Views/IReelsOverlayView.bridge.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IReelsOverlayView.bridge.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IReelsOverlayView.bridge.cpp"
+  ],
+  "sha256": "087b6a393c798ea2f1bf0befcf77199505b4f3e4d83521e45b15d42145ae43c5",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IReelsOverlayView.bridge.h": "61a42653618fc3d02e52c9a44709dd6b15233d2c067158923097231f0d39f9a3",
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IReelsOverlayView.bridge.cpp": "60baeca37efcdf6f14ed4284b8318aff5d8ea81d962fc9de55b32a5f03cafb56"
+  }
+ },
  "alpha_family/libs/AlphaFamily/Views/IReelsView.bridge.ts": {
   "cpp": [
    "alpha_family/libs/src/Egt/AlphaFamily/Views/IReelsView.bridge.h",
@@ -800,8 +992,8 @@
    "alpha_family/libs/src/Egt/AlphaFamily/Views/IStatusLineView.bridge.h",
    "alpha_family/libs/src/Egt/AlphaFamily/Views/IStatusLineView.bridge.cpp"
   ],
-  "sha256": "aafbf1c829f63d119f6205b5f9990724eb17429f016699aa24007df2bc2d888d",
-  "cppCommit": "f0c46d2a37422c811dea77221127db2101f537dd",
+  "sha256": "fb423f2c378be57a210a558a4b64c91189e8d54244c9a40a4d28749564c2cc2d",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamily/Views/IStatusLineView.bridge.h": "9ebfd33aebe731ac816f1652ed99ebd131b9031c4e0a515467b0c5cd2b499ab5",
    "alpha_family/libs/src/Egt/AlphaFamily/Views/IStatusLineView.bridge.cpp": "61dcb72b6ba1408ca1f46b0e0e3f20977b7030843f1f1cb8b7afe57d3b2f3ecd"
@@ -819,6 +1011,30 @@
    "alpha_family/libs/src/Egt/AlphaFamily/Views/ITetraRoundView.bridge.cpp": "512d4dbafb5338a86dcaf2f4bd077d7e8e983ba660ee5816aed8209cc70b28c0"
   }
  },
+ "alpha_family/libs/AlphaFamily/Views/IWheelRoundOverlayView.bridge.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IWheelRoundOverlayView.bridge.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IWheelRoundOverlayView.bridge.cpp"
+  ],
+  "sha256": "483c2df2b7ff22f7f82db08f6539d4fa22b306ac5dfa8b06b5da2e923ebf9736",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IWheelRoundOverlayView.bridge.h": "111f76355824607d1f67b62b8c9dd862e1b08be51f51f45cf893dca1212d494e",
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IWheelRoundOverlayView.bridge.cpp": "8888b7f05b6ea6479de73cdb7d7488e5b43c7fa7bc5aebdfb26ea53529e4ff20"
+  }
+ },
+ "alpha_family/libs/AlphaFamily/Views/IWheelRoundView.bridge.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IWheelRoundView.bridge.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IWheelRoundView.bridge.cpp"
+  ],
+  "sha256": "b7946425d0d486415c0f769ca0d780a5d03b3891b6ecf8a57c5ad8e2fa0002d7",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IWheelRoundView.bridge.h": "27daa1b6e9bdcf07d351d5fd05ae892d46c1f9dd08ed1b10528d53bdcb5f29e2",
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/IWheelRoundView.bridge.cpp": "948deb58df26e572faf4f5a5e7eaf79c06d3899be1ca1bb95b4568629230d6c6"
+  }
+ },
  "alpha_family/libs/AlphaFamily/Views/IWinFiguresView.bridge.ts": {
   "cpp": [
    "alpha_family/libs/src/Egt/AlphaFamily/Views/IWinFiguresView.bridge.h",
@@ -831,13 +1047,23 @@
    "alpha_family/libs/src/Egt/AlphaFamily/Views/IWinFiguresView.bridge.cpp": "7dd7464972b1e87af2e0afa1938897ac792c149484577a1c57d0df5aa37e9f72"
   }
  },
+ "alpha_family/libs/AlphaFamily/Views/StatusLineDrawn.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/StatusLineDrawn.h"
+  ],
+  "sha256": "4849a80d089ae7381298c064a78459279e55d152ef2c69dbc7038bcff2590e41",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/StatusLineDrawn.h": "ecb60291b17b4b3fff81962e7a7a4c421788e9ce398e721bf38902ee15f578d6"
+  }
+ },
  "alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge.ts": {
   "cpp": [
    "alpha_family/libs/src/Egt/AlphaFamily/Views/SwButtonViews.bridge.h",
    "alpha_family/libs/src/Egt/AlphaFamily/Views/SwButtonViews.bridge.cpp"
   ],
-  "sha256": "42e6a5bcfb11d761e19c86b9bab1f6f0cdade30f03fd14fce75ab264e48d6132",
-  "cppCommit": "f0c46d2a37422c811dea77221127db2101f537dd",
+  "sha256": "62a8922bbbc1bc9f76f6499cc787dec4e8652f43764f3ebae91b6101e602d761",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamily/Views/SwButtonViews.bridge.h": "0bb0524a370b3f584c0ed3d36ce860a278f292cb101397775799cd3a7756e8cc",
    "alpha_family/libs/src/Egt/AlphaFamily/Views/SwButtonViews.bridge.cpp": "02b42a9891c17dc909d5f18345f29355e2753a9c18614afd54968644f02fdc42"
@@ -904,7 +1130,7 @@
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/GameManager.h",
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/GameManager.cpp"
   ],
-  "sha256": "7921348693df455843a51a2cf31bb134539db7f004c82a0ed3d889206ea8742b",
+  "sha256": "d1e8c259b57e74c0fa8576a92d538324087d52c04ca633ddc1eb8585f1e1b524",
   "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/GameManager.h": "4bf1769ab749350466cc9e8430efecf191860a0cfd8b697377f16be09ced4220",
@@ -923,6 +1149,186 @@
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Idle/Idle.cpp": "7658001f0c486a1290718f4316742709a8a4ded7d557d6f910b318950900a2f2"
   }
  },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRound.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRound.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRound.cpp"
+  ],
+  "sha256": "661bb579902463f2b0f863929209c314f121b2b6f201b1b62f8e081bbad64c27",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRound.h": "b2fa0d3a8f140aca099de8706f6a95fc2516e16a2f6ea7c332e81155b5774c75",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRound.cpp": "584bbfb379acfe695e83cfe810fd1dac67f2f8a7b5034f91b6b6c0a53cd2e852"
+  }
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRoundEnding.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRoundEnding.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRoundEnding.cpp"
+  ],
+  "sha256": "69a29fa49fc0d6adad971ad487c300a80348a3caa97f58ec980e336f97036ada",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRoundEnding.h": "7b91f40e73c7827ac05c1bc64140fe257c0f05f379050b95935af787f349a87e",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRoundEnding.cpp": "19a47e2a4019015625ff588501045cf4a877e3c4543eef9c7fa41ae255a2a5da"
+  }
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRoundIntro.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRoundIntro.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRoundIntro.cpp"
+  ],
+  "sha256": "1f6be96969e0df919ac52e15cc8ed5b6c5828f7393248aa52b7a29cb42345e07",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRoundIntro.h": "062ba27f24f47f3b811306e3b1483b336aa2ba64c9a3a740430ce7d7884569c3",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRoundIntro.cpp": "ab9838adf6cb2206a51a05ccd4e9af81a3d9ad199b1b9645197d7614ec63e4d0"
+  }
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRoundOutro.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRoundOutro.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRoundOutro.cpp"
+  ],
+  "sha256": "559cba299380bfcea0fda7cc3003d887e8be66d5e86c00653a5c6c071d7ffbd1",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRoundOutro.h": "339bf8270d5d97e4698ff8296d5825d3fa3ec0714838ab69d156c3db6cb16dce",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRoundOutro.cpp": "c2fdc16ea0690916c8e6a138f0dcfd14005d465632228479c38c5596dafaa1d6"
+  }
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRoundPresenting.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRoundPresenting.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRoundPresenting.cpp"
+  ],
+  "sha256": "c8a9bb7cc17eddd10c16ece003d99ab8b5c65167efdeec73e2808877267fa3c9",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRoundPresenting.h": "e8490380bc8d8456e7f5585b55a84de94890f415f53b04b0f5ac7997140d136e",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRoundPresenting.cpp": "85d573132bad2246a59341c56a1a9140d99e826710ad67c3733884956012f440"
+  }
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRoundReeling.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRoundReeling.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRoundReeling.cpp"
+  ],
+  "sha256": "ff334cc6de5939e6bf298dbc0d4e187a51ed916265b05ae0c70e64555ccebfd3",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRoundReeling.h": "824ecb8659b39dbe60f153fdedec8aeb24d17d9289c6262d15cf5445b4d5410c",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRoundReeling.cpp": "21de0e2262c80f1efa928726254fa8f3fc87076b99b7d95bbaef28e72ecf91eb"
+  }
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRoundStarting.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRoundStarting.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRoundStarting.cpp"
+  ],
+  "sha256": "02fb18fefa4abc7ae1b18545f7e896b51395f188a9db2d81b30e68348cb9de59",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRoundStarting.h": "394ce1d6047cbb1525a2b4a582d6483b93ac5b84c12ad43108f5a8533668a196",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRoundStarting.cpp": "4cae0b7c207b36e2b88732d17e951da8ac455dd28c57b8563c4e3e6c3cab1254"
+  }
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRound.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRound.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRound.cpp"
+  ],
+  "sha256": "257f182a7849341986ff5d10b9e3d56c8e827d6fe1acf380eaa80edbbe4d18f5",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRound.h": "ac5c0bea73d640c19e50dc867420c292480e366b2d8c38250c8b0f99a0afe30e",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRound.cpp": "b724dbfc749506409aaeab1bc65f818ede006f12a27ea607cc43e590c2896719"
+  }
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundEnding.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundEnding.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundEnding.cpp"
+  ],
+  "sha256": "cb1cd65bea90a164f2c2084982748b337d0a564fb8f8087fde6d906ed5e1cddd",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundEnding.h": "84933f716f6f9c4cd636909d6879e7f1f4892695b45d46a75294afe15a867a95",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundEnding.cpp": "2d525ec2a9e6e0cff41b8a79bec66bf6b1ba835eebfbe2abb82607a4f2244b74"
+  }
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundInput.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundInput.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundInput.cpp"
+  ],
+  "sha256": "d713702a82cfabe8e456be9a7e7a97a142619e0feb07282810ed867876e80aa4",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundInput.h": "b93b870a618482c4ddaab1b0438a325f03c168cded1300ac54d81d46f4648f5b",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundInput.cpp": "62ff8e5eea28f8426a67d91e2ff66d116666b2488ae872b7bd59e3f1d42447fc"
+  }
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundIntro.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundIntro.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundIntro.cpp"
+  ],
+  "sha256": "471805432328eece31d152708a90906e644b12967d671427afcf83da935bab0b",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundIntro.h": "25e20956b244c3a933564a8950ea13aa8d5d9c55f2c44e3417a21531f6b29c68",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundIntro.cpp": "1ce0f69d12dfa5cf56f618fd2f7d139557854b44af3b3130551ba0e7855c22d9"
+  }
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundOutro.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundOutro.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundOutro.cpp"
+  ],
+  "sha256": "902a2fb574b5172911c500ace1b63d7940d5a430fbdb53ff0c626daaf225372e",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundOutro.h": "035b022d838e6ea02cb67d4f27edf544608b512d4993a86c08a5702c0563bac5",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundOutro.cpp": "3f6693746b9bc07d47e3a6851e10aad4868af621b42b6d1a112bb0f5b5e6c42b"
+  }
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundPresenting.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundPresenting.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundPresenting.cpp"
+  ],
+  "sha256": "6c61c9d0f9f5eacfa79850893f982706779d57665d319a047f6986b19f722685",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundPresenting.h": "46db88229786de5f27e101856a6c64437c2f17650f0641da2aaf4a334468c764",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundPresenting.cpp": "89661376129d2c7556c4077a11f87aab2c64250d3f396ca1f35c4bb5683a0cfc"
+  }
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundReeling.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundReeling.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundReeling.cpp"
+  ],
+  "sha256": "4ec442a8ea7f2c7a40c89e2d892b903652cf6ee0e009066010943ec748f01504",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundReeling.h": "8d1fb03a1c10f78e823dba7ea8af8673ab17aa8b05803f53523c301348189835",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundReeling.cpp": "52bc7555303f74be0326716deaafb6d36877f999232e65cb78aaff2199fa11a7"
+  }
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundStarting.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundStarting.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundStarting.cpp"
+  ],
+  "sha256": "c73a040a25892dd3bbb386b813b9f684c59de30724941e991310524b4dcc4483",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundStarting.h": "e2286ad6cd007e32b3beb14e1e8250b3d913ee358b09538428da405378d38c43",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundStarting.cpp": "3c8731ff1330e7db5e7ae1dd97adc0a29deb27b0c0ffe3bd6911b040d7c1b3cb"
+  }
+ },
  "alpha_family/libs/AlphaFamilyStatesLibrary/Match/CreditTaxation/CreditTaxation.ts": {
   "cpp": [
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CreditTaxation/CreditTaxation.h",
@@ -933,6 +1339,184 @@
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CreditTaxation/CreditTaxation.h": "f02c29817d7413e5c9e4f0196b9b0c236715ba1c15d4df5f0df34ebcb2d8da63",
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CreditTaxation/CreditTaxation.cpp": "3874475fd05849d4d587bc68ee98d39fe93b9427a8b481c7f6b9802e84711cf6"
+  }
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRound.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRound.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRound.cpp"
+  ],
+  "sha256": "151746455a47cc43fa2346d52be4c5610e74088cd0bb633d5e738d1fdf880b0e",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRound.h": "87f5e70d96da93e9de9c4fb5dd76316eb4731724f6dc0393851f83287a5f4936",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRound.cpp": "0d353b0b0ca14c317d09cd39d57db43979608a66d44afbabd53b8bd52d97449d"
+  }
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRoundEnding.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRoundEnding.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRoundEnding.cpp"
+  ],
+  "sha256": "58512a7d81abbde1699d9b338e085736228546ad3c8ef716dd96eabdd93adabe",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRoundEnding.h": "97b46379e81e03705b7e45448982ad291f8aedfbfb1a0562e0ffc52d49c19883",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRoundEnding.cpp": "79b254638181ff45f1f1be0084a45b38be84dd0b7d9c6f29173e0aec36f8739c"
+  }
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRoundIntro.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRoundIntro.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRoundIntro.cpp"
+  ],
+  "sha256": "26cfb7834d3b4166295e58f12d5f0ee16e13e83562aed25d62461edb210fad76",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRoundIntro.h": "ba2aee9ec6832495b5ddee57a1fc34f27d8ded35e471901e65aecb19121ab408",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRoundIntro.cpp": "93cbf9d68eee850bfe7eea939e51ed29cac5b80680f67bdef9e3c8fd6d57eea7"
+  }
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRoundOutro.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRoundOutro.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRoundOutro.cpp"
+  ],
+  "sha256": "bc5ae7564b4904a1a4acb128c1956af13b72cea406b1fe35ee8923e737005d3e",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRoundOutro.h": "8f2bd142db57c6871cd510ffe4f54b03852fe7533e98b9f9e79582cdaec80f7c",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRoundOutro.cpp": "ea8cc38eebeaceb5430704e73077c1e42b7f9e4d8256a0042a4421bbdc740831"
+  }
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRoundPresenting.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRoundPresenting.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRoundPresenting.cpp"
+  ],
+  "sha256": "c9dc547c0092c1c9093b6637b33fc92fedd92357e45ed9caf48f05b51ee00c43",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRoundPresenting.h": "2d71357c860c686d54603c9c8cc42198001439816be8a287068f1e5980b0ff2b",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRoundPresenting.cpp": "f4e9dcde0e848612b14da3ae5b722a3a4eb7e5fc0695b2a41825c9fa2c59b951"
+  }
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRoundReeling.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRoundReeling.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRoundReeling.cpp"
+  ],
+  "sha256": "adf8cccae76d3844de4d41b8987b55a9e45f4747f608944b78637d42b646c27f",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRoundReeling.h": "682e4cc67ec3c1b30ff698c3e19bb4347671baf415586e87395638d8a4eb613f",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRoundReeling.cpp": "417c3afc4814c0abd3f1b96b1f21203859558a066e6b2561fbc67c786cbb8d4c"
+  }
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRoundStarting.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRoundStarting.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRoundStarting.cpp"
+  ],
+  "sha256": "980efbde0cbd0e6fae8c318659edbfc47b5c368b1c825747cdf4c96d3a3cfad6",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRoundStarting.h": "6d6217e29f28abb14acd683ae8f51c13ffdada380a27fad693e5a8b8e87b9ba4",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRoundStarting.cpp": "8f537b2dd09f34f92526665704ff59feb772853b0b640616ad7a190961df46c5"
+  }
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRound.data.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRound.data.h"
+  ],
+  "sha256": "5471d01993e0c07130bf6a836f0612000d71059686a1eda73edf172ca9a1cc58",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRound.data.h": "7940e6870ca2e5b09e8ec1b993e2652c7d479894781cf40d06a21741180fe42e"
+  }
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRound.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRound.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRound.cpp"
+  ],
+  "sha256": "cd65b1c5141ef09b765cf9ce2a90b33a43de5af7144820cfd3e4079510d94681",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRound.h": "517ddcf564694a4628b7c3615fa0d9303faf289fe3e6ddbd4443a3f898d436e2",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRound.cpp": "e52cced0a91e5212111445f8562de210bec72f5cba40a630f9ce245c2f917c2a"
+  }
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundEnding.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundEnding.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundEnding.cpp"
+  ],
+  "sha256": "d6cc89950ea6e112b5a0ff77a9140e1405a94d46a9f4f4f6a62f773ba8f20cad",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundEnding.h": "0034860e6c8c147db9234b3908045a12443873ff269d8711e0f2b1c00f668f65",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundEnding.cpp": "7152a65ba32d1c7406fda6e68913666c385feb2a72bea0b6310e2dc39cebeae2"
+  }
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundIntro.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundIntro.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundIntro.cpp"
+  ],
+  "sha256": "3f0db3a175cfe897a6dc63df0f92ef62d775cae839b7a9707923a5f79e830ad7",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundIntro.h": "afa7a35f6db54e8f32aa24bbe635c23a04657e071e52a4d97b5fed74a9828b87",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundIntro.cpp": "a88b161f62708616b82c02fbd3d7362183bedc4bdeec1564e20fedaf3bc23e76"
+  }
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundOutro.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundOutro.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundOutro.cpp"
+  ],
+  "sha256": "7dab736a62949be888b2c6d34eed6dde8f5d568675f65708f9889beafc1eb870",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundOutro.h": "714f20309fea5ef97884f0bfd779fef3d1ddba9869aeff6e5f27c105919b5d2b",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundOutro.cpp": "11321efea47dfcebf44ac935c3febc426f5cf95dc22f6da2a72d0e033a2319af"
+  }
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundPresenting.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundPresenting.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundPresenting.cpp"
+  ],
+  "sha256": "3dee3d11afb48ab5f068993a0c9637b3d01a14c87244873bd81752c1e882308a",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundPresenting.h": "69187b7e3ce4c98b1c86fc5e02d68f9412ad62f5603daf72482b02545f637a58",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundPresenting.cpp": "27d3de280695c6e5c7c3addc78b7b332ffe9a0bad10c02d631c4dd566361ef56"
+  }
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundReeling.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundReeling.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundReeling.cpp"
+  ],
+  "sha256": "54e0ff653d829e137d921348c6533be2712a19f4f48581959f3ac35b0038dcf3",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundReeling.h": "6d336999f7a704d92fe9090d11cde29ea195e23fb1aa2e70090d9b90a74298d0",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundReeling.cpp": "ad80d8b047fab7a14a817c9efe6b9acc480281a692924ac65c1efe1eba8fb162"
+  }
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundStarting.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundStarting.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundStarting.cpp"
+  ],
+  "sha256": "7ec45274bbdc9828f9c3ab78aa4e3a28c6dfa2d2e69e1c1103c5826b67bb62c4",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundStarting.h": "a8aebe7afedda3f9b868de5a15d5bae27536ee117cfa76d2c3074813d856ff68",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundStarting.cpp": "4dae8a416860b4cd2484762fe59c653181a4fbfc981352652accda46ac46280f"
   }
  },
  "alpha_family/libs/AlphaFamilyStatesLibrary/Match/MainRound/MainRound.ts": {
@@ -1101,6 +1685,42 @@
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/ReelRound/ReelRoundEnding.cpp": "beee5eaa604b6e80c4e44e249e81580b939641e066909ae842dcba448078af4b"
   }
  },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/ReelRound/ReelRoundInput.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/ReelRound/ReelRoundInput.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/ReelRound/ReelRoundInput.cpp"
+  ],
+  "sha256": "bca01adcebe815e879fe5ef3a071e0c121e3c2fb3bd8cc8527df36dade372e5a",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/ReelRound/ReelRoundInput.h": "64d01b6f409af2c088398a97343969101f5b455677318ebfede1150cb0444c83",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/ReelRound/ReelRoundInput.cpp": "8b61326cf12734779a548962719e908445e14971dc30ace4ebd75216c29d382a"
+  }
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/ReelRound/ReelRoundIntro.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/ReelRound/ReelRoundIntro.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/ReelRound/ReelRoundIntro.cpp"
+  ],
+  "sha256": "ff763ddca7b1ee6999a563e32153cd0df62fc69570b09050bc01a567e43c40f4",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/ReelRound/ReelRoundIntro.h": "ebad0436a020283029a7f6cff03aaa97ec11b495030a50bccaf7cc057037f5f5",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/ReelRound/ReelRoundIntro.cpp": "01a204563e7eb633c38a3cb300ac74c14b495e775c83521b001d4af124b93471"
+  }
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/ReelRound/ReelRoundOutro.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/ReelRound/ReelRoundOutro.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/ReelRound/ReelRoundOutro.cpp"
+  ],
+  "sha256": "2cdb9001de305071ab927434f23e1c0e0cf84e0ed3d60e0cb3bf73cb75442c7a",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/ReelRound/ReelRoundOutro.h": "db616706d57fbfe85764c4f162ebce00080aabde99a4e49c397e0652e69508d7",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/ReelRound/ReelRoundOutro.cpp": "0b016db45cec67b1bbf3daa6eb6d78e73674e772c6f2c5e7c11e26431eca758a"
+  }
+ },
  "alpha_family/libs/AlphaFamilyStatesLibrary/Match/ReelRound/ReelRoundPresenting.ts": {
   "cpp": [
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/ReelRound/ReelRoundPresenting.h",
@@ -1231,6 +1851,112 @@
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRoundStarting.cpp": "ffdff9a2da830a01b402b3113f7c33088385da9d40f73d5774cffc657d6f2443"
   }
  },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRound.data.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRound.data.h"
+  ],
+  "sha256": "c64afbb79731b4e3f3334b951b9aa386864d696d5b62d2b0aaa9e7a8bff4e209",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRound.data.h": "d739c1004cacc3e2b25ac49f18cb5a0e2168572be161cd643b7b4bb87b2e02d3"
+  }
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRound.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRound.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRound.cpp"
+  ],
+  "sha256": "4b024d2e88ebd415e204d269bec9066713f0483a80b4bb5bd15f8e013fe639d0",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRound.h": "9e1544a152aae298d30d24fdcd8b6c4e004e9632da1f30db0f40c2e093938354",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRound.cpp": "b5b98031a7283b8d84a819acc5a6e3fa70015ab15af0462859a61af09a8159d8"
+  }
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRoundEnding.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRoundEnding.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRoundEnding.cpp"
+  ],
+  "sha256": "fbb20ae839648b47f8526f1e0044e059b8f435b40c3374656748610b89425f01",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRoundEnding.h": "949bcbdfdef42947185a76710ad67469fa72e0758d94988e97d0d1bcdccde092",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRoundEnding.cpp": "f1def1255ad5e8ab8f4dd86a90f32ba9746138744d0b9e273942fa92cbe65040"
+  }
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRoundInput.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRoundInput.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRoundInput.cpp"
+  ],
+  "sha256": "37cf6df8b814e93ccc6b11393e54f76912a6c6af938b84e5e91dbe8bfc7c41aa",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRoundInput.h": "5f2a6c6b59d897d8b2af51a1c2553014c711af5e7c73972918c5994f16d9c4bd",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRoundInput.cpp": "da44c815f156b56a6016834a326ca31e6f2a6a3a758ac9b13182cf53c849d64e"
+  }
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRoundIntro.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRoundIntro.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRoundIntro.cpp"
+  ],
+  "sha256": "cc16415a25d22faca443739cc20b7a76ffd2ea1a0c0197419ed5f6e2127aed88",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRoundIntro.h": "971e5f43b012ae3ab26a363645e456966d6d58998c7325215fab2a4d3af9e360",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRoundIntro.cpp": "90c9804fccd0a3bd62b80ba9f1f05bc83ffa62e27caf28ed3a0d01f911ce6c91"
+  }
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRoundOutro.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRoundOutro.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRoundOutro.cpp"
+  ],
+  "sha256": "5e6f06d4d0b847cb0405585792e89080a90df3099f37534183683c0c32e56bb8",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRoundOutro.h": "76f1c3dac273d8fcf9916d6b303870d8490e47950760d17bb9b80ef63c338395",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRoundOutro.cpp": "a98f216f12fa7f61e1604698baca6a4398d9439744d46c11d4e7be086ad0f5de"
+  }
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRoundPresenting.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRoundPresenting.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRoundPresenting.cpp"
+  ],
+  "sha256": "d57b6c3cc4f661a8a834fee720e768af4af25e574e393ccf62171ae41626143d",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRoundPresenting.h": "1ff45d6e039d655df67925b8b3754a7b14e5fc92b1b4598b2d46e9793059cfd5",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRoundPresenting.cpp": "6daa2875af7d78901f6568a652c267b574bb184339cae098bab3d85e1f32c6f3"
+  }
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRoundReeling.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRoundReeling.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRoundReeling.cpp"
+  ],
+  "sha256": "e930e501e9c489bda8580abb08948fadfd68fa2e5238f8881df39307bf922ea7",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRoundReeling.h": "4e7cf7fb787e42ae19ac87cf841e96baa896cf7327b0cea1553b86dcd04a3b41",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRoundReeling.cpp": "923bb14e7c35699a86dbf6219a3098bd1ef958fd33f340d4e3c6ce61d9d715d4"
+  }
+ },
+ "alpha_family/libs/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRoundStarting.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRoundStarting.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRoundStarting.cpp"
+  ],
+  "sha256": "bee630c6a758f4a4172d972d505ca4d25c01792b065c3c9532f85e7a487f76ad",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRoundStarting.h": "ed80fd742c7cd8f02acd4afc334c6c3823e17facbb9ccbee1a2ca0ae9377a010",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRoundStarting.cpp": "a5610b30ed55a383ea8258833ee3f11c0bd12d98727b9fc8a88ab0dabc789580"
+  }
+ },
  "alpha_family/libs/AlphaFamilyStatesLibrary/SystemManager.ts": {
   "cpp": [
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/SystemManager.h",
@@ -1248,7 +1974,7 @@
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/ViewManager.h",
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/ViewManager.cpp"
   ],
-  "sha256": "59563ade954df49f9c89c7d1749f0ca523f91e54e2b345afdfee561c5383b23a",
+  "sha256": "b36feb805c7bfb115300490c9c080bc5079e72a1bb54b13daeea2a04813b061d",
   "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/ViewManager.h": "8cd33785a81296dd3edc6883579fa325640496c2e3afdf56ea0a47c6cbe56a2b",
@@ -1260,8 +1986,8 @@
    "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/BaseView.h",
    "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/BaseView.cpp"
   ],
-  "sha256": "a5603168922606e813bd9665b2a29c4402cf8ab517285644a584809b5380970f",
-  "cppCommit": "f0c46d2a37422c811dea77221127db2101f537dd",
+  "sha256": "826f9a57bc7c4860dfe44431afb7da6c6d3f00d52954fd3cd54a6c24064c39b4",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/BaseView.h": "ee77778cbf2f64fbe558e41530e0e58aeff69f0b7a087d02fb6d9d55900f9ff9",
    "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/BaseView.cpp": "c17f1e5b76ad99874e9fc04717d076fbd686a6160d467c2edda685456dcb6e55"
@@ -1384,8 +2110,8 @@
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10Math/MathRules.h",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10Math/MathRules.cpp"
   ],
-  "sha256": "e40ebb2aeaf8a30890cf4bac39f8fcc0ca7bb01a4d0d4349c59f9032fa214f93",
-  "cppCommit": "f0c46d2a37422c811dea77221127db2101f537dd",
+  "sha256": "fc237179a5177726c239768e03baa1c8d4b67dd7e2a79ba1f68702e9798995e9",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
   "cppSha256": {
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10Math/MathRules.h": "37ac63c4e8f78fbc4f17f9b53418edb61ca4dedc90d727945cbc19d03c7e9572",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10Math/MathRules.cpp": "cb191a9762b55a33f5f663002afb7994752f2df009e90235e816f38a295f2ee9"
@@ -1941,6 +2667,202 @@
   "cppSha256": {
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Visuals/WinValueVisual.h": "dfbdaede069d063f995e4a270d692707fa8d6c5d044e9931a083d65496be0d0a",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Visuals/WinValueVisual.cpp": "64b17ed7fd2555cb4103869a9ba09b895bad2fdff187a2060e9f071a93119925"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushFsm/NordicRushFsm.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushFsm/NordicRushFsm.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushFsm/NordicRushFsm.cpp"
+  ],
+  "sha256": "443d01df5c51463612adc3e9a26b8835da79aeee2b858ecd6829b9425d674b58",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushFsm/NordicRushFsm.h": "a85459adfa18dec590439589ba88534d9e29fe97e7456cd3f4c8546153a64cad",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushFsm/NordicRushFsm.cpp": "cbc212d975412f0e6b0ce70cdc6dbd2e259ca10945117fb30262885cdb2c4af2"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushInfoView/BigWinInfoView.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/BigWinInfoView.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/BigWinInfoView.cpp"
+  ],
+  "sha256": "56c53db6b3fbc1228bef068716e7d23e6007b0dede0a18f23e2e54a8f90a8f9e",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/BigWinInfoView.h": "33e4584b7c56a4fcc666da1bd02a5bcf6b93f8bc219f651403a1f35c44e8ca77",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/BigWinInfoView.cpp": "5594a7a943f1ab0d9d1701a2a87572d365823c5db4d6d5a9300f2e56092d0570"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/SwButtons/BetDownSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/BetDownSwButtonView.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/BetDownSwButtonView.cpp"
+  ],
+  "sha256": "fa11eb4106b794ea38252cbcb0cd87f0dabf21e03252ec27e51a1b8e282cb7ba",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/BetDownSwButtonView.h": "c6de9941a6db1d9f99f9d947c774a46612b632b425331dc90a61cd098014a075",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/BetDownSwButtonView.cpp": "fa08db26195ff85084e98170d492ae0124b15cb1a4884010a93e2f6fad18315b"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/SwButtons/BetUpSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/BetUpSwButtonView.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/BetUpSwButtonView.cpp"
+  ],
+  "sha256": "3f5a0a6985d8a56314cc94c7a8fe18ed1120c4bd6f6d97529e367f7650657f65",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/BetUpSwButtonView.h": "f168f2c83d003f8ef2f170f9b1d8492fbebf0eb43175b727e1a122d5c081f6a3",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/BetUpSwButtonView.cpp": "d5c9b67a031ddd2f62103f944d97d978d3dd789872e2b3c2f4cafa025e9376d2"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/SwButtons/InfoSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/InfoSwButtonView.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/InfoSwButtonView.cpp"
+  ],
+  "sha256": "e18445d8d18073c6bf905e9d35a5295091c453127afec6b13ce813363230517d",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/InfoSwButtonView.h": "1e2a2dc990756091df53f2b94c8be04f51c11928f911753af87dbb82d4815e64",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/InfoSwButtonView.cpp": "69055e58493c0bb76ea0da774c2923d4bc2a32d820f0f23f40daa56e7168e7ad"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/SwButtons/LineDownSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/LineDownSwButtonView.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/LineDownSwButtonView.cpp"
+  ],
+  "sha256": "b17dd45de9dd2a87db56f7722df21e86abba0e0f7104b9e962c7c1779463b825",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/LineDownSwButtonView.h": "ed36c2dc248887532c0ee6a1dc30f5796152b8d8a66426bb6016757ffbc77c2e",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/LineDownSwButtonView.cpp": "fbd3bd28c127e42ad8a0dd283d96bf192a6de7e00077804a92d8608fb91805d2"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/SwButtons/LineUpSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/LineUpSwButtonView.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/LineUpSwButtonView.cpp"
+  ],
+  "sha256": "5771b87abff44e1b6f77f6c5213fb97cf529ee45809fcd5440c3736071abee64",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/LineUpSwButtonView.h": "c9c6bf945c0668da53fc580255679d34d5326e111681482b316ebf9f398aafda",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/LineUpSwButtonView.cpp": "1baf5fda12427eda42bbf4c806a816e566c7cf8fe7897d6b08d01293991346fa"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/SwButtons/ResponsibleSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/ResponsibleSwButtonView.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/ResponsibleSwButtonView.cpp"
+  ],
+  "sha256": "281618ec66c26a662bce3ecf994df2ca94adb2533b899c06b4f66d6e1d49513b",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/ResponsibleSwButtonView.h": "819fea3716e98c70c109d3413131c1f5e9d7dca802a826d09b1b022001bd45b9",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/ResponsibleSwButtonView.cpp": "1bdf165e032576de177b182f8b34041341a2d87e63e45ff572c29baa8043d861"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/Views/AutoPlayView.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/AutoPlayView.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/AutoPlayView.cpp"
+  ],
+  "sha256": "c1088786190f2ddea1e752649af1536f95fe3df21b4f25ecb111e0e25fdf050d",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/AutoPlayView.h": "068149360635f708b521445b1db188ff1bf08e8588bad218f5179a1e7229ae9d",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/AutoPlayView.cpp": "118dc1430c4a04e4946e79c3d35ef7fa69b64e83e620f12e19c22be2f5ec3643"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/Views/CreditBarView.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/CreditBarView.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/CreditBarView.cpp"
+  ],
+  "sha256": "ee028db2883b86fd37481deea196d31784c726b9d8cb0af51fe5c62059ee4cce",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/CreditBarView.h": "b939aff8314d5f762605653e32365aedf051903e72a309a14985620bd1e83fe0",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/CreditBarView.cpp": "3a46b6878376625494f493f40b99261a4aefef89df9d9d751d9d5f34c53156ae"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/Views/CreditsWinBarView.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/CreditsWinBarView.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/CreditsWinBarView.cpp"
+  ],
+  "sha256": "9633198325fe7c820ed536defdc4d9e7f6013398b40614561e77595365a5f7b7",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/CreditsWinBarView.h": "fc5a6b4fc4e0be157932416ec61200a0e209a5a2ba42fa11dc6330269ec6217b",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/CreditsWinBarView.cpp": "d1502cfd926165114549842da1377f949e9d933bbe28f7921008f9fb16c9568e"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/Views/LanguageMenuView.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/LanguageMenuView.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/LanguageMenuView.cpp"
+  ],
+  "sha256": "7fd3b71f857771d78a7afe4338613f7c8abd4f713fdd4aca2f3355ac9a4b73cb",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/LanguageMenuView.h": "20b3ecdb1fb1ebb87e260d4ff17894dbf1d5b8e149fde5c52645d054f3270c40",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/LanguageMenuView.cpp": "8f75b1a5e934329a1b0aa81c0d53c749be32648e99fd29079f4a24acff02d80a"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/Views/ReelSubScreen.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/ReelSubScreen.data.h"
+  ],
+  "sha256": "d6dd2d33d1414a2062ab734ff39321acbfe113abd5c92f9dc81dac09f99e6f95",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/ReelSubScreen.data.h": "60b687633a9db66347203356a01851b28fc40629b0a02d3695f097693e7fc48f"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/Views/WinFiguresView.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/WinFiguresView.data.h"
+  ],
+  "sha256": "3b91149e85c9440e0d36cf36a4cdfd13fb8c89d9e56874d70fe4786fe85cb5e3",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/WinFiguresView.data.h": "4bdaac9341ad709cfe3474f1f3241034146682ab4dfb1de8c66b1bbf03eea195"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/Visuals/BaseVisual.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/BaseVisual.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/BaseVisual.cpp"
+  ],
+  "sha256": "c10adc269ddf362af7466cf286c3d79cfb82abacf63e0cd71e7f66a6b1bc9dec",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/BaseVisual.h": "d327da7d28bf460656fd99c63538d792eec545ec67c9779aa964f4e17264b112",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/BaseVisual.cpp": "6c72f0ff52a87cc93b4e810102b0155058633053189f1e05bf86cd5ead882264"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/Visuals/StatusLineVisual.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/StatusLineVisual.data.h"
+  ],
+  "sha256": "c25207fef315af2860ac442f6a1a754c33fa8390e3e5aeb0e386aa3eb9847aa8",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/StatusLineVisual.data.h": "1f465c42640d9706a8d6da1237d3062a464cfd1eba65668673f24244e1e43441"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/Visuals/WinFiguresVisual.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/WinFiguresVisual.data.h"
+  ],
+  "sha256": "a0482397553afba3cafb9f4fd9d588eb274e89cb3cb1d0b92fd76e075d36613e",
+  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/WinFiguresVisual.data.h": "60913607701eb0ee8a885a99bc1d2e989d009a2744ab03f12dd27a9d4fe93733"
   }
  },
  "plugins/CappingSplashView/CappingSplashView.data.ts": {

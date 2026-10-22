@@ -3,8 +3,11 @@
 // number for the round's replay) and ReplayEngine (plays a recorded sequence back).
 
 export enum RngOp {
+  // Don't use Undefined in IRng::Generate calls
   Undefined = 0,
   CompatibilityDiscard = 1,
+
+  // Math (affects RTP)
   ShuffleArray = 2,
   RtpReducer = 3,
   LeftoverBet = 4,
@@ -14,14 +17,80 @@ export enum RngOp {
   StopReels = 8,
   StopWheel = 9,
   WildPos = 10,
+  CoinType = 11,
+  CoinNew = 12,
+  CoinPos = 13,
+  CoinVal = 14,
+  CoinCount = 15,
+  RareNew = 16,
+  RarePos = 17,
+  SpecialType = 18,
+  SpecialNew = 19,
+  SpecialPos = 20,
+  SpecialCount = 21,
+  CollectorPos = 22,
+  CollectorType = 23,
+  CollectorPlusAmount = 24,
+  CollectorMultAmount = 25,
+  BonusType = 26,
+  JackpotTrigger = 27,
+  JackpotWinLevel = 28,
+  JackpotMajor = 29,
+  DropJpSymbol = 30,
+  SelectJpDistr = 31,
+  SelectJpSymbol = 32,
+  SelectEmptyPos = 33,
+  SelectSymbol = 34,
+  SelectSpecialSymbol = 35,
+  SelectLowMidHigh = 36,
+  SelectOutCoins = 37,
+  SelectMaxCount = 38,
+  SelectMult = 39,
+  SelectDistr = 40,
+  SelectCounter = 41,
+  MysterySelectWin = 42,
+  MysterySelectMult = 43,
+  MysterySelectScreen = 44,
+  MysterySelectDrop = 45,
+  MysterySelectPosition = 46,
+  AxeCount = 47,
+  MultiReel = 48,
   StickSymbol = 49,
   StickWild = 50,
+  StickScatter = 51,
+  StackSymbol = 52,
+  StackScatter = 53,
+  RespinWinCount = 54,
+  RespinBlankCount = 55,
+  IgniteCoin = 56,
+  IgniteNew = 57,
+  IgniteVal = 58,
+  ForceIgnite = 59,
+  MultiplyCoin = 60,
+  MultiplierNew = 61,
+  MultiplierVal = 62,
+  ForceMultiplier = 63,
+  DrawBall = 64,
+  DrawScreenBall = 65,
   RoundBet = 66,
+
+  // Visual Diversity (Deterministic)
+  // - Does not affect RTP or any Math metric.
+  // - Produces the exact same outcome when a match is replayed from backup.
   VisualDiversity_Begin = 1000,
   VisualDiversitySeed = 1001,
   ZeroRoundSeed = 1002,
   PhaseAnimation = 1003,
+  HoldAndSpinNoCoinDrop = 1004,
   VisualDiversity_End = 1999,
+
+  // Debug/Test
+  DebugTest_Begin = 2000,
+  UnitTest = 2001,
+  SimulateRemoteServer = 2002,
+  DebugTest_End = 2999,
+
+  // skip ReplayEngine checks for this RngOp
   ReplayNoCheck = 3000,
 }
 

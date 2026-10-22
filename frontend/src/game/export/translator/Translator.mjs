@@ -29,6 +29,8 @@ const FUNCTIONS = {
   RandomDevice: { cpp: () => 'std::random_device()()', include: 'random' },
   // the C++ options structs have their defaults in their fields
   WithDefaults: { cpp: ([options]) => options, include: null },
+  // a value's copy (engine/GameCore/Common/Types.ts): C++ copies values
+  Copy: { cpp: ([value]) => value, include: null },
   String: { cpp: ([value]) => `std::to_string(${value})`, include: 'string' },
   // Egt/GameCore/Log/LogCategory.h's macros (engine/GameCore/Log/LogCategory.ts): the header of a class with a log
   // category includes it
@@ -117,7 +119,12 @@ export class Translator {
     this.includes = new Set();
     this.headerIncludes = new Set(this.kind === 'state' ? ['Egt/Fsm/State.h'] : []);
     // the file's interfaces C++ does not declare, or declares inside the class the translation replaces
-    const ownNested = name => (this.index.declarations.get(name) ?? []).every(item => item.scope.includes(this.className));
+    // (or in the header the translation replaces: a state's statics struct before its class)
+    const ownHeader = this.TsPath(sourceFile).replace(/\.ts$/, '.h').replace(/^alpha_family\/libs\//, 'alpha_family/libs/src/Egt/')
+      .replace(/^alpha_family\/plugins\/([^/]+)\//, 'alpha_family/plugins/$1/src/Egt/').replace(/^plugins\//, 'plugins/src/Egt/');
+    const inOwnHeader = name => (this.index.declarations.get(name) ?? []).some(item => item.file?.endsWith(`/${ownHeader}`) && !item.scope.includes(this.className));
+    const ownNested = name => (this.index.declarations.get(name) ?? []).every(item => item.scope.includes(this.className) || item.file?.endsWith(`/${ownHeader}`));
+    this.headerStructs = new Set(sourceFile.statements.filter(statement => ts.isInterfaceDeclaration(statement) && inOwnHeader(statement.name.text)).map(statement => statement.name.text));
     this.localStructs = new Map(sourceFile.statements.filter(statement => ts.isInterfaceDeclaration(statement) && (!this.index.Has(statement.name.text) || ownNested(statement.name.text)))
       .map(statement => [statement.name.text, statement.members.filter(item => ts.isPropertySignature(item)).map(item => item.name.getText())]));
     this.localEnums = new Set(sourceFile.statements.filter(statement => ts.isEnumDeclaration(statement)).map(statement => statement.name.text));
@@ -285,6 +292,7 @@ export class Translator {
 
     // the module's interfaces C++ does not declare: structs before the class
     const structs = [];
+    const headerStructs = [];
     for (const statement of sourceFile.statements) {
       if (!ts.isInterfaceDeclaration(statement) || !this.localStructs.has(statement.name.text)) continue;
       try {
@@ -294,7 +302,8 @@ export class Translator {
           const optional = item.questionToken && !/^(std::optional<|Ptr<)|\*$/.test(type) ? `std::optional<${type}>` : type;
           return `${I}${I}${optional} ${item.name.getText()}{};`;
         });
-        structs.push(`struct ${statement.name.text}\n${I}${I}{\n${fields.map(field => `${I}${field}`).join('\n')}\n${I}${I}};`);
+        if (this.headerStructs.has(statement.name.text)) headerStructs.push(`${I}struct ${statement.name.text}\n${I}{\n${fields.join('\n')}\n${I}};\n`);
+        else structs.push(`struct ${statement.name.text}\n${I}${I}{\n${fields.map(field => `${I}${field}`).join('\n')}\n${I}${I}};`);
       } catch (error) {
         if (!(error instanceof TranslationError)) throw error;
         this.errors.push(error.message);
@@ -351,7 +360,7 @@ ${[...this.headerIncludes].filter(path => path !== this.index.Include(this.class
 
 namespace Egt::Game::AlphaFamily
 {
-    class ${this.className}${isAbstract || this.kind !== 'state' ? '' : ' final'}
+${headerStructs.map(struct => `${struct}\n`).join('')}    class ${this.className}${isAbstract || this.kind !== 'state' ? '' : ' final'}
         : ${bases.map((item, i) => `${i ? '        , ' : ''}public ${item}`).join('\n')}
     {
 ${this.logCategory ? `${I}${I}EgtALogCategoryClassDeclaration();\n\n` : ''}    public:
@@ -764,8 +773,16 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
     return `${cppType} ${member.name.text}${init};`;
   }
 
+  /** A member's C++ name: its own, or the one its doc comment gives (@cppName X), where TypeScript cannot use it (a
+   * derived class's private method of the same name as its base's, which C++ allows). */
+  CppMemberName(declaration) {
+    const tag = declaration && ts.getJSDocTags(declaration).find(item => item.tagName.text === 'cppName');
+    const text = typeof tag?.comment === 'string' ? tag.comment.trim() : '';
+    return text || declaration?.name?.text;
+  }
+
   Method(member, interfaceMethods) {
-    const name = member.name.text;
+    const name = this.CppMemberName(member);
     this.currentMethod = name;
     const isAbstract = member.modifiers?.some(modifier => modifier.kind === ts.SyntaxKind.AbstractKeyword);
     let ret;
@@ -1232,6 +1249,11 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
       const inner = this.CppTypeNode(node.typeArguments[0]);
       return inner ? `const ${inner}*` : null;
     }
+    // Pointer<T> (engine/GameCore/Common/Types.ts): C++'s T*
+    if (ts.isTypeReferenceNode(node) && node.typeName.getText() === 'Pointer' && node.typeArguments?.length === 1) {
+      const inner = this.CppTypeNode(node.typeArguments[0]);
+      return inner ? `${inner.replace(/^Ptr<(.*)>$/, '$1')}*` : null;
+    }
     // AnyData (engine/GameCore/Common/Types.ts): Egt's
     if (ts.isTypeReferenceNode(node) && node.typeName.getText() === 'AnyData') return 'AnyData';
     // the runtime a function outside a state is passed: GameCore's RuntimeAccess
@@ -1270,7 +1292,8 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
       return null;
     }
     if (ts.isTypeReferenceNode(node)) {
-      const name = node.typeName.getText();
+      // an imported alias (import { X as Y }): X's
+      const name = ts.isIdentifier(node.typeName) ? this.OriginalName(node.typeName) : node.typeName.getText();
       const args = (node.typeArguments ?? []).map(arg => this.CppTypeNode(arg));
       if (args.some(arg => !arg)) return null;
       if (PRIMITIVE_ALIASES.has(name)) return name;
@@ -2068,6 +2091,18 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
     }
     if (ts.isParenthesizedExpression(node)) return `(${expr(node.expression)})`;
     if (ts.isVoidExpression(node)) return expr(node.expression);
+    // x as T of a std::variant x (a round's phases) and one of its classes T: std::get<T>(x)
+    if (ts.isAsExpression(node) && ts.isTypeReferenceNode(node.type)) {
+      // the variable's declared type: an assert(x instanceof T) before narrows it in TypeScript, not in C++
+      const symbol = ts.isIdentifier(node.expression) ? this.checker.getSymbolAtLocation(node.expression) : null;
+      const declared = symbol?.valueDeclaration && !this.renames.has(symbol) ? this.checker.getTypeOfSymbolAtLocation(symbol, symbol.valueDeclaration) : null;
+      const from = declared && this.IsVariant(declared) ? declared : this.checker.getTypeAtLocation(node.expression);
+      const to = this.checker.getTypeAtLocation(node.type);
+      if (this.IsVariant(from) && to.symbol && from.types.some(item => item.symbol === to.symbol)) {
+        this.includes.add('variant');
+        return `std::get<${this.Name(to.symbol.name)}>(${expr(node.expression)})`;
+      }
+    }
     if (ts.isAsExpression(node) || ts.isTypeAssertionExpression(node) || ts.isSatisfiesExpression?.(node)) return expr(node.expression);
     if (ts.isNonNullExpression(node)) {
       const inner = expr(node.expression);
@@ -2196,7 +2231,9 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
       };
       visit(node.body);
       const capture = this.atModule ? '' : synchronous || this.inFunction ? '&' : usesThis ? '=, this' : '=';
-      if (ts.isBlock(node.body)) return `[${capture}](${params}) ${this.Block(node.body, 3)}`;
+      // a return type it names: -> T (a braced return deduces none)
+      const returnType = node.type ? this.CppTypeNode(node.type) : null;
+      if (ts.isBlock(node.body)) return `[${capture}](${params})${returnType ? ` -> ${returnType}` : ''} ${this.Block(node.body, 3)}`;
       const returnsVoid = this.checker.getSignatureFromDeclaration(node)?.getReturnType().flags & ts.TypeFlags.Void;
       if (returnsVoid && ts.isCallExpression(node.body)) return `[${capture}](${params}) {\n${this.ExpressionStatement(node.body, I.repeat(4))}\n${I}${I}${I}}`;
       return returnsVoid ? `[${capture}](${params}) { ${expr(node.body)}; }` : `[${capture}](${params}) { return ${expr(node.body)}; }`;
@@ -2519,7 +2556,11 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
 
   PropertyAccess(node, chain) {
     this.UnhandledOptional(node, chain);
-    const name = node.name.text;
+    let name = node.name.text;
+    if (node.expression.kind === ts.SyntaxKind.ThisKeyword) {
+      const declaration = this.checker.getSymbolAtLocation(node.name)?.valueDeclaration;
+      if (declaration && (ts.isMethodDeclaration(declaration) || ts.isPropertyDeclaration(declaration))) name = this.CppMemberName(declaration) ?? name;
+    }
     if (node.expression.kind === ts.SyntaxKind.ThisKeyword && this.thisReplacement) {
       if (ts.isCallExpression(node.parent) && node.parent.expression === node && this.InlineMethod(node.parent, chain)) return null;
       return `${this.thisReplacement}.${name}`;
@@ -2536,7 +2577,7 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
       this.includes.add(hat.include);
       return hat.cpp;
     }
-    if (this.IsScope(node.expression)) return `${this.Name(node.expression.getText(), false, this.ModuleHint(node.expression))}::${name}`;
+    if (this.IsScope(node.expression)) return `${this.Name(ts.isIdentifier(node.expression) ? this.OriginalName(node.expression) : node.expression.getText(), false, this.ModuleHint(node.expression))}::${name}`;
     if (name === 'Events' && this.IsToken(node)) return this.TokenName(node);
     const type = this.checker.getNonNullableType(this.checker.getTypeAtLocation(node.expression));
     // a field of every alternative of a std::variant (a parent of a call is the call's)
@@ -2639,6 +2680,11 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
       const method = callee.name.text;
       const owner = callee.expression;
       const ownerType = this.checker.getNonNullableType(this.checker.getTypeAtLocation(owner));
+      // Math.max(...values): std::ranges::max(values)
+      if (owner.getText() === 'Math' && (method === 'min' || method === 'max') && node.arguments.length === 1 && ts.isSpreadElement(node.arguments[0])) {
+        this.includes.add('algorithm');
+        return `std::ranges::${method}(${expr(node.arguments[0].expression)})`;
+      }
       const args = node.arguments.map(expr);
       if (owner.getText() === 'performance' && method === 'now') {
         this.includes.add('chrono');

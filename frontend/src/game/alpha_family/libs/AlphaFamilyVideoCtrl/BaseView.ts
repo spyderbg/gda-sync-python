@@ -38,6 +38,10 @@ export abstract class BaseView extends RuntimeHolder {
     this.m_elementsList.Update(now);
   }
 
+  IsOpaqueFullScreen() {
+    return false;
+  }
+
   Draw(drawList: DrawList) {
     if (!this.IsVisible()) return;
     this.m_elementsList.Draw(drawList);

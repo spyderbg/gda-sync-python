@@ -13,17 +13,14 @@
 // (port-manifest.mjs --only). What fails changes nothing, and is reported with the agent's account. --json prints the report as JSON (the app's
 // /api/game/import reads it).
 
-import { execFileSync, spawnSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
+import { ApplyChanges, Conflicts, Distance, GameFiles, HasClaude, MakeTree, RemoveTree, repo, RunAgent, TreeChanges, TypeCheck } from './import-tree.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const gameSources = resolve(here, '..');
-const frontend = resolve(gameSources, '../..');
-const repo = resolve(frontend, '..');
 const args = process.argv.slice(2);
 const cppRoot = args[0] && resolve(args[0]);
 if (!cppRoot || !existsSync(cppRoot)) {
@@ -65,33 +62,6 @@ function ChangedFiles() {
   return changed;
 }
 
-/** How many lines a ported file's translation differs from its C++ (null: it is not translated), by the translator of
- * a tree of the app's sources. */
-async function Distance(tree, ts) {
-  const { TranslateFiles } = await import(pathToFileURL(join(tree, 'frontend/src/game/export/translator/translate.mjs')).href);
-  const { files } = TranslateFiles(cppRoot, [ts]);
-  if (!Object.keys(files).length) return null;
-  const folder = mkdtempSync(join(tmpdir(), 'egt-import-'));
-  try {
-    let changed = 0;
-    for (const [path, text] of Object.entries(files)) {
-      const translated = join(folder, path.replaceAll('/', '_'));
-      writeFileSync(translated, text);
-      const result = spawnSync('diff', ['-u', join(cppRoot, path), translated], { encoding: 'utf8', maxBuffer: 1 << 26 });
-      changed += result.stdout.split('\n').filter(line => /^[+-]/.test(line) && !/^(\+\+\+|---) /.test(line)).length;
-    }
-    return changed;
-  } finally {
-    rmSync(folder, { recursive: true, force: true });
-  }
-}
-
-/** Whether a tree's browser game type-checks, and its errors. */
-function TypeCheck(tree) {
-  const result = spawnSync('npx', ['vue-tsc', '--noEmit'], { cwd: join(tree, 'frontend'), encoding: 'utf8', maxBuffer: 1 << 26 });
-  return { ok: result.status === 0, errors: `${result.stdout}${result.stderr}`.trim().split('\n').slice(0, 20).join('\n') };
-}
-
 function Prompt(change) {
   const tsPath = `frontend/src/game/${change.ts}`;
   return `You keep the browser game's TypeScript port in step with the C++ game it ports (the C++ is the reference).
@@ -120,53 +90,6 @@ already ports the change (it was ported before the C++ was committed, say), chan
 "ALREADY PORTED", then say where the TypeScript has it.`;
 }
 
-/** Has a Claude Code agent port a change in a tree of the app's sources; returns its account. */
-function RunAgent(tree, change) {
-  const allowed = ['Read', 'Grep', 'Glob', 'Edit(frontend/src/game/**)', 'Write(frontend/src/game/**)',
-    'Bash(node frontend/src/game/export/translator/compare.mjs:*)', 'Bash(cd frontend && npx vue-tsc:*)', 'Bash(npx vue-tsc:*)'];
-  const command = ['-p', '--output-format', 'json', '--permission-mode', 'acceptEdits', '--allowedTools', allowed.join(' ')];
-  if (option('--model')) command.push('--model', option('--model'));
-  const result = spawnSync('claude', command, { cwd: tree, input: Prompt(change), encoding: 'utf8', maxBuffer: 1 << 26, timeout: 30 * 60 * 1000 });
-  if (result.error) return { ok: false, account: `Claude Code did not run: ${result.error.message}` };
-  try {
-    const reply = JSON.parse(result.stdout);
-    return { ok: !reply.is_error, account: reply.result ?? '', cost: reply.total_cost_usd ?? null };
-  } catch {
-    return { ok: false, account: `${result.stdout}${result.stderr}`.trim().slice(-2000) };
-  }
-}
-
-const runGit = (...gitArgs) => execFileSync('git', ['-C', repo, ...gitArgs], { encoding: 'utf8', maxBuffer: 1 << 26 });
-
-/** The browser game's files as they are now in the app's sources (committed or not), by their paths in the repository. */
-function GameFiles(tree) {
-  const listed = execFileSync('git', ['-C', tree, 'ls-files', '--cached', '--others', '--exclude-standard', '--', 'frontend/src/game'], { encoding: 'utf8' });
-  return new Map(listed.split('\n').filter(Boolean).filter(path => existsSync(join(tree, path))).map(path => [path, readFileSync(join(tree, path), 'utf8')]));
-}
-
-/** A worktree of the app's sources with the browser game as it is now: where the agent works, away from the sources. */
-function MakeTree(files) {
-  const tree = mkdtempSync(join(tmpdir(), 'egt-import-tree-'));
-  rmSync(tree, { recursive: true, force: true });
-  runGit('worktree', 'add', '--detach', '--quiet', tree, 'HEAD');
-  for (const path of runGit('ls-files', '--', 'frontend/src/game').split('\n').filter(Boolean)) if (!files.has(path)) rmSync(join(tree, path), { force: true });
-  for (const [path, text] of files) {
-    mkdirSync(dirname(join(tree, path)), { recursive: true });
-    writeFileSync(join(tree, path), text);
-  }
-  symlinkSync(join(frontend, 'node_modules'), join(tree, 'frontend/node_modules'));
-  return tree;
-}
-
-function RemoveTree(tree) {
-  try {
-    runGit('worktree', 'remove', '--force', tree);
-  } catch {
-    rmSync(tree, { recursive: true, force: true });
-    runGit('worktree', 'prune');
-  }
-}
-
 const changes = ChangedFiles();
 const report = { head, changed: changes.map(({ ts, cpp, from, commits, uncommitted, diff }) => ({ ts, cpp, from, commits, uncommitted, diffLines: diff.split('\n').length })), ported: [], upToDate: [], failed: [] };
 if (!asJson) {
@@ -178,7 +101,7 @@ if (!asJson) {
 }
 
 if (useAgent) {
-  if (spawnSync('claude', ['--version']).status !== 0) {
+  if (!HasClaude()) {
     console.error('Claude Code (the claude command) is not installed');
     process.exit(1);
   }
@@ -188,23 +111,18 @@ if (useAgent) {
     const files = GameFiles(repo);
     const tree = MakeTree(files);
     try {
-      const before = await Distance(tree, change.ts);
-      const agent = RunAgent(tree, change);
+      const before = await Distance(tree, cppRoot, change.ts);
+      const agent = RunAgent(tree, Prompt(change), option('--model'));
       const check = TypeCheck(tree);
-      const after = await Distance(tree, change.ts).catch(() => null);
-      const now = GameFiles(tree);
-      const changedFiles = [...now].filter(([path, text]) => files.get(path) !== text).map(([path]) => path);
-      const removedFiles = [...files.keys()].filter(path => !now.has(path));
+      const after = await Distance(tree, cppRoot, change.ts).catch(() => null);
+      const treeChanges = TreeChanges(tree, files);
+      const { changed: changedFiles, removed: removedFiles } = treeChanges;
       const closer = before === null || (after !== null && after <= before);
       const result = { ts: change.ts, cpp: change.cpp, before, after, typeCheck: check.ok, files: [...changedFiles, ...removedFiles], account: agent.account, cost: agent.cost };
       // a file changed in the sources while the agent worked is not overwritten
-      const conflicts = result.files.filter(path => (existsSync(join(repo, path)) ? readFileSync(join(repo, path), 'utf8') : undefined) !== files.get(path));
+      const conflicts = Conflicts(result.files, files);
       if (agent.ok && check.ok && closer && result.files.length && !conflicts.length) {
-        for (const path of changedFiles) {
-          mkdirSync(dirname(join(repo, path)), { recursive: true });
-          writeFileSync(join(repo, path), now.get(path));
-        }
-        for (const path of removedFiles) rmSync(join(repo, path), { force: true });
+        ApplyChanges(treeChanges);
         // ported: the files the agent changed that port C++ now port the C++ as it is
         const ported = changedFiles.map(path => path.replace(/^frontend\/src\/game\//, '')).filter(path => path in manifest);
         execFileSync('node', [join(here, 'port-manifest.mjs'), cppRoot, '--only', ...new Set([change.ts, ...ported])], { stdio: 'ignore' });

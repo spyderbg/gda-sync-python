@@ -25,6 +25,16 @@ export const ILineUpSwButtonView: SwButtonToken = Interface('ILineUpSwButtonView
 export const ILineDownSwButtonView: SwButtonToken = Interface('ILineDownSwButtonView');
 export const IResponsibleSwButtonView: SwButtonToken = Interface('IResponsibleSwButtonView');
 export const IExitTetraSwButtonView: SwButtonToken = Interface('IExitTetraSwButtonView');
+export const IWheelCancelSwButtonView: SwButtonToken = Interface('IWheelCancelSwButtonView');
+export const IWheelStartSwButtonView: SwButtonToken = Interface('IWheelStartSwButtonView');
+export const IGambleRedSwButtonView: SwButtonToken = Interface('IGambleRedSwButtonView');
+export const IGambleBlackSwButtonView: SwButtonToken = Interface('IGambleBlackSwButtonView');
+
+export interface ITakeCoinsSwButtonView extends ISwButtonBase {
+  EnableButtonSkin(enabled: boolean): void;
+}
+
+export const ITakeCoinsSwButtonView: SwButtonToken<ITakeCoinsSwButtonView> = Interface('ITakeCoinsSwButtonView');
 
 export enum ESoundSwButtonType {
   Normal,

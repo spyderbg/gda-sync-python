@@ -16,13 +16,16 @@ export interface VisualAnalyzeConfig {
   attractionLineCount: Map<SymbolId, number>;
   /** <times bet, win type> thresholds for different win types */
   winTypeThresholds: Map<number, ERoundTags>;
+  /** <symbol, <count , win type>> thresholds for different win types */
+  winTypeThresholdsPerSymbol: Map<SymbolId, Map<number, ERoundTags>>;
+  /** NearMiss config is nyi */
   nearMissSymbolCount: Map<SymbolId, number>;
   stackFigureConfig: StackFigureConfig;
 }
 
 export function VisualAnalyzeConfig(): VisualAnalyzeConfig {
   return {
-    attractionScatterCount: new Map(), attractionLineCount: new Map(), winTypeThresholds: new Map(), nearMissSymbolCount: new Map(),
+    attractionScatterCount: new Map(), attractionLineCount: new Map(), winTypeThresholds: new Map(), winTypeThresholdsPerSymbol: new Map(), nearMissSymbolCount: new Map(),
     stackFigureConfig: { visibleCols: 0, visibleRows: 0, stackedFigureId: -1 },
   };
 }

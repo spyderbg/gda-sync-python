@@ -14,6 +14,7 @@ import { EgtAError, EgtALogCategoryClass, EgtATrace } from '@game/engine/GameCor
 import { RoundType } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
 import { GenerateRandomZeroRewardRound } from '@game/alpha_family/libs/AlphaFamily/Math/Reel/Helpers/ReelRoundGenerators';
 import { ReelRoundInput } from '@game/alpha_family/libs/AlphaFamily/Math/Reel/ReelRoundInput.data';
+import { HoldAndSpinRoundInput } from '@game/alpha_family/libs/AlphaFamily/Math/HoldAndSpin/HoldAndSpinRoundInput.data';
 import { RoundResult } from '@game/alpha_family/libs/AlphaFamily/Math/RoundResult.data';
 import { IMathRules } from '@game/alpha_family/libs/AlphaFamily/RuntimeExport/IMathRules';
 import { GameManagerNvrams, GameManagerStatics, IGameManager } from '@game/alpha_family/libs/AlphaFamily/States/IGameManager';
@@ -96,10 +97,21 @@ export class GameManager extends State implements IGameManager {
   }
 
   SetLastRoundResult(result: RoundResult) {
-    // C++ visits the round input's variant: the browser game's are reel rounds' only
-    const mathRules = this.RuntimeGetConst(IMathRules);
-    const rules = mathRules.GetReelRoundRules(result.GetInput().roundType);
-    const slot = rules.GetLastResultSlot();
+    // C++ visits the round input's variant (std::visit with an Overload of each alternative)
+    const input = result.GetInput();
+    let slot = 0;
+    if (input instanceof ReelRoundInput) {
+      const mathRules = this.RuntimeGetConst(IMathRules);
+      const rules = mathRules.GetReelRoundRules(input.roundType);
+      slot = rules.GetLastResultSlot();
+    } else if (input instanceof HoldAndSpinRoundInput) {
+      const mathRules = this.RuntimeGetConst(IMathRules);
+      const rules = mathRules.GetReelRoundRules(input.triggerRoundType);
+      slot = rules.GetLastResultSlot();
+    } else {
+      assert(false);
+      slot = 0;
+    }
 
     const nvrams = this.Nvram(GameManagerNvrams);
     const lastRoundResults = nvrams.lastRoundResults;

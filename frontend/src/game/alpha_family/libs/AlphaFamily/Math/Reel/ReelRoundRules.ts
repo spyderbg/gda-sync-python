@@ -218,7 +218,7 @@ export class ReelRoundRules extends BaseReelRules {
   RecoverRound(replay: RoundReplay): RoundResultOrError {
     const replayRng = new HistoryEngine(new ReplayEngine());
     replayRng.engine.SetNumbers(replay.rngs);
-    return this.CalculateRound(replay.input, replayRng);
+    return this.CalculateRound(replay.input as ReelRoundInput, replayRng);
   }
 
   PrepareInput(nextRoundInput: ReelRoundInput, lastRoundResult: RoundResult) {

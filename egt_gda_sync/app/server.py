@@ -225,6 +225,13 @@ class GameImportBody(_Body):
     files: Annotated[list[Text4K], Field(max_length=200)] = []
 
 
+class GameImportGameBody(_Body):
+    """A C++ game of the family to import (its plugin folder), and the TypeScript files of it to port (none: all)."""
+    plugin: Annotated[str, Field(max_length=64)]
+    files: Annotated[list[Text4K], Field(max_length=200)] = []
+    copiesOnly: bool = False
+
+
 class GameTranslateBody(_Body):
     """TypeScript files of the browser game, by their paths in frontend/src/game."""
     files: Annotated[list[Text4K], Field(min_length=1, max_length=200)]
@@ -664,6 +671,15 @@ def create_app(
     @app.post("/api/game/import")
     def game_import(body: GameImportBody) -> dict:
         return GameProject(library).start_import(body.files)
+
+    @app.get("/api/game/import-game")
+    def game_import_game_report(plugin: Annotated[str | None, Query(max_length=64)] = None) -> dict:
+        project = GameProject(library)
+        return project.game_import_plan(plugin) if plugin else project.game_imports()
+
+    @app.post("/api/game/import-game")
+    def game_import_game(body: GameImportGameBody) -> dict:
+        return GameProject(library).start_game_import(body.plugin, body.files, body.copiesOnly)
 
     @app.post("/api/game/export-agent")
     def game_export_agent(body: GameExportFileBody) -> dict:

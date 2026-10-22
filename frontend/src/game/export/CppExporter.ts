@@ -9,7 +9,9 @@
 
 import { ExportMathCpp, type MathExportInput } from './MathExporter';
 import { ViewModuleCMakeLists, ViewModuleCpp, ViewModuleH } from './ViewTemplates';
-import type { ViewGroup } from '@game/alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/BurningCrownTetraSpins10View';
+import type { ViewGroup } from '@game/app/GameModules';
+
+export type { ViewGroup };
 import type { StateClass, StateNode } from '@game/engine/Fsm/Fsm';
 import type { GameProject } from '@game/app/GameBackend';
 import { BetManager } from '@game/alpha_family/libs/AlphaFamilyStatesLibrary/BetManager';
@@ -36,6 +38,43 @@ import { TetraRoundPresentingState } from '@game/alpha_family/libs/AlphaFamilySt
 import { TetraRoundStartingState } from '@game/alpha_family/libs/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRoundStarting';
 import { SystemManager } from '@game/alpha_family/libs/AlphaFamilyStatesLibrary/SystemManager';
 import { ViewManager } from '@game/alpha_family/libs/AlphaFamilyStatesLibrary/ViewManager';
+import { FreeRoundState } from '@game/alpha_family/libs/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRound';
+import { FreeRoundEndingState } from '@game/alpha_family/libs/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRoundEnding';
+import { FreeRoundIntroState } from '@game/alpha_family/libs/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRoundIntro';
+import { FreeRoundOutroState } from '@game/alpha_family/libs/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRoundOutro';
+import { FreeRoundPresentingState } from '@game/alpha_family/libs/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRoundPresenting';
+import { FreeRoundReelingState } from '@game/alpha_family/libs/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRoundReeling';
+import { FreeRoundStartingState } from '@game/alpha_family/libs/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRoundStarting';
+import { CoinsRoundState } from '@game/alpha_family/libs/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRound';
+import { CoinsRoundEndingState } from '@game/alpha_family/libs/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundEnding';
+import { CoinsRoundInputState } from '@game/alpha_family/libs/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundInput';
+import { CoinsRoundIntroState } from '@game/alpha_family/libs/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundIntro';
+import { CoinsRoundOutroState } from '@game/alpha_family/libs/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundOutro';
+import { CoinsRoundPresentingState } from '@game/alpha_family/libs/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundPresenting';
+import { CoinsRoundReelingState } from '@game/alpha_family/libs/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundReeling';
+import { CoinsRoundStartingState } from '@game/alpha_family/libs/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundStarting';
+import { CoinsFreeRoundState } from '@game/alpha_family/libs/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRound';
+import { CoinsFreeRoundEndingState } from '@game/alpha_family/libs/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRoundEnding';
+import { CoinsFreeRoundIntroState } from '@game/alpha_family/libs/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRoundIntro';
+import { CoinsFreeRoundOutroState } from '@game/alpha_family/libs/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRoundOutro';
+import { CoinsFreeRoundPresentingState } from '@game/alpha_family/libs/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRoundPresenting';
+import { CoinsFreeRoundReelingState } from '@game/alpha_family/libs/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRoundReeling';
+import { CoinsFreeRoundStartingState } from '@game/alpha_family/libs/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRoundStarting';
+import { HoldAndSpinRoundState } from '@game/alpha_family/libs/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRound';
+import { HoldAndSpinRoundEndingState } from '@game/alpha_family/libs/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundEnding';
+import { HoldAndSpinRoundIntroState } from '@game/alpha_family/libs/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundIntro';
+import { HoldAndSpinRoundOutroState } from '@game/alpha_family/libs/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundOutro';
+import { HoldAndSpinRoundPresentingState } from '@game/alpha_family/libs/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundPresenting';
+import { HoldAndSpinRoundReelingState } from '@game/alpha_family/libs/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundReeling';
+import { HoldAndSpinRoundStartingState } from '@game/alpha_family/libs/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundStarting';
+import { WheelRoundState } from '@game/alpha_family/libs/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRound';
+import { WheelRoundEndingState } from '@game/alpha_family/libs/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRoundEnding';
+import { WheelRoundInputState } from '@game/alpha_family/libs/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRoundInput';
+import { WheelRoundIntroState } from '@game/alpha_family/libs/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRoundIntro';
+import { WheelRoundOutroState } from '@game/alpha_family/libs/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRoundOutro';
+import { WheelRoundPresentingState } from '@game/alpha_family/libs/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRoundPresenting';
+import { WheelRoundReelingState } from '@game/alpha_family/libs/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRoundReeling';
+import { WheelRoundStartingState } from '@game/alpha_family/libs/AlphaFamilyStatesLibrary/Match/WheelRound/WheelRoundStarting';
 
 /** Each state class of the states library: its C++ class and header (Egt/AlphaFamilyStatesLibrary/...). Names are
  * given here, not read from the classes, which a production build may rename. */
@@ -55,6 +94,43 @@ const STATE_CLASSES = new Map<StateClass, [string, string]>([
   [TetraRoundPresentingState, ['TetraRoundPresentingState', 'Match/TetraRound/TetraRoundPresenting.h']],
   [TetraRoundEndingState, ['TetraRoundEndingState', 'Match/TetraRound/TetraRoundEnding.h']],
   [TetraRoundOutroState, ['TetraRoundOutroState', 'Match/TetraRound/TetraRoundOutro.h']],
+  [FreeRoundState, ['FreeRoundState', 'Match/FreeRound/FreeRound.h']],
+  [FreeRoundEndingState, ['FreeRoundEndingState', 'Match/FreeRound/FreeRoundEnding.h']],
+  [FreeRoundIntroState, ['FreeRoundIntroState', 'Match/FreeRound/FreeRoundIntro.h']],
+  [FreeRoundOutroState, ['FreeRoundOutroState', 'Match/FreeRound/FreeRoundOutro.h']],
+  [FreeRoundPresentingState, ['FreeRoundPresentingState', 'Match/FreeRound/FreeRoundPresenting.h']],
+  [FreeRoundReelingState, ['FreeRoundReelingState', 'Match/FreeRound/FreeRoundReeling.h']],
+  [FreeRoundStartingState, ['FreeRoundStartingState', 'Match/FreeRound/FreeRoundStarting.h']],
+  [CoinsRoundState, ['CoinsRoundState', 'Match/CoinsRound/CoinsRound.h']],
+  [CoinsRoundEndingState, ['CoinsRoundEndingState', 'Match/CoinsRound/CoinsRoundEnding.h']],
+  [CoinsRoundInputState, ['CoinsRoundInputState', 'Match/CoinsRound/CoinsRoundInput.h']],
+  [CoinsRoundIntroState, ['CoinsRoundIntroState', 'Match/CoinsRound/CoinsRoundIntro.h']],
+  [CoinsRoundOutroState, ['CoinsRoundOutroState', 'Match/CoinsRound/CoinsRoundOutro.h']],
+  [CoinsRoundPresentingState, ['CoinsRoundPresentingState', 'Match/CoinsRound/CoinsRoundPresenting.h']],
+  [CoinsRoundReelingState, ['CoinsRoundReelingState', 'Match/CoinsRound/CoinsRoundReeling.h']],
+  [CoinsRoundStartingState, ['CoinsRoundStartingState', 'Match/CoinsRound/CoinsRoundStarting.h']],
+  [CoinsFreeRoundState, ['CoinsFreeRoundState', 'Match/CoinsFreeRound/CoinsFreeRound.h']],
+  [CoinsFreeRoundEndingState, ['CoinsFreeRoundEndingState', 'Match/CoinsFreeRound/CoinsFreeRoundEnding.h']],
+  [CoinsFreeRoundIntroState, ['CoinsFreeRoundIntroState', 'Match/CoinsFreeRound/CoinsFreeRoundIntro.h']],
+  [CoinsFreeRoundOutroState, ['CoinsFreeRoundOutroState', 'Match/CoinsFreeRound/CoinsFreeRoundOutro.h']],
+  [CoinsFreeRoundPresentingState, ['CoinsFreeRoundPresentingState', 'Match/CoinsFreeRound/CoinsFreeRoundPresenting.h']],
+  [CoinsFreeRoundReelingState, ['CoinsFreeRoundReelingState', 'Match/CoinsFreeRound/CoinsFreeRoundReeling.h']],
+  [CoinsFreeRoundStartingState, ['CoinsFreeRoundStartingState', 'Match/CoinsFreeRound/CoinsFreeRoundStarting.h']],
+  [HoldAndSpinRoundState, ['HoldAndSpinRoundState', 'Match/HoldAndSpinRound/HoldAndSpinRound.h']],
+  [HoldAndSpinRoundEndingState, ['HoldAndSpinRoundEndingState', 'Match/HoldAndSpinRound/HoldAndSpinRoundEnding.h']],
+  [HoldAndSpinRoundIntroState, ['HoldAndSpinRoundIntroState', 'Match/HoldAndSpinRound/HoldAndSpinRoundIntro.h']],
+  [HoldAndSpinRoundOutroState, ['HoldAndSpinRoundOutroState', 'Match/HoldAndSpinRound/HoldAndSpinRoundOutro.h']],
+  [HoldAndSpinRoundPresentingState, ['HoldAndSpinRoundPresentingState', 'Match/HoldAndSpinRound/HoldAndSpinRoundPresenting.h']],
+  [HoldAndSpinRoundReelingState, ['HoldAndSpinRoundReelingState', 'Match/HoldAndSpinRound/HoldAndSpinRoundReeling.h']],
+  [HoldAndSpinRoundStartingState, ['HoldAndSpinRoundStartingState', 'Match/HoldAndSpinRound/HoldAndSpinRoundStarting.h']],
+  [WheelRoundState, ['WheelRoundState', 'Match/WheelRound/WheelRound.h']],
+  [WheelRoundEndingState, ['WheelRoundEndingState', 'Match/WheelRound/WheelRoundEnding.h']],
+  [WheelRoundInputState, ['WheelRoundInputState', 'Match/WheelRound/WheelRoundInput.h']],
+  [WheelRoundIntroState, ['WheelRoundIntroState', 'Match/WheelRound/WheelRoundIntro.h']],
+  [WheelRoundOutroState, ['WheelRoundOutroState', 'Match/WheelRound/WheelRoundOutro.h']],
+  [WheelRoundPresentingState, ['WheelRoundPresentingState', 'Match/WheelRound/WheelRoundPresenting.h']],
+  [WheelRoundReelingState, ['WheelRoundReelingState', 'Match/WheelRound/WheelRoundReeling.h']],
+  [WheelRoundStartingState, ['WheelRoundStartingState', 'Match/WheelRound/WheelRoundStarting.h']],
   [MatchTakeWinState, ['MatchTakeWinState', 'Match/MatchTakeWin/MatchTakeWin.h']],
   [MatchCappingAppliedState, ['MatchCappingAppliedState', 'Match/MatchCappingApplied/MatchCappingApplied.h']],
   [MatchEndingState, ['MatchEndingState', 'Match/MatchEnding/MatchEnding.h']],

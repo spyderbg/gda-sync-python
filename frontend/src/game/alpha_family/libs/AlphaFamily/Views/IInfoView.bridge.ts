@@ -37,6 +37,8 @@ export interface IInfoView {
   HideWins(): void;
   StartAnimation(animId: string): void;
   StopAnimation(animId: string): void;
+  /** C++'s has a default: an empty prize text. */
+  FormatPrize?(figId: FigureId, count: int): string;
 }
 
 export class IInfoViewEvents {

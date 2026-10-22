@@ -2,6 +2,7 @@
 // rounds, made from the math file the setup names (an IData of math/RssIData.json) and the fake reels, as
 // MathRules.description.ts describes them.
 
+import type { HoldAndSpinRoundRules } from '@game/alpha_family/libs/AlphaFamily/Math/HoldAndSpin/HoldAndSpinRoundRules';
 import type { WheelRoundRules } from '@game/alpha_family/libs/AlphaFamily/Math/Wheel/WheelRoundRules';
 import { IResources } from '@game/engine/Game/RuntimeExport/IResources';
 import { BuildReelRoundRules } from '@game/authoring/MathRulesDescription';
@@ -51,6 +52,10 @@ export class MathRules implements IMathRules {
 
   HasHoldAndSpinRules(_roundType: RoundType) {
     return false;
+  }
+
+  GetHoldAndSpinRoundRules(roundType: RoundType): HoldAndSpinRoundRules {
+    throw new Error(`BurningCrownTetraSpins10 has no hold and spin round rules (${roundType})`);
   }
 
   HasWheelRoundRules(_roundType: RoundType) {
