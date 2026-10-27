@@ -266,14 +266,17 @@ def _asset_files(row: dict) -> list[str]:
     return list(dict.fromkeys(files))
 
 
-def _remove_empty_folders(folder: str, top: str) -> None:
-    """Remove folder, then each of its parents below top, while they are empty; top stays."""
+def _remove_empty_folders(folder: str, top: str) -> list[str]:
+    """Remove folder, then each of its parents below top, while they are empty; top stays. Returns the removed folders."""
+    removed = []
     while contained(top, folder) and os.path.normpath(folder) != os.path.normpath(top):
         try:
             os.rmdir(folder)
         except OSError:
-            return
+            break
+        removed.append(folder)
         folder = os.path.dirname(folder)
+    return removed
 
 
 def _mirror_rtf(row: dict, folders: dict, declared: set[Path], failures: list[dict]) -> tuple[list[str], int]:
@@ -1136,11 +1139,12 @@ class Library:
 
     def remove_asset(self, asset: str, confirm_used: bool = False) -> dict:
         """Remove an asset of the newest asset report: the entries that declare it, from the descriptors that the report
-        says declare it, and its files in the game folder, an RTF's with its folder when it is left empty. A file that a
-        descriptor still declares stays, and so does one outside the game folder, such as in the common folder, which other
-        games share. An asset whose RssKeys views use is removed only when confirm_used says so. Each descriptor and file it
-        changes is saved in one backup, which also records each removed entry, so that restoring it puts the same entry
-        back. Then generate the asset report again. Returns the library and what was removed."""
+        says declare it, and its files in the game folder, with each folder, below the game folder, that this leaves empty.
+        A file that a descriptor still declares stays, and so does one outside the game folder, such as in the common
+        folder, which other games share. An asset whose RssKeys views use is removed only when confirm_used says so. Each
+        descriptor and file it changes is saved in one backup, which also records each removed entry, so that restoring it
+        puts the same entry back, and the folders its files need. Then generate the asset report again. Returns the library
+        and what was removed."""
         def operation() -> dict:
             self.require_folders("destination")
             workspace_id, entry = self._active_workspace()
@@ -1191,29 +1195,31 @@ class Library:
                 declared = declared_files(game, tuple(settings["resource_paths"])) if files else set()
             except (OSError, ValueError) as error:
                 raise AppError(f"The descriptors cannot be read: {error_message(error)}") from error
-            deleted, kept = [], []
+            deleted, kept, folders = [], [], []
             for file in files:
                 if Path(file) in declared:
                     kept.append(os.path.relpath(file, game))
                     continue
                 _delete_with_backup(file, os.path.join(folder, os.path.relpath(file, resources)))
                 deleted.append(os.path.relpath(file, resources))
-                if "directory" in row:
-                    _remove_empty_folders(os.path.dirname(file), os.path.dirname(row["resourcePath"]))
+                folders.extend(_portable(os.path.relpath(item, game)) for item in _remove_empty_folders(os.path.dirname(file), str(game)))
             name = os.path.basename(row["resource"])
             parts = []
             if declarations:
                 parts.append(f"its {len(declarations)} entr{'y' if len(declarations) == 1 else 'ies'}")
             if deleted:
                 parts.append(f"{len(deleted)} file{'' if len(deleted) == 1 else 's'}")
-            message = f"Removed {name}: {' and '.join(parts) or 'nothing'}"
+            if folders:
+                parts.append(f"{len(folders)} empty folder{'' if len(folders) == 1 else 's'}")
+            message = f"Removed {name}: {', '.join(parts[:-1]) + ' and ' if len(parts) > 1 else ''}{parts[-1] if parts else 'nothing'}"
             self._record("cleanup", message, [_portable(item) for item in [*(item[0] for item in edits), *deleted]])
             backups.write_manifest(folder, action="cleanup", message=message, workspace={"id": workspace_id, "name": entry.get("name", workspace_id)},
                                    root=resources, declarations=declarations)
             self._write_asset_report()
             if not self.reports.status(workspace_id)["running"]:
                 self.start_comparison()
-            return {"library": self.scan(), "name": name, "entries": len(declarations), "files": len(deleted), "kept": kept, "shared": shared}
+            return {"library": self.scan(), "name": name, "entries": len(declarations), "files": len(deleted), "folders": folders,
+                    "kept": kept, "shared": shared}
 
         return self._exclusive(operation)
 

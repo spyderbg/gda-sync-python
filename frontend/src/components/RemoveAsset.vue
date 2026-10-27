@@ -5,8 +5,8 @@ import type { AssetUse, ReportAsset } from '../types';
 import { assetUses, busy, removeAsset, ui } from '../workspace';
 import AppModal from './AppModal.vue';
 
-// Confirm removing an asset of the asset report: its files in the game folder are deleted, and the entries that declare
-// it, its RssKeys, are removed from the descriptors. A file outside the game folder, such as in the common folder, stays:
+// Confirm removing an asset of the asset report: its files in the game folder are deleted, with each folder that this
+// leaves empty, and the entries that declare it, its RssKeys, are removed from the descriptors. A file outside the game folder, such as in the common folder, stays:
 // other games share it. Each file and descriptor is saved in the backups first, and the backup also keeps each entry with
 // its fields, so that restoring it brings the same entry back; an asset without RssKeys is kept there by its path. When
 // views use its RssKeys, a second confirmation lists them, each opening its details.
@@ -61,6 +61,7 @@ function open(view: AssetUse) {
         <li v-for="file in shownFiles" :key="file" class="list-group-item"><i aria-hidden="true" class="mdi mdi-file-outline text-muted" /><span>{{ file }}</span></li>
         <li v-if="deleted.length > shownFiles.length" class="list-group-item text-muted">and {{ deleted.length - shownFiles.length }} more</li>
       </ul>
+      <p v-if="deleted.length" class="text-muted">A folder that this leaves empty is deleted too.</p>
       <p v-if="row.scope !== 'game' && files.length" class="text-muted">
         {{ files.length === 1 ? 'Its file stays' : `Its ${files.length} files stay` }}: {{ row.scope === 'common' ? 'the common folder' : 'a folder outside the game' }}
         holds {{ files.length === 1 ? 'it' : 'them' }}, which other games share.

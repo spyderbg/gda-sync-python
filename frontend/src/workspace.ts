@@ -344,19 +344,21 @@ export async function assetUses(asset: string) {
 }
 
 /** Remove an asset of the asset report from the game: the entries that declare it and its files in the game folder,
- * which are saved in the backups first; one whose RssKeys views use only with confirmUsed. The asset report is
- * generated again. Returns whether it was removed. */
+ * which are saved in the backups first, and the folders that this leaves empty; one whose RssKeys views use only with
+ * confirmUsed. The asset report is generated again. Returns whether it was removed. */
 export async function removeAsset(asset: string, confirmUsed = false) {
   busy.value = 'remove';
   try {
-    const result = await api<{ library: LibraryResponse; name: string; entries: number; files: number; kept: string[]; shared: string[] }>(
+    const result = await api<{ library: LibraryResponse; name: string; entries: number; files: number; folders: string[]; kept: string[]; shared: string[] }>(
       'asset-report/remove', 'POST', { asset, confirmUsed });
     applyLibrary(result.library);
     if (ui.inspecting === asset) ui.inspecting = null;
-    const parts = [result.entries ? `${result.entries} entr${result.entries === 1 ? 'y' : 'ies'}` : '', result.files ? `${result.files} file${plural(result.files)}` : ''].filter(Boolean);
+    const parts = [result.entries ? `${result.entries} entr${result.entries === 1 ? 'y' : 'ies'}` : '', result.files ? `${result.files} file${plural(result.files)}` : '',
+      result.folders.length ? `${result.folders.length} empty folder${plural(result.folders.length)}` : ''].filter(Boolean);
     const kept = [result.kept.length ? ` ${result.kept.length} file${plural(result.kept.length)} kept, still declared.` : '',
       result.shared.length ? ` ${result.shared.length} shared file${plural(result.shared.length)} kept.` : ''].join('');
-    notify(`Removed ${result.name}${parts.length ? `: ${parts.join(' and ')}` : ''}.${kept}`);
+    const removed = parts.length > 1 ? `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}` : parts[0];
+    notify(`Removed ${result.name}${removed ? `: ${removed}` : ''}.${kept}`);
     return true;
   } catch (e) {
     notify((e as Error).message, true);

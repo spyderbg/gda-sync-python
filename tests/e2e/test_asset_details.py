@@ -224,6 +224,25 @@ def test_an_asset_is_removed_after_a_confirmation_with_its_rsskey_and_the_backup
     assert errors == []
 
 
+def test_removing_an_asset_deletes_the_folder_that_it_leaves_empty(new_context, details_backend):
+    backend, game = details_backend
+    page = new_context().new_page()
+    errors = []
+    page.on('pageerror', lambda error: errors.append(str(error)))
+    page.goto(backend.url)
+    page.get_by_role('list', name='Workspaces').get_by_role('button', name='Example', exact=True).click()
+    page.get_by_role('button', name='Asset library', exact=True).click()
+    page.get_by_role('region', name='Workspace summary').get_by_role('button', name='Rescan', exact=True).click()
+    page.get_by_role('button', name='Remove spin_{0-2}.dds', exact=True).click()
+    dialog = page.get_by_role('dialog', name='Remove spin_{0-2}.dds?')
+    expect(dialog).to_contain_text('Delete these 3 files from the game folder')
+    expect(dialog).to_contain_text('A folder that this leaves empty is deleted too.')
+    dialog.get_by_role('button', name='Remove', exact=True).click()
+    expect(page.get_by_role('status')).to_contain_text('Removed spin_{0-2}.dds: 1 entry, 3 files and 1 empty folder.')
+    assert not (game / 'anim').exists() and (game / 'banner.dds').is_file()
+    assert errors == []
+
+
 def test_an_asset_whose_rsskey_a_view_uses_is_removed_after_a_second_confirmation_that_links_the_view(new_context, details_backend):
     backend, game = details_backend
     (game / 'v' / '1920x1080').mkdir(parents=True)

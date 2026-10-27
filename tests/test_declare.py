@@ -221,6 +221,30 @@ def test_removing_an_undeclared_asset_deletes_only_its_files_into_a_backup_of_it
     assert client.post("/api/asset-report/remove", json={"asset": "nothing"}).status_code == 404
 
 
+def test_removing_an_asset_deletes_the_folder_it_leaves_empty_which_restoring_its_backup_brings_back(client):
+    row = asset(client, "anim/a_{0-2}.dds")
+    result = client.post("/api/asset-report/remove", json={"asset": row["id"]}).json()
+    assert (result["entries"], result["files"], result["folders"]) == (1, 2, ["anim"])
+    assert result["library"]["activity"][0]["message"] == "Removed a_{0-2}.dds: its 1 entry, 2 files and 1 empty folder"
+    assert not (client.game / "anim").exists() and client.game.is_dir()
+    client.post("/api/backups/restore", json={"id": client.get("/api/backups").json()["backups"][0]["id"]})
+    assert sorted(path.name for path in (client.game / "anim").iterdir()) == ["a_0.dds", "a_1.dds"]
+
+
+def test_removing_an_asset_deletes_each_parent_folder_it_leaves_empty_and_keeps_the_others(client):
+    (client.game / "fx" / "glow" / "spark").mkdir(parents=True)
+    (client.game / "fx" / "glow" / "spark" / "spark.dds").write_bytes(b"x")
+    (client.game / "fx" / "trail.dds").write_bytes(b"x")
+    client.post("/api/asset-report")
+    result = client.post("/api/asset-report/remove", json={"asset": asset(client, "fx/glow/spark/spark.dds")["id"]}).json()
+    assert result["folders"] == ["fx/glow/spark", "fx/glow"]
+    assert sorted(path.name for path in (client.game / "fx").iterdir()) == ["trail.dds"]
+    result = client.post("/api/asset-report/remove", json={"asset": asset(client, "fx/trail.dds")["id"]}).json()
+    assert result["folders"] == ["fx"] and not (client.game / "fx").exists()
+    # A file at the top of the game leaves no folder to delete: the game folder stays.
+    assert client.post("/api/asset-report/remove", json={"asset": asset(client, "unlisted.dds")["id"]}).json()["folders"] == []
+
+
 def test_removing_a_shared_asset_removes_its_rsskey_and_keeps_the_file_that_other_games_share(client):
     shared = asset(client, "../common/shared.png")
     result = client.post("/api/asset-report/remove", json={"asset": shared["id"]}).json()
