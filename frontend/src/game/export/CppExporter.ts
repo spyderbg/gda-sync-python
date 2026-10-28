@@ -262,8 +262,23 @@ egt_create_static_library(
   const views = input.viewGroups.flatMap(group => group.views);
   // The game's views are in Views/, its software buttons in SwButtons/.
   const viewIncludes = views.map(view => `#include <Egt/${viewModule}/${view.endsWith('SwButtonView') ? 'SwButtons' : 'Views'}/${view}.h>`).sort().join('\n');
+  // a view made with others (args): they are made first, as locals named as their classes (gameBackgroundTetraView)
+  const local = (view: string) => `${view[0].toLowerCase()}${view.slice(1)}`;
   const createViews = input.viewGroups
-    .map(group => `${group.comment ? `        // ${group.comment}\n` : ''}${group.views.map(view => `        m_views.push_back(std::make_shared<${view}>());`).join('\n')}`)
+    .map(group => {
+      const made = new Set<string>();
+      const lines = group.views.flatMap(view => {
+        const args = group.args?.[view] ?? [];
+        const locals = args.filter(arg => !made.has(arg)).map(arg => {
+          made.add(arg);
+          return `        auto ${local(arg)} = std::make_shared<${arg}>();`;
+        });
+        const push = made.has(view) ? `        m_views.push_back(${local(view)});`
+          : `        m_views.push_back(std::make_shared<${view}>(${args.map(local).join(', ')}));`;
+        return [...locals, push];
+      });
+      return `${group.comment ? `        // ${group.comment}\n` : ''}${lines.join('\n')}`;
+    })
     .join('\n\n');
   files[`${src}/${viewModule}/${viewModule}.h`] = ViewModuleH(gameName);
   files[`${src}/${viewModule}/${viewModule}.cpp`] = ViewModuleCpp(gameName, viewIncludes, `${createViews}\n`);

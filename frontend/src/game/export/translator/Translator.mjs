@@ -602,11 +602,17 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
     return false;
   }
 
+  /** Whether a TypeScript type is a view (BaseView and its kinds): a view another holds is a std::shared_ptr<T>, as the
+   * view module makes it. */
+  IsViewType(type) {
+    return this.IsVisualType(type, 'BaseView');
+  }
+
   /** Whether a TypeScript type is a view's visual (BaseVisual and its kinds): C++ views hold them by Ptr<T>. */
-  IsVisualType(type) {
+  IsVisualType(type, baseName = 'BaseVisual') {
     let symbol = this.checker.getNonNullableType(type).symbol;
     for (let depth = 0; symbol && depth < 8; depth++) {
-      if (symbol.name === 'BaseVisual') return true;
+      if (symbol.name === baseName) return true;
       const declaration = symbol.declarations?.find(item => ts.isClassDeclaration(item));
       const heritage = declaration?.heritageClauses?.find(clause => clause.token === ts.SyntaxKind.ExtendsKeyword)?.types[0].expression;
       if (!heritage) return false;
@@ -1297,6 +1303,8 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
         if (inner && ts.isTypeReferenceNode(rest[0]) && this.index.IsAbstract(rest[0].typeName.getText())) return `Ptr<${inner}>`;
         if (inner && this.IsElementType(this.checker.getTypeFromTypeNode(rest[0]))) return `${inner}*`;
         if (inner && /^Ptr</.test(inner)) return inner;
+        // a view, or none: the view module's shared pointer
+        if (inner && this.IsViewType(this.checker.getTypeFromTypeNode(rest[0]))) return `std::shared_ptr<${inner}>`;
         return inner ? `std::optional<${inner}>` : null;
       }
       return null;

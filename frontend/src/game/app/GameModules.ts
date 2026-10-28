@@ -7,6 +7,9 @@ import type { EInfoViewPageType } from '@game/alpha_family/libs/AlphaFamily/View
 export interface ViewGroup {
   comment: string;
   views: string[];
+  /** The views a view is made with (C++: make_shared<GameBackgroundView>(gameBackgroundTetraView)), by its name: the
+   * export makes them first, as locals of their class names. */
+  args?: Record<string, string[]>;
 }
 
 /** A view module: its views in the groups of its CreateViews(). */

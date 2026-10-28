@@ -129,6 +129,9 @@ names.
 2. States: reuse the states library, or add states there; a `<Game>Fsm` module describes the tree in `CreateBuilder()`.
 3. Views: a `<Game>View` module whose `CreateViews()` adds its views in groups; views load their elements from the
    game's `v/<resolution>/*.json` by their ElementsList id.
+   A view made with another view (C++: `make_shared<KnobsView>(knobsTetraView)`, a view that shows or hides its part
+   for the tetra round) is added as `this.MadeWith(new KnobsView(knobsTetraView), knobsTetraView)`, and the export
+   makes the other view first, as a local of its class's name.
 4. The modules need no registering: `app/ModuleRegistry.ts` finds each `alpha_family/plugins/<plugin>/<Module>/<Module>.ts`
    that exports a class of its folder's name, as the module the game's modules config names so. The page plays a
    workspace once the browser game has every module of its config.
