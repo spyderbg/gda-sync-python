@@ -23,7 +23,7 @@ export class MatchEndOutroState extends State {
     const lastMatchWin = this.Parent(IGameManager).GetLastMatchWin();
     const prevCredits = this.RuntimeGet(IWallet).GetCredit() - lastMatchWin;
     const matchOnLoss = lastMatchWin <= 0;
-    this.Parent(IViewManager).SetupViews(RoundType.Main, { showSpinReelsCombinations: !matchOnLoss, overrideCredits: prevCredits });
+    this.Parent(IViewManager).SetupViews(RoundType.Main, { showSpinReelsCombinations: !matchOnLoss, overrideCredits: prevCredits, disableInfoButton: true });
 
     if (lastMatchWin > 0) {
       if (this.Parent(IGameManager).IsAutoPlayOn() || this.Nvram(GameManagerNvrams).taxedWin) {

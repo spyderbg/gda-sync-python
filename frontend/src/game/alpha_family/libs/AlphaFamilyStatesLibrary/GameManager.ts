@@ -160,6 +160,7 @@ export class GameManager extends State implements IGameManager {
     const messageBoardEvents = this.RuntimeTryGet(IMessageBoard.Events);
     if (messageBoardEvents) {
       this.ReactOn(messageBoardEvents.onWaitingInput, this.OnWaitingInputMessage);
+      this.ReactOn(messageBoardEvents.onBlocking, this.OnBlockingMessage);
     }
   }
 
@@ -223,6 +224,15 @@ export class GameManager extends State implements IGameManager {
   }
 
   private OnWaitingInputMessage() {
+    if (Unless(this.IsAutoPlayOn())) return this.Skip();
+
+    this.RuntimeGet(IAutoPlayHwButton).SetButtonState({ enabled: false });
+    this.SetAutoPlay(false);
+
+    return this.Consume();
+  }
+
+  private OnBlockingMessage() {
     if (Unless(this.IsAutoPlayOn())) return this.Skip();
 
     this.RuntimeGet(IAutoPlayHwButton).SetButtonState({ enabled: false });

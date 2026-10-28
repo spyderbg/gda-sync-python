@@ -84,7 +84,6 @@ export class ViewManager extends State implements IViewManager, IViewManagerEven
         break;
       }
       case RoundType.Wheel: correspondingReelRoundType = RoundType.Coins; break;
-      case RoundType.Tetra: correspondingReelRoundType = RoundType.Main; break;
       default: correspondingReelRoundType = roundType; break;
     }
     const slot = mathRules.GetReelRoundRules(correspondingReelRoundType).GetLastResultSlot();
@@ -199,22 +198,25 @@ export class ViewManager extends State implements IViewManager, IViewManagerEven
   }
 
   private SetupBets(roundType: RoundType, options: SetupViewsOptions) {
-    if (IsInTetra(roundType, options)) return; // handled in TetraRound
     const rules = this.RuntimeGetConst(IMathRules).GetReelRoundRules(roundType);
     const limits = this.RuntimeGetConst(ILimits).GetBetLimits();
     const gameflow = this.RuntimeGetConst(IGameflow);
     const available = this.GetAvailableCredits(roundType);
-    const maxBetMultiplier = rules.GetMaxBetMultiplier();
-    const maxBet = maxBetMultiplier > 0 ? Math.min(gameflow.GetInitialCreditsBet() * maxBetMultiplier, limits.maxBet) : limits.maxBet;
-    const minBetMultiplier = rules.GetMinBetMultiplier();
-    const minBet = minBetMultiplier > 0 ? Math.max(gameflow.GetInitialCreditsBet() * minBetMultiplier, limits.minBet) : limits.minBet;
+    let minBet = limits.minBet;
+    let maxBet = limits.maxBet;
+    if (roundType !== RoundType.Main && !gameflow.IsIdle()) {
+      const initialBet = gameflow.GetInitialCreditsBet();
+      minBet = initialBet * rules.GetMinBetMultiplier();
+      maxBet = initialBet * rules.GetMaxBetMultiplier();
+    }
     let bets = rules.GetAllowedBets(minBet, maxBet);
     if (!bets.length) bets = [rules.GetMinBet()];
+    const betLimit = gameflow.IsIdle() && available === 0 ? limits.maxBet : available;
     const betManager = this.Parent(IBetManager);
     betManager.SetEditMode(!!options.enableButtons);
     betManager.SetAllowedBets(bets);
     betManager.SetAllowedLines(rules.GetAllowedLines());
-    betManager.SetBetLimit(gameflow.IsIdle() && available === 0 ? limits.maxBet : available);
+    betManager.SetBetLimit(betLimit);
     betManager.SetBetCurrency(rules.GetBetBarCurrencyType());
   }
 
@@ -450,13 +452,16 @@ export class ViewManager extends State implements IViewManager, IViewManagerEven
     const canChangeBet = this.CanChangeBet(betManager.GetNextBet(), currentBet, minBet, isInIdle, credits) && !isAutoPlayOn;
     const canMaxBet = this.CanMaxBet(betManager.GetMaxBet(), currentBet, minBet, isInIdle, credits) && !isAutoPlayOn;
     const canStartMatch = (currentBet <= available || hasLeftOver) && this.IsLanguageMenuClosed();
+    // IsTakeCoinsButtonAvailable: no coins round is ported, so its coins cannot be taken.
+    const canCollect = false;
+    const canCashout = roundType === RoundType.Coins ? canCollect : credits > 0 && !isAutoPlayOn;
     const canExit = !isAutoPlayOn && (isInIdle || IsInGamble(roundType) || IsInMatchTakeWin(roundType, options));
     this.RuntimeGet(IStartHwButton).SetButtonState({ enabled: canStartMatch, light: roundType === RoundType.Coins ? HwButtonLight.BlinkSlowA : HwButtonLight.On });
     this.RuntimeGet(IIncreaseBetHwButton).SetButtonState({ enabled: canChangeBet, light: HwButtonLight.BlinkSlowA });
     this.RuntimeGet(IDecreaseBetHwButton).SetButtonState({ enabled: canChangeBet, light: HwButtonLight.BlinkSlowA });
     this.RuntimeGet(IMaxBetHwButton).SetButtonState({ enabled: canMaxBet, light: HwButtonLight.BlinkSlowA });
-    this.RuntimeGet(ICashoutHwButton).SetButtonState({ enabled: credits > 0 && !isAutoPlayOn, light: HwButtonLight.BlinkSlowA });
-    this.RuntimeGet(ICollectHwButton).SetButtonState({ enabled: false, light: HwButtonLight.BlinkSlowA });
+    this.RuntimeGet(ICashoutHwButton).SetButtonState({ enabled: canCashout, light: HwButtonLight.BlinkSlowA });
+    this.RuntimeGet(ICollectHwButton).SetButtonState({ enabled: canCollect, light: HwButtonLight.BlinkSlowA });
     this.RuntimeGet(IAutoPlayHwButton).SetButtonState({ enabled: canStartMatch || isAutoPlayOn, light: HwButtonLight.BlinkSlowA });
     this.RuntimeGet(IInfoHwButton).SetButtonState({ enabled: !isAutoPlayOn && !options.disableInfoButton });
     this.RuntimeGet(IExitHwButton).SetButtonState({ enabled: canExit });

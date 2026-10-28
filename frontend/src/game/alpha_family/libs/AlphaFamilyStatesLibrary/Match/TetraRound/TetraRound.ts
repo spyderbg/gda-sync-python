@@ -92,34 +92,8 @@ export class TetraRoundState extends State implements ITetraRound {
 
   SetupViews(options: TetraViewOptions) {
     // bet
-    const input = this.ConstNvram(TetraRoundStorage).roundInput;
-    const roundRules = this.GetRoundRules();
-    assert(input);
-    {
-      const initialBet = input.initialMatchCreditBet;
-
-      const maxBet = initialBet * roundRules.GetMaxBetMultiplier();
-      const minBetMultiplier = roundRules.GetMinBetMultiplier();
-      const minBet = initialBet * minBetMultiplier;
-
-      const betManager = this.Parent(IBetManager);
-
-      const allowedBets = roundRules.GetAllowedBets(minBet, maxBet);
-
-      betManager.SetEditMode(!!options.enableInput);
-      betManager.SetAllowedBets(allowedBets);
-      betManager.SetAllowedLines(roundRules.GetAllowedLines());
-      const availableCredit = this.RuntimeGetConst(IGameflow).GetMatchCurrencyAvailable(Currency.Credits);
-      const betLimit = availableCredit;
-      betManager.SetBetLimit(betLimit);
-    }
-
     // update bet
-    // RuntimeGet<IBetMenuView>().SetSelectedTotalBet(bet);
-    // RuntimeGet<IBetBarView>().SetValueNow(betManager.GetCurrentBet());
-
     // setup views
-
     this.Parent(IViewManager).SetupViews(RoundType.Tetra, {
       blockGameInput: false, //! options.enableInput,
       enableButtons: options.enableButtons,

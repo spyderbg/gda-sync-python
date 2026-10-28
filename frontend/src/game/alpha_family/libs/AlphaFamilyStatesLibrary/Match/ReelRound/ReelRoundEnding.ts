@@ -25,7 +25,7 @@ export abstract class ReelRoundEndingState extends State {
     const available = this.RuntimeGetConst(IGameflow).GetMatchCurrenciesAvailable();
     const credits = available.Get(Currency.Credits) + rewards.Get(Currency.Credits);
     const coins = available.Get(Currency.CoinsSpinEnergy) + rewards.Get(Currency.CoinsSpinEnergy);
-    this.Parent(IViewManager).SetupViews(roundResult, { enableButtons: false, overrideCoinsBar: coins, overrideWinBar: credits, disableInfoButton: false });
+    this.Parent(IViewManager).SetupViews(roundResult, { enableButtons: false, overrideCoinsBar: coins, overrideWinBar: credits, disableInfoButton: true });
 
     if (!_isRecovery) {
       this.RequestEndRound();

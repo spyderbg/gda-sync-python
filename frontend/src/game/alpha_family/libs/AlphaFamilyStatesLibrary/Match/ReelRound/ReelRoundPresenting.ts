@@ -298,12 +298,14 @@ export abstract class ReelRoundPresentingState extends State {
   }
 
   protected RefreshHWButtons(enable: boolean) {
+    const isFastLines: boolean = this.ConstStatic(ReelRoundStatics).showFastLines;
+
     // conditional
-    this.RuntimeGet(IMaxBetHwButton).SetButtonState({ enabled: enable, light: HwButtonLight.On });
-    this.RuntimeGet(IIncreaseBetHwButton).SetButtonState({ enabled: enable, light: HwButtonLight.On });
-    this.RuntimeGet(IDecreaseBetHwButton).SetButtonState({ enabled: enable, light: HwButtonLight.On });
+    this.RuntimeGet(IMaxBetHwButton).SetButtonState({ enabled: enable && !isFastLines, light: HwButtonLight.On });
+    this.RuntimeGet(IIncreaseBetHwButton).SetButtonState({ enabled: enable && !isFastLines, light: HwButtonLight.On });
+    this.RuntimeGet(IDecreaseBetHwButton).SetButtonState({ enabled: enable && !isFastLines, light: HwButtonLight.On });
     this.RuntimeGet(IAutoPlayHwButton).SetButtonState({ enabled: enable, light: HwButtonLight.On });
-    this.RuntimeGet(IInfoHwButton).SetButtonState({ enabled: enable, light: HwButtonLight.On });
+    this.RuntimeGet(IInfoHwButton).SetButtonState({ enabled: enable && !isFastLines, light: HwButtonLight.On });
     this.RuntimeGet(IStartHwButton).SetButtonState({ enabled: enable, light: HwButtonLight.On });
 
     // disabled
@@ -360,6 +362,7 @@ export abstract class ReelRoundPresentingState extends State {
     this.FastForwardBars();
 
     this.Static(ReelRoundPresentingStatics).HasAccumulatedReward = true;
+    this.Static(ReelRoundPresentingStatics).HasShowedFastLines = true;
     this.TryTransitToRoundEnding();
     this.RuntimeGet(ILinesView).StopAllSounds();
 

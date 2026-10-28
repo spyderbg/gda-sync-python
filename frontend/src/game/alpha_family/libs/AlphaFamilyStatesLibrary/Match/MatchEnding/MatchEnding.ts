@@ -21,7 +21,7 @@ export class MatchEndingState extends State {
 
     const matchCreditsAvailable = this.RuntimeGetConst(IGameflow).GetMatchCurrencyAvailable(Currency.Credits);
     const matchOnLoss = matchCreditsAvailable <= 0;
-    this.Parent(IViewManager).SetupViews(RoundType.Main, { showSpinReelsCombinations: !matchOnLoss });
+    this.Parent(IViewManager).SetupViews(RoundType.Main, { showSpinReelsCombinations: !matchOnLoss, disableInfoButton: true });
 
     if (!_isRecovery) {
       this.RequestEndMatch();
