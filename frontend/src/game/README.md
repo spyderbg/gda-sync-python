@@ -9,8 +9,8 @@ by hand: the main round, the tetra round (four sub screens, sticky and copied cr
 award (capping) splash, autoplay, the bet and language menus, English and Italian, the cabinet's info screen (the help
 pages of the game's RTF) and its topper screen; **Burning Hot Coins**, imported from its C++ (2026-10-28): the main
 round, whose wins are coins, the coins round, the coins (exchange) wheel and the red or black gamble; and the games
-imported from C++ (below, **Import: a new game from C++**), such as **Nordic Rush** (in progress): free spins, the coins
-round and its free spins, hold and spin, and the coins wheel.
+imported from C++ (below, **Import: a new game from C++**), such as **Nordic Rush** (2026-10-28): the main and free
+rounds, hold and spin (with its info screen), the coins round and its free spins, and the coins wheel.
 
 ## What it loads, and from where
 
@@ -199,7 +199,13 @@ All 29 states of the states library, and all 37 views, visuals and software butt
 - read an IData as its C++ struct (`GetIData<InfoViewConfig>`), a `std::map` of it as a `Record` (`key in record` is
   `contains`), its enums with the IData's names as values (`EInfoViewPageType.Main = 'Main'`); look a key up with
   `map.has(k)` then `map.get(k)!`, as C++ does with `contains` and `at`; a TypeScript key that stands for a C++ struct
-  key (`FigureKeyString(key)`, a `Map` keys objects by identity) is tagged `@cppKey`, and is the key itself in C++;
+  key (`FigureKeyString(key)`, a `Map` keys objects by identity) is tagged `@cppKey`, and is the key itself in C++; a
+  sub-struct the IData's JSON may leave out is optional (`overlayImage?:`) and read `(it.overlayImage?.rssId ?? '')`,
+  which C++ reads `it->overlayImage.rssId` of its default-constructed struct;
+- a C++ interface method with a default body is optional in the TypeScript interface (`FormatPrize?(...)`): where the
+  implementation has it, call it `infoView.FormatPrize!(...)`; a C++ overload TypeScript cannot declare is a function
+  of its own, tagged with the C++ name (`FadeFromToUint8`, `@cppName FadeFromTo`); a function's `static` local is a
+  module `let` (`let state: int = 0;`);
 - keep the C++'s names: view names are their class names, interface methods are the C++ interface's (all of them), a
   config struct's fields are its `.data.h`'s;
 - wrap what only the browser needs (preloading frames) in `BrowserOnly(() => ...)` (`engine/GameCore/Common/BrowserOnly.ts`):

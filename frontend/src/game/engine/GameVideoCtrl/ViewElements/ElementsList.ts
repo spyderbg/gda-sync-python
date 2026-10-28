@@ -4,7 +4,7 @@
 // place when the file has the same elements (Update), else anew.
 
 import { Runtime, RuntimeHolder } from '@game/engine/GameCore/RuntimeAccess';
-import type { Point, ViewElementData } from '@game/engine/Game/RuntimeExport/IResources';
+import type { Color, Point, ViewElementData } from '@game/engine/Game/RuntimeExport/IResources';
 import { IFileWatch } from '@game/engine/Game/RuntimeExport/IFileWatch';
 import { IResources } from '@game/engine/Game/RuntimeExport/IResources';
 import type { DrawList } from '../DrawList';
@@ -192,6 +192,14 @@ export class ElementsList extends RuntimeHolder {
 
   SetWorldPivot(pivot: Point, ids: Iterable<string>) {
     for (const id of ids) this.byId.get(id)?.SetWorldPivot(pivot);
+  }
+
+  SetColor(color: Partial<Color>, ids: Iterable<string>) {
+    for (const id of ids) this.byId.get(id)?.SetColor(color);
+  }
+
+  SetAlpha(alpha: number, ids: Iterable<string>) {
+    for (const id of ids) this.byId.get(id)?.SetAlpha(alpha);
   }
 
   /** Hides or shows the elements of the ids, or, without ids, the list itself (as C++, where the list is an element). */

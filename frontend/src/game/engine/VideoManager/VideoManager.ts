@@ -155,6 +155,11 @@ export class VideoManager extends BaseModule implements IVideo, IVideoManager {
     return { ...RESOLUTION };
   }
 
+  // IVideoManager
+  GetMainResolution() {
+    return { w: RESOLUTION.width, h: RESOLUTION.height };
+  }
+
   /** Draws a frame: the game's main draw over black, then the layers over it, from the topmost opaque one. */
   PostProcess() {
     const ctx = this.ctx;

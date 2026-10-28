@@ -1,7 +1,7 @@
 // Egt::Game::AlphaFamily::CreditsWinBarView (NordicRushView/Views/CreditsWinBarView.h/.cpp): the win of
 // the match, labelled WIN, or WINNER PAID once it is paid.
 
-import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { type Runtime, RuntimeToken } from '@game/engine/GameCore/RuntimeAccess';
 import { IAudioApi } from '@game/engine/Game/RuntimeImport/IAudioApi';
 import { ILocalization } from '@game/engine/Game/RuntimeImport/ILocalization';
 import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
@@ -28,6 +28,8 @@ export class CreditsWinBarView extends NumericBarView<ICreditsWinBarView, INumer
   Init(runtime: Runtime) {
     super.Init(runtime);
     this.InitElementsList(CreditsWinBarViewId, () => this.AdjustWinState());
+
+    this.RuntimeAdd(CreditsWinBarViewToken, this);
     this.SetLabelState(EWinBarState.Win);
     return true;
   }
@@ -71,3 +73,7 @@ export class CreditsWinBarView extends NumericBarView<ICreditsWinBarView, INumer
     this.m_elementsList.TryGet(ImageWinLabelId, ImageElement)?.SetSelectedImage(this.m_labelState);
   }
 }
+
+/** The view itself, which the lines view asks whether it is accumulating (C++'s RuntimeAdd<CreditsWinBarView>(this)).
+ * @cppName CreditsWinBarView */
+export const CreditsWinBarViewToken = new RuntimeToken<CreditsWinBarView>('CreditsWinBarView');

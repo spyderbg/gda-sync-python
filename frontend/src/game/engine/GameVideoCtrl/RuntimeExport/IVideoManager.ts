@@ -14,6 +14,7 @@ export type IsOpaqueFullScreenHandler = (() => boolean) | null;
 export interface IVideoManager {
   RegisterRenderLayerMain(layer: number, handleEvent: EventHandler, draw: DrawHandler, isOpaqueFullScreen: IsOpaqueFullScreenHandler): void;
   UnregisterRenderLayerMain(layer: number): void;
+  GetMainResolution(): { w: number; h: number };
 }
 
 export const IVideoManager = Interface<IVideoManager>('IVideoManager');

@@ -10,7 +10,7 @@ import { BaseView } from '../BaseView';
 export abstract class NumericBarView<T, E extends INumericBarViewEvents> extends BaseView implements INumericBarView {
   protected m_currentValue = 0;
   protected m_visible = true;
-  private m_accumulation: AccumulationDescriptor | null = null;
+  private m_runningAccumulation: AccumulationDescriptor | null = null;
   private m_accumulationStart = 0;
 
   constructor(name: string, protected readonly m_token: InterfaceToken<T, E>, protected readonly m_events: E) {
@@ -36,7 +36,7 @@ export abstract class NumericBarView<T, E extends INumericBarViewEvents> extends
   }
 
   SetAccumulation(accumulation: AccumulationDescriptor) {
-    this.m_accumulation = accumulation;
+    this.m_runningAccumulation = accumulation;
     this.m_accumulationStart = performance.now();
     this.m_currentValue = accumulation.initialValue;
     if (accumulation.type === AccumulationType.eInstantly) this.FinishAccumulation(true);
@@ -47,39 +47,46 @@ export abstract class NumericBarView<T, E extends INumericBarViewEvents> extends
   }
 
   SetValueNow(value: number) {
-    this.m_accumulation = null;
+    this.m_runningAccumulation = null;
     this.m_currentValue = value;
+  }
+
+  /** C++'s m_accumulation, the last accumulation. C++ keeps it once it ends; here it is dropped once the value shown
+   * reaches its target, and this is then an instant one to the value shown. */
+  protected get m_accumulation(): AccumulationDescriptor {
+    return this.m_runningAccumulation
+      ?? { type: AccumulationType.eInstantly, initialValue: this.m_currentValue, targetValue: this.m_currentValue, steps: [] };
   }
 
   /** Counts a win up from the value shown, as AddValueWithGeometricAccumulation does. */
   protected AddValueWithGeometricAccumulation(value: number) {
-    const start = this.m_accumulation ? this.m_accumulation.targetValue : this.m_currentValue;
+    const start = this.m_accumulation.targetValue;
     const descriptor = Accumulation.CreateGeometryAccumulationByFactor(this.m_currentValue, start + value, 8, 220);
     this.SetAccumulation(descriptor);
   }
 
   protected AddValueWithSteppedAccumulation(value: number) {
-    const start = this.m_accumulation ? this.m_accumulation.targetValue : this.m_currentValue;
+    const start = this.m_accumulation.targetValue;
     this.SetAccumulation(Accumulation.CreateLinearAccumulationBySpeed(this.m_currentValue, start + value, 4, 60));
   }
 
   IsCurrentlyAccumulating() {
-    return this.m_accumulation !== null;
+    return this.m_runningAccumulation !== null;
   }
 
   FastForward() {
-    if (this.m_accumulation) this.FinishAccumulation(false);
+    if (this.m_runningAccumulation) this.FinishAccumulation(false);
   }
 
   IsAccumulating() {
-    return this.m_accumulation !== null;
+    return this.m_runningAccumulation !== null;
   }
 
   PlayBarAudioState(_audioStateName: string) {}
 
   private FinishAccumulation(instant: boolean) {
-    const accumulation = this.m_accumulation!;
-    this.m_accumulation = null;
+    const accumulation = this.m_runningAccumulation!;
+    this.m_runningAccumulation = null;
     this.m_currentValue = accumulation.targetValue;
     if (instant) this.m_events.animatingInstantDone.Post(this.m_currentValue);
     this.m_events.animatingDone.Post(this.m_currentValue);
@@ -87,7 +94,7 @@ export abstract class NumericBarView<T, E extends INumericBarViewEvents> extends
 
   Process() {
     super.Process();
-    const accumulation = this.m_accumulation;
+    const accumulation = this.m_runningAccumulation;
     if (!accumulation) return;
     const elapsed = performance.now() - this.m_accumulationStart;
     const steps = accumulation.steps;

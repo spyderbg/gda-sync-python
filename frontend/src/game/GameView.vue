@@ -154,11 +154,15 @@ const presets = computed<RoundPreset[]>(() => {
   const bet = (result: Result) => result.GetBet();
   const credits = (result: Result) => result.GetSummary().rewards.Get(Currency.Credits);
   const coins = (result: Result) => result.GetSummary().rewards.Get(Currency.CoinsSpinEnergy);
+  const freeSpins = (result: Result) => result.GetSummary().rewards.Get(Currency.FreeSpinEnergy);
+  const holdAndSpinSpins = (result: Result) => result.GetSummary().rewards.Get(Currency.HoldAndSpinEnergy);
   // a main round pays credits, or coins in a coins game
   const win = (result: Result) => credits(result) + coins(result);
   const all: (RoundPreset & { requires?: RoundType })[] = [
     { roundType: RoundType.Main, name: 'Main: win ≥ 4× bet (enters the tetra round)', requires: RoundType.Tetra, condition: result => win(result) >= 4 * bet(result) },
     { roundType: RoundType.Main, name: 'Main: win coins (enters the coins round)', requires: RoundType.Coins, condition: result => coins(result) > 0 },
+    { roundType: RoundType.Main, name: 'Main: 6 coins or more (enters the hold and spin round)', requires: RoundType.HoldAndSpin, condition: result => holdAndSpinSpins(result) > 0 },
+    { roundType: RoundType.Main, name: 'Main: win free spins (enters the free round)', requires: RoundType.Free, condition: result => freeSpins(result) > 0 },
     { roundType: RoundType.Main, name: 'Main: big win (≥ 25× bet)', condition: result => win(result) >= 25 * bet(result) },
     { roundType: RoundType.Main, name: 'Main: no win', condition: result => win(result) === 0 },
     { roundType: RoundType.Tetra, name: 'Tetra: win ≥ 2× bet', condition: result => win(result) >= 2 * bet(result) },
@@ -178,7 +182,10 @@ function refreshLive() {
   live.capping = k.GetCapping();
   live.setupCapping = k.GetConfiguredCapping();
   live.buttons = k.GetButtonStates();
-  const roundTypes = app?.runtime.TryGet(IMathRules)?.GetAvailableRoundTypes() ?? [];
+  const mathRules = app?.runtime.TryGet(IMathRules);
+  const roundTypes = [...mathRules?.GetAvailableRoundTypes() ?? []];
+  // the hold and spin round's rules are by the round that triggers it, not among the available round types
+  if (mathRules?.HasHoldAndSpinRules(RoundType.Main)) roundTypes.push(RoundType.HoldAndSpin);
   if (roundTypes.join() !== live.roundTypes.join()) live.roundTypes = [...roundTypes];
   const fsm = app?.GetGameModule<GameFsm>('Fsm')?.GetMachine();
   live.states = fsm?.ActiveStates() ?? [];

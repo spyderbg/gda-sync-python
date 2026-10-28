@@ -73,14 +73,11 @@ Then follow game_sync.md steps 2 to 5 (baseline, port, measure, manifest), with 
 
 ### Library specifics
 
-- **Partial ports on `dev`.** The states of the rounds Burning Crown does not have (free, extra, hold and spin, wheel,
-  gamble, coins) are not ported on `dev`, and `ViewManager.ts` there is the compact port (about 600 lines, no
-  `IsWheelRoundView`, no `IsTakeCoinsButtonAvailable`). A change inside one of those C++ files has no TypeScript file,
-  so it isn't listed. A change in a ported file that touches those paths is ported against the TypeScript's stand-in,
-  as game_sync.md says. The full ports are on the `nordic-rush` branch (not merged on 2026-10-28), and on
-  `burning-hot-coins` (`dev` with `nordic-rush` merged), which adds the gamble round (`Match/GambleRound`, its
-  `IGambleRound` and `IGambleRoundView` bridge, `IGameManager`'s gamble history) and has `nordic-rush`'s library ports
-  synced to the C++ of 2026-10-28. Check which branch you are on before relying on them.
+- **What is not ported.** Since 2026-10-28 (`burning-hot-coins` and `nordic-rush` merged), `dev` has every round's
+  states but the extra and extra free rounds' (`Match/ExtraRound`, `Match/ExtraFreeRound`), which no ported game has,
+  and the full `ViewManager.ts`. A change inside an unported C++ file has no TypeScript file, so it isn't listed. A
+  change in a ported file that touches those paths is ported against the TypeScript's stand-in, as game_sync.md says.
+  Check which branch you are on before relying on this.
 - **Interfaces and bridges** (`AlphaFamily/States/I*.h`, `AlphaFamily/Views/*.bridge.h`,
   `AlphaFamily/RuntimeImport/*.bridge.h`). A new method must be implemented by every TypeScript class that implements
   the interface: the views of every ported game, `integration/AlphaFamilyGameflow` for `IGameflow`, and
@@ -226,3 +223,4 @@ when the user asks. A `hat_libs` sync has no manifest entry, so this record is t
 | `bb41b0f82` | 2026-09-17 | `a5437d3bb` (2026-10-14) | ported 2026-10-20 | The first port, from the pin of that day |
 | `bb41b0f82` | 2026-09-17 | `9d7930a1c` (2026-10-27) | checked 2026-10-28 | The pin has not moved: nothing to sync |
 | `bb41b0f82` | 2026-09-17 | `bbea8b886` (2026-10-28) | checked 2026-10-28 | Burning Hot Coins' import: the pin has not moved |
+| `bb41b0f82` | 2026-09-17 | `574275b3f` (2026-10-28) | checked 2026-10-28 | Nordic Rush's sync: the pin has not moved |

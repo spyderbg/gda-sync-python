@@ -39,7 +39,9 @@ export function FadeFromTo(element: ElementPtr, begin: number, end: number, dura
   return create_tween_from_to_impl('FadeFromTo', element, begin, end, SetAlphaFloat, GetAlphaFloat, duration, Sentinel(element), easy_func);
 }
 
-function FadeFromToUint8(element: ElementPtr, begin: number, end: number, duration: duration_t, easy_func: ease_t = ease.linear) {
+/** C++'s FadeFromTo overload of uint8_t alphas (0 to 255).
+ * @cppName FadeFromTo */
+export function FadeFromToUint8(element: ElementPtr, begin: number, end: number, duration: duration_t, easy_func: ease_t = ease.linear) {
   return create_tween_from_to_impl('FadeFromTo', element, begin, end, SetAlphaUint8, GetAlphaUint8, duration, Sentinel(element), easy_func);
 }
 

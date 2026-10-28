@@ -379,6 +379,8 @@ ${head.map(line => `${I}${I}${line}`).join('\n')}${head.length ? '\n' : ''}${sec
 `.replace(/\n{3,}/g, '\n\n');
     if (this.logCategory) this.headerIncludes.add('Egt/GameCore/Log/LogCategory.h');
     for (const include of this.headerIncludes) this.includes.delete(include);
+    // the file's own header (named by a @cppName token of the class itself) is the .cpp's first include
+    this.includes.delete(ownHeader.replace(/^.*?\/src\//, ''));
     const source = `#include "${this.FileName(sourceFile)}.h"
 
 ${[...this.includes].sort().map(path => `#include <${path}>`).join('\n')}
@@ -1055,8 +1057,10 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
       && !(this.checker.getTypeAtLocation(init.elements[0]).flags & ts.TypeFlags.EnumLike)) {
       return `${I}${I}[[maybe_unused]] const std::vector<std::string_view> ${name} = {${init.elements.map(item => this.Expr(item)).join(', ')}};`;
     }
+    // a module variable (let), such as a function's static C++ keeps, is not constant
+    const constexpr = declaration.parent.flags & ts.NodeFlags.Const ? 'constexpr ' : '';
     if (ts.isNumericLiteral(init) || (ts.isPrefixUnaryExpression(init) && ts.isNumericLiteral(init.operand))) {
-      return `${I}${I}[[maybe_unused]] constexpr ${declaration.type ? this.CppTypeNode(declaration.type) ?? 'int64_t' : (init.getText().includes('.') ? 'double' : 'int64_t')} ${name} = ${init.getText()};`;
+      return `${I}${I}[[maybe_unused]] ${constexpr}${declaration.type ? this.CppTypeNode(declaration.type) ?? 'int64_t' : (init.getText().includes('.') ? 'double' : 'int64_t')} ${name} = ${init.getText()};`;
     }
     const type = declaration.type ? this.CppTypeNode(declaration.type) : null;
     this.atModule = true;
@@ -1964,7 +1968,9 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
     const symbol = local && local.flags & ts.SymbolFlags.Alias ? this.checker.getAliasedSymbol(local) : local;
     // a constant that stands for a C++ name TypeScript cannot give it (a view's class as its own runtime token): @cppName
     const declaration = symbol?.valueDeclaration;
-    const tag = declaration && ts.isVariableDeclaration(declaration) && ts.getJSDocTags(declaration).find(item => item.tagName.text === 'cppName');
+    // (or a function TypeScript cannot overload as C++ does: FadeFromToUint8 is FadeFromTo of uint8_t alphas)
+    const tag = declaration && (ts.isVariableDeclaration(declaration) || ts.isFunctionDeclaration(declaration))
+      && ts.getJSDocTags(declaration).find(item => item.tagName.text === 'cppName');
     if (tag && typeof tag.comment === 'string') return tag.comment.trim();
     return symbol !== local ? symbol.name : node.text;
   }
@@ -2149,6 +2155,9 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
     if (ts.isAsExpression(node) || ts.isTypeAssertionExpression(node) || ts.isSatisfiesExpression?.(node)) return expr(node.expression);
     if (ts.isNonNullExpression(node)) {
       const inner = expr(node.expression);
+      // x.M!: an interface's optional method, which C++ declares with a default (IInfoView::FormatPrize): a method
+      const symbol = ts.isPropertyAccessExpression(node.expression) ? this.checker.getSymbolAtLocation(node.expression.name) : null;
+      if (symbol && symbol.flags & ts.SymbolFlags.Method && symbol.flags & ts.SymbolFlags.Optional) return inner;
       if (this.IsPointer(node.expression)) return `(*${inner})`;
       if (this.IsOptional(node.expression)) return `${inner}.value()`;
       return inner;
@@ -2576,12 +2585,6 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
       const key = this.Key(left.argumentExpression, expr(left.argumentExpression));
       return `(${map}.contains(${key}) ? ${map}.at(${key}) : ${fallback})`;
     }
-    const leftChain = this.OptionalChainRoot(left);
-    if (leftChain) {
-      const root = this.Expr(leftChain.root);
-      return `(${root} ? ${this.Expr(left, { replace: leftChain.root, with: root, pointerRoot: true })} : ${fallback})`;
-    }
-    if (this.IsOptional(left)) return `${expr(left)}.value_or(${fallback})`;
     // a field TypeScript has optional and C++ has with a default (or a choice of such fields)
     const hasDefault = item => {
       while (ts.isParenthesizedExpression(item)) item = item.expression;
@@ -2591,6 +2594,16 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
       const field = ownerName ? this.index.FieldType(ownerName, item.name.text) : null;
       return !!field && !/^std::optional</.test(field);
     };
+    const leftChain = this.OptionalChainRoot(left);
+    // s?.f ?? d where s is such a field, a struct (an IData's sub-struct its JSON may leave out): C++'s s.f
+    if (leftChain && hasDefault(leftChain.root) && !this.IsPointer(leftChain.root)) {
+      return this.Expr(left, { replace: leftChain.root, with: this.Expr(leftChain.root) });
+    }
+    if (leftChain) {
+      const root = this.Expr(leftChain.root);
+      return `(${root} ? ${this.Expr(left, { replace: leftChain.root, with: root, pointerRoot: true })} : ${fallback})`;
+    }
+    if (this.IsOptional(left)) return `${expr(left)}.value_or(${fallback})`;
     if (hasDefault(left)) return expr(left);
     this.Fail(node, '?? on a value that is not optional');
   }

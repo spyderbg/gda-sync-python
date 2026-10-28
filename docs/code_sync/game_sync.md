@@ -43,11 +43,11 @@ All commands run from the repository root (`/media/plamen/data/Python/gda-sync`)
 ## Step 0: Preconditions
 
 1. **The game is ported on this branch.** Run `ls frontend/src/game/alpha_family/plugins`. As of 2026-10-28, `dev` has
-   only `burning_crown_tetra_spins_10`. The `burning-hot-coins` branch (`dev` with `nordic-rush` merged) has it,
-   `burning_hot_coins` (all its rounds: main, coins, wheel, gamble) and the unfinished `nordic_rush`, with the tools to
-   import a new game (`export/import-game.mjs`, the module registry that finds a game's modules by glob), the coins,
-   wheel, free, hold and spin and gamble rounds and the full `ViewManager`. A game that is not ported is an import, not
-   a sync: stop and tell the user.
+   `burning_crown_tetra_spins_10`, `burning_hot_coins` (all its rounds: main, coins, wheel, gamble) and `nordic_rush`
+   (all its rounds: main, free, hold and spin, coins, coins free, wheel), with the tools to import a new game
+   (`export/import-game.mjs`, the module registry that finds a game's modules by glob), every round's states but the
+   extra rounds', and the full `ViewManager`. A game that is not ported is an import, not a sync: stop and tell the
+   user.
 2. **The C++ is committed.** Run `git -C $GAMES status --short -- game`. The manifest records commits, so sync only
    committed C++. If files under `game/` are modified, ask the user whether to wait for their commit.
 3. **The `hat_libs` checkout matches the pin.** Run `git -C $GAMES submodule status hat_libs`. A leading `+` means
@@ -145,11 +145,12 @@ Most of the states library is a statement-for-statement port. Some files are old
 
 - the plugin's views, which use `this.m_elementsList.TryGet(id)?.SetHidden(…)` where C++ has
   `m_elementsList[id].SetHidden(…)`;
-- `ViewManager.ts` on `dev`, about 600 lines against the C++'s 1450, with no wheel or coins paths (the
-  `burning-hot-coins` and `nordic-rush` branches have it fully ported);
 - Burning Hot Coins' views copied from Burning Crown's (`LinesView`, `ReelsView`, `StatusLineView`, the bars and menus),
   which are as far from their C++ as Burning Crown's. Its views new to the family (the wheel, the gamble, the coins bar,
-  the overlays, the buttons) are statement-for-statement ports.
+  the overlays, the buttons) are statement-for-statement ports;
+- Nordic Rush's views copied from Burning Hot Coins' (the same files, and the compact ones among them). Its views new to
+  the family (the free round's overlays and counter, the hold and spin bar, overlays and info screen, the reels' frame
+  fire) are statement-for-statement ports.
 
 In such a file, port the change's behaviour in the file's own idiom, and don't re-port the rest of the file unless the
 user asks. In particular, keep `TryGet(…)?.` in views: `Get` throws on every frame when a view file lacks the element,
@@ -304,8 +305,8 @@ and 7 all the same: it does not play the game or judge an idiom.
 ## Pitfalls seen in syncs
 
 - **Notes about other branches.** A note can describe work that is on another branch. Check the file on the current
-  branch before relying on it. For example, `ViewManager.ts` is fully re-ported only on `nordic-rush` and
-  `burning-hot-coins`, not on `dev`.
+  branch before relying on it. For example, until 2026-10-28 `ViewManager.ts` was fully re-ported only on `nordic-rush`
+  and `burning-hot-coins`, not on `dev`.
 - **Two games' files of the same name.** A copied file (`LinesView.ts`) keeps its game's names in the copy: an import
   must say the plugin's own paths and C++ names (`BurningHotCoinsView/...`). The compile check takes a quoted include
   (`"BaseReelsView.h"`) from the compiled file's own plugin first.

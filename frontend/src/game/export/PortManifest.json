@@ -2139,8 +2139,8 @@
   "cpp": [
    "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/Components/NumericBarView.h"
   ],
-  "sha256": "990f53030ec29b7028647d024884250bfc4bbb0a494122bad7408950fc2062af",
-  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "sha256": "dccc219ea9bf66950d1591b5cdcb6296dff7de1b06ca8a75d121900d0e25edc2",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/Components/NumericBarView.h": "0ce38d646461d0cdbb78770b558a664336f8f5319d4ab74e61bc4bacdfcab3ae"
   }
@@ -3565,6 +3565,144 @@
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/BigWinInfoView.cpp": "5594a7a943f1ab0d9d1701a2a87572d365823c5db4d6d5a9300f2e56092d0570"
   }
  },
+ "alpha_family/plugins/nordic_rush/NordicRushInfoView/HoldAndSpinRoundInfoView.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/HoldAndSpinRoundInfoView.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/HoldAndSpinRoundInfoView.cpp"
+  ],
+  "sha256": "5baf362978b29167113acf46657c9b2461870c800b2fab400737f0481ca4d29a",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/HoldAndSpinRoundInfoView.h": "a2f77105a1daa8dc8acfc87469a8dd071c1c5cee7efa0b0110d7fe8dd0fb7c53",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/HoldAndSpinRoundInfoView.cpp": "56e48cfb408e1763660a46f1f369d77518787a827512b1bb24d89b237fd933ea"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushInfoView/InfoView.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/InfoView.data.h"
+  ],
+  "sha256": "161141aa7676a5ab80ac7089ae723abbc32310e3ebd473c43e69af10f37ee072",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/InfoView.data.h": "a10423b91f9c3bccd8584a9c18dd7a414b43a1331610d9fb7b8754e92899ee48"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushInfoView/InfoView.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/InfoView.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/InfoView.cpp"
+  ],
+  "sha256": "511740e53c7a3cf52cd19deece454a771c2dcf242bf2437bae7156ac3f592116",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/InfoView.h": "f45cabb0d20097b220a84e29aa34d65692452b8de62682574dcaa4024fcbc15f",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/InfoView.cpp": "443b8f5fd609f1f7518af3f2eec172e3acef9e5d5e5e042bc836eff598681258"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushInfoView/NordicRushInfoView.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/NordicRushInfoView.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/NordicRushInfoView.cpp"
+  ],
+  "sha256": "062934c88e7fa525f62197e0ef9714887773ffdf28c045b51ddaf794372d7e24",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/NordicRushInfoView.h": "4389103043c2d676b22819932806a2ad0ab14a14421115e3c4a98712c9d9c4b2",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/NordicRushInfoView.cpp": "bbfc3c5f3c7261f01062443f7cbf25b90e8dfa18cb0b00bc9b01d65d026cc039"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushMath/MathRules.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushMath/MathRules.data.h"
+  ],
+  "sha256": "429efa59da276d3d7003e417414eb6497cc08be320b56233e7e1473c0c6e825d",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushMath/MathRules.data.h": "f580c72ba08c896ca90c8da06fc51221ffb1cecfb0587fed775e7179e9910020"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushMath/MathRules.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushMath/MathRules.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushMath/MathRules.cpp"
+  ],
+  "sha256": "263321c3183b01d6a315b06969743ce201541edafc467faeafdb7412cc782b88",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushMath/MathRules.h": "a8420731428ece012b3ed9843f58248773001503f026c6baf2b9b8f607ae8998",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushMath/MathRules.cpp": "4491fff2d1822e7eca96b1ebc3ed79cdfdd86b32cbc7a44886dee37942f64fdd"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushMath/MathTypes.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushMath/MathTypes.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushMath/MathTypes.cpp"
+  ],
+  "sha256": "11b8ae3d3fd83b0f4554fbb62d6a2c1fdb8512f4d819a95521bf1247c93b88c6",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushMath/MathTypes.h": "1fe380ff1482db1ce64e63195abd5827360bd6cc719822eb5ffd7cac2c3bd68a",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushMath/MathTypes.cpp": "3ac13f145a0bc01a283240f34f8ceaa2b0f8feed5533b6996525993cf640b0db"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushMath/NordicRushMath.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushMath/NordicRushMath.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushMath/NordicRushMath.cpp"
+  ],
+  "sha256": "746e34eb60b653a49d117aa3b008a2e78c0b14ba2aab43814d3fb35fc3a45252",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushMath/NordicRushMath.h": "b352bb9286f56ab063b30f44ba4272c7dc16e6a6c0cd3435c334e3a66dce5505",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushMath/NordicRushMath.cpp": "ef54d0475d448b67b3ac434037d8f263671e4b40777266df28c5f8ef6b6647c6"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushMath/SimulatorConfig/NordicRushMath.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushMath/SimulatorConfig/NordicRushMath.data.h"
+  ],
+  "sha256": "fd728b20bd190665d19cb35cb0be8833b803357d484d911ca8e83a3484c43f8c",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushMath/SimulatorConfig/NordicRushMath.data.h": "7e24db6ccfad2182309d29abfe65cfdeee402ba088e860488a0cabef90b661f4"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushTopperView/NordicRushTopperView.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushTopperView/NordicRushTopperView.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushTopperView/NordicRushTopperView.cpp"
+  ],
+  "sha256": "b1b19812ac55f43daf91246ece87061757c46a0506c63f6f44bff3519dfb1d63",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushTopperView/NordicRushTopperView.h": "d0eaa387ad6aa517366e3696e3924d9b1d14246201d3c1de67e656c3cd1b53af",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushTopperView/NordicRushTopperView.cpp": "9c2a3aee0e9beee0ea81437252dede0670db23a6caa4affc517d066471465a4a"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushTopperView/TopperView.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushTopperView/TopperView.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushTopperView/TopperView.cpp"
+  ],
+  "sha256": "2cf6179935c2cfd1284224e3361131fb651cbf5c9a1c2f61e82e472052819635",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushTopperView/TopperView.h": "0fa9d04a7fa507289b7b8fc1382ff56e7b69b2ce2ba88b5a7a86f96180bfad99",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushTopperView/TopperView.cpp": "43c08d0a4b78f1865a1a4b59c5c241862cc9fbb2ed8b9e24956c48f247f106d2"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/NordicRushView.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/NordicRushView.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/NordicRushView.cpp"
+  ],
+  "sha256": "e552dd1d15189e54ab6122f8a65b2131493bb87895bf284ea4321ba34ada3cb7",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/NordicRushView.h": "edc4ade4ebaf396c1a8f25a657a98a4cca8d77e1aa7f7d90f6111e32f4202fd5",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/NordicRushView.cpp": "2591811a5a5edfde7992bedb150a18eefdec71a4960453fe5b7a1709ec1ab4e3"
+  }
+ },
  "alpha_family/plugins/nordic_rush/NordicRushView/SwButtons/BetDownSwButtonView.ts": {
   "cpp": [
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/BetDownSwButtonView.h",
@@ -3589,6 +3727,18 @@
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/BetUpSwButtonView.cpp": "d5c9b67a031ddd2f62103f944d97d978d3dd789872e2b3c2f4cafa025e9376d2"
   }
  },
+ "alpha_family/plugins/nordic_rush/NordicRushView/SwButtons/ExitGameSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/ExitGameSwButtonView.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/ExitGameSwButtonView.cpp"
+  ],
+  "sha256": "640d5bf1195855d57dd9f58a4ee1bf09d22338693e136cfa73f279a0c4d865d3",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/ExitGameSwButtonView.h": "2e17506a7ffb063cd79c40b411662b7360ca6db9d327b51c153f770742e5f030",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/ExitGameSwButtonView.cpp": "bbea18ed857bb4ab209209d447925736b5955f3010bf38127d4aec5b6fcd53d5"
+  }
+ },
  "alpha_family/plugins/nordic_rush/NordicRushView/SwButtons/InfoSwButtonView.ts": {
   "cpp": [
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/InfoSwButtonView.h",
@@ -3599,6 +3749,18 @@
   "cppSha256": {
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/InfoSwButtonView.h": "1e2a2dc990756091df53f2b94c8be04f51c11928f911753af87dbb82d4815e64",
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/InfoSwButtonView.cpp": "69055e58493c0bb76ea0da774c2923d4bc2a32d820f0f23f40daa56e7168e7ad"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/SwButtons/LanguageSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/LanguageSwButtonView.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/LanguageSwButtonView.cpp"
+  ],
+  "sha256": "b4c55868b2c1c355b9f8c981b09009c159be1867c1a73164feb79b36318c66d8",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/LanguageSwButtonView.h": "23369509cddb4749977928f7b0d819a18292f19b2b6b4ccb75718b716275c0fa",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/LanguageSwButtonView.cpp": "0f1d772994c457718bf0f595e02c89260c3d50202cf26ade7dffd3c8ecb2fb3f"
   }
  },
  "alpha_family/plugins/nordic_rush/NordicRushView/SwButtons/LineDownSwButtonView.ts": {
@@ -3637,6 +3799,66 @@
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/ResponsibleSwButtonView.cpp": "1bdf165e032576de177b182f8b34041341a2d87e63e45ff572c29baa8043d861"
   }
  },
+ "alpha_family/plugins/nordic_rush/NordicRushView/SwButtons/SoundVolumeSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/SoundVolumeSwButtonView.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/SoundVolumeSwButtonView.cpp"
+  ],
+  "sha256": "a078b4e740a729b135c860526572df89d5e66c8462c14e18878d05a9ff291286",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/SoundVolumeSwButtonView.h": "78ede2a49ec5aae8aa3b49ddf4d56b27f357651c9f5a785fbc9a00be552ccb33",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/SoundVolumeSwButtonView.cpp": "664fa37aefa4d3346ac3ec5e8ba80c7c8f88fc082caafbbca4d3001c5b994ba2"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/SwButtons/StopSingleReelSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/StopSingleReelSwButtonView.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/StopSingleReelSwButtonView.cpp"
+  ],
+  "sha256": "04d38488296a43eee49fa4c276787fc317f2d4ca77c31f3bc4ae4e5587613a4c",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/StopSingleReelSwButtonView.h": "05ccc121ad03f4698da15b9f26363571b0a8e7282ed3834a32f7a548ac7b2763",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/StopSingleReelSwButtonView.cpp": "15f64543e87f42db9617eb745bba196bbdc55033aec3fd1cf1f2150959d85b55"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/SwButtons/TakeCoinsSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/TakeCoinsSwButtonView.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/TakeCoinsSwButtonView.cpp"
+  ],
+  "sha256": "8908edc2ba25712ac0140fc28dd82cc9a692224b6adc29be0c58b04395111585",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/TakeCoinsSwButtonView.h": "0dd64a6aa6a53463dca325983beabe71dc42990dc0c3c5b6a38ae54861759457",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/TakeCoinsSwButtonView.cpp": "a2bdf1179df7fb8dd0a95bca8a4e79e0a536953125924d1c2ff45ceca5caa332"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/SwButtons/WheelCancelSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/WheelCancelSwButtonView.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/WheelCancelSwButtonView.cpp"
+  ],
+  "sha256": "a7f5fe25b763849de54a7ac16000635e95f39dde8b63eec58f4df89f97196a88",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/WheelCancelSwButtonView.h": "c9c1758f13bfd98ea71d0083945dbbfd0d11dc84b940eaa158b2be927f3f3180",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/WheelCancelSwButtonView.cpp": "ef810a8bf7b585a5bb74f4e844fb8a5bdfe9e35c6332f5fc8900a1f605489de0"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/SwButtons/WheelStartSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/WheelStartSwButtonView.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/WheelStartSwButtonView.cpp"
+  ],
+  "sha256": "f40d1c92ab52c86caa96a081f83ca9675277e0d4d033a3c28c9d9686bad0d1ad",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/WheelStartSwButtonView.h": "71476a72932d72849aa5b5fe966741125d84370fc8499fa8d1b54f8bbecff579",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/WheelStartSwButtonView.cpp": "bef2dceb81b8ce24b4ca981bf1dffb0600486d66c0b075dee68552dde89a8565"
+  }
+ },
  "alpha_family/plugins/nordic_rush/NordicRushView/Views/AutoPlayView.ts": {
   "cpp": [
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/AutoPlayView.h",
@@ -3647,6 +3869,78 @@
   "cppSha256": {
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/AutoPlayView.h": "068149360635f708b521445b1db188ff1bf08e8588bad218f5179a1e7229ae9d",
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/AutoPlayView.cpp": "118dc1430c4a04e4946e79c3d35ef7fa69b64e83e620f12e19c22be2f5ec3643"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/Views/BaseReelsView.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/BaseReelsView.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/BaseReelsView.cpp"
+  ],
+  "sha256": "1bbbe72464d4992b9900f7e4ece53a16af1b2662f3f4c969c6a96d1f02bf7237",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/BaseReelsView.h": "48cfe209da3150b78ad081849e7548f464fc80245b4dcf0cd0c68c3a282d7018",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/BaseReelsView.cpp": "cca3fc2cca8fa8169b63f9bac6e15e97445a971d71c8e77c1b1cb058071a7a6a"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/Views/BetBarView.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/BetBarView.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/BetBarView.cpp"
+  ],
+  "sha256": "2bcc92eb7f2511ee532e426128d640926e069f9505b7a690d720e828200a4d37",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/BetBarView.h": "f9760616c225d6ec8e83b92645c944e5ac1c23e999e744b49981b8bcbc469389",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/BetBarView.cpp": "8ac9c8a0d4d8d125aba970bc8c7edc2af79515a0fc1f10f720b2afe50a3c3d82"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/Views/BetMenuView.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/BetMenuView.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/BetMenuView.cpp"
+  ],
+  "sha256": "a7cf2b4d86c208af346d58262a9db1980bbd64055bede6a138636f497adc2c18",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/BetMenuView.h": "2a8c2f24bb2765df41425662286bcfc41b0687e9fb95e6d7063b0e1359f419dd",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/BetMenuView.cpp": "e3ff512efee1e6dd3e2e7c6ca1c39edcf5cfd07e8a87bbcc739b99c471a0961a"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/Views/BigWinView.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/BigWinView.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/BigWinView.cpp"
+  ],
+  "sha256": "2ffc283f39a85ba22185ae406b0610cb962caa56eda1c20c8dae251e48665484",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/BigWinView.h": "909c3bb72ed23ea5af2ff373ceb660e6f0dd68781d9d8fff819567762b90144f",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/BigWinView.cpp": "946a27a55cf0905284c71ad80c83ad99d9059233eadc6a740a943954f11cb914"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/Views/CoinsBarView.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/CoinsBarView.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/CoinsBarView.cpp"
+  ],
+  "sha256": "36b54bf2a0a0c577f4d0b312c27668d2e3eee6290eb1b0e150efc092396ec83a",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/CoinsBarView.h": "32cd19ff28f3d4d8ed6037e5d2d5bb637232fd1d8cbbee69ba7991bdbdd0fa1b",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/CoinsBarView.cpp": "c4596dea5a9e35599f9d39de149598f30bda52d1f503c912f2809838715b2120"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/Views/CoinsRoundOverlayView.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/CoinsRoundOverlayView.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/CoinsRoundOverlayView.cpp"
+  ],
+  "sha256": "8d7d5d3e29509658f942c1f6e7bcdc845859ae1c8d3d0f282b6842124fc972cb",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/CoinsRoundOverlayView.h": "5080e0d0d3949424c94760586148f17ab0238deab4d7aaed35e324a88866de4d",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/CoinsRoundOverlayView.cpp": "fbf94d74dab1bf49ba2bfb63aac692f98793288d2b14e389349faad3eb9d0fa7"
   }
  },
  "alpha_family/plugins/nordic_rush/NordicRushView/Views/CreditBarView.ts": {
@@ -3666,11 +3960,95 @@
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/CreditsWinBarView.h",
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/CreditsWinBarView.cpp"
   ],
-  "sha256": "9633198325fe7c820ed536defdc4d9e7f6013398b40614561e77595365a5f7b7",
-  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "sha256": "5a6547566f33203dc8b1d209fc4860d8926888a6250ab8a9e04a6b72f03859a9",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
   "cppSha256": {
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/CreditsWinBarView.h": "fc5a6b4fc4e0be157932416ec61200a0e209a5a2ba42fa11dc6330269ec6217b",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/CreditsWinBarView.cpp": "d1502cfd926165114549842da1377f949e9d933bbe28f7921008f9fb16c9568e"
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/CreditsWinBarView.cpp": "0123a4c7fab54132d67a0764683dbfbbd74e250851e2445d929dad22d6accafd"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/Views/FreeRoundOverlayView.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/FreeRoundOverlayView.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/FreeRoundOverlayView.cpp"
+  ],
+  "sha256": "34e7fc949c4234022073f91d21037adfbb07afa6b1f7efdc6dc2edbe5c4f0cb0",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/FreeRoundOverlayView.h": "41acda506660847e628752377ff3182fa6781a31d9f3ac888b095f328b1c24c7",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/FreeRoundOverlayView.cpp": "f46da8f5b6c94152a9954a0ade26c06d7f4609fe04b8826ef5e1eb431b2ef4c5"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/Views/FreeRoundRetriggerView.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/FreeRoundRetriggerView.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/FreeRoundRetriggerView.cpp"
+  ],
+  "sha256": "d44743b30aeeb763580d7abd69f1b1c931a4ee0ba23c63e1b58ba49874040beb",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/FreeRoundRetriggerView.h": "709a58dc63571b27cf39953baaa40bb6f2318e6f840a6dc18aeeeac8c386e7da",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/FreeRoundRetriggerView.cpp": "d1190f4aba90671cbee88cb391adcf0af0568faf3065e0a8dee84b6738f69067"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/Views/FreeSpinBarView.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/FreeSpinBarView.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/FreeSpinBarView.cpp"
+  ],
+  "sha256": "cb5d05105d07b762f8fd74df2537ae7413feff6003d590584dd6c4cba07cba3b",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/FreeSpinBarView.h": "7c2333a2de18f435b709b24d5f5e1650d6ef0f8340de7bc7b16b7080f4fd8d28",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/FreeSpinBarView.cpp": "afbcca726dea4a4a504095d2f8f2a471992cabb7e0eb561d139f5c7d4a66f030"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/Views/GameBackgroundView.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/GameBackgroundView.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/GameBackgroundView.cpp"
+  ],
+  "sha256": "a38ec8e2bc8ab1f36cdd391cee69a0d1fbcff4184cd77c23a5d6ce6126ccf2f5",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/GameBackgroundView.h": "e6cdcfa0d426d73747cc61eb3e643142e7f7a614d82a073a93707cec0a4802f3",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/GameBackgroundView.cpp": "b7601f4ce760eb0f0cedcdd09e132ce3e32c6da718502fb988152099984ebc38"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/Views/HoldAndSpinBarView.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/HoldAndSpinBarView.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/HoldAndSpinBarView.cpp"
+  ],
+  "sha256": "eb69e20ee2f1d8ef289adaf60f917a5a08835be929df07cb6a8fcbde30eee0d9",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/HoldAndSpinBarView.h": "18736931f1ad61e5a3147b083cbc59f78a55f7006672ef2308d442430a01d86a",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/HoldAndSpinBarView.cpp": "a2e577c1cfe475384a0907212f516c2da1cafad2c95527314338f6ffee13bad7"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/Views/HoldAndSpinRoundOverlayView.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/HoldAndSpinRoundOverlayView.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/HoldAndSpinRoundOverlayView.cpp"
+  ],
+  "sha256": "cc30196d83f64916e40da2e43a38c6859837168078c84c6d1f80830bc42737b9",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/HoldAndSpinRoundOverlayView.h": "27cabce7658ee0fafd0b6f116431675d695a008d4469e8e3ce20751a60c59d7b",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/HoldAndSpinRoundOverlayView.cpp": "a7e27f0611e05a82c3feca5ab44f175bf8202569d70233d6d638e4b762f5c685"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/Views/KnobsView.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/KnobsView.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/KnobsView.cpp"
+  ],
+  "sha256": "368f7f1aa738ae0ecb01a3ff05750c9f22a3bbef231ad03412bdda52ad96ad5a",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/KnobsView.h": "9f1f380a7178a8d258110d0d611d326e7ff1c6dddbd0c106fa791878d53d57d4",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/KnobsView.cpp": "dd745173292f3806ab6a8120358d2aabf037507c62eb3b09133d7ed3d922e819"
   }
  },
  "alpha_family/plugins/nordic_rush/NordicRushView/Views/LanguageMenuView.ts": {
@@ -3685,6 +4063,40 @@
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/LanguageMenuView.cpp": "8f75b1a5e934329a1b0aa81c0d53c749be32648e99fd29079f4a24acff02d80a"
   }
  },
+ "alpha_family/plugins/nordic_rush/NordicRushView/Views/LinesView.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/LinesView.data.h"
+  ],
+  "sha256": "bc7009ee1ac308470f07cb99815f5c4b37dba5ecba1079c8655874c441dc6177",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/LinesView.data.h": "d2acd4ff5e4dbb80ca31953ff6f7081612171620b87d82543f469f6e20284210"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/Views/LinesView.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/LinesView.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/LinesView.cpp"
+  ],
+  "sha256": "1d5a3787b4fa38a87bda693d12cd153f8a12843ad55b8141b084a5da85636447",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/LinesView.h": "c9510dcf2b0d8bc56490440059e1d9f789558ef45cbd9140694a00e6c0915395",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/LinesView.cpp": "77309b870c151b6f0d45e6b8e37c9b6904e98e188d9223be484b6a24ceb96b0b"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/Views/ReelsOverlayView.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/ReelsOverlayView.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/ReelsOverlayView.cpp"
+  ],
+  "sha256": "b4c162afd3f0519c6573a905ce319f93b51073ca2bce14a17e254a6538ced112",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/ReelsOverlayView.h": "260d0a6ec26b6046e2f6147f2008e945dd35832d006b6b538ad512d3cefbb37e",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/ReelsOverlayView.cpp": "0b835cd11dff5140d75becc2117355acbabbfcd1f484f491d7f6ffd3cc682be6"
+  }
+ },
  "alpha_family/plugins/nordic_rush/NordicRushView/Views/ReelSubScreen.data.ts": {
   "cpp": [
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/ReelSubScreen.data.h"
@@ -3695,6 +4107,96 @@
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/ReelSubScreen.data.h": "60b687633a9db66347203356a01851b28fc40629b0a02d3695f097693e7fc48f"
   }
  },
+ "alpha_family/plugins/nordic_rush/NordicRushView/Views/ReelsView.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/ReelsView.data.h"
+  ],
+  "sha256": "fd95d2524e096e76f21da4c909ddcd813d6b4c02cd4fbc4e86edcd4b6388c398",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/ReelsView.data.h": "e5eaff373ce6271c9f4431897b8cb2f7cb93d37a496a709964cb01b677913de3"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/Views/ReelsView.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/ReelsView.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/ReelsView.cpp"
+  ],
+  "sha256": "895ff23ceab0be86e73528da3fe9779182f847963e5239443636c844c2b8964b",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/ReelsView.h": "c6b1160c67e11971aa34f75062aec703cc1bddb4fbacf19f75b25536a93ae999",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/ReelsView.cpp": "8f457693f36b14b3a437376924757d59de186e9cc841803a894e61e8ab3f75cb"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/Views/SoundMenuView.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/SoundMenuView.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/SoundMenuView.cpp"
+  ],
+  "sha256": "db9d878f2bd4c30a875f239d807e96ebb8bde5a10410cc0c0736f2ee3e4c1a36",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/SoundMenuView.h": "d93aed09a9d31ef532cc0fd6bce024c2b25d1388d17852762579cfafda80c858",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/SoundMenuView.cpp": "dec1be1f6fc1e262b446283b94e3f7a15f5214d6ddd0b1b7075fb9a3e1ecd1e5"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/Views/StatusLineView.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/StatusLineView.data.h"
+  ],
+  "sha256": "8f973e826f7c5ddcec5f7c55ff91d4f1ab6601040e5297d92a7f81333643c86e",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/StatusLineView.data.h": "74bd7e44e569452e1b418b554874946f5d1a48ca52b1f8e898c4a6e1f70fe203"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/Views/StatusLineView.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/StatusLineView.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/StatusLineView.cpp"
+  ],
+  "sha256": "0576aa048286c051275d353cce0613bf8171149b8b67b2c463d67cc5bf37075b",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/StatusLineView.h": "d78370e225301828318b2ec5aa39f908964793c9b0bf43ab9a217b9e9ab71cf4",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/StatusLineView.cpp": "5cf26772cc38e7f8afb7e95135e42fbb062a480960cf7df5c505db94028b517b"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/Views/WheelRoundOverlayView.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/WheelRoundOverlayView.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/WheelRoundOverlayView.cpp"
+  ],
+  "sha256": "a8033c3e3c169f02305e2da2d50d6904cefc2b6cce5fd48c60a0b87c5e358c49",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/WheelRoundOverlayView.h": "69188f62306e0ff3842cccd618ab9421c5af4c957bd69171eb27c06a415b9d6d",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/WheelRoundOverlayView.cpp": "cd635f4f34326c0d75346c2ca72397b3e1c7910180569b58dc4cb5fefd0ec709"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/Views/WheelRoundView.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/WheelRoundView.data.h"
+  ],
+  "sha256": "b84ed82bdc59db40658dd9e6497693d2164738dda51cddf36af1a61f66ce6c8c",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/WheelRoundView.data.h": "97429909134621748c09dc493d41ed1c791ddfb2f6bd5dedaeb998add5da2045"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/Views/WheelRoundView.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/WheelRoundView.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/WheelRoundView.cpp"
+  ],
+  "sha256": "5d1a855020332a2ef4ad8062f55930503912f107a695504b1e15fe4650409636",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/WheelRoundView.h": "bbb240eebd2ad010cbc4610fae5e47c0bb9ca5a56c005ba504920c695dccf12d",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/WheelRoundView.cpp": "e6496b70a8232c2618bc86e807c13a39828a6181178a04766e5363a7d4bbe5fd"
+  }
+ },
  "alpha_family/plugins/nordic_rush/NordicRushView/Views/WinFiguresView.data.ts": {
   "cpp": [
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/WinFiguresView.data.h"
@@ -3703,6 +4205,18 @@
   "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
   "cppSha256": {
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/WinFiguresView.data.h": "4bdaac9341ad709cfe3474f1f3241034146682ab4dfb1de8c66b1bbf03eea195"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/Views/WinFiguresView.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/WinFiguresView.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/WinFiguresView.cpp"
+  ],
+  "sha256": "b12a010c0f9e4cde3131309ba7f6940eab0265961d12e0b1f750e74fd40d0470",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/WinFiguresView.h": "5a8684a3c90304cee0c00b22a995425b64843395cffc82b26b3319cc7877ab5d",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/WinFiguresView.cpp": "f0b172661d5a896e3d669c096d27f929989192b3a55d5468e92ff367d6a669a5"
   }
  },
  "alpha_family/plugins/nordic_rush/NordicRushView/Visuals/BaseVisual.ts": {
@@ -3717,6 +4231,40 @@
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/BaseVisual.cpp": "6c72f0ff52a87cc93b4e810102b0155058633053189f1e05bf86cd5ead882264"
   }
  },
+ "alpha_family/plugins/nordic_rush/NordicRushView/Visuals/LinesVisual.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/LinesVisual.data.h"
+  ],
+  "sha256": "01e784905d2739a6a767667772d5b5406bbe260d754a14d25a1b98d61ac60e0a",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/LinesVisual.data.h": "13c2d9b522ed2aea0d66ed0c90112cad2cca353942b24538ca70b05cda104d2c"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/Visuals/LinesVisual.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/LinesVisual.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/LinesVisual.cpp"
+  ],
+  "sha256": "c28e1023ed37a8196d9e33d1a8afdbd4769c40a1b4734f4fefd3186bab1473dd",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/LinesVisual.h": "212629199f15ece5d58a7d1ebef07da3922238d4bc2b1e4ec94ec3ac6cd9be6b",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/LinesVisual.cpp": "22f2b4b14e102682cbe598c973ec73e6c88141a346c0cb368c94acabab013d64"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/Visuals/ReelVisual.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/ReelVisual.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/ReelVisual.cpp"
+  ],
+  "sha256": "4539bf59081428d12c7002aa9a9941f2c83ea79d91a28476dbd08f5f39cb96e3",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/ReelVisual.h": "ff23d02bb61c1c3c68e284c317e219a7aca123fca850f02f9dca405874d49302",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/ReelVisual.cpp": "d2cf8365d2684a826a2c0c7301c4e340c89f51660e1b35a73a7a5214507272b5"
+  }
+ },
  "alpha_family/plugins/nordic_rush/NordicRushView/Visuals/StatusLineVisual.data.ts": {
   "cpp": [
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/StatusLineVisual.data.h"
@@ -3727,6 +4275,18 @@
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/StatusLineVisual.data.h": "1f465c42640d9706a8d6da1237d3062a464cfd1eba65668673f24244e1e43441"
   }
  },
+ "alpha_family/plugins/nordic_rush/NordicRushView/Visuals/StatusLineVisual.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/StatusLineVisual.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/StatusLineVisual.cpp"
+  ],
+  "sha256": "de00ecaa7d85fa1df9d8a4337dae99516572fd61e48a033fbbc71c8e0ffa7951",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/StatusLineVisual.h": "f183e8bb703a5f5517e14a249579e445a24624c0a5b253e7b70308ed67eae52b",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/StatusLineVisual.cpp": "d7237182db2b7b8b1ccba6f60cee15a9c04a66c86180d23b668247ae197f68fd"
+  }
+ },
  "alpha_family/plugins/nordic_rush/NordicRushView/Visuals/WinFiguresVisual.data.ts": {
   "cpp": [
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/WinFiguresVisual.data.h"
@@ -3735,6 +4295,18 @@
   "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
   "cppSha256": {
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/WinFiguresVisual.data.h": "60913607701eb0ee8a885a99bc1d2e989d009a2744ab03f12dd27a9d4fe93733"
+  }
+ },
+ "alpha_family/plugins/nordic_rush/NordicRushView/Visuals/WinFiguresVisual.ts": {
+  "cpp": [
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/WinFiguresVisual.h",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/WinFiguresVisual.cpp"
+  ],
+  "sha256": "f85f9204c08b21ecdfcc6f7074ff88d5c4e4a36cb8a3549a0a5fd963cdcb855d",
+  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppSha256": {
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/WinFiguresVisual.h": "c378e0c77c669ad0deb90d0b184a93b8e7d2211fe8d678127dee58fe440402c2",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/WinFiguresVisual.cpp": "e63ff9b199561be7cc4ebf269ecb9eb25c5a689dc1aab88d5f6b5995ee739d59"
   }
  },
  "plugins/CappingSplashView/CappingSplashView.data.ts": {
