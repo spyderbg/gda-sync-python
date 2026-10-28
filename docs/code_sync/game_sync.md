@@ -43,9 +43,11 @@ All commands run from the repository root (`/media/plamen/data/Python/gda-sync`)
 ## Step 0: Preconditions
 
 1. **The game is ported on this branch.** Run `ls frontend/src/game/alpha_family/plugins`. As of 2026-10-28, `dev` has
-   only `burning_crown_tetra_spins_10`. `nordic_rush` and the tools to import a new game (`export/import-game.mjs`,
-   the module registry that finds a game's modules by glob) are on the `nordic-rush` branch, which is not merged. A game
-   that is not ported is an import, not a sync: stop and tell the user.
+   only `burning_crown_tetra_spins_10`. The `burning-hot-coins` branch (`dev` with `nordic-rush` merged) has it,
+   `burning_hot_coins` (all its rounds: main, coins, wheel, gamble) and the unfinished `nordic_rush`, with the tools to
+   import a new game (`export/import-game.mjs`, the module registry that finds a game's modules by glob), the coins,
+   wheel, free, hold and spin and gamble rounds and the full `ViewManager`. A game that is not ported is an import, not
+   a sync: stop and tell the user.
 2. **The C++ is committed.** Run `git -C $GAMES status --short -- game`. The manifest records commits, so sync only
    committed C++. If files under `game/` are modified, ask the user whether to wait for their commit.
 3. **The `hat_libs` checkout matches the pin.** Run `git -C $GAMES submodule status hat_libs`. A leading `+` means
@@ -143,7 +145,11 @@ Most of the states library is a statement-for-statement port. Some files are old
 
 - the plugin's views, which use `this.m_elementsList.TryGet(id)?.SetHidden(…)` where C++ has
   `m_elementsList[id].SetHidden(…)`;
-- `ViewManager.ts` on `dev`, about 600 lines against the C++'s 1450, with no wheel or coins paths.
+- `ViewManager.ts` on `dev`, about 600 lines against the C++'s 1450, with no wheel or coins paths (the
+  `burning-hot-coins` and `nordic-rush` branches have it fully ported);
+- Burning Hot Coins' views copied from Burning Crown's (`LinesView`, `ReelsView`, `StatusLineView`, the bars and menus),
+  which are as far from their C++ as Burning Crown's. Its views new to the family (the wheel, the gamble, the coins bar,
+  the overlays, the buttons) are statement-for-statement ports.
 
 In such a file, port the change's behaviour in the file's own idiom, and don't re-port the rest of the file unless the
 user asks. In particular, keep `TryGet(…)?.` in views: `Get` throws on every frame when a view file lacks the element,
@@ -156,8 +162,8 @@ for example with an older resources copy or while the user edits the view and it
   why nothing changed.
 - **A change that calls into an unported part** (for example `IsTakeCoinsButtonAvailable`, which needs the coins
   round): port the branch against the stand-in the TypeScript already uses, with a one-line comment naming the C++
-  function. On 2026-10-28, `ViewManager.SetupHwButtons` has `const canCollect = false;`, commented, used by both
-  Collect and Cashout. Never invent behaviour the C++ doesn't have.
+  function. On 2026-10-28, `dev`'s `ViewManager.SetupHwButtons` has `const canCollect = false;`, commented, used by
+  both Collect and Cashout. Never invent behaviour the C++ doesn't have.
 
 ### Changes that need more than one file
 
@@ -242,9 +248,23 @@ browser-made changes nobody has exported yet as ported, so the next export would
 `play_check.py` starts the app in an isolated data folder, with the workspace's newest asset report. It forces the round
 the preset names, presses START wherever the game waits for the player, and prints each change of the game's states with
 the panel's buttons, then the rounds played and the page's errors. It exits with 1 if the game never reaches `--until`,
-never comes back to Idle, or throws. The presets are the game's buttons in `GameView.vue` (`presets`). For Burning Crown,
-`--preset "Main: win ≥ 4× bet (enters the tetra round)" --until Tetra` covers the main round, the tetra round and the
-match end.
+never comes back to Idle, or throws. The presets are the game's buttons in `GameView.vue` (`presets`, shown for the
+games whose math has their round). For Burning Crown, `--preset "Main: win ≥ 4× bet (enters the tetra round)" --until
+Tetra` covers the main round, the tetra round and the match end.
+
+`--preset` may be given more than once: each is pressed once the one before it has played its round. `--press
+STATE=KEY` presses a key of the Play page instead of START, once each time the states come to STATE (g Gamble, r Red,
+b Black, t Take win). For Burning Hot Coins:
+
+```sh
+# the main round's coins, the coins round, the take win
+--preset "Main: win coins (enters the coins round)" --until CoinsRound
+# the coins round's credits, then the gamble on black, won
+--preset "Main: win coins (enters the coins round)" --preset "Coins: win credits (then gamble or take)" \
+    --preset "Gamble: win" --press MatchTakeWin=g --press GambleRoundInput=b --until GambleRound
+# the coins taken to the exchange wheel
+--preset "Main: win coins (enters the coins round)" --press CoinsRoundInput=t --until WheelRound
+```
 
 Read the output against the C++ changes. For example:
 
@@ -284,7 +304,11 @@ and 7 all the same: it does not play the game or judge an idiom.
 ## Pitfalls seen in syncs
 
 - **Notes about other branches.** A note can describe work that is on another branch. Check the file on the current
-  branch before relying on it. For example, `ViewManager.ts` is fully re-ported only on `nordic-rush`.
+  branch before relying on it. For example, `ViewManager.ts` is fully re-ported only on `nordic-rush` and
+  `burning-hot-coins`, not on `dev`.
+- **Two games' files of the same name.** A copied file (`LinesView.ts`) keeps its game's names in the copy: an import
+  must say the plugin's own paths and C++ names (`BurningHotCoinsView/...`). The compile check takes a quoted include
+  (`"BaseReelsView.h"`) from the compiled file's own plugin first.
 - **TypeScript arrays have holes.** C++ `resize` default-constructs elements, but a TypeScript array whose `length` was
   raised has holes. When the C++ starts reading another slot (for example `SetupViews` using the tetra rules' last
   result slot), check that the TypeScript always has a value there. Burning Crown's tetra rules use the main slot.

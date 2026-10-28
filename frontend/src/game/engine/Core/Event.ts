@@ -55,6 +55,11 @@ export class Event<A extends unknown[] = []> {
     this.registrations = this.registrations.filter(registration => registration.owner !== owner);
   }
 
+  /** C++'s ForceUnregister(sentinel): the owner's callbacks go, as Unregister's do. */
+  ForceUnregister(owner: object) {
+    this.Unregister(owner);
+  }
+
   IsRegistered(owner: object) {
     return this.registrations.some(registration => registration.owner === owner);
   }

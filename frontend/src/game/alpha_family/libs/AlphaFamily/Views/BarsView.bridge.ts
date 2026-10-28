@@ -1,6 +1,6 @@
 // Egt::Game::AlphaFamily numeric bars (AlphaFamily/Views/BarsView.bridge.h): ICreditBarView, ICreditsWinBarView,
-// IBetBarView, ITetraSpinBarView; and the other games' bars the states library uses (ICoinsWinBarView,
-// IExtraSpinBarView, IHoldAndSpinBarView), which BurningCrownTetraSpins10 has not.
+// IBetBarView, the round counters (ITetraSpinBarView, IFreeSpinBarView...), and the coins games' bars (ICoinsBarView,
+// ICoinsWinBarView, IExtraSpinBarView, IHoldAndSpinBarView).
 
 import { Event } from '@game/engine/Core/Event';
 import type { CurrencyType } from '@game/engine/Game/Math/Common.data';
@@ -39,20 +39,34 @@ export interface IBetBarView extends IControlView, INumericBarView {
 
 export const IBetBarView = Interface<IBetBarView, INumericBarViewEvents>('IBetBarView');
 
-export interface IWinBarViewWithShow {
+export interface IWinBarViewWithShow extends IControlView, INumericBarView {
   ShowRemainder(visible: boolean): void;
   AddWinResult(summary: PayoutSummary): void;
 }
 
 export interface IExtraSpinBarView extends IWinBarViewWithShow {}
 
-export const IExtraSpinBarView = Interface<IExtraSpinBarView>('IExtraSpinBarView');
+export const IExtraSpinBarView = Interface<IExtraSpinBarView, INumericBarViewEvents>('IExtraSpinBarView');
 
 export interface IHoldAndSpinBarView extends IWinBarViewWithShow {
   SetBet(bet: number): void;
 }
 
-export const IHoldAndSpinBarView = Interface<IHoldAndSpinBarView>('IHoldAndSpinBarView');
+export const IHoldAndSpinBarView = Interface<IHoldAndSpinBarView, INumericBarViewEvents>('IHoldAndSpinBarView');
+
+export interface ICoinsBarView {
+  Minimize(instant: boolean): void;
+  Maximize(instant: boolean): void;
+  SetValueNow(value: number): void;
+  SetValue(value: number): void;
+}
+
+export class ICoinsBarViewEvents {
+  readonly minimized = new Event();
+  readonly maximized = new Event();
+}
+
+export const ICoinsBarView = Interface<ICoinsBarView, ICoinsBarViewEvents>('ICoinsBarView');
 
 export interface ICoinsWinBarView extends IControlView, INumericBarView {
   AddWinResult(summary: PayoutSummary): void;
@@ -70,3 +84,15 @@ export interface ITetraSpinBarView extends IBaseCounterBarView {
 }
 
 export const ITetraSpinBarView = Interface<ITetraSpinBarView, IControlViewEvents>('ITetraSpinBarView');
+
+export interface IFreeSpinBarView extends IBaseCounterBarView {}
+
+export const IFreeSpinBarView = Interface<IFreeSpinBarView, IControlViewEvents>('IFreeSpinBarView');
+
+export interface IExtraFreeSpinBarView extends IBaseCounterBarView {}
+
+export const IExtraFreeSpinBarView = Interface<IExtraFreeSpinBarView, IControlViewEvents>('IExtraFreeSpinBarView');
+
+export interface ICoinsFreeSpinBarView extends IBaseCounterBarView {}
+
+export const ICoinsFreeSpinBarView = Interface<ICoinsFreeSpinBarView, IControlViewEvents>('ICoinsFreeSpinBarView');

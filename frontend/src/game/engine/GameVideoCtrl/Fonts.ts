@@ -49,7 +49,9 @@ export class BitmapFont {
       const w = width / Math.max(chars.length, 1);
       chars.forEach((char, i) => this.glyphs.set(char, { x: Math.round(i * w), w: Math.round(w) }));
     }
-    this.height = height - 1;
+    // a glyph is the font's size tall (video_ctrl's create_font_from_cyan_sep_png), below the marker row: an image may
+    // be taller than its glyphs
+    this.height = this.font.size > 0 ? Math.min(height - 1, this.font.size) : height - 1;
     this.ready = true;
   }
 

@@ -186,6 +186,10 @@ export class ElementsList extends RuntimeHolder {
     for (const id of typeof ids === 'string' ? [ids] : ids) this.byId.get(id)?.SetPosition(position);
   }
 
+  SetRotation(degrees: number, ids: Iterable<string>) {
+    for (const id of ids) this.byId.get(id)?.SetRotation(degrees);
+  }
+
   SetWorldPivot(pivot: Point, ids: Iterable<string>) {
     for (const id of ids) this.byId.get(id)?.SetWorldPivot(pivot);
   }

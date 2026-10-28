@@ -93,6 +93,8 @@ export class BrowserKernel extends BaseModule implements IKernelApi, IKernelInte
       GetSupportedLanguages: () => [...LANGUAGES],
       FormatCurrency: value => BrowserKernel.FormatCurrency(value),
       FormatNumber: value => BrowserKernel.FormatCurrency(value),
+      // the kernel's coins format is the currency's with "@ " for "€ ", which the browser leaves out as it does "€ "
+      FormatCoins: coins => BrowserKernel.FormatCurrency(coins),
     });
     this.RuntimeAdd(ILocalization.Events, this.localizationEvents);
     this.RuntimeAdd(IRecovery, {

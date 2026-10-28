@@ -10,6 +10,8 @@ export interface ILocalization {
   FormatCurrency(value: number): string;
   /** An amount of cents as a number, without the currency. */
   FormatNumber(value: number): string;
+  /** An amount of coins (in hundredths). */
+  FormatCoins(coins: number): string;
 }
 
 export class ILocalizationEvents {

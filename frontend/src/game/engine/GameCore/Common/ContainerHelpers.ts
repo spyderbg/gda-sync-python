@@ -19,3 +19,8 @@ export function RandomDevice() {
 export function IsArrayOf<T>(values: readonly unknown[], Type: abstract new (...args: never[]) => T): values is T[] {
   return values.every(value => value instanceof Type);
 }
+
+/** The index of a value in a container, or -1. */
+export function FindIndex<T>(container: readonly T[], value: T) {
+  return container.indexOf(value);
+}

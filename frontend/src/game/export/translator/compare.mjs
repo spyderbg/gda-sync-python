@@ -3,11 +3,13 @@
 // lines differ, the less an export of a change needs updating by hand.
 //
 //   node compare.mjs <games/game> [--diff <path-substring>] [--out <folder>] [--compile <compile_commands.json>]
+//                    [--ts <ts path>...]
 //
 // prints the lines changed per file, most first, and their total; --diff prints the diffs of the files whose C++ path
 // has the substring; --errors prints why the files of states and views (not data, math) are not translated; --out
 // writes the translated files there; --compile checks that each translated .cpp compiles
-// (-fsyntax-only) with the command the games repository's build has for its C++, the translated headers first.
+// (-fsyntax-only) with the command the games repository's build has for its C++, the translated headers first. --ts
+// translates these TypeScript files only (paths relative to frontend/src/game), ported or not: a file being imported.
 
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -22,7 +24,10 @@ const args = process.argv.slice(2);
 const cppRoot = args[0];
 const option = name => (args.includes(name) ? args[args.indexOf(name) + 1] : null);
 const manifest = JSON.parse(readFileSync(join(here, '../PortManifest.json'), 'utf8'));
-const { files, errors } = TranslateFiles(cppRoot, Object.keys(manifest));
+// --ts's paths: the arguments after it, up to the next option
+const tsArgs = args.includes('--ts') ? args.slice(args.indexOf('--ts') + 1) : null;
+const only = tsArgs ? tsArgs.slice(0, tsArgs.findIndex(arg => arg.startsWith('--')) + 1 || tsArgs.length + 1).filter(arg => !arg.startsWith('--')) : null;
+const { files, errors } = TranslateFiles(cppRoot, only ?? Object.keys(manifest));
 const out = option('--out') ?? join(tmpdir(), 'egt-translator-compare');
 const filter = option('--diff');
 

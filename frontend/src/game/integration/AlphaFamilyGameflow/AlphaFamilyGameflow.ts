@@ -2,7 +2,8 @@
 // the match and its rounds with the kernel. A match's wallet keeps its currencies: starting it rewards MainSpinEnergy of
 // the bet, which the main round consumes; rounds reward credits, which tetra rounds consume; the credits left are paid
 // at its end. The next round is the one whose currency the match has (GetNextRoundType), or a tetra round while the
-// match has credits for it (CheckTetraRound).
+// match has credits for it (CheckTetraRound), or the coins wheel when the coins' least win reaches the cap
+// (CheckForcedWheel).
 
 import { Currencies, type CurrencyType } from '@game/engine/Game/Math/Common.data';
 import { HistoryEngine, type IRng, MonteCarloEngine, type RngNumber, type RngOp, type RngSequence } from '@game/engine/GameCore/Random/IRng';
@@ -11,6 +12,8 @@ import { ECapTiming, ILimits } from '@game/engine/Game/RuntimeImport/ILimits';
 import { IMathTypes } from '@game/engine/Game/RuntimeExport/IMathTypes';
 import { BaseModule, type ModuleConfig } from '@game/engine/ModuleManager/BaseModule';
 import { Currency, RoundErrorCode, RoundType } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
+import { HoldAndSpinRoundInput } from '@game/alpha_family/libs/AlphaFamily/Math/HoldAndSpin/HoldAndSpinRoundInput.data';
+import { ReelRoundInput } from '@game/alpha_family/libs/AlphaFamily/Math/Reel/ReelRoundInput.data';
 import { RoundError, RoundResult, type CappingInfo, type RoundInput } from '@game/alpha_family/libs/AlphaFamily/Math/RoundResult.data';
 import { IMathRules } from '@game/alpha_family/libs/AlphaFamily/RuntimeExport/IMathRules';
 import { type IGameflow, IGameflow as IGameflowToken, IGameflowEvents } from '@game/alpha_family/libs/AlphaFamily/RuntimeImport/IGameflow.bridge';
@@ -134,6 +137,20 @@ export class AlphaFamilyGameflow extends BaseModule implements IGameflow {
       match.kernelStarted = true;
       // Starting a match rewards you energy that is consumed when starting a Main round
       match.wallet.rewarded.Add(Currency.MainSpinEnergy, match.creditBet);
+      // reward all tokens for entering optional rounds
+      const mathRules = this.RuntimeGetConst(IMathRules);
+      if (mathRules.HasWheelRoundRules(RoundType.Gamble)) {
+        const gambleRules = mathRules.GetWheelRoundRules(RoundType.Gamble);
+        const gambleTokensCount = gambleRules.GetConfig().maxAttempts;
+
+        match.wallet.rewarded.Add(Currency.GambleToken, gambleTokensCount);
+      }
+      if (mathRules.HasWheelRoundRules(RoundType.Wheel)) {
+        const coinsWheelRules = mathRules.GetWheelRoundRules(RoundType.Wheel);
+        const coinsWheelTokensCount = coinsWheelRules.GetConfig().maxAttempts;
+
+        match.wallet.rewarded.Add(Currency.WheelToken, coinsWheelTokensCount);
+      }
     } else {
       this.match = null;
     }
@@ -171,9 +188,16 @@ export class AlphaFamilyGameflow extends BaseModule implements IGameflow {
     this.CalculateRoundResult();
   }
 
+  /** The round's result by the rules of its input (C++'s std::visit of the round input). */
+  private CalculateRoundOf(input: RoundInput, rng: IRng) {
+    const mathRules = this.RuntimeGetConst(IMathRules);
+    if (input instanceof ReelRoundInput) return mathRules.GetReelRoundRules(input.roundType).CalculateRound(input, rng);
+    if (input instanceof HoldAndSpinRoundInput) return mathRules.GetHoldAndSpinRoundRules(input.triggerRoundType).CalculateRound(input, rng);
+    return mathRules.GetWheelRoundRules(input.roundType).CalculateRound(input, rng);
+  }
+
   private CalculateRoundResult() {
     const round = this.round!;
-    const rules = this.RuntimeGetConst(IMathRules).GetReelRoundRules(round.input.roundType);
     let resultOrError;
     if (this.preset && this.preset.roundType === round.input.roundType) {
       resultOrError = this.CalculatePresetRound(this.preset);
@@ -192,7 +216,7 @@ export class AlphaFamilyGameflow extends BaseModule implements IGameflow {
           throw error;
         }
       };
-      resultOrError = rules.CalculateRound(round.input, rng);
+      resultOrError = this.CalculateRoundOf(round.input, rng);
       if (insufficient) {
         this.Kernel().RequestRandoms(RngBatchCount);
         return;
@@ -208,10 +232,9 @@ export class AlphaFamilyGameflow extends BaseModule implements IGameflow {
 
   private CalculatePresetRound(preset: RoundPreset) {
     const round = this.round!;
-    const rules = this.RuntimeGetConst(IMathRules).GetReelRoundRules(round.input.roundType);
     let last = null;
     for (let attempt = 0; attempt < 200_000; attempt++) {
-      const result = rules.CalculateRound(round.input, new HistoryEngine(new MonteCarloEngine()));
+      const result = this.CalculateRoundOf(round.input, new HistoryEngine(new MonteCarloEngine()));
       if (!(result instanceof RoundResult)) return result;
       last = result;
       if (preset.condition(result)) return result;
@@ -382,7 +405,18 @@ export class AlphaFamilyGameflow extends BaseModule implements IGameflow {
   private ApplyCapping(result: RoundResult, timing: ECapTiming) {
     const winCapping = this.RuntimeGetConst(ILimits).GetWinCapping();
     if (timing !== winCapping.capTiming || winCapping.capping <= 0) return;
+    const mathRules = this.RuntimeGetConst(IMathRules);
+
+    // collect caps
     const caps = new Currencies(Currency.Credits, winCapping.capping);
+
+    if (mathRules.HasWheelRoundRules(RoundType.Wheel)) {
+      const wheelRules = mathRules.GetWheelRoundRules(RoundType.Wheel);
+      const coinsCapping = wheelRules.GetCoinCapping(winCapping.capping);
+      caps.Add(Currency.CoinsSpinEnergy, coinsCapping);
+    }
+
+    // apply caps
     result.CalculateAndApplyCapping(this.GetMatchCurrenciesAvailable(), caps);
     if (!result.m_cappingInfo) return;
     this.UpdateRemainingFeaturesInfo(result);
@@ -394,16 +428,47 @@ export class AlphaFamilyGameflow extends BaseModule implements IGameflow {
     if (result.m_cappingInfo) this.match!.cappingInfo = { ...result.m_cappingInfo };
   }
 
-  /** Whether the cap ends features the match still has: its other currencies, or the tetra round it was in. The browser
-   * game has no wheel, so no forced wheel. */
+  /** Whether the cap ends features the match still has: its other currencies, the tetra round it was in, or a forced
+   * wheel. */
   private UpdateRemainingFeaturesInfo(result: RoundResult) {
     const cappingInfo = result.m_cappingInfo!;
     const creditHit = cappingInfo.cappedCurrencies.some(([type]) => type === Currency.Credits);
     if (!creditHit) return;
+
+    const roundType = result.GetRoundType();
     const available = this.GetMatchCurrenciesAvailable();
+    const consume = result.GetInput().consume;
+
+    // Coins are already consumed for the wheel, so reconstruct pre-round available.
+    const isForcedWheel = roundType === RoundType.Wheel && this.CheckForcedWheel(available.Plus(consume));
+
     const hasNonCredit = [...available].some(([type]) => type !== Currency.Credits && type !== Currency.WheelToken && type !== Currency.GambleToken);
-    const isTetraRound = result.GetRoundType() === RoundType.Tetra;
-    cappingInfo.remainingFeatures = hasNonCredit || isTetraRound;
+
+    const isTetraRound = roundType === RoundType.Tetra;
+
+    cappingInfo.remainingFeatures = hasNonCredit || isTetraRound || isForcedWheel;
+  }
+
+  private CheckForcedWheel(available: Currencies) {
+    const coins = available.Get(Currency.CoinsSpinEnergy);
+    if (coins === 0) return false;
+
+    const capping = this.RuntimeGetConst(ILimits).GetWinCapping().capping;
+    if (capping <= 0) return false;
+
+    const credits = available.Get(Currency.Credits);
+    if (credits >= capping) return false;
+
+    const mathRules = this.RuntimeGetConst(IMathRules);
+    if (!mathRules.HasWheelRoundRules(RoundType.Wheel)) return false;
+    const wheelRules = mathRules.GetWheelRoundRules(RoundType.Wheel);
+
+    const sectors = wheelRules.GetWheelRewardsPerSector(coins);
+    if (!sectors.size) return false;
+
+    const minsector = Math.min(...[...sectors.values()].map(s => s.Get(Currency.Credits)));
+
+    return minsector + credits >= capping;
   }
 
   private CheckTetraRound(available: Currencies) {
@@ -422,7 +487,7 @@ export class AlphaFamilyGameflow extends BaseModule implements IGameflow {
   }
 
   IsForcedWheel() {
-    return false;
+    return this.CheckForcedWheel(this.GetMatchCurrenciesAvailable());
   }
 
   IsCappingHit() {
@@ -435,6 +500,7 @@ export class AlphaFamilyGameflow extends BaseModule implements IGameflow {
 
   GetNextRoundType() {
     const available = this.GetMatchCurrenciesAvailable();
+    if (this.CheckForcedWheel(available)) return RoundType.Wheel;
     if (available.Get(Currency.HoldAndSpinEnergy) > 0) return RoundType.HoldAndSpin;
     if (available.Get(Currency.FreeSpinEnergy) > 0) return RoundType.Free;
     if (available.Get(Currency.ExtraFreeSpinEnergy) > 0) return RoundType.ExtraFree;

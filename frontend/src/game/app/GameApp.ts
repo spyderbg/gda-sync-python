@@ -12,7 +12,7 @@ import { VideoManager } from '@game/engine/VideoManager/VideoManager';
 import { AlphaFamilyGameflow } from '@game/integration/AlphaFamilyGameflow/AlphaFamilyGameflow';
 import { BrowserKernel, type BrowserKernelConfig } from '@game/integration/BrowserKernel/BrowserKernel';
 import type { GameAssetReport, GameProject, GameProjectModule } from './GameBackend';
-import { MODULES } from './ModuleRegistry';
+import { GameModuleName, MODULES } from './ModuleRegistry';
 
 export interface GameModuleEntry {
   name: string;
@@ -47,9 +47,10 @@ export class GameApp {
     return project.modules?.config.modules ?? [];
   }
 
+  /** Whether the browser game has every module of the game's modules config (a game being imported has some only). */
   static CanPlay(project: GameProject) {
     const modules = GameApp.GameModules(project);
-    return modules.some(module => module.name in MODULES);
+    return modules.length > 0 && modules.every(module => module.name in MODULES);
   }
 
   async Start(options: GameStartOptions) {
@@ -95,6 +96,17 @@ export class GameApp {
 
   Get<T extends IModule>(type: new (...args: never[]) => T): T | null {
     return (this.modules.find(entry => entry.module instanceof type)?.module as T) ?? null;
+  }
+
+  /** The game's module of a kind (its <Game>Fsm, <Game>Math, <Game>View, <Game>InfoView), whichever game plays. */
+  GetGameModule<T>(kind: 'Fsm' | 'Math' | 'View' | 'InfoView' | 'TopperView'): T | null {
+    const name = GameModuleName(this.modules.filter(entry => !entry.engine).map(entry => entry.name), kind);
+    return (this.modules.find(entry => entry.name === name)?.module as T | undefined) ?? null;
+  }
+
+  /** The playing game's C++ name (BurningCrownTetraSpins10): its state machine module's, without Fsm. */
+  GetGameName() {
+    return GameModuleName(this.modules.filter(entry => !entry.engine).map(entry => entry.name), 'Fsm')?.replace(/Fsm$/, '') ?? null;
   }
 
   private Frame = () => {

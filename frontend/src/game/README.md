@@ -4,9 +4,13 @@
 a port of the C++ game (`games/game/alpha_family`) that keeps the C++ structure, so that games and features developed
 here can be exported back to C++.
 
-It plays **Burning Crown Tetra Spins 10**: the main round, the tetra round (four sub screens, sticky and copied crowns),
-the big win movies, the maximum award (capping) splash, autoplay, the bet and language menus, English and Italian, the
-cabinet's info screen (the help pages of the game's RTF) and its topper screen.
+It plays the games whose modules it has (`app/ModuleRegistry.ts` finds them): **Burning Crown Tetra Spins 10**, ported
+by hand: the main round, the tetra round (four sub screens, sticky and copied crowns), the big win movies, the maximum
+award (capping) splash, autoplay, the bet and language menus, English and Italian, the cabinet's info screen (the help
+pages of the game's RTF) and its topper screen; **Burning Hot Coins**, imported from its C++ (2026-10-28): the main
+round, whose wins are coins, the coins round, the coins (exchange) wheel and the red or black gamble; and the games
+imported from C++ (below, **Import: a new game from C++**), such as **Nordic Rush** (in progress): free spins, the coins
+round and its free spins, hold and spin, and the coins wheel.
 
 ## What it loads, and from where
 
@@ -45,7 +49,7 @@ The folders mirror the C++ ones, and the classes keep their C++ names and method
 | `alpha_family/libs/AlphaFamily` | `alpha_family/libs/src/Egt/AlphaFamily` (math rules, states and views interfaces) |
 | `alpha_family/libs/AlphaFamilyStatesLibrary` | the states library (managers, Idle, Match, MainRound, TetraRound, MatchCappingApplied...) |
 | `alpha_family/libs/AlphaFamilyVideoCtrl` | BaseView, ButtonView, NumericBarView, MenuView |
-| `alpha_family/plugins/burning_crown_tetra_spins_10/<Module>` | `alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/<Module>`: Math, Fsm, View, InfoView, TopperView |
+| `alpha_family/plugins/<plugin>/<Module>` | `alpha_family/plugins/<plugin>/src/Egt/<Module>`: a game's Math, Fsm, View, InfoView, TopperView |
 | `integration/AlphaFamilyGameflow` | `integration/libs/src/Egt/AlphaFamilyGameflow` |
 | `integration/BrowserKernel` | the kernel integrations (playground, hat...): wallet, limits, localization, hardware buttons |
 | `app/GameApp.ts`, `app/ModuleRegistry.ts` | the ModuleManager and the plugins it loads |
@@ -73,9 +77,15 @@ Where the browser differs from a cabinet:
 - Movies play in the browser's video player, muted (their sounds are audio events), composed with their `valpha` alpha.
   They load once the game's images have loaded, where C++ loads and starts them when the element is made.
 
-Not ported: the rounds this game does not have (free, extra, hold and spin, wheel, gamble, coins), whose states are not
-in its machine. Their reel rules are ported (expanding symbols, collectors, the hold and spin trigger) but untested in
-play, since Burning Crown does not use them.
+The states library has the free, coins, coins free, hold and spin, wheel and gamble rounds (`Match/FreeRound`...), the
+math their rules (`Math/HoldAndSpin`, `Math/Wheel`: the gamble's rules are a wheel's, of red and black betting groups),
+and the gameflow their inputs, the coins' capping and the forced wheel. Not ported: the extra and extra free rounds,
+which no ported game has.
+
+The **Developer** panel's presets and the panel's buttons follow the game's math: a preset or a button of a round type
+(Coins, Gamble, Tetra...) shows for the games whose `IMathRules` has it. The gamble's buttons are **Gamble** (G),
+**Red** (R) and **Black** (B); **Take win** (T) is the cabinet's COLLECT, which takes the coins round's coins to the
+wheel, or a win.
 
 ## Playing and developing
 
@@ -119,7 +129,9 @@ names.
 2. States: reuse the states library, or add states there; a `<Game>Fsm` module describes the tree in `CreateBuilder()`.
 3. Views: a `<Game>View` module whose `CreateViews()` adds its views in groups; views load their elements from the
    game's `v/<resolution>/*.json` by their ElementsList id.
-4. Register the modules in `app/ModuleRegistry.ts` under the names the game's modules config gives them.
+4. The modules need no registering: `app/ModuleRegistry.ts` finds each `alpha_family/plugins/<plugin>/<Module>/<Module>.ts`
+   that exports a class of its folder's name, as the module the game's modules config names so. The page plays a
+   workspace once the browser game has every module of its config.
 5. **Developer → Export to C++** writes the game's whole plugin to
    `~/.local/share/egt-gda-sync/game-exports/<workspace>/`, by its paths in the games folder (`game/...`,
    `configs/...`), with a README of what each file is:
@@ -200,7 +212,21 @@ All 29 states of the states library, and all 37 views, visuals and software butt
   class's `EgtALogCategoryClass(Class, 'Name');` after it: `engine/GameCore/Log/LogCategory.ts`);
 - say the C++ types TypeScript has not: `ConstPointer<T>` (a `const T*` result), `get_if(T, x)`
   (`std::get_if<T>(&x)`), `static_cast<size_t>(x)`, `AnyData` (`engine/GameCore/Common/Types.ts`); a derived state's
-  interfaces with its base's (`[IMainRound, ...ReelRoundState.Interfaces]` is `Fsm::List<IMainRound, ReelRoundState::Interfaces>`).
+  interfaces with its base's (`[IMainRound, ...ReelRoundState.Interfaces]` is `Fsm::List<IMainRound, ReelRoundState::Interfaces>`);
+  `Pointer<T>` (a `T*`, what a `std::function` of `RuntimeTryGet` returns);
+- a value C++ copies TypeScript would share: `Copy(x)` (a deep copy here, `x` in C++: `result = Copy(phase.stop)`);
+  `x as T` of a round's phase (a `std::variant`) is `std::get<T>(x)`; `Math.max(...values)` is
+  `std::ranges::max(values)`; an arrow function's return type is its lambda's (`(): [int64_t, int64_t] => ...`);
+- a derived class's private method of the same name as its base's, which C++ has and TypeScript cannot (a state's
+  `AttachCallbacks` beside its base state's): another name, with the C++ one in its doc comment
+  (`/** @cppName AttachCallbacks */ private AttachOwnCallbacks()`); likewise a constant that stands for a C++ name,
+  such as a view's own class as its runtime token (`/** @cppName CoinsBarView */ export const CoinsBarViewToken = new
+  RuntimeToken<CoinsBarView>('CoinsBarView')`: `RuntimeAdd(CoinsBarViewToken, this)` is `RuntimeAdd<CoinsBarView>(this)`,
+  and the constant itself has no C++); such a class of two interfaces says its category as C++ does
+  (`static readonly RuntimeCategory = RuntimeCategory.GameView`);
+- a C++ float literal: `0.5 as float` (`0.5f`), so that a template such as `GameCore::RemapClamped` deduces float;
+  `Math.PI` is glm's `math::pi<float>()` (of a `float` declaration); `[...set][0]` is `*set.begin()`; `this` as an
+  event's owner (`event.RegisterInstant(this, ...)`, `ForceUnregister(this)`) is C++'s `shared_from_this()`.
 
 ### Import: the C++'s changes into the TypeScript
 
@@ -227,6 +253,28 @@ Claude Code** after an export): the TypeScript changes the translator could not 
 ported into the export's C++ by an agent, with the TypeScript's diff since it was ported; it stays only if it compiles
 (`export/translator/CompileCheck.mjs`, with the games repository's `compile_commands.json`), and the README lists it.
 
+### Import: a new game from C++
+
+The C++ games of the family (`games/game/alpha_family/plugins/<plugin>`) are imported by their game folder only: the
+libraries they use are ported once, by hand (the states library's rounds, the math, the views' bridges), and a game's
+folder then comes in file by file. `node export/import-game.mjs <games/game> <plugin>` plans it: each C++ file (`X.h`
+with `X.cpp`, `X.data.h`) is compared with the same file of a ported game (the one with most of the same files, or
+`--from <plugin>`), its names changed to the new game's:
+
+- **copy**: the same C++: the ported game's TypeScript is copied, with the game's names;
+- **diff**: C++ that differs a little: the ported game's TypeScript is the start, and a Claude Code agent ports the
+  diff of the two C++, as the import of a ported file's changes does;
+- **port**: no such file, or C++ that differs in more than half its lines: the agent ports the C++ (with the other game's
+  file as its reference); a game's `MathRules` as its C++ writes it, not as a math description.
+
+`--copies` makes the copies; `--agent` the copies and the agent's ports, in the order of the files' includes. Each is
+checked in a git worktree as the import of changes checks it (it type-checks; a diff's translation is no farther from
+the new C++ than the copy's), and only what passes goes into the sources, with its `PortManifest.json` entry, so that
+the game's later C++ changes come in by the import above. A copy that does not type-check is the agent's to fix;
+`--max <n>` limits the agent's files in a run, and a run again goes on where the last stopped. A workspace whose game
+the browser game has not shows the same on **Play** (**Import from C++**: Check the C++, Copy the same files, Import
+with Claude Code; the backend's `/api/game/import-game`).
+
 ### Fidelity: the translation is the C++ it ports
 
 The translation is formatted by clang-format 17 with the C++ game's `.clang-format` files, then aligned with the C++
@@ -236,8 +284,8 @@ and `ReturnIf(!x, v)`, `final` and `override`, a header's parameter names), its 
 statements both have, its includes (the translation's added only where the original's do not include them already).
 So a file whose TypeScript mirrors its C++ translates to that C++, and a change in the browser changes only its lines.
 
-`node export/translator/compare.mjs <games/game> [--diff <path>] [--compile <compile_commands.json>] [--errors]`
-translates every ported file and counts the lines each differs from its C++ (on 2026-10-21: 45 of 132 files the
+`node export/translator/compare.mjs <games/game> [--diff <path>] [--compile <compile_commands.json>] [--errors] [--ts <path>...]`
+translates every ported file (or `--ts`'s, ported or not) and counts the lines each differs from its C++ (on 2026-10-21: 45 of 132 files the
 same, 7272 lines in all, most in `ViewManager` and the plugin's views, whose TypeScript is not yet re-ported
 statement for statement); `--compile` checks that the translation compiles with the games repository's build flags.
 

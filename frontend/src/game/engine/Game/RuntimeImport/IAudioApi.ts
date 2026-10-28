@@ -1,5 +1,6 @@
 // Egt::Game::IAudioApi: plays the descriptors' audio events by id.
 
+import { Event } from '@game/engine/Core/Event';
 import { Interface } from '@game/engine/GameCore/RuntimeAccess';
 
 export interface IAudioPlayback {
@@ -16,4 +17,12 @@ export interface IAudioApi {
   CycleVolumePreset(): void;
 }
 
-export const IAudioApi = Interface<IAudioApi>('IAudioApi');
+export class IAudioApiEvents {
+  /** Emitted after a named sound starts successfully. */
+  readonly playbackStarted = new Event<[string, IAudioPlayback]>();
+
+  /** Emitted when the current volume preset changes, either via ApplyVolumePreset() or CycleVolumePreset(). */
+  readonly volumePresetChanged = new Event<[number]>();
+}
+
+export const IAudioApi = Interface<IAudioApi, IAudioApiEvents>('IAudioApi');

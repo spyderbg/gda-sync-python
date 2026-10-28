@@ -1,5 +1,6 @@
 // Egt::Game::AlphaFamily::States::IGameManager (AlphaFamily/States/IGameManager.h, IGameManager.data.h).
 
+import type { size_t } from '@game/engine/GameCore/Common/Types';
 import { Interface } from '@game/engine/GameCore/RuntimeAccess';
 import type { RoundType } from '../Math/Common/Common.data';
 import type { RoundResult } from '../Math/RoundResult.data';
@@ -13,6 +14,9 @@ export interface IGameManager {
   FindRandomZeroRewardRound(roundType: RoundType): RoundResult | null;
   SetLastRoundResult(result: RoundResult): void;
   GetLastRoundResult(): RoundResult;
+
+  GetLastNHistoryResultsBy(roundType: RoundType, n: size_t): RoundResult[];
+  AddHistoryResult(result: RoundResult): void;
 }
 
 export class GameManagerNvrams {

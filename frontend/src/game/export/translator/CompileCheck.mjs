@@ -25,15 +25,18 @@ export function FindCompileCommands(cppRoot) {
 export async function CompileErrors(cppRoot, commandsFile, folder, paths) {
   const commands = new Map(JSON.parse(readFileSync(commandsFile, 'utf8')).map(entry => [entry.file, entry]));
   const roots = [...new Set(paths.map(path => /^(.*?\/src)\//.exec(path)?.[1]).filter(Boolean))].map(root => `-I${join(folder, root)}`);
-  // the original's folders, for the quoted includes of the files the folder has not (BaseReelsView.h)
-  roots.push(...[...new Set(paths.map(path => dirname(join(cppRoot, path))))].map(item => `-iquote${item}`));
+  // the original's folders, for the quoted includes of the files the folder has not (BaseReelsView.h): the compiled
+  // file's own plugin's first, as two games have files of the same names
+  const quoted = [...new Set(paths.map(path => dirname(join(cppRoot, path))))];
+  const pluginOf = path => /\/alpha_family\/plugins\/([^/]+)\//.exec(path)?.[1] ?? null;
+  const quotedFor = path => [...quoted].sort((a, b) => Number(pluginOf(b) === pluginOf(path)) - Number(pluginOf(a) === pluginOf(path))).map(item => `-iquote${item}`);
   const queue = paths.filter(path => path.endsWith('.cpp'));
   const failures = {};
   const run = path => new Promise(done => {
     const entry = commands.get(join(cppRoot, path));
     if (!entry) return done((failures[path] = 'no compile command'));
     const command = entry.command.replace(/\s-o\s+\S+/, '').replace(/\s-c\s+\S+$/, '').replace(entry.file, '');
-    exec(`${command.replace(/^(\S+)/, `$1 ${roots.join(' ')}`)} -fsyntax-only -fno-color-diagnostics -c ${join(folder, path)}`, { cwd: entry.directory, maxBuffer: 1 << 24 }, (error, _stdout, stderr) => {
+    exec(`${command.replace(/^(\S+)/, `$1 ${[...roots, ...quotedFor(`/${path}`)].join(' ')}`)} -fsyntax-only -fno-color-diagnostics -c ${join(folder, path)}`, { cwd: entry.directory, maxBuffer: 1 << 24 }, (error, _stdout, stderr) => {
       if (error) failures[path] = stderr.split('\n').filter(line => /error:/.test(line)).slice(0, 3).join('\n');
       done();
     });

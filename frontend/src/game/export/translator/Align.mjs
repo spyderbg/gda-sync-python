@@ -535,7 +535,7 @@ export function Align(cppRoot, path, translated, aliases = new Map()) {
       const lines = text.replace(/\n$/, '').split('\n');
       // the class's namespace: the file's last (one before declares another namespace's names)
       const start = lines.findLastIndex(line => /^namespace\s+Egt::Game::AlphaFamily\s*$/.test(line));
-      if (start < 0 || lines[start + 1] !== '{' || !/^}\s*(\/\/.*)?$/.test(lines[lines.length - 1])) throw new Error('no namespace');
+      if (start < 0 || lines[start + 1] !== '{' || !/^};?\s*(\/\/.*)?$/.test(lines[lines.length - 1])) throw new Error('no namespace');
       return { preamble: lines.slice(0, start), head: lines.slice(start, start + 2), body: lines.slice(start + 2, -1), tail: lines[lines.length - 1] };
     };
     const o = split(original);

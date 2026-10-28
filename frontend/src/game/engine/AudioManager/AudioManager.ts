@@ -2,7 +2,7 @@
 // RssAudioData.json by id, one of an event's samples at a time; an event of a polyphony group stops the group's other
 // sounds. The volume presets cycle with the sound button.
 
-import { IAudioApi, type IAudioPlayback } from '@game/engine/Game/RuntimeImport/IAudioApi';
+import { IAudioApi, IAudioApiEvents, type IAudioPlayback } from '@game/engine/Game/RuntimeImport/IAudioApi';
 import { IResources } from '@game/engine/Game/RuntimeExport/IResources';
 import { Runtime } from '@game/engine/GameCore/RuntimeAccess';
 import { BaseModule, type ModuleConfig } from '@game/engine/ModuleManager/BaseModule';
@@ -23,6 +23,7 @@ class AudioPlayback implements IAudioPlayback {
 }
 
 export class AudioManager extends BaseModule implements IAudioApi {
+  private readonly events = new IAudioApiEvents();
   private playing: AudioPlayback[] = [];
   private volumeIndex = 2;
   private readonly missing = new Set<string>();
@@ -30,12 +31,14 @@ export class AudioManager extends BaseModule implements IAudioApi {
   Init(runtime: Runtime, config: ModuleConfig) {
     super.Init(runtime, config);
     this.RuntimeAdd(IAudioApi, this);
+    this.RuntimeAdd(IAudioApi.Events, this.events);
     return true;
   }
 
   Deinit() {
     this.StopAll();
     this.RuntimeRemove(IAudioApi);
+    this.RuntimeRemove(IAudioApi.Events);
     super.Deinit();
   }
 
@@ -57,6 +60,7 @@ export class AudioManager extends BaseModule implements IAudioApi {
     this.playing = this.playing.filter(item => item.IsPlaying());
     this.playing.push(playback);
     if (audio.volume > 0) audio.play().catch(() => {});
+    this.events.playbackStarted.Post(audioEventId, playback);
     return playback;
   }
 
@@ -81,6 +85,7 @@ export class AudioManager extends BaseModule implements IAudioApi {
   ApplyVolumePreset(index: number) {
     this.volumeIndex = Math.max(0, Math.min(VOLUME_PRESETS.length - 1, index));
     for (const playback of this.playing) playback.audio.volume = VOLUME_PRESETS[this.volumeIndex];
+    this.events.volumePresetChanged.Post(this.volumeIndex);
   }
 
   CycleVolumePreset() {

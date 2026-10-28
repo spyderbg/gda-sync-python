@@ -13,14 +13,14 @@ import { ResourceManager } from '@game/engine/ResourceManager/ResourceManager';
 import { VideoManager } from '@game/engine/VideoManager/VideoManager';
 import { Currency, RoundType } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
 import { EInfoViewPageType } from '@game/alpha_family/libs/AlphaFamily/Views/IInfoView.data';
-import { BurningCrownTetraSpins10Fsm } from '@game/alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10Fsm/BurningCrownTetraSpins10Fsm';
-import { BurningCrownTetraSpins10InfoView } from '@game/alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10InfoView/BurningCrownTetraSpins10InfoView';
-import { BurningCrownTetraSpins10View } from '@game/alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/BurningCrownTetraSpins10View';
+import { IMathRules } from '@game/alpha_family/libs/AlphaFamily/RuntimeExport/IMathRules';
 import { AlphaFamilyGameflow, type RoundPreset } from '@game/integration/AlphaFamilyGameflow/AlphaFamilyGameflow';
 import { BrowserKernel } from '@game/integration/BrowserKernel/BrowserKernel';
 import { ExportPlugin, type PluginExport } from '@game/export/PluginExporter';
 import { MODULES } from '@game/app/ModuleRegistry';
-import { BurningCrownTetraSpins10Math } from '@game/alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10Math/BurningCrownTetraSpins10Math';
+import type { GameFsm } from '@game/engine/Game/Fsm/GameFsm';
+import type { InfoViewPages, ViewModule } from '@game/app/GameModules';
+import type { MathExportInput } from '@game/export/MathExporter';
 
 const report = shallowRef<GameAssetReport | null>(null);
 const reportError = ref('');
@@ -45,7 +45,18 @@ interface ImportOutcome { ts: string; files?: string[]; before?: number | null; 
 interface ImportReport { changed: ImportChange[]; ported: ImportOutcome[]; upToDate?: ImportOutcome[]; failed: ImportOutcome[] }
 /** A Claude Code agent's run: porting the C++ changes into the TypeScript (import), or an export's TypeScript changes
  * the translator could not translate into its C++ (export). */
-interface ImportStatus { running: boolean; kind: 'import' | 'export' | null; log: string[]; result: ImportReport | null; error: string | null }
+interface ImportStatus {
+  running: boolean; kind: 'import' | 'export' | 'import-game' | null; log: string[]; result: (ImportReport & Partial<GameImportReport>) | null; error: string | null;
+}
+/** A C++ game of the family to import (export/import-game.mjs): its files' plan, and what an import did. */
+interface GameImportUnit { ts: string; cpp: string[]; mode: 'done' | 'copy' | 'diff' | 'port'; changed: number | null; template: string | null }
+interface GameImportReport {
+  plugin: string; gameName: string; template: { plugin: string; gameName: string } | null; units: GameImportUnit[];
+  copied: ImportOutcome[]; ported: ImportOutcome[]; failed: ImportOutcome[]; skipped: ImportOutcome[]; left?: string[];
+}
+interface GameImports { games: { plugin: string; cppFiles: number; tsFiles: number }[]; workspace: string }
+const gameImport = shallowRef<GameImportReport | null>(null);
+const gameImportChecking = ref(false);
 const importReport = shallowRef<ImportReport | null>(null);
 const importStatus = shallowRef<ImportStatus | null>(null);
 const importChecking = ref(false);
@@ -100,6 +111,8 @@ const live = reactive({
   images: '',
   capping: 0,
   setupCapping: 0,
+  /** The round types the game's math has: which presets and panel buttons the page shows. */
+  roundTypes: [] as RoundType[],
 });
 
 /** A maximum award a main win reaches, below the tetra round's trigger (4× a bet of 1.00), to see the capping splash. */
@@ -113,10 +126,15 @@ const formatCredit = (value: number) => BrowserKernel.FormatCurrency(value);
 const kernel = () => app?.Get(BrowserKernel) ?? null;
 const gameflow = () => app?.Get(AlphaFamilyGameflow) ?? null;
 
-const PANEL: { name: HwButtonName; label: string; key: string; icon: string }[] = [
+/** The cabinet's panel; a button that `requires` a round type shows for the games whose math has it. */
+const PANEL: { name: HwButtonName; label: string; key: string; icon: string; requires?: RoundType }[] = [
   { name: 'Exit', label: 'Exit', key: 'the panel only', icon: 'mdi-exit-to-app' },
   { name: 'Info', label: 'Info', key: 'I', icon: 'mdi-information-outline' },
   { name: 'Cashout', label: 'Collect', key: 'C', icon: 'mdi-cash-multiple' },
+  { name: 'Collect', label: 'Take win', key: 'T', icon: 'mdi-hand-coin-outline', requires: RoundType.Coins },
+  { name: 'Gamble', label: 'Gamble', key: 'G', icon: 'mdi-cards-playing-outline', requires: RoundType.Gamble },
+  { name: 'GambleRed', label: 'Red', key: 'R', icon: 'mdi-cards-heart', requires: RoundType.Gamble },
+  { name: 'GambleBlack', label: 'Black', key: 'B', icon: 'mdi-cards-spade', requires: RoundType.Gamble },
   { name: 'DecreaseBet', label: 'Bet −', key: '↓', icon: 'mdi-minus' },
   { name: 'IncreaseBet', label: 'Bet +', key: '↑', icon: 'mdi-plus' },
   { name: 'MaxBet', label: 'Max bet', key: 'M', icon: 'mdi-arrow-collapse-up' },
@@ -125,18 +143,31 @@ const PANEL: { name: HwButtonName; label: string; key: string; icon: string }[] 
 ];
 const KEYS: Record<string, HwButtonName> = {
   ' ': 'Start', Enter: 'Start', a: 'AutoPlay', A: 'AutoPlay', ArrowUp: 'IncreaseBet', ArrowDown: 'DecreaseBet', m: 'MaxBet', M: 'MaxBet',
-  i: 'Info', I: 'Info', c: 'Cashout', C: 'Cashout',
+  i: 'Info', I: 'Info', c: 'Cashout', C: 'Cashout', t: 'Collect', T: 'Collect', g: 'Gamble', G: 'Gamble', r: 'GambleRed', R: 'GambleRed',
+  b: 'GambleBlack', B: 'GambleBlack',
 };
+const panel = computed(() => PANEL.filter(button => button.requires === undefined || live.roundTypes.includes(button.requires)));
 
+/** The Developer panel's rounds, of the round types the game's math has (and those a preset `requires`). */
 const presets = computed<RoundPreset[]>(() => {
-  const bet = (result: Parameters<RoundPreset['condition']>[0]) => result.GetBet();
-  const win = (result: Parameters<RoundPreset['condition']>[0]) => result.GetSummary().rewards.Get(Currency.Credits);
-  return [
-    { roundType: RoundType.Main, name: 'Main: win ≥ 4× bet (enters the tetra round)', condition: result => win(result) >= 4 * bet(result) },
+  type Result = Parameters<RoundPreset['condition']>[0];
+  const bet = (result: Result) => result.GetBet();
+  const credits = (result: Result) => result.GetSummary().rewards.Get(Currency.Credits);
+  const coins = (result: Result) => result.GetSummary().rewards.Get(Currency.CoinsSpinEnergy);
+  // a main round pays credits, or coins in a coins game
+  const win = (result: Result) => credits(result) + coins(result);
+  const all: (RoundPreset & { requires?: RoundType })[] = [
+    { roundType: RoundType.Main, name: 'Main: win ≥ 4× bet (enters the tetra round)', requires: RoundType.Tetra, condition: result => win(result) >= 4 * bet(result) },
+    { roundType: RoundType.Main, name: 'Main: win coins (enters the coins round)', requires: RoundType.Coins, condition: result => coins(result) > 0 },
     { roundType: RoundType.Main, name: 'Main: big win (≥ 25× bet)', condition: result => win(result) >= 25 * bet(result) },
     { roundType: RoundType.Main, name: 'Main: no win', condition: result => win(result) === 0 },
     { roundType: RoundType.Tetra, name: 'Tetra: win ≥ 2× bet', condition: result => win(result) >= 2 * bet(result) },
+    { roundType: RoundType.Coins, name: 'Coins: win credits (then gamble or take)', condition: result => credits(result) > 0 },
+    { roundType: RoundType.Coins, name: 'Coins: no win', condition: result => win(result) === 0 },
+    { roundType: RoundType.Gamble, name: 'Gamble: win', condition: result => credits(result) > 0 },
+    { roundType: RoundType.Gamble, name: 'Gamble: lose', condition: result => credits(result) === 0 },
   ];
+  return all.filter(preset => live.roundTypes.includes(preset.roundType) && (preset.requires === undefined || live.roundTypes.includes(preset.requires)));
 });
 
 function refreshLive() {
@@ -147,14 +178,16 @@ function refreshLive() {
   live.capping = k.GetCapping();
   live.setupCapping = k.GetConfiguredCapping();
   live.buttons = k.GetButtonStates();
-  const fsm = app?.Get(BurningCrownTetraSpins10Fsm)?.GetMachine();
+  const roundTypes = app?.runtime.TryGet(IMathRules)?.GetAvailableRoundTypes() ?? [];
+  if (roundTypes.join() !== live.roundTypes.join()) live.roundTypes = [...roundTypes];
+  const fsm = app?.GetGameModule<GameFsm>('Fsm')?.GetMachine();
   live.states = fsm?.ActiveStates() ?? [];
   const transitions = fsm?.transitions ?? [];
   live.transitions = transitions.slice(-50).reverse().map(item => TransitionRowOf(item, transitions[0].time));
   live.match = flow.GetMatchSnapshot();
   live.preset = flow.GetRoundPreset()?.name ?? '';
   live.history = flow.history.slice(-8).reverse().map(item => ({ roundType: RoundType[item.roundType], bet: item.bet, win: item.win }));
-  const pages = app?.Get(BurningCrownTetraSpins10InfoView)?.GetInfoView()?.GetPages();
+  const pages = app?.GetGameModule<InfoViewPages>('InfoView')?.GetInfoView()?.GetPages();
   live.infoPage = pages ? EInfoViewPageType[pages.current] : '';
   const images = app?.Get(VideoManager)?.TryGetImages();
   live.images = images ? `${images.loadedCount} / ${images.size}` : '';
@@ -263,14 +296,14 @@ const problems = computed(() => {
 });
 
 async function exportCpp() {
-  const fsm = app?.Get(BurningCrownTetraSpins10Fsm)?.GetMachine();
-  const viewModule = app?.Get(BurningCrownTetraSpins10View);
-  if (!fsm || !viewModule || !project.value) return;
+  const fsm = app?.GetGameModule<GameFsm>('Fsm')?.GetMachine();
+  const viewModule = app?.GetGameModule<ViewModule>('View');
+  const gameName = app?.GetGameName();
+  if (!fsm || !viewModule || !gameName || !project.value) return;
   try {
-    const gameName = 'BurningCrownTetraSpins10';
     const plugin = MODULES[`${gameName}Fsm`]?.plugin ?? project.value.workspace.id;
     const exported = await ExportPlugin({ gameName, plugin, project: project.value, fsm: fsm.root, viewGroups: viewModule.GetViewGroups(),
-      math: app?.Get(BurningCrownTetraSpins10Math)?.GetMathExport() }, session.token, { translateAllViews: exportAllViews.value });
+      math: app?.GetGameModule<{ GetMathExport?(): Omit<MathExportInput, 'gameName'> }>('Math')?.GetMathExport?.() }, session.token, { translateAllViews: exportAllViews.value });
     exportReport.value = exported.report;
     exportResult.value = await GameBackend.Export(gameName, exported.files, session.token, exported.copies);
     notify(`Exported ${exportResult.value.files.length} files to ${exportResult.value.folder}`);
@@ -304,10 +337,45 @@ async function followAgent() {
   }
   const result = importStatus.value.result;
   const what = importStatus.value.kind === 'export' ? 'into the export\'s C++' : 'from the C++';
-  if (result) notify(`Ported ${what}: ${result.ported.length} files${result.failed.length ? `, ${result.failed.length} not` : ''}`, !!result.failed.length);
+  if (result && importStatus.value.kind === 'import-game') {
+    notify(`Imported ${result.gameName}: ${result.copied?.length ?? 0} files copied, ${result.ported.length} ported${result.failed.length ? `, ${result.failed.length} not` : ''}; ${result.left?.length ?? 0} left`, !!result.failed.length);
+  } else if (result) notify(`Ported ${what}: ${result.ported.length} files${result.failed.length ? `, ${result.failed.length} not` : ''}`, !!result.failed.length);
   else if (importStatus.value.error) notify(importStatus.value.error, true);
   if (importStatus.value.kind === 'import') void checkCppChanges();
+  if (importStatus.value.kind === 'import-game') void checkGameImport();
 }
+
+/** The workspace's C++ game (games/game/alpha_family/plugins/<workspace id>): how it imports into the browser game. */
+async function checkGameImport() {
+  gameImportChecking.value = true;
+  try {
+    const imports = await api<GameImports>('game/import-game', 'GET');
+    const game = imports.games.find(item => item.plugin === imports.workspace);
+    gameImport.value = game ? await api<GameImportReport>(`game/import-game?plugin=${encodeURIComponent(game.plugin)}`, 'GET') : null;
+    if (!game) notify(`The C++ game sources have no alpha_family/plugins/${imports.workspace}`, true);
+  } catch (failure) {
+    notify(`Comparing the C++ game failed: ${(failure as Error).message}`, true);
+  } finally {
+    gameImportChecking.value = false;
+  }
+}
+
+/** Imports the workspace's C++ game: its copies only, or all its files with Claude Code. */
+async function importGame(copiesOnly: boolean) {
+  if (!gameImport.value) return;
+  try {
+    importStatus.value = await api<ImportStatus>('game/import-game', 'POST', { plugin: gameImport.value.plugin, copiesOnly });
+    void followAgent();
+  } catch (failure) {
+    notify(`Importing the game failed: ${(failure as Error).message}`, true);
+  }
+}
+
+const gameImportCounts = computed(() => {
+  const units = gameImport.value?.units ?? [];
+  return { done: units.filter(unit => unit.mode === 'done').length, copy: units.filter(unit => unit.mode === 'copy').length,
+    port: units.filter(unit => unit.mode === 'diff' || unit.mode === 'port').length, total: units.length };
+});
 
 /** Has a Claude Code agent port the C++ changes into the TypeScript (all, or one file's). */
 async function portCppChanges(ts?: string) {
@@ -359,9 +427,25 @@ onBeforeUnmount(() => {
   <div v-else-if="state === 'unsupported'" class="card">
     <div class="card-body">
       <h5 class="card-title">This game cannot be played in the browser yet</h5>
-      <p class="mb-2">The browser game has the modules of Burning Crown Tetra Spins 10. This workspace's modules config
+      <p class="mb-2">The browser game has none of the game modules this workspace's modules config
         <code v-if="project?.modules">{{ project.modules.file }}</code><span v-else>(configs/{{ project?.workspace.id }}/modules)</span> names:</p>
       <ul class="mb-0"><li v-for="module in project?.modules?.config.modules ?? []" :key="module.name"><code>{{ module.name }}</code></li></ul>
+      <h6 class="mt-3">Import from C++</h6>
+      <p class="small mb-2">The game's C++ folder (<code>games/game/alpha_family/plugins/{{ project?.workspace.id }}</code>) imports into the
+        browser game file by file: a file whose C++ is a ported game's is copied from its TypeScript, the others are ported by Claude Code.
+        What does not type-check is left out; import again to go on.</p>
+      <div class="btn-group btn-group-sm mb-2" role="group">
+        <button type="button" class="btn btn-outline-primary" :disabled="gameImportChecking || importStatus?.running" @click="checkGameImport"><i class="mdi mdi-source-branch-sync" aria-hidden="true" /> Check the C++</button>
+        <button type="button" class="btn btn-outline-primary" :disabled="!gameImportCounts.copy || importStatus?.running" @click="importGame(true)"><i class="mdi mdi-content-copy" aria-hidden="true" /> Copy the same files</button>
+        <button type="button" class="btn btn-outline-primary" :disabled="!gameImport || gameImportCounts.done === gameImportCounts.total || importStatus?.running" @click="importGame(false)"><i class="mdi mdi-robot-outline" aria-hidden="true" /> Import with Claude Code</button>
+      </div>
+      <p v-if="gameImport" class="small mb-1">{{ gameImport.gameName }}: {{ gameImportCounts.total }} files, {{ gameImportCounts.done }} imported;
+        {{ gameImportCounts.copy }} the same as {{ gameImport.template?.gameName ?? 'a ported game' }}'s, {{ gameImportCounts.port }} to port.</p>
+      <p v-if="importStatus?.running" class="small mb-1"><i class="mdi mdi-loading mdi-spin" aria-hidden="true" /> {{ importStatus.log[importStatus.log.length - 1] ?? 'Starting…' }}</p>
+      <template v-else-if="importStatus?.kind === 'import-game' && importStatus.result">
+        <p v-for="item in importStatus.result.failed" :key="`failed:${item.ts}`" class="small text-danger mb-1" :title="item.account">Not imported <code>{{ item.ts.split('/').pop() }}</code>: {{ item.reason?.split('\n')[0] }}</p>
+        <button v-if="!importStatus.result.left?.length" type="button" class="btn btn-primary btn-sm" @click="load"><i class="mdi mdi-play" aria-hidden="true" /> Play</button>
+      </template>
     </div>
   </div>
   <div v-else-if="state === 'error'" class="alert alert-danger" role="alert">
@@ -377,7 +461,7 @@ onBeforeUnmount(() => {
           <div v-if="state === 'starting'" class="game-overlay"><i class="mdi mdi-loading mdi-spin" aria-hidden="true" /> Loading the game's data…</div>
         </div>
         <div class="game-panel">
-          <button v-for="button in PANEL" :key="button.name" type="button" :class="['btn', button.name === 'Start' ? 'btn-success' : 'btn-outline-secondary', 'btn-sm']"
+          <button v-for="button in panel" :key="button.name" type="button" :class="['btn', button.name === 'Start' ? 'btn-success' : 'btn-outline-secondary', 'btn-sm']"
             :disabled="!live.buttons[button.name]?.enabled" :title="`${button.label} (${button.key})`" @click="press(button.name)">
             <i :class="['mdi', button.icon]" aria-hidden="true" /> {{ button.label }}
           </button>
