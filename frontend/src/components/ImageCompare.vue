@@ -168,7 +168,8 @@ onBeforeUnmount(() => { request++; cancelAnimationFrame(frame); cancelDrag(); so
             <button type="button" class="btn btn-sm btn-light" @click="fit">Full image</button>
           </div>
           <label class="compare-slider">Tolerance <strong>{{ tolerance }} / 255</strong><input v-model.number="tolerance" aria-label="Difference tolerance" type="range" min="0" max="255" step="1"><small>Ignore channel differences up to this value.</small></label>
-          <div class="compare-zoom"><label class="compare-slider">Zoom <strong>{{ zoom }}%</strong><input :value="zoom" aria-label="Image zoom" type="range" min="1" max="800" step="1" @input="setZoom(Number(($event.target as HTMLInputElement).value))"></label><button type="button" class="btn btn-sm btn-light" @click="setZoom(100)">1:1</button></div>
+          <label class="compare-slider">Zoom <strong>{{ zoom }}%</strong><input :value="zoom" aria-label="Image zoom" type="range" min="1" max="800" step="1" @input="setZoom(Number(($event.target as HTMLInputElement).value))"></label>
+          <button type="button" class="btn btn-sm btn-light compare-reset" @click="setZoom(100)">1:1</button>
         </div>
         <div class="compare-details">
           <figure v-for="(label, index) in ['Game image', 'Difference heat map', 'GDA image']" :key="label">
@@ -202,13 +203,13 @@ figcaption { margin-bottom: 6px; font-weight: 600; }
 figcaption small { float: right; font-weight: 400; }
 figcaption span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .75rem; font-weight: 400; }
 .compare-viewport { background: #e7e9ef; background-image: conic-gradient(#d4d7df 25%, transparent 0 50%, #d4d7df 0 75%, transparent 0); background-size: 16px 16px; border: 1px solid #c5cbd6; border-radius: 4px; }
-.compare-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin: 18px 0; padding: 12px; border: 1px solid #dce0e8; border-radius: 6px; }
-.compare-area-actions { display: flex; gap: 6px; flex-wrap: wrap; }
-.compare-slider { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; margin: 0; flex: 1; min-width: 160px; font-size: .8rem; }
+.compare-controls { display: grid; grid-template-columns: max-content repeat(2, minmax(0, 380px)) max-content; align-items: start; gap: 16px; margin: 18px 0; padding: 12px; border: 1px solid #dce0e8; border-radius: 6px; }
+.compare-area-actions { display: flex; gap: 6px; flex-wrap: wrap; align-self: center; }
+.compare-slider { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; margin: 0; min-width: 0; width: 100%; font-size: .8rem; }
 .compare-slider input, .compare-slider small { grid-column: 1 / -1; width: 100%; }
 .compare-slider input { accent-color: #2361cc; }
 .compare-slider small { color: #687083; }
-.compare-zoom { display: flex; align-items: center; gap: 6px; flex: 1; }
+.compare-reset { align-self: center; }
 .compare-viewport { height: 420px; overflow: auto; overscroll-behavior: contain; cursor: grab; touch-action: none; user-select: none; }
 .compare-viewport.is-panning { cursor: grabbing; }
 .compare-surface { display: grid; place-items: center; width: max-content; height: max-content; min-width: 100%; min-height: 100%; }
@@ -219,9 +220,14 @@ figcaption span { display: block; overflow: hidden; text-overflow: ellipsis; whi
 .compare-legend { display: flex; align-items: center; gap: 8px; font-size: .75rem; }
 .compare-unchanged { width: 16px; height: 12px; background: #0c1430; }
 .compare-gradient { width: 90px; height: 12px; background: linear-gradient(to right, #0000ff, #ffff00, #ff0000); }
+@media (max-width: 900px) {
+  .compare-controls { grid-template-columns: repeat(2, minmax(0, 1fr)) max-content; }
+  .compare-area-actions { grid-column: 1 / -1; }
+}
 @media (max-width: 700px) {
   .compare-details { grid-template-columns: minmax(0, 1fr); }
   .compare-viewport { height: 220px; }
-  .compare-controls { gap: 12px; }
+  .compare-controls { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .compare-reset { justify-self: start; }
 }
 </style>
