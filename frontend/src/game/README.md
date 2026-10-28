@@ -216,6 +216,12 @@ moved on. The Developer panel has the same (**Import from C++**: Check the C++, 
 `/api/game/import` and `/api/game/agent/status`). Review and commit what it ported: the export finds the TypeScript as it
 was ported in the git history.
 
+The whole procedure, step by step, as Claude Code follows it: [`docs/code_sync/game_sync.md`](../../../docs/code_sync/game_sync.md)
+for a game's plugin (in Claude Code, `/game-sync <plugin>` runs it), and
+[`docs/code_sync/library_sync.md`](../../../docs/code_sync/library_sync.md) for the alpha_family libraries and
+`hat_libs` (which the manifest does not track: its sync record is at the end of that document). `docs/code_sync/play_check.py`
+plays the round a Developer preset forces, to check a sync.
+
 The export's agent is the other way (`node export/export-agent.mjs <export folder> <games/game>`, or **Port them with
 Claude Code** after an export): the TypeScript changes the translator could not translate (the export's `export.json`) are
 ported into the export's C++ by an agent, with the TypeScript's diff since it was ported; it stays only if it compiles
