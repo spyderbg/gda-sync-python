@@ -23,6 +23,9 @@ def open_compare(page, backend, left, right, broken=False):
     page.route("**/api/rss-sync/preview?*", preview)
     page.goto(backend.url)
     page.get_by_role("list", name="Workspaces").get_by_role("button", name="Images", exact=True).click()
+    if page.viewport_size["width"] < 992:
+        page.get_by_role("link", name="Toggle navigation", exact=True).click()
+    page.get_by_role("navigation", name="Main navigation").get_by_role("button", name="Sync", exact=True).click()
     page.get_by_role("button", name="Show details for play.png", exact=True).click()
     page.get_by_role("button", name="Detailed image compare", exact=True).click()
     dialog = page.get_by_role("dialog", name="Detailed image compare", exact=True)

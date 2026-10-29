@@ -44,6 +44,7 @@ def test_the_gda_image_to_sync_is_chosen_on_the_card(new_context, image_backend)
     page.route("**/api/rss-sync/details", lambda route: (described.append(route.request.post_data_json["files"]), route.continue_()))
     page.goto(backend.url)
     page.get_by_role("list", name="Workspaces").get_by_role("button", name="Images", exact=True).click()
+    page.get_by_role("navigation", name="Main navigation").get_by_role("button", name="Sync", exact=True).click()
 
     # Both GDA images are on one line, the most likely first; nothing is chosen, so the copy arrow waits.
     candidates = page.locator(".resource-candidate")

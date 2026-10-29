@@ -32,7 +32,7 @@ async function openWorkspace(id: string) {
   openingWorkspace.value = id;
   try {
     if (id !== activeWorkspace.value) await selectWorkspace(id);
-    if (id === activeWorkspace.value) navigate('pending');
+    if (id === activeWorkspace.value) navigate('library');
   } finally { openingWorkspace.value = ''; }
 }
 
@@ -139,8 +139,8 @@ const avatarColors = ['bg-warning', 'bg-success', 'bg-info', 'bg-primary'];
       <h2 id="dashboard-guide-title">Keep game resources in sync with the GDA</h2>
       <p class="text-muted">EGT GDA Sync compares game resources with their GDA folders and helps you copy updated GDA files into each game's folder. This dashboard combines the asset libraries of all configured workspaces.</p>
       <ol class="dashboard-guide-steps">
-        <li><h3>Select a workspace</h3><p>Choose a workspace card below to open its Sync page and review its GDA and Game folders.</p></li>
-        <li><h3>Compare resources</h3><p>Click Rescan in the workspace to compare its game resources with the GDA. Follow the comparison on Sync in progress.</p></li>
+        <li><h3>Select a workspace</h3><p>Choose a workspace card below to open its Asset library and browse the game's resources.</p></li>
+        <li><h3>Compare resources</h3><p>Open Sync in the navigation and click Rescan to compare game resources with the GDA. Follow the comparison on Sync in progress.</p></li>
         <li><h3>Review and sync</h3><p>Review different, missing, and invalid resources. Select available GDA versions to copy, confirm the changes, and check saved results in Sync history.</p></li>
       </ol>
     </div>

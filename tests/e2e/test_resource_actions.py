@@ -39,6 +39,7 @@ def test_main_button_removes_invalid_declarations_and_deletes_supplementary_file
     page.on('pageerror', lambda error: errors.append(str(error)))
     page.goto(backend.url)
     page.get_by_role('list', name='Workspaces').get_by_role('button', name='Example', exact=True).click()
+    page.get_by_role('navigation', name='Main navigation').get_by_role('button', name='Sync', exact=True).click()
     expect(page.locator('.resource-card.is-invalid').first).to_be_visible()
     main = page.locator('.sync-workspace-actions .btn').first
 

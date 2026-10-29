@@ -35,6 +35,7 @@ def test_the_sync_page_compares_and_syncs_an_rtf_as_its_folder(new_context, rtf_
     page.on('pageerror', lambda error: errors.append(str(error)))
     page.goto(rtf_sync_backend.url)
     page.get_by_role('list', name='Workspaces').get_by_role('button', name='Example', exact=True).click()
+    page.get_by_role('navigation', name='Main navigation').get_by_role('button', name='Sync', exact=True).click()
     card = page.locator('.resource-card.is-different')
     expect(card).to_have_count(1)
     game_card = card.locator('.resource-game')

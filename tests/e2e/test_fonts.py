@@ -91,6 +91,7 @@ def test_the_sync_page_draws_the_game_and_gda_fonts_side_by_side(new_context, fo
     page = new_context().new_page()
     page.goto(font_backend.url)
     page.get_by_role('list', name='Workspaces').get_by_role('button', name='Example', exact=True).click()
+    page.get_by_role('navigation', name='Main navigation').get_by_role('button', name='Sync', exact=True).click()
     card = page.locator('.resource-card.is-different')
     expect(card.locator('.font-preview-glyphs')).to_have_count(2)
     card.get_by_role('button', name='Show details for main.ttf').click()

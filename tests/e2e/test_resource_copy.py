@@ -39,6 +39,7 @@ def resource_backend(tmp_path, browser, request):
 def open_sync(page, backend):
     page.goto(backend.url)
     page.get_by_role('list', name='Workspaces').get_by_role('button', name='Example', exact=True).click()
+    page.get_by_role('navigation', name='Main navigation').get_by_role('button', name='Sync', exact=True).click()
     expect(page.locator('.resource-card.is-different').first).to_be_visible()
 
 

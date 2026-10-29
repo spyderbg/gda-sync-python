@@ -44,9 +44,9 @@ const gameEntries = computed<Entry[]>(() => [
 ]);
 
 const sections = computed(() => [
-  { key: 'sync', heading: 'Sync', title: folders(config.value.source, config.value.destination), entries: syncEntries.value },
   { key: 'assets', heading: 'Assets', title: undefined, entries: assetEntries.value },
   { key: 'game', heading: 'Game', title: undefined, entries: gameEntries.value },
+  { key: 'sync', heading: 'Sync', title: folders(config.value.source, config.value.destination), entries: syncEntries.value },
 ]);
 </script>
 

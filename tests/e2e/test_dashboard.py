@@ -93,16 +93,17 @@ def test_workspace_cards_open_current_and_switch_workspace_from_dashboard(new_co
     for section in ('Sync', 'Assets', 'Game'):
         expect(navigation.get_by_role('list', name=section, exact=True)).to_be_visible()
 
-    # Opening the current workspace starts at Sync without an unnecessary workspace write.
+    # Opening the current workspace starts at Asset library without an unnecessary workspace write.
     first.click()
-    expect(page.get_by_role('region', name='Sync workspace')).to_contain_text('/first/gda')
-    expect(navigation.get_by_role('button', name='Sync', exact=True)).to_have_attribute('aria-current', 'page')
+    expect(page.get_by_role('region', name='Workspace summary')).to_contain_text('/first/game')
+    expect(navigation.get_by_role('button', name='Asset library', exact=True)).to_have_attribute('aria-current', 'page')
     assert switches == []
     page.get_by_role('link', name='EGT GDA Sync', exact=True).click()
-    # Keyboard activation of a different card persists the selection and opens that workspace's Sync page.
+    # Keyboard activation of a different card persists the selection and opens its Asset library.
     second.focus()
     second.press('Enter')
-    expect(page.get_by_role('region', name='Sync workspace')).to_contain_text('/second/gda')
+    expect(page.get_by_role('region', name='Workspace summary')).to_contain_text('/second/game')
+    expect(navigation.get_by_role('button', name='Asset library', exact=True)).to_have_attribute('aria-current', 'page')
     expect(page.get_by_role('banner')).to_contain_text('Second')
     assert switches == [{'id': 'second'}]
     assert json.loads(config_path.read_text())['defaultWorkspace'] == 'second'
@@ -137,7 +138,7 @@ def test_workspace_card_filter_and_mobile_selection(new_context, dashboard_backe
     page.screenshot(path=str(BUILD / 'dashboard-workspace-cards-mobile.png'))
     # Cards stay reachable on mobile without opening the off-canvas sidebar.
     cards.get_by_role('button', name='Second', exact=True).click()
-    expect(page.get_by_role('region', name='Sync workspace')).to_contain_text('/second/gda')
+    expect(page.get_by_role('region', name='Workspace summary')).to_contain_text('/second/game')
     assert json.loads(config_path.read_text())['defaultWorkspace'] == 'second'
     page.get_by_role('link', name='Toggle navigation', exact=True).click()
     page.get_by_role('link', name='EGT GDA Sync', exact=True).click()
@@ -162,7 +163,7 @@ def test_workspace_selection_survives_statistics_and_switch_failures(new_context
     assert json.loads(config_path.read_text())['defaultWorkspace'] == 'first'
     page.unroute('**/api/workspace')
     second.click()
-    expect(page.get_by_role('region', name='Sync workspace')).to_contain_text('/second/gda')
+    expect(page.get_by_role('region', name='Workspace summary')).to_contain_text('/second/game')
     assert json.loads(config_path.read_text())['defaultWorkspace'] == 'second'
 
 
