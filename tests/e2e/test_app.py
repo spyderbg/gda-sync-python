@@ -216,6 +216,58 @@ def test_renews_an_expired_server_session_and_retries_the_rejected_request_once(
     assert calls["sessions"] > 1
 
 
+def test_sidebar_stays_in_place_and_scrolls_separately_from_assets(page):
+    open_library(page)
+    generate_report(page)
+    expect(page.locator(".asset-card").first).to_be_visible()
+    page.set_viewport_size({"width": 1440, "height": 560})
+    navigation = page.get_by_role("navigation", name="Main navigation")
+    initial = navigation.bounding_box()
+    assert navigation.evaluate("el => el.scrollHeight > el.clientHeight")
+    assert page.locator(".main-panel").bounding_box()["x"] == pytest.approx(initial["width"])
+
+    # Scrolling the asset list must not move the navigation or scroll its entries.
+    expected_scroll = min(700, page.evaluate("document.scrollingElement.scrollHeight - window.innerHeight"))
+    assert expected_scroll > 0
+    page.mouse.move(1000, 400)
+    page.mouse.wheel(0, 700)
+    poll(lambda: page.evaluate("window.scrollY"), expected_scroll)
+    assert navigation.bounding_box()["y"] == pytest.approx(initial["y"])
+    expect(navigation).to_have_js_property("scrollTop", 0)
+    document_scroll = page.evaluate("window.scrollY")
+
+    # The navigation has its own scrollbar, including at the boundary where wheel events could chain to the page.
+    page.mouse.move(120, 300)
+    page.mouse.wheel(0, 3000)
+    poll(lambda: navigation.evaluate("el => Math.abs(el.scrollHeight - el.clientHeight - el.scrollTop) < 2"), True)
+    page.mouse.wheel(0, 600)
+    expect(page.get_by_role("button", name="Backups", exact=True)).to_be_in_viewport()
+    assert page.evaluate("window.scrollY") == pytest.approx(document_scroll)
+    assert navigation.bounding_box()["y"] == pytest.approx(initial["y"])
+    BUILD.mkdir(exist_ok=True)
+    page.screenshot(path=str(BUILD / "independent-navigation-scroll-desktop.png"))
+
+    # The mobile drawer also scrolls independently and the content still fills the screen.
+    page.set_viewport_size({"width": 390, "height": 600})
+    toggle = page.get_by_role("link", name="Toggle navigation", exact=True)
+    toggle.click()
+    expect(toggle).to_have_attribute("aria-expanded", "true")
+    expect(navigation).to_have_css("left", "0px")
+    expect(page.locator(".main-panel")).to_have_css("width", "390px")
+    document_scroll = page.evaluate("window.scrollY")
+    page.mouse.move(120, 300)
+    page.mouse.wheel(0, -3000)
+    poll(lambda: navigation.evaluate("el => el.scrollTop == 0"), True)
+    page.mouse.wheel(0, -600)
+    expect(navigation.get_by_role("button", name="Asset library", exact=True)).to_be_in_viewport()
+    assert page.evaluate("window.scrollY") == pytest.approx(document_scroll)
+    assert navigation.bounding_box()["y"] == pytest.approx(initial["y"])
+    page.screenshot(path=str(BUILD / "independent-navigation-scroll-mobile.png"))
+    toggle.click()
+    expect(toggle).to_have_attribute("aria-expanded", "false")
+    assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
+
+
 def test_the_play_page_explains_a_game_the_browser_cannot_play(page):
     # The demo workspace has no modules config (configs/<id>/modules), so the browser game has none of its modules.
     page.goto("/")
