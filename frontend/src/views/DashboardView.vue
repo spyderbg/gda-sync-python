@@ -6,13 +6,35 @@ import BaseDropdown from '../components/BaseDropdown.vue';
 import ChartCanvas from '../components/ChartCanvas.vue';
 import ChartLegend from '../components/ChartLegend.vue';
 import StatusBadge from '../components/StatusBadge.vue';
+import WorkspaceCard from '../components/WorkspaceCard.vue';
 import { ago, number, percent, plural, size, time } from '../format';
 import {
   PERIODS, folderStorage, folderSummaries, formatMix, formatShares, growth, syncHistory, timeline, trend, typeCoverage,
   type Period, type StorageMetric,
 } from '../insights';
 import type { AssetStatus, DashboardAsset, DashboardResponse } from '../types';
-import { busy, config, data, inspect, navigate, selectWorkspace } from '../workspace';
+import { busy, config, data, inspect, navigate, selectWorkspace, workspaces } from '../workspace';
+
+const workspaceFilter = ref('');
+const openingWorkspace = ref('');
+const activeWorkspace = computed(() => config.value.defaultWorkspace || 'current');
+const configuredWorkspaces = computed(() => workspaces.value.length ? workspaces.value : [{
+  id: activeWorkspace.value, name: config.value.name, source: config.value.source, destination: config.value.destination,
+}]);
+const filterableWorkspaces = computed(() => configuredWorkspaces.value.length > 8);
+const shownWorkspaces = computed(() => {
+  const needle = workspaceFilter.value.trim().toLowerCase();
+  return !filterableWorkspaces.value || !needle ? configuredWorkspaces.value
+    : configuredWorkspaces.value.filter(workspace => `${workspace.name}\n${workspace.id}`.toLowerCase().includes(needle));
+});
+async function openWorkspace(id: string) {
+  if (busy.value || openingWorkspace.value) return;
+  openingWorkspace.value = id;
+  try {
+    if (id !== activeWorkspace.value) await selectWorkspace(id);
+    if (id === activeWorkspace.value) navigate('pending');
+  } finally { openingWorkspace.value = ''; }
+}
 
 const dashboard = ref<DashboardResponse | null>(null);
 const loading = ref(true);
@@ -117,11 +139,24 @@ const avatarColors = ['bg-warning', 'bg-success', 'bg-info', 'bg-primary'];
       <h2 id="dashboard-guide-title">Keep game resources in sync with the GDA</h2>
       <p class="text-muted">EGT GDA Sync compares game resources with their GDA folders and helps you copy updated GDA files into each game's folder. This dashboard combines the asset libraries of all configured workspaces.</p>
       <ol class="dashboard-guide-steps">
-        <li><h3>Select a workspace</h3><p>Choose a game from the sidebar to open its Sync page and review its GDA and Game folders.</p></li>
+        <li><h3>Select a workspace</h3><p>Choose a workspace card below to open its Sync page and review its GDA and Game folders.</p></li>
         <li><h3>Compare resources</h3><p>Click Rescan in the workspace to compare its game resources with the GDA. Follow the comparison on Sync in progress.</p></li>
         <li><h3>Review and sync</h3><p>Review different, missing, and invalid resources. Select available GDA versions to copy, confirm the changes, and check saved results in Sync history.</p></li>
       </ol>
     </div>
+  </section>
+
+  <section class="dashboard-workspaces grid-margin" aria-labelledby="dashboard-workspaces-title">
+    <div class="dashboard-workspaces-heading">
+      <div><h2 id="dashboard-workspaces-title">Workspaces</h2><p class="text-muted">Choose a workspace to review and sync its game resources.</p></div>
+      <input v-if="filterableWorkspaces" v-model="workspaceFilter" type="search" class="form-control" placeholder="Filter workspaces" aria-label="Filter workspaces" aria-controls="dashboard-workspaces">
+    </div>
+    <ul id="dashboard-workspaces" class="dashboard-workspace-grid" aria-labelledby="dashboard-workspaces-title">
+      <li v-for="workspace in shownWorkspaces" :key="workspace.id">
+        <WorkspaceCard :workspace="workspace" :current="workspace.id === activeWorkspace" :disabled="!!busy || !!openingWorkspace" :opening="workspace.id === openingWorkspace" @select="openWorkspace(workspace.id)" />
+      </li>
+    </ul>
+    <p v-if="!shownWorkspaces.length" class="text-muted" role="status">No matching workspace</p>
   </section>
 
   <div v-if="loading" class="card grid-margin" role="status"><div class="card-body text-muted">Loading statistics from all configured workspaces…</div></div>
@@ -463,6 +498,12 @@ const avatarColors = ['bg-warning', 'bg-success', 'bg-info', 'bg-primary'];
 
 
 <style scoped>
+.dashboard-workspaces-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.dashboard-workspaces-heading h2 { margin: 0 0 8px; font-size: 22px; font-weight: 500; }
+.dashboard-workspaces-heading p { margin: 0; font-size: 13px; line-height: 1.6; }
+.dashboard-workspaces-heading input { width: 280px; max-width: 100%; }
+.dashboard-workspace-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 18px; list-style: none; padding: 0; margin: 0; }
+.dashboard-workspace-grid > li { min-width: 0; }
 .dashboard-guide h2 { margin: 0 0 12px; font-size: 22px; font-weight: 500; }
 .dashboard-guide > .card-body > p { max-width: 900px; margin-bottom: 22px; line-height: 1.6; }
 .dashboard-guide-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; margin: 0; padding-left: 22px; }

@@ -11,11 +11,11 @@ pytestmark = pytest.mark.e2e
 
 
 @pytest.fixture
-def dashboard_backend(tmp_path, browser):
+def dashboard_backend(tmp_path, browser, request):
     home = tmp_path / 'app'
     home.mkdir()
     entries = []
-    for name in ('first', 'second'):
+    for name in ['first', 'second', *(f'workspace-{index}' for index in range(2, getattr(request, 'param', 2)))]:
         source, destination = tmp_path / name / 'gda', tmp_path / name / 'game'
         source.mkdir(parents=True)
         destination.mkdir()
@@ -69,6 +69,101 @@ def test_dashboard_combines_workspaces_and_inspects_the_owning_workspace(new_con
     assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
     page.screenshot(path=str(BUILD / 'dashboard-combined-mobile.png'))
     assert errors == []
+
+
+def test_workspace_cards_open_current_and_switch_workspace_from_dashboard(new_context, dashboard_backend):
+    backend, config_path = dashboard_backend
+    page = new_context().new_page()
+    switches = []
+    page.on('request', lambda request: switches.append(request.post_data_json)
+            if request.url.endswith('/api/workspace') and request.method == 'PUT' else None)
+    page.goto(backend.url)
+    cards = page.get_by_role('list', name='Workspaces', exact=True)
+    first = cards.get_by_role('button', name='First', exact=True)
+    second = cards.get_by_role('button', name='Second', exact=True)
+    expect(cards.locator('.workspace-card')).to_have_count(2)
+    expect(first).to_have_attribute('aria-current', 'true')
+    expect(first).to_contain_text('GDA folder')
+    expect(first).to_contain_text('Game folder')
+    expect(first).to_contain_text(str(config_path.parent.parent / 'first' / 'gda'))
+    navigation = page.get_by_role('navigation', name='Main navigation')
+    expect(navigation.get_by_role('list', name='Workspaces', exact=True)).to_have_count(0)
+    expect(navigation.get_by_role('button', name='Dashboard', exact=True)).to_have_count(0)
+    expect(page.get_by_role('link', name='EGT GDA Sync', exact=True)).to_have_attribute('aria-current', 'page')
+    for section in ('Sync', 'Assets', 'Game'):
+        expect(navigation.get_by_role('list', name=section, exact=True)).to_be_visible()
+
+    # Opening the current workspace starts at Sync without an unnecessary workspace write.
+    first.click()
+    expect(page.get_by_role('region', name='Sync workspace')).to_contain_text('/first/gda')
+    expect(navigation.get_by_role('button', name='Sync', exact=True)).to_have_attribute('aria-current', 'page')
+    assert switches == []
+    page.get_by_role('link', name='EGT GDA Sync', exact=True).click()
+    # Keyboard activation of a different card persists the selection and opens that workspace's Sync page.
+    second.focus()
+    second.press('Enter')
+    expect(page.get_by_role('region', name='Sync workspace')).to_contain_text('/second/gda')
+    expect(page.get_by_role('banner')).to_contain_text('Second')
+    assert switches == [{'id': 'second'}]
+    assert json.loads(config_path.read_text())['defaultWorkspace'] == 'second'
+    page.get_by_role('link', name='EGT GDA Sync', exact=True).click()
+    expect(second).to_have_attribute('aria-current', 'true')
+    expect(first).not_to_have_attribute('aria-current', 'true')
+    page.reload()
+    expect(second).to_have_attribute('aria-current', 'true')
+
+
+@pytest.mark.parametrize('dashboard_backend', [10], indirect=True)
+def test_workspace_card_filter_and_mobile_selection(new_context, dashboard_backend):
+    backend, config_path = dashboard_backend
+    page = new_context().new_page()
+    page.goto(backend.url)
+    cards = page.get_by_role('list', name='Workspaces', exact=True)
+    expect(cards.locator('.workspace-card')).to_have_count(10)
+    query = page.get_by_role('searchbox', name='Filter workspaces', exact=True)
+    query.fill('SECOND')
+    expect(cards.get_by_role('button')).to_have_count(1)
+    expect(cards.get_by_role('button', name='Second', exact=True)).to_be_visible()
+    query.fill('workspace-9')
+    expect(cards.get_by_role('button')).to_have_count(1)
+    expect(cards.get_by_role('button', name='Workspace-9', exact=True)).to_be_visible()
+    query.fill('no-such-workspace')
+    expect(cards.get_by_role('button')).to_have_count(0)
+    expect(page.get_by_role('status').filter(has_text='No matching workspace')).to_be_visible()
+    query.fill('second')
+    page.set_viewport_size({'width': 390, 'height': 844})
+    assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
+    BUILD.mkdir(exist_ok=True)
+    page.screenshot(path=str(BUILD / 'dashboard-workspace-cards-mobile.png'))
+    # Cards stay reachable on mobile without opening the off-canvas sidebar.
+    cards.get_by_role('button', name='Second', exact=True).click()
+    expect(page.get_by_role('region', name='Sync workspace')).to_contain_text('/second/gda')
+    assert json.loads(config_path.read_text())['defaultWorkspace'] == 'second'
+    page.get_by_role('link', name='Toggle navigation', exact=True).click()
+    page.get_by_role('link', name='EGT GDA Sync', exact=True).click()
+    expect(cards.get_by_role('button')).to_have_count(10)
+    expect(page.get_by_role('link', name='Toggle navigation', exact=True)).to_have_attribute('aria-expanded', 'false')
+
+
+def test_workspace_selection_survives_statistics_and_switch_failures(new_context, dashboard_backend):
+    backend, config_path = dashboard_backend
+    page = new_context().new_page()
+    page.route('**/api/dashboard', lambda route: route.fulfill(status=503, json={'error': 'Statistics temporarily unavailable'}))
+    page.route('**/api/workspace', lambda route: route.fulfill(status=503, json={'error': 'Workspace temporarily unavailable'}))
+    page.goto(backend.url)
+    expect(page.get_by_role('alert')).to_contain_text('Statistics temporarily unavailable')
+    cards = page.get_by_role('list', name='Workspaces', exact=True)
+    first = cards.get_by_role('button', name='First', exact=True)
+    second = cards.get_by_role('button', name='Second', exact=True)
+    second.click()
+    expect(page.get_by_role('status').filter(has_text='Workspace temporarily unavailable')).to_be_visible()
+    expect(first).to_have_attribute('aria-current', 'true')
+    expect(second).to_be_enabled()
+    assert json.loads(config_path.read_text())['defaultWorkspace'] == 'first'
+    page.unroute('**/api/workspace')
+    second.click()
+    expect(page.get_by_role('region', name='Sync workspace')).to_contain_text('/second/gda')
+    assert json.loads(config_path.read_text())['defaultWorkspace'] == 'second'
 
 
 def test_dashboard_retries_failed_combined_statistics_without_showing_zero_totals(new_context, dashboard_backend):

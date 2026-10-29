@@ -16,7 +16,10 @@ const title = computed(() => ui.view === 'dashboard' ? 'Dashboard' : config.valu
       </a>
     </div>
     <div class="navbar-menu-wrapper d-flex align-items-center">
-      <span class="navbar-game-title" :title="title">{{ title }}</span>
+      <div class="navbar-heading">
+        <a class="mobile-home" href="#" :aria-current="ui.view === 'dashboard' ? 'page' : undefined" @click.prevent="navigate('dashboard')">EGT GDA Sync</a>
+        <span class="navbar-game-title" :title="title">{{ title }}</span>
+      </div>
       <!-- Settings belong to one workspace, so the dashboard does not offer them. -->
       <button v-if="ui.view !== 'dashboard'" type="button" :class="['header-settings', { active: ui.view === 'settings' }]" aria-label="Workspace settings" title="Workspace settings" :aria-current="ui.view === 'settings' ? 'page' : undefined" @click="navigate('settings')">
         <i aria-hidden="true" class="mdi mdi-cog-outline" />

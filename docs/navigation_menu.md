@@ -1,4 +1,6 @@
-# Navigation menu: instructions for the Claude Code agent
+# Historical navigation menu design
+
+> This document describes the previous sidebar design. Workspace selection now uses cards on the Dashboard, with filtering by name or id for more than eight workspaces. The sidebar keeps Sync, Assets, and Game navigation; the EGT GDA Sync link in the top header opens the Dashboard. See [Try the demo](../README.md#try-the-demo) for the current workflow and [WorkspaceCard.vue](../frontend/src/components/WorkspaceCard.vue) for the selection card component.
 
 You are restructuring the **navigation panel** (the left sidebar) of EGT GDA Sync so that it follows the user's working process and stays usable when there are many workspaces. The Dashboard leaves the panel and becomes a link in the header of every page. Read this whole file before changing anything.
 
