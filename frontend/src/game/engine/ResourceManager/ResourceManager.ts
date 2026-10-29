@@ -7,7 +7,8 @@
 //
 // While the game plays, it watches the descriptor files (IFileWatch): when one changes (an image's file renamed or
 // moved), it reads the descriptors again, and the elements draw the files they now name (the browser game's: C++ reads
-// its descriptors once).
+// its descriptors once). It watches the IData files too: a changed IData's object takes the file's values in place, so
+// that a view's config, which holds that object, has them (the browser game's: C++ reads an IData into its struct once).
 
 import type { GameAssetReport, GameProject } from '@game/app/GameBackend';
 import { GameBackend } from '@game/app/GameBackend';
@@ -27,10 +28,30 @@ export interface ResourceProblem {
   message: string;
 }
 
+const IsRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value);
+
+/** Gives an object or an array the values of another of its kind in place, so that what holds it, or a part of it, has
+ * them: its objects and arrays stay the same objects; false if they are not of a kind. */
+function UpdateInPlace(target: unknown, source: unknown): boolean {
+  if (Array.isArray(target) && Array.isArray(source)) {
+    target.length = source.length;
+    source.forEach((item, i) => {
+      if (!UpdateInPlace(target[i], item)) target[i] = item;
+    });
+    return true;
+  }
+  if (IsRecord(target) && IsRecord(source)) {
+    for (const key of Object.keys(target)) if (!(key in source)) delete target[key];
+    for (const [key, value] of Object.entries(source)) if (!UpdateInPlace(target[key], value)) target[key] = value;
+    return true;
+  }
+  return false;
+}
+
 export class ResourceManager extends BaseModule implements IResources {
   private descriptors: RssDescriptors;
   private descriptorFiles: string[];
-  private watchedDescriptorFiles: string[] = [];
+  private watchedFiles: string[] = [];
   private available: Set<string> | null;
   private idatas = new Map<string, unknown>();
   private views = new Map<string, ElementsListData>();
@@ -63,23 +84,26 @@ export class ResourceManager extends BaseModule implements IResources {
   }
 
   PostInit() {
-    this.WatchDescriptorFiles(this.descriptorFiles);
+    this.WatchFiles();
     return super.PostInit();
   }
 
   Deinit() {
-    this.WatchDescriptorFiles([]);
+    this.WatchFiles(true);
     this.RuntimeRemove(IResources);
     super.Deinit();
   }
 
-  /** Watches these descriptor files, and no others (FileWatch is made after this module: it watches from PostInit). */
-  private WatchDescriptorFiles(files: string[]) {
+  /** Watches the descriptor files and the IData files, and no others, or none (FileWatch is made after this module: it
+   * watches from PostInit). */
+  private WatchFiles(none = false) {
     const fileWatch = this.RuntimeTryGet(IFileWatch);
     if (!fileWatch) return;
-    for (const file of this.watchedDescriptorFiles) if (!files.includes(file)) fileWatch.StopWatchFile(file);
-    for (const file of files) if (!this.watchedDescriptorFiles.includes(file)) fileWatch.StartWatchFile(file);
-    this.watchedDescriptorFiles = [...files];
+    const idataFiles = [...this.idatas.keys()].map(id => (this.Choose(this.descriptors.idatas, id) as RssIData | null)?.path ?? '');
+    const files = none ? [] : [...new Set([...this.descriptorFiles, ...idataFiles])].filter(file => file);
+    for (const file of this.watchedFiles) if (!files.includes(file)) fileWatch.StopWatchFile(file);
+    for (const file of files) if (!this.watchedFiles.includes(file)) fileWatch.StartWatchFile(file);
+    this.watchedFiles = files;
   }
 
   /** Reads the descriptors again, and the asset report, and the IData and views a changed entry names another file of. */
@@ -100,7 +124,6 @@ export class ResourceManager extends BaseModule implements IResources {
     if (report) this.available = ResourceManager.AvailableFiles(report);
     // what is missing is reported again as it is drawn
     this.problems.splice(0, this.problems.length, ...project.errors.map(error => ({ kind: 'descriptor', id: '', message: error })));
-    this.WatchDescriptorFiles(this.descriptorFiles);
     this.RuntimeTryGet(IVideo)?.GetImages().ForgetFailed();
     await Promise.all([
       ...[...new Set(this.descriptors.idatas.map(entry => entry.id))].filter(id => !this.idatas.has(id) || idataPaths.get(id) !== pathOf(this.descriptors.idatas, id))
@@ -108,6 +131,7 @@ export class ResourceManager extends BaseModule implements IResources {
       ...[...new Set(this.descriptors.elements.map(entry => entry.id))].filter(id => !this.views.has(id) || viewPaths.get(id) !== pathOf(this.descriptors.elements, id))
         .map(id => this.LoadView(id)),
     ]);
+    this.WatchFiles();
     return true;
   }
 
@@ -186,7 +210,8 @@ export class ResourceManager extends BaseModule implements IResources {
     try {
       const data = await GameBackend.Data<unknown>(file);
       for (const id of views) this.views.set(id, data as ElementsListData);
-      for (const id of idatas) this.idatas.set(id, data);
+      // in place: a view's config is the IData's object, or holds parts of it
+      for (const id of idatas) if (!UpdateInPlace(this.idatas.get(id), data)) this.idatas.set(id, data);
       return true;
     } catch (error) {
       console.warn(`${file}: ${(error as Error).message}`);

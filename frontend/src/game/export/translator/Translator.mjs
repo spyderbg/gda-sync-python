@@ -27,6 +27,7 @@ const PRIMITIVE_ALIASES = new Set(['int', 'int8_t', 'unsigned', 'int32_t', 'int6
 /** Functions of the browser game whose C++ is an expression. */
 const FUNCTIONS = {
   RandomDevice: { cpp: () => 'std::random_device()()', include: 'random' },
+  EraseIf: { cpp: ([container, predicate]) => `std::erase_if(${container}, ${predicate})`, include: 'vector' },
   // the C++ options structs have their defaults in their fields
   WithDefaults: { cpp: ([options]) => options, include: null },
   // a value's copy (engine/GameCore/Common/Types.ts): C++ copies values

@@ -1,5 +1,5 @@
 // The FileWatch module (plugins/src/Egt/FileWatch): provides IFileWatch, so that a view reloads its elements list when
-// its file changes while the game plays.
+// its file changes while the game plays (and, the browser game's, the resources their descriptors and IData).
 //
 // C++ watches the files with inotify. The browser game's files are on the backend: it asks for their stamps (GET
 // /api/game/file-stamps) once a second while the game runs, and, when one changes, has IResources read it again before

@@ -3541,6 +3541,722 @@
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Visuals/WinFiguresVisual.cpp": "4c791e2c5bad5ac063fe5fc6a8d1c718fd613ba833af357cb7329c30cbc75e84"
   }
  },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10Fsm/JokerReelsCoins10Fsm.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10Fsm/JokerReelsCoins10Fsm.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10Fsm/JokerReelsCoins10Fsm.cpp"
+  ],
+  "sha256": "f116bb6fd4762e09527087e3594c770f8fc633fde99aa6874e40e12107c1acca",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10Fsm/JokerReelsCoins10Fsm.h": "0d7e9ff95e739bf47a0b78ea52de34f725eebd941ca513a1715858c0e64669bc",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10Fsm/JokerReelsCoins10Fsm.cpp": "bbacf0b0cec3600ffd3d4278a09b8ccdaedd9e8cb9ff893c2880d9728aedce42"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10InfoView/InfoView.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10InfoView/InfoView.data.h"
+  ],
+  "sha256": "d6a3734153e8c3f4460d0b42f8db5557e70ca3a76c78e6456f5ac28979aa4cac",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10InfoView/InfoView.data.h": "050a157ba383e093bc9e469e39861be1c1da71cf6bf91c0597a912ec67620223"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10InfoView/InfoView.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10InfoView/InfoView.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10InfoView/InfoView.cpp"
+  ],
+  "sha256": "c943e13ccdf75176dfa8609524025307a71d263140ec3af9406584075d46235f",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10InfoView/InfoView.h": "34de7e1df92a7093c48d06903871e7607b42e5a2b5d6c77d0a47e4f1b9fa7bce",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10InfoView/InfoView.cpp": "8b6689e79cfd833ff7b73710492752b472d909ec4d2c4efd82c7789576bab904"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10InfoView/JokerReelsCoins10InfoView.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10InfoView/JokerReelsCoins10InfoView.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10InfoView/JokerReelsCoins10InfoView.cpp"
+  ],
+  "sha256": "9da2baffabeea8e0b5314d3c66b3ed92081c629634572e461115b99c1116cc34",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10InfoView/JokerReelsCoins10InfoView.h": "06205fc8337aaea530658813bbb8a1ffa5949ae8510de3578c002a8b0ce4b9e7",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10InfoView/JokerReelsCoins10InfoView.cpp": "03a5149f5af98690940b14bdde404473ba31a818cf2a403c63f9f8867c39ce06"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10Math/JokerReelsCoins10Math.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10Math/JokerReelsCoins10Math.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10Math/JokerReelsCoins10Math.cpp"
+  ],
+  "sha256": "3e15461ad05239efc923a38b3f52b3ffb3d4fa70aaf46135f000f5167c32c940",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10Math/JokerReelsCoins10Math.h": "bbfbbf6b4f612d10b8696592df76487aa0ea024c90bf8a1bf747b5f9f4af3669",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10Math/JokerReelsCoins10Math.cpp": "5bc0b95fceb2c12f4ab420c50df66901b5062f1c4daafa685e6cb390fcbda754"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10Math/MathRules.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10Math/MathRules.data.h"
+  ],
+  "sha256": "bf2669645be947f6cb813ffbdb95504b6a949a0a6300185c3fcf2e07d87236ca",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10Math/MathRules.data.h": "4e871556bded23be43fc3314d9787a7c2e8f0c0a223eb95b08bd4defbacf3ea6"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10Math/MathRules.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10Math/MathRules.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10Math/MathRules.cpp"
+  ],
+  "sha256": "5dcb29c82a6e5afc83405957cb728b41948da6e99b1b1a362a110073cf7fe75e",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10Math/MathRules.h": "6321d8a9f5e13cb217cb21f4f03869f78f4081439fcb37eaed8a5d71116f8965",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10Math/MathRules.cpp": "04c8a88bd3987978574a1002e3b8ec7ffe98c718fdff0a4e842a98f08f7c7be3"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10Math/MathTypes.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10Math/MathTypes.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10Math/MathTypes.cpp"
+  ],
+  "sha256": "108006610aff7c802bca3cd714dcbf489e0bd3882b5e6600404096b324f6b06e",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10Math/MathTypes.h": "11ad4b64eba91c81534d37e475fe055c6244dc90a83807e8d74cf39776292e8c",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10Math/MathTypes.cpp": "029bbb1fef107fdcd2923e0255cd31f0434efa4df1e4c53276cb30c92b5a584c"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10Math/SimulatorConfig/BasicHot.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10Math/SimulatorConfig/BasicHot.data.h"
+  ],
+  "sha256": "9ad77334ef32304c22fe74f388f7e5ae385e02cd82a232053c0f9d50f4f177e4",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10Math/SimulatorConfig/BasicHot.data.h": "877d8501cba174cd8eee4288af80f0b1867d829a6efe4ee71e4aeb4572aebdbc"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10Math/SimulatorConfig/MathDefs.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10Math/SimulatorConfig/MathDefs.data.h"
+  ],
+  "sha256": "68b61f38f4cd22327c513de775256e62230032e737326d4883924adfc4e00b64",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10Math/SimulatorConfig/MathDefs.data.h": "dbbeefa6ffc8a00a254c82d9a2d5f187cf4c6e8a8c5949405fd3962756e22a6d"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/JokerReelsCoins10View.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/JokerReelsCoins10View.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/JokerReelsCoins10View.cpp"
+  ],
+  "sha256": "b11ba8908e6c01c1748c82153a4fc2b2727b1fed73055028a32549a5a9879832",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/JokerReelsCoins10View.h": "abd5061115ff6c403fe3c59b25ffa1c675806ec0d6ffabb969cae1de0c398481",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/JokerReelsCoins10View.cpp": "ec16662a30e24bffc9c5e890906d6cb17b5be7fbe09e7ebe3532a155252047af"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/SwButtons/BetDownSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/BetDownSwButtonView.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/BetDownSwButtonView.cpp"
+  ],
+  "sha256": "0bcc02256dfb19d812b6d0edda231d96fa920877fd988ce516313ec286ab9d25",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/BetDownSwButtonView.h": "c6de9941a6db1d9f99f9d947c774a46612b632b425331dc90a61cd098014a075",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/BetDownSwButtonView.cpp": "376a1cc1aa3a0bf058e96838109ff64f9cd1220164bdb5dd6e66312e5615c7a2"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/SwButtons/BetUpSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/BetUpSwButtonView.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/BetUpSwButtonView.cpp"
+  ],
+  "sha256": "3cf1ed0193c27663afed89f23deb5c69bcb3e0091da651c5dc90f5182fde282b",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/BetUpSwButtonView.h": "f168f2c83d003f8ef2f170f9b1d8492fbebf0eb43175b727e1a122d5c081f6a3",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/BetUpSwButtonView.cpp": "d5c9b67a031ddd2f62103f944d97d978d3dd789872e2b3c2f4cafa025e9376d2"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/SwButtons/ExitGameSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/ExitGameSwButtonView.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/ExitGameSwButtonView.cpp"
+  ],
+  "sha256": "e26703c8b707671138b895f73c65ad899c6aa69dc0685de2619fbe4f0dce1ca2",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/ExitGameSwButtonView.h": "b446250f4d7439f5cfc7ade4ba0757f84ffeb7ed3695eb99b44b1dbe4bfebe7e",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/ExitGameSwButtonView.cpp": "b443b82f9fd8cff9369ddf902aff6068a4cde733d355f48e061f9e1673adaf8c"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/SwButtons/GambleBlackSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/GambleBlackSwButtonView.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/GambleBlackSwButtonView.cpp"
+  ],
+  "sha256": "f003a919566f9933b0b8d613cb2f81e94989e807d3e2a1f4105b75af956d1e14",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/GambleBlackSwButtonView.h": "c11112b58c1a96d8a1e42555a107dbf9383f7ebcc426ba2be38d5a747ecc752e",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/GambleBlackSwButtonView.cpp": "56b6ff9fc182b2169f82015fdf71e0045f3daf2f4fcf07c6158ded28efa903ba"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/SwButtons/GambleRedSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/GambleRedSwButtonView.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/GambleRedSwButtonView.cpp"
+  ],
+  "sha256": "4ab15bd94ddc1d3d13c2aab96d263ae83b59336ca427e262ae7be28f11684c2a",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/GambleRedSwButtonView.h": "91cbd8a4d1f83f88b7ac04b2d463b900cadfee6de08edbe9cbb7f93ff6cf4758",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/GambleRedSwButtonView.cpp": "9273ca8d4616777736d1f8e664665df749c78643052403ec8b8d40596296ab9a"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/SwButtons/InfoSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/InfoSwButtonView.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/InfoSwButtonView.cpp"
+  ],
+  "sha256": "bd7e839d11fed58726d929027481709d393fcb3fc17cf5ff5d7ac9ea2bba41b4",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/InfoSwButtonView.h": "1e2a2dc990756091df53f2b94c8be04f51c11928f911753af87dbb82d4815e64",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/InfoSwButtonView.cpp": "69055e58493c0bb76ea0da774c2923d4bc2a32d820f0f23f40daa56e7168e7ad"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/SwButtons/LanguageSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/LanguageSwButtonView.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/LanguageSwButtonView.cpp"
+  ],
+  "sha256": "18345fba562f259d7a6fe9e80207945aa06f6f747bc23e48e96c53be07feb4c1",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/LanguageSwButtonView.h": "23369509cddb4749977928f7b0d819a18292f19b2b6b4ccb75718b716275c0fa",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/LanguageSwButtonView.cpp": "0f1d772994c457718bf0f595e02c89260c3d50202cf26ade7dffd3c8ecb2fb3f"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/SwButtons/LineDownSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/LineDownSwButtonView.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/LineDownSwButtonView.cpp"
+  ],
+  "sha256": "a5e694f0f7e7001bc39e96262f5e20a06d484dfb1ab9e20a3089619485a5731d",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/LineDownSwButtonView.h": "ed36c2dc248887532c0ee6a1dc30f5796152b8d8a66426bb6016757ffbc77c2e",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/LineDownSwButtonView.cpp": "fbd3bd28c127e42ad8a0dd283d96bf192a6de7e00077804a92d8608fb91805d2"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/SwButtons/LineUpSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/LineUpSwButtonView.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/LineUpSwButtonView.cpp"
+  ],
+  "sha256": "70dbd4284755eb953a029a4338caf22c7a6976f52b95b81518fb45e1adaf41ea",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/LineUpSwButtonView.h": "c9c6bf945c0668da53fc580255679d34d5326e111681482b316ebf9f398aafda",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/LineUpSwButtonView.cpp": "1baf5fda12427eda42bbf4c806a816e566c7cf8fe7897d6b08d01293991346fa"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/SwButtons/ResponsibleSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/ResponsibleSwButtonView.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/ResponsibleSwButtonView.cpp"
+  ],
+  "sha256": "554d2a8eef96409949d47036ee19d6e6f053fe926d819288fc92fe75cb2e2797",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/ResponsibleSwButtonView.h": "819fea3716e98c70c109d3413131c1f5e9d7dca802a826d09b1b022001bd45b9",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/ResponsibleSwButtonView.cpp": "1bdf165e032576de177b182f8b34041341a2d87e63e45ff572c29baa8043d861"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/SwButtons/SoundVolumeSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/SoundVolumeSwButtonView.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/SoundVolumeSwButtonView.cpp"
+  ],
+  "sha256": "71f3ee3651572cae32c0e8119d962625e092b8f1c3972f853db091a489fd303c",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/SoundVolumeSwButtonView.h": "78ede2a49ec5aae8aa3b49ddf4d56b27f357651c9f5a785fbc9a00be552ccb33",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/SoundVolumeSwButtonView.cpp": "664fa37aefa4d3346ac3ec5e8ba80c7c8f88fc082caafbbca4d3001c5b994ba2"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/SwButtons/StopSingleReelSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/StopSingleReelSwButtonView.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/StopSingleReelSwButtonView.cpp"
+  ],
+  "sha256": "5201deb3000489ea6c0c92befcbd2eca437e2c8cc812c339e10aba2d53097aca",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/StopSingleReelSwButtonView.h": "05ccc121ad03f4698da15b9f26363571b0a8e7282ed3834a32f7a548ac7b2763",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/StopSingleReelSwButtonView.cpp": "a80b872e191e33837690b20cfa30c82930c0d39df61cf5dd4b2328bbc50c9573"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/SwButtons/TakeCoinsSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/TakeCoinsSwButtonView.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/TakeCoinsSwButtonView.cpp"
+  ],
+  "sha256": "dbfcd64b20b35d819b28e2d9722fc7499dce01bb3d445b81a3a0a44133d6c428",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/TakeCoinsSwButtonView.h": "0dd64a6aa6a53463dca325983beabe71dc42990dc0c3c5b6a38ae54861759457",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/TakeCoinsSwButtonView.cpp": "a2bdf1179df7fb8dd0a95bca8a4e79e0a536953125924d1c2ff45ceca5caa332"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/SwButtons/WheelCancelSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/WheelCancelSwButtonView.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/WheelCancelSwButtonView.cpp"
+  ],
+  "sha256": "c1cf68f5d0719bc1f9d85ded4263da6774769830dba549346c9042c0e459fc24",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/WheelCancelSwButtonView.h": "c9c1758f13bfd98ea71d0083945dbbfd0d11dc84b940eaa158b2be927f3f3180",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/WheelCancelSwButtonView.cpp": "ef810a8bf7b585a5bb74f4e844fb8a5bdfe9e35c6332f5fc8900a1f605489de0"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/SwButtons/WheelStartSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/WheelStartSwButtonView.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/WheelStartSwButtonView.cpp"
+  ],
+  "sha256": "58e0ed8e63c5b24700c78c503ce5e1d275c8d5371de0debe548ac927dc1e3bba",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/WheelStartSwButtonView.h": "71476a72932d72849aa5b5fe966741125d84370fc8499fa8d1b54f8bbecff579",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/WheelStartSwButtonView.cpp": "bef2dceb81b8ce24b4ca981bf1dffb0600486d66c0b075dee68552dde89a8565"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/Views/AutoPlayView.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/AutoPlayView.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/AutoPlayView.cpp"
+  ],
+  "sha256": "8131524b5ec26db931de2343c66b35186eb85592d10e43bcf1ed4ec0a76c30fc",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/AutoPlayView.h": "068149360635f708b521445b1db188ff1bf08e8588bad218f5179a1e7229ae9d",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/AutoPlayView.cpp": "118dc1430c4a04e4946e79c3d35ef7fa69b64e83e620f12e19c22be2f5ec3643"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/Views/BaseReelsView.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/BaseReelsView.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/BaseReelsView.cpp"
+  ],
+  "sha256": "7ac2fb09800e58fe9b414d57188f8f7a8411af4219b5a392cf51681c4d35cad7",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/BaseReelsView.h": "3e546f3eccd0d72a1a87bf90be95d72974c4df6f8238117d7170289228acf2c6",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/BaseReelsView.cpp": "cca3fc2cca8fa8169b63f9bac6e15e97445a971d71c8e77c1b1cb058071a7a6a"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/Views/BetBarView.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/BetBarView.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/BetBarView.cpp"
+  ],
+  "sha256": "f8457a82949e8263caab829288a6a51668908c49af990e5dde57e4df038f21e3",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/BetBarView.h": "f9760616c225d6ec8e83b92645c944e5ac1c23e999e744b49981b8bcbc469389",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/BetBarView.cpp": "c2dd656396275ba8f2a1e52d478f8f3085b03e103480ce0476422cc85a4c09c8"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/Views/BetMenuView.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/BetMenuView.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/BetMenuView.cpp"
+  ],
+  "sha256": "1606bf7c915c1523d5da35171cb16e261697958a1928d8063227bdff5b915eb7",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/BetMenuView.h": "2a8c2f24bb2765df41425662286bcfc41b0687e9fb95e6d7063b0e1359f419dd",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/BetMenuView.cpp": "e3ff512efee1e6dd3e2e7c6ca1c39edcf5cfd07e8a87bbcc739b99c471a0961a"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/Views/BigWinView.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/BigWinView.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/BigWinView.cpp"
+  ],
+  "sha256": "af710eabad823d40d4487d9881d764c4fa4b25e5c7e8a71e535ca2078ca57b1d",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/BigWinView.h": "9f9bf6105664848b5192b1a5b6bef38dd0d784db2af237dc3325c5b55cbe6e40",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/BigWinView.cpp": "3d74da7f76c5455a30884aaad75914c2da57ee0894973cd22a3a05979f834033"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/Views/CoinsBarView.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/CoinsBarView.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/CoinsBarView.cpp"
+  ],
+  "sha256": "c2ff191e6f6c838aaac74b915ef5c93ce56304e2c09919aa120e4d22177a10e3",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/CoinsBarView.h": "32cd19ff28f3d4d8ed6037e5d2d5bb637232fd1d8cbbee69ba7991bdbdd0fa1b",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/CoinsBarView.cpp": "f7a706230676142ae1409c05feff0008461c731c7402fa49c85dbd8d8404fbe6"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/Views/CoinsRoundOverlayView.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/CoinsRoundOverlayView.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/CoinsRoundOverlayView.cpp"
+  ],
+  "sha256": "b8cf8f3dc94a214940873415736bd75d99c99602c454d07d31aa2f48d939e824",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/CoinsRoundOverlayView.h": "24bcc8cf7cc430156ebe97a673af6df83a02f19a1c54fcdab1a27310b74b4642",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/CoinsRoundOverlayView.cpp": "c049c9cbe06ea80e180bdbc28bdc39aeaf4dc7f0de345fe0330015f074e1003b"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/Views/CreditBarView.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/CreditBarView.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/CreditBarView.cpp"
+  ],
+  "sha256": "93d11ab24429fb7098e65fd184aa02df5823d85cb32a490eed8148b965d517be",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/CreditBarView.h": "b939aff8314d5f762605653e32365aedf051903e72a309a14985620bd1e83fe0",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/CreditBarView.cpp": "3a46b6878376625494f493f40b99261a4aefef89df9d9d751d9d5f34c53156ae"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/Views/CreditsWinBarView.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/CreditsWinBarView.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/CreditsWinBarView.cpp"
+  ],
+  "sha256": "969c6a6cf5cd0462792dbc4345fd97ddb0088d05630659b5956d6484f116d516",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/CreditsWinBarView.h": "fc5a6b4fc4e0be157932416ec61200a0e209a5a2ba42fa11dc6330269ec6217b",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/CreditsWinBarView.cpp": "c3ec7e33d26d5d03620149085e457355036c6db32cea8c79fa0953e5cd7e2a6f"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/Views/GambleRoundOverlayView.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/GambleRoundOverlayView.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/GambleRoundOverlayView.cpp"
+  ],
+  "sha256": "8783ffe9393306a2985a702a03d1b70000e30499059c699289b999dec542325f",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/GambleRoundOverlayView.h": "79ad3212d0b98b683f385959b31b8fbce788e7095b01d2c48997bd30255e72ca",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/GambleRoundOverlayView.cpp": "1c999a3bea285e12143af66afa32a310952e2a760aea21980fe863c2a7e5f4d3"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/Views/GambleRoundView.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/GambleRoundView.data.h"
+  ],
+  "sha256": "72d2cb0b11b9856dd214f33b641dfc0ecd3e88ba0cb60f1fe1034df7d6c42a8a",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/GambleRoundView.data.h": "9a749e0bbbb19a913454b8944c4189dbd26331ac73ac774f33ea0a02e97d4dd2"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/Views/GambleRoundView.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/GambleRoundView.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/GambleRoundView.cpp"
+  ],
+  "sha256": "181f0d543671ebacf4353f4b5bc9ac2c9b44f992265396542ec75b87d64bbcf9",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/GambleRoundView.h": "a414ee3f66380fa1fd01c4fbc0f2976dd410863f6b480b1c69432872a284b164",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/GambleRoundView.cpp": "9ffcd523eb419be49cab8231d5ddb525effa1de1a1a0038e5d23563a47371b9a"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/Views/GameBackgroundView.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/GameBackgroundView.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/GameBackgroundView.cpp"
+  ],
+  "sha256": "069dac72ce84ffa22c707bffaca3a16e509d19510703654e33570e626466b7e2",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/GameBackgroundView.h": "04b3c6a8b46a7b1bad80dbe72166484856a2d4054a6ed7f1928ee00e3f2927a2",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/GameBackgroundView.cpp": "1c58dca4799fb2f27a076da396a0efeb4004f83343eb19181fd303c5847264a9"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/Views/KnobsView.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/KnobsView.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/KnobsView.cpp"
+  ],
+  "sha256": "4700dbe998c0d89da7968112827ae7fd7903aed8cf9388a91d819fd2e59b5daa",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/KnobsView.h": "9f1f380a7178a8d258110d0d611d326e7ff1c6dddbd0c106fa791878d53d57d4",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/KnobsView.cpp": "dd745173292f3806ab6a8120358d2aabf037507c62eb3b09133d7ed3d922e819"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/Views/LanguageMenuView.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/LanguageMenuView.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/LanguageMenuView.cpp"
+  ],
+  "sha256": "96bbc23edd947e640daa906bddd515335954b13612bb42db5e3e4b86469a443a",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/LanguageMenuView.h": "20b3ecdb1fb1ebb87e260d4ff17894dbf1d5b8e149fde5c52645d054f3270c40",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/LanguageMenuView.cpp": "8f75b1a5e934329a1b0aa81c0d53c749be32648e99fd29079f4a24acff02d80a"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/Views/LinesView.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/LinesView.data.h"
+  ],
+  "sha256": "2fcfd625b183a216783b893fcbe1aa72d4f83f239375695cee73023f570c5adb",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/LinesView.data.h": "af879b60009569ab49c2ac3793a8ed1df6549dcbb7dae47cf8aea2caa55eb9b0"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/Views/LinesView.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/LinesView.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/LinesView.cpp"
+  ],
+  "sha256": "c77b2fe4ef91c92425481e0bf87cad73dcd3740095d2f0ecd74404d7ff962a55",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/LinesView.h": "bb9b8cb3a2a27ace4945460e250b8a45ec33e6e5f829a971639ccf7ce9cf1425",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/LinesView.cpp": "516e8eb3157ea4eaaadc7b3d13b6cfd16ec667e80084c27a3a4c1b66dd93b5fd"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/Views/ReelSubScreen.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/ReelSubScreen.data.h"
+  ],
+  "sha256": "1e453d636e59ea56af24dcaa79c1b1bd5ad287cdf7251749cfc6530745c73188",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/ReelSubScreen.data.h": "60b687633a9db66347203356a01851b28fc40629b0a02d3695f097693e7fc48f"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/Views/ReelsView.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/ReelsView.data.h"
+  ],
+  "sha256": "4f5d851974c99359d6450ca435cda9d9e3a182c8e62ea474f707b084f7e4018a",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/ReelsView.data.h": "ee9917c9fe2ba5a723cdf3d394df17450b791629d4bf39aa0b031524eba72880"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/Views/ReelsView.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/ReelsView.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/ReelsView.cpp"
+  ],
+  "sha256": "c9e71af4ebaccca0417265b73b0d983db8360ce0e12fb00aa5d3a4cfc35c3ed8",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/ReelsView.h": "f1fa76a2a8158214f41702065636ffd55e5eb59cf92a71120eca29f264efbc78",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/ReelsView.cpp": "548bcc22eb312258140a8aa8e3191c2c5a296cae8e9c53cacbbf6596a1bc35c7"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/Views/SoundMenuView.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/SoundMenuView.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/SoundMenuView.cpp"
+  ],
+  "sha256": "41b6d7ed0ef917e56aac009fb4923ed929974303548b4cd14d3ed3bbd7581168",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/SoundMenuView.h": "d93aed09a9d31ef532cc0fd6bce024c2b25d1388d17852762579cfafda80c858",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/SoundMenuView.cpp": "713b4ed2006545642dc1cd99580449e7d39018b0061b46ca27fc14529c1e5723"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/Views/StatusLineView.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/StatusLineView.data.h"
+  ],
+  "sha256": "3480259962a782e2dc264ee100a260d2cf0567483d596ef98edbbbce24248956",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/StatusLineView.data.h": "6922c475f34103cd3fa20993eec8b113f8efc039ba015c72ca011385d98a3856"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/Views/StatusLineView.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/StatusLineView.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/StatusLineView.cpp"
+  ],
+  "sha256": "c9f90681d06264128879dc0ff690189b0e608da35a34ae0deae1a0a4ebd59b4e",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/StatusLineView.h": "d369345e4343058aa566987d8421cede7e50157a4f760e7bad438acae09c2c0e",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/StatusLineView.cpp": "22de67a6e1879d9c0fb7308e5d9acb8a4f6415eb47d3a12f6343c4ed9ce73039"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/Views/WheelRoundOverlayView.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/WheelRoundOverlayView.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/WheelRoundOverlayView.cpp"
+  ],
+  "sha256": "13b92c647c26ab1d8c2e93abaf69ee636059ddd74ff34c69560fab16de42f922",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/WheelRoundOverlayView.h": "69188f62306e0ff3842cccd618ab9421c5af4c957bd69171eb27c06a415b9d6d",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/WheelRoundOverlayView.cpp": "bc86a49476378beae30fdcc992717fdac09dbf63a21bdfb8297d897e4e5b9770"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/Views/WheelRoundView.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/WheelRoundView.data.h"
+  ],
+  "sha256": "acc337ca916a8ca40f20b66285633b3971dcd303623079214a10c8737779bcba",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/WheelRoundView.data.h": "97429909134621748c09dc493d41ed1c791ddfb2f6bd5dedaeb998add5da2045"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/Views/WheelRoundView.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/WheelRoundView.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/WheelRoundView.cpp"
+  ],
+  "sha256": "eb96e0b61e10dc7cb38104614197781ffb8e77a85336d9a764f924723777a84c",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/WheelRoundView.h": "f61f7f1c2d8ba09913c16c993da16b30ee8b866c54463be476db12261e39a3ee",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/WheelRoundView.cpp": "89fc755f856110d80ab2310c40227df467a62ad6259728c6e150c511c489a831"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/Views/WinFiguresView.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/WinFiguresView.data.h"
+  ],
+  "sha256": "42358409fde7ff5b8ffef59560a4032679b568b57217e435693b961e6054da9f",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/WinFiguresView.data.h": "f6b5fa8c32a74eb2b4a9f2e6a09181098e1fbe0b4ec389f1059dd0d54c224656"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/Views/WinFiguresView.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/WinFiguresView.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/WinFiguresView.cpp"
+  ],
+  "sha256": "6868272225ae45a3745cd7c69c6629f65c02970dd9d020b048c11b44c630db89",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/WinFiguresView.h": "1cf2693e747b3a20bb8ec5635cf96547f1cbd9d8bdd8308683119c28623bd914",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/WinFiguresView.cpp": "7b438a5e80b3c0306ce00731e9428dc28f97a47743f1bc094bd4b0093cb22dec"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/Visuals/BaseVisual.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Visuals/BaseVisual.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Visuals/BaseVisual.cpp"
+  ],
+  "sha256": "8d894a936653467d43a106a5984d1f3909102933756ba5ad4f3b2050c549dd42",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Visuals/BaseVisual.h": "d327da7d28bf460656fd99c63538d792eec545ec67c9779aa964f4e17264b112",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Visuals/BaseVisual.cpp": "6c72f0ff52a87cc93b4e810102b0155058633053189f1e05bf86cd5ead882264"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/Visuals/LinesVisual.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Visuals/LinesVisual.data.h"
+  ],
+  "sha256": "f9a1460cf347a08791c04399aaa4b26f45eea23bad83c222f83ce4ff4e51e8ef",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Visuals/LinesVisual.data.h": "13c2d9b522ed2aea0d66ed0c90112cad2cca353942b24538ca70b05cda104d2c"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/Visuals/LinesVisual.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Visuals/LinesVisual.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Visuals/LinesVisual.cpp"
+  ],
+  "sha256": "864e19c2468ddbaf0919deb7ae1e10e06d4d1062dd2a96d2e8884fc048d3cba8",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Visuals/LinesVisual.h": "35655d6b7a229531ed54fdf3fc2e30eb282cb0d6534f180b853160c58fec1ae6",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Visuals/LinesVisual.cpp": "22f2b4b14e102682cbe598c973ec73e6c88141a346c0cb368c94acabab013d64"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/Visuals/ReelVisual.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Visuals/ReelVisual.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Visuals/ReelVisual.cpp"
+  ],
+  "sha256": "8e8081d89a92c593b7d68e6ecc21dd9889e2ca748e38081a6ee8b297a3796738",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Visuals/ReelVisual.h": "a6bb5d0ab7bfefba4c7bfdab283104163b3e8016e63f94e2418ed307a74e72eb",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Visuals/ReelVisual.cpp": "c1d62bf69f4278135a6138b09e4c13b7892523b197d83bfea2e4883b537d4fd3"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/Visuals/StatusLineVisual.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Visuals/StatusLineVisual.data.h"
+  ],
+  "sha256": "79c2b9b4133561dd6385b986400414b91fa2bc96f227886457d3b5e0b1ef9682",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Visuals/StatusLineVisual.data.h": "1f465c42640d9706a8d6da1237d3062a464cfd1eba65668673f24244e1e43441"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/Visuals/StatusLineVisual.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Visuals/StatusLineVisual.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Visuals/StatusLineVisual.cpp"
+  ],
+  "sha256": "6f1b9fe69e1470826bfc18ad5c356a786bc4cb2f4cf3b84f4aa6bc9f1d894eb3",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Visuals/StatusLineVisual.h": "635ccdaf7836894ec98dae42ab072f7c688381a27eb9b968f9ad3a6e45da57b1",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Visuals/StatusLineVisual.cpp": "4a435a5b211e69d363bf4a983d018a069e155acc8cf77c505b66f69d22941f87"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/Visuals/WinFiguresVisual.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Visuals/WinFiguresVisual.data.h"
+  ],
+  "sha256": "ec5082b85cac3dcbeb312c6c2eb54e5edf0eed31e246ec7ce8486308313f4883",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Visuals/WinFiguresVisual.data.h": "a9fbdf89e0e97c9c0fda340b268eab888f6ea8c2b8f9b5fdf9534aa7daec4b33"
+  }
+ },
+ "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/Visuals/WinFiguresVisual.ts": {
+  "cpp": [
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Visuals/WinFiguresVisual.h",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Visuals/WinFiguresVisual.cpp"
+  ],
+  "sha256": "d041bba6185ab309f6de9de4f449c171cdf79a460715004d814abda22e50ef0b",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppSha256": {
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Visuals/WinFiguresVisual.h": "1eb7b267edbbf58aaf52d8eb9707465141d575e6f80098c2703e985d49cefdaa",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Visuals/WinFiguresVisual.cpp": "c7c1f4e995b5279d07feaec7ce3aedf5125ba01de12b6dbac48e5ee0c13a817c"
+  }
+ },
  "alpha_family/plugins/nordic_rush/NordicRushFsm/NordicRushFsm.ts": {
   "cpp": [
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushFsm/NordicRushFsm.h",

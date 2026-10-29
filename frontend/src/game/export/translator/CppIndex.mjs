@@ -180,7 +180,9 @@ export class CppIndex {
 
   /** A class's or struct's body, bases and file. */
   Class(name) {
-    for (const { file } of this.declarations.get(name) ?? []) {
+    // the translated file's own plugin first, then the libraries; another game's plugin last (as Pick)
+    const rank = item => (this.preferredPlugin && item.file.includes(`/alpha_family/plugins/${this.preferredPlugin}/`) ? 0 : item.file.includes('/alpha_family/plugins/') ? 2 : 1);
+    for (const { file } of [...(this.declarations.get(name) ?? [])].sort((a, b) => rank(a) - rank(b))) {
       const text = this.texts.get(file);
       const match = new RegExp(`\\b(?:class|struct)\\s+(?:EGT_\\w+\\s+)?${name}\\b\\s*(?:final\\s*)?(:[^{;]*)?\\{`).exec(text);
       if (!match) continue;

@@ -10,7 +10,10 @@ award (capping) splash, autoplay, the bet and language menus, English and Italia
 pages of the game's RTF) and its topper screen; **Burning Hot Coins**, imported from its C++ (2026-10-28): the main
 round, whose wins are coins, the coins round, the coins (exchange) wheel and the red or black gamble; and the games
 imported from C++ (below, **Import: a new game from C++**), such as **Nordic Rush** (2026-10-28): the main and free
-rounds, hold and spin (with its info screen), the coins round and its free spins, and the coins wheel.
+rounds, hold and spin (with its info screen), the coins round and its free spins, and the coins wheel; and **Joker Reels
+Coins 10** (2026-10-29), Burning Hot Coins' rounds with its own reels: its symbols centred in their cells, a joker over a
+winning stack of wilds, which fades in over the single wilds, and the scatter's and the wild's reel stop sounds. It has
+no topper module (C++ has none), so its Topper screen stays empty.
 
 ## What it loads, and from where
 
@@ -22,7 +25,7 @@ Every file operation goes through the backend (`egt_gda_sync/game/project.py`):
 | The family's modules (the capping splash...) | `GET /api/game/project` → `familyModules` (`configs/alpha_family/modules/AlphaGameModules.json`) | ModuleManager config |
 | The descriptors' entries (images, sequences, movies, fonts, styles, audio, IData, views, RTFs) | `GET /api/game/project` → `descriptors` | ResourceManager |
 | The math file, view configs and views | `GET /api/game/data?file=<path in the game folder>` | `IResources::Get<RssIData>`, ElementsList |
-| When the watched view and descriptor files last changed | `GET /api/game/file-stamps?file=...&file=...` | FileWatch (inotify) |
+| When the watched view, IData and descriptor files last changed | `GET /api/game/file-stamps?file=...&file=...` | FileWatch (inotify) |
 | Images (DDS decoded), movies, audio, fonts, an RTF's laid-out pages | `GET /api/rss-sync/preview?file=` (the asset library's preview) | VideoManager, AudioManager, RtfElement |
 | The assets the asset library lists | `GET /api/asset-report` | – |
 | The C++ plugin's sources, which an export copies | `GET /api/game/cpp?folder=` (the game folder beside the resources: `games/game`) | – |
@@ -104,8 +107,14 @@ wheel, or a win.
   derives from its elements, such as the credit from its `_min` and `_max` dummies.
 - The descriptors (`AllRssData.json`, `RssImagesData.json`...) are watched too (the browser game's: C++ reads them once):
   when one changes, such as when an image's file was moved or renamed and its entry's path follows it, the resource
-  manager reads them again, and the elements draw the files their RssKeys now name, from their next frame. Other files
-  load when the game starts: the IData (such as the reels' area, which places the reels' symbols) and the images.
+  manager reads them again, and the elements draw the files their RssKeys now name, from their next frame. Images load
+  when the game starts.
+- An IData file (`idata/1920x1080/<View>.json`) can be edited while the game plays too (the browser game's: C++ reads
+  an IData into its struct once). The resource manager watches every IData file, and gives the IData's object the
+  changed values in place, so that a view's config, which is that object, and the parts of it its visuals hold, have
+  them: what the view reads from its config when it draws or makes something shows the change, such as the win squares'
+  offsets (`winSquareOffsets`) at the next win. What a view made from its config when it started (its reels and their
+  symbols, a timer's duration) keeps the old values until the game starts again.
 - The math was checked by simulation: the main round of `var_10BCTS_8435.json` returns about 84.0–84.5% over 3 million
   rounds (the setup's `simRtp` is 84.35%), the tetra round about 100% over 600,000 rounds.
 
@@ -189,7 +198,7 @@ All 29 states of the states library, and all 37 views, visuals and software butt
 (with the info and topper screens' `InfoView` and `TopperView`), translate, and their C++ compiles. To keep TypeScript translatable, write it as the C++ is written:
 
 - name C++ integer types where C++ needs them (`engine/GameCore/Common/Types.ts`: `uint32_t[]`, `FigureId`); use
-  `IsValidIndex`/`Contains`/`RandomDevice`/`IsArrayOf` (`engine/GameCore/Common/ContainerHelpers.ts`) as the C++ uses
+  `IsValidIndex`/`Contains`/`RandomDevice`/`IsArrayOf`/`EraseIf` (`engine/GameCore/Common/ContainerHelpers.ts`) as the C++ uses
   `GameCore::IsValidIndex`...;
 - animate with tweeny actions held in fields (`m_action = new tweeny.tween_action()`), started, stopped, paused and
   connected as C++ does (a looping animation is `repeat_precise(sequence_precise([...]))`, not a timer); get the

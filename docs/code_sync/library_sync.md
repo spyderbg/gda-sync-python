@@ -224,3 +224,4 @@ when the user asks. A `hat_libs` sync has no manifest entry, so this record is t
 | `bb41b0f82` | 2026-09-17 | `9d7930a1c` (2026-10-27) | checked 2026-10-28 | The pin has not moved: nothing to sync |
 | `bb41b0f82` | 2026-09-17 | `bbea8b886` (2026-10-28) | checked 2026-10-28 | Burning Hot Coins' import: the pin has not moved |
 | `bb41b0f82` | 2026-09-17 | `574275b3f` (2026-10-28) | checked 2026-10-28 | Nordic Rush's sync: the pin has not moved |
+| `bb41b0f82` | 2026-09-17 | `d94055e30` (2026-10-29) | checked 2026-10-29 | Joker Reels Coins 10's import: the pin has not moved |

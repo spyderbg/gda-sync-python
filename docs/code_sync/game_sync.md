@@ -42,9 +42,10 @@ All commands run from the repository root (`/media/plamen/data/Python/gda-sync`)
 
 ## Step 0: Preconditions
 
-1. **The game is ported on this branch.** Run `ls frontend/src/game/alpha_family/plugins`. As of 2026-10-28, `dev` has
-   `burning_crown_tetra_spins_10`, `burning_hot_coins` (all its rounds: main, coins, wheel, gamble) and `nordic_rush`
-   (all its rounds: main, free, hold and spin, coins, coins free, wheel), with the tools to import a new game
+1. **The game is ported on this branch.** Run `ls frontend/src/game/alpha_family/plugins`. As of 2026-10-29, `dev` has
+   `burning_crown_tetra_spins_10`, `burning_hot_coins` (all its rounds: main, coins, wheel, gamble), `nordic_rush`
+   (all its rounds: main, free, hold and spin, coins, coins free, wheel) and `joker_reels_coins_10` (Burning Hot Coins'
+   rounds), with the tools to import a new game
    (`export/import-game.mjs`, the module registry that finds a game's modules by glob), every round's states but the
    extra rounds', and the full `ViewManager`. A game that is not ported is an import, not a sync: stop and tell the
    user.
@@ -150,7 +151,10 @@ Most of the states library is a statement-for-statement port. Some files are old
   the overlays, the buttons) are statement-for-statement ports;
 - Nordic Rush's views copied from Burning Hot Coins' (the same files, and the compact ones among them). Its views new to
   the family (the free round's overlays and counter, the hold and spin bar, overlays and info screen, the reels' frame
-  fire) are statement-for-statement ports.
+  fire) are statement-for-statement ports;
+- Joker Reels Coins 10's files copied from Burning Hot Coins' (42 of its 62, with the same C++), the compact ones among
+  them. Its `WinFiguresVisual` (the jokers over stacked wilds) is a statement-for-statement port, and so is its
+  `ReelsView.ChooseStopSound`, which Burning Hot Coins' compact `ReelsView` reduces to the default stop sound.
 
 In such a file, port the change's behaviour in the file's own idiom, and don't re-port the rest of the file unless the
 user asks. In particular, keep `TryGet(…)?.` in views: `Get` throws on every frame when a view file lacks the element,
@@ -221,7 +225,8 @@ Then check that the translation compiles. This takes about 30 seconds, and never
 node frontend/src/game/export/translator/compare.mjs $GAMES/game --compile $GAMES/build/user-dbg-clang/compile_commands.json | tail -1
 ```
 
-Expect `0 of N translated .cpp files do not compile`. It was 66 files on 2026-10-28.
+Expect `0 of N translated .cpp files do not compile`. It was 66 files on 2026-10-28. On 2026-10-29 it is 2 of 238:
+Nordic Rush's `InfoView.cpp` and `ReelVisual.cpp` ("Two games' files of the same name", below).
 
 ## Step 5: Move the manifest
 
@@ -309,7 +314,11 @@ and 7 all the same: it does not play the game or judge an idiom.
   and `burning-hot-coins`, not on `dev`.
 - **Two games' files of the same name.** A copied file (`LinesView.ts`) keeps its game's names in the copy: an import
   must say the plugin's own paths and C++ names (`BurningHotCoinsView/...`). The compile check takes a quoted include
-  (`"BaseReelsView.h"`) from the compiled file's own plugin first.
+  (`"BaseReelsView.h"`) from the compiled file's own plugin first, and the translator a class's own declarations
+  (`CppIndex.Class`) from its own plugin's header first: until 2026-10-29 it took the first game's, so Joker Reels
+  Coins 10's `WinFigureVisual` translated against Burning Crown's. With that fixed, Nordic Rush's `InfoView` and
+  `ReelVisual` translate (before, they did not), but they do not compile yet: their TypeScript is not written as their
+  C++ is.
 - **TypeScript arrays have holes.** C++ `resize` default-constructs elements, but a TypeScript array whose `length` was
   raised has holes. When the C++ starts reading another slot (for example `SetupViews` using the tetra rules' last
   result slot), check that the TypeScript always has a value there. Burning Crown's tetra rules use the main slot.
