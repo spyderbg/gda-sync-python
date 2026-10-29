@@ -1,6 +1,6 @@
 {
   "name": "egt-gda-sync-frontend",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Vue 3 interface for EGT GDA Sync, embedded into the Python backend",
   "type": "module",
