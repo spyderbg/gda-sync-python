@@ -37,7 +37,8 @@ BODY_LIMIT = 128 * 1024
 TEXT_BODY_LIMIT = 6 * MAX_TEXT_BYTES + BODY_LIMIT
 # A game export's files come whole, each byte of which JSON escapes as at most six bytes.
 BODY_LIMITS = {"/api/asset-report/text": TEXT_BODY_LIMIT, "/api/game/export": 6 * MAX_EXPORT_BYTES + BODY_LIMIT,
-               '/api/image-studio/metadata': 6 * MAX_METADATA + BODY_LIMIT}
+               '/api/image-studio/metadata': 6 * MAX_METADATA + BODY_LIMIT,
+               '/api/image-studio/settings': 6 * MAX_METADATA + BODY_LIMIT}
 LOCAL_HOSTS = {"127.0.0.1", "localhost", "[::1]"}
 APP_CSP = (
     "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self'; "
@@ -580,6 +581,10 @@ def create_app(
     @app.post('/api/image-studio/jobs/cancel')
     def cancel_image_job(body: ImageJobBody) -> dict:
         return library.image_metadata.cancel(library._active_workspace()[0], body.id)
+
+    @app.post('/api/image-studio/jobs/cancel-all')
+    def cancel_all_image_jobs() -> dict:
+        return library.image_metadata.cancel_all(library._active_workspace()[0])
 
     @app.get('/api/image-studio/settings')
     def image_settings() -> dict:

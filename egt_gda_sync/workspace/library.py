@@ -1034,11 +1034,17 @@ class Library:
 
     def metadata_catalog(self, asset: str | None = None) -> dict:
         workspace, root, game = self._metadata_context()
+        report = self.asset_reports.report(workspace)
+        rows = json.loads(report).get('assets', []) if report else []
+        categories = {}
+        for row in rows:
+            if row['type'] != 'texture':
+                continue
+            keys = [f'sequence:{row["id"]}'] if row.get('sequence') else _asset_files(row)
+            categories.update((key, row['category']) for key in keys)
         if asset:
-            sources = self._metadata_sources(workspace, root, [asset])
+            sources = self._metadata_sources(workspace, root, [asset], rows=rows)
         else:
-            report = self.asset_reports.report(workspace)
-            rows = json.loads(report).get('assets', []) if report else []
             eligible = [row['id'] for row in rows if row['type'] == 'texture' and row.get('scope') != 'outside' and all(
                         Path(file).suffix.lower() in METADATA_EXTENSIONS for file in _asset_files(row))]
             sources = self._metadata_sources(workspace, root, eligible, rows=rows)
@@ -1049,10 +1055,14 @@ class Library:
         entries = []
         for target in sources:
             source, path, output, sequence = target_paths(target, root)
+            exists = all(Path(file).is_file() for file in sequence['files'].values()) if sequence else source.is_file()
             entries.append({'file': target_key(target), 'kind': 'sequence' if sequence else 'image',
                             'name': (sequence['id'] or sequence['paths'][0]) if sequence else os.path.relpath(source, game).replace(os.sep, '/'),
+                            'path': os.path.relpath(source, game).replace(os.sep, '/'),
+                            'folder': os.path.relpath(source.parent, game).replace(os.sep, '/'),
+                            'category': categories.get(target_key(target), 'supplementary' if exists else 'draft'),
                             'frameCount': len(sequence['frames']) if sequence else None,
-                            'exists': all(Path(file).is_file() for file in sequence['files'].values()) if sequence else source.is_file(),
+                            'exists': exists,
                             'metadata': path.is_file(), 'generated': output.is_file()})
         return {'workspace': workspace, 'game': str(game), 'files': entries}
 

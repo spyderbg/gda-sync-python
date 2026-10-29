@@ -12,7 +12,11 @@ export interface ImageMetadata {
 export interface MetadataDocument {
   file: string; path: string; exists: boolean; revision: string; metadata: ImageMetadata; generated: string | null; sourceError?: string | null; kind?: 'image' | 'sequence';
 }
-export interface StudioFile { file: string; name: string; exists: boolean; metadata: boolean; generated: boolean; kind: 'image' | 'sequence'; frameCount?: number }
+export interface StudioFile {
+  file: string; name: string; path: string; folder: string;
+  category: 'available' | 'missing' | 'invalid' | 'supplementary' | 'draft';
+  exists: boolean; metadata: boolean; generated: boolean; kind: 'image' | 'sequence'; frameCount?: number;
+}
 export interface StudioCatalog { workspace: string; game: string; files: StudioFile[] }
 export interface ImageJob {
   id: string; source: string; target?: string; label?: string; kind: 'metadata' | 'image';
@@ -20,8 +24,18 @@ export interface ImageJob {
   createdAt: string; finishedAt?: string; error?: string; message?: string;
 }
 export interface ImageJobs { jobs: ImageJob[]; queued: number; running: boolean; submitted?: string[] }
+export interface RemoteAnalysisSettings {
+  enabled: boolean; base_url: string; model: string; timeout: number; max_tokens: number;
+  load_model: boolean; unload_others: boolean; api_key_env: string;
+}
+export interface ComfySettings {
+  enabled: boolean; base_url: string; timeout: number; api_key_env: string; workflow: string;
+  prompt_node: string; size_node: string; sampler_node: string; output_node: string;
+  steps: number; seed: number; cfg_scale: number; keep_original: boolean;
+}
 export interface ModelSettings {
   overwrite: boolean; recursive: boolean;
+  remote: { analysis: RemoteAnalysisSettings; generation: ComfySettings };
   analysis: { base_url: string; model: string; timeout: number; max_tokens: number; load_model: boolean; unload_others: boolean };
   generation: { diffusion_model: string; text_encoder: string; vae: string; sd_cli: string; timeout: number;
     width: number; height: number; steps: number; seed: number; cfg_scale: number; unload_lm_studio: boolean; keep_original: boolean };

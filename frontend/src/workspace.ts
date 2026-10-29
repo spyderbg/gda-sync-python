@@ -8,7 +8,7 @@ const RSS_POLL_MS = 1000;
 export const LIBRARY_VIEWS: View[] = ['library', 'pending'];
 export const PAGE_NAMES: Record<View, string> = {
   dashboard: 'Dashboard', library: 'Asset library', pending: 'Sync', rssSync: 'Sync in progress', history: 'Sync history', backups: 'Backups',
-  settings: 'Workspace settings', game: 'Play',
+  settings: 'Workspace settings', game: 'Play', imageStudio: 'Image studio',
 };
 
 export const data = ref<LibraryResponse | null>(null);
@@ -145,7 +145,19 @@ export async function api<T>(path: string, method = 'POST', body?: unknown): Pro
   return value as T;
 }
 
+const navigationGuards = new Set<() => boolean>();
+export function registerNavigationGuard(guard: () => boolean) {
+  navigationGuards.add(guard);
+  return () => { navigationGuards.delete(guard); };
+}
+const canNavigate = () => [...navigationGuards].every(guard => guard());
+
 export function navigate(view: View, category: AssetSection | 'all' = 'all') {
+  if (view !== ui.view && !canNavigate()) return;
+  applyNavigation(view, category);
+}
+
+function applyNavigation(view: View, category: AssetSection | 'all' = 'all') {
   ui.view = view;
   ui.category = category;
   ui.query = '';
@@ -419,14 +431,14 @@ export async function saveSettings(settings: Pick<WorkspaceConfig, 'name' | 'sou
 }
 
 export async function selectWorkspace(id: string) {
-  if (busy.value || id === config.value.defaultWorkspace) return;
+  if (busy.value || id === config.value.defaultWorkspace || !canNavigate()) return;
   busy.value = 'settings';
   try {
     const library = await api<LibraryResponse>('workspace', 'PUT', { id });
     ui.inspecting = null;
     ui.resourceActions = null;
     applyLibrary(library);
-    navigate('dashboard');
+    applyNavigation('dashboard');
     notify(`Switched to ${library.config.name}.`);
   } catch (e) { notify((e as Error).message, true); } finally { busy.value = ''; }
 }

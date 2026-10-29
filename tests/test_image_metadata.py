@@ -518,3 +518,260 @@ def test_metadata_rejects_invalid_field_types(change):
     change(value)
     with pytest.raises(AppError):
         service.validate_metadata(value)
+
+
+def comfy_workflow():
+    return {
+        '3': {'class_type': 'KSampler', 'inputs': {'seed': 9, 'steps': 20, 'cfg': 8}},
+        '5': {'class_type': 'EmptyLatentImage', 'inputs': {'width': 512, 'height': 512, 'batch_size': 1}},
+        '6': {'class_type': 'CLIPTextEncode', 'inputs': {'text': 'old prompt'}},
+        '9': {'class_type': 'SaveImage', 'inputs': {'images': ['8', 0]}},
+    }
+
+
+@pytest.fixture
+def comfy_server():
+    calls = []
+    control = {'pending': False, 'failure': False, 'invalid_image': False, 'opaque': False}
+
+    class Handler(BaseHTTPRequestHandler):
+        def log_message(self, *_args):
+            pass
+
+        def do_POST(self):
+            body = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
+            calls.append((self.path, body, self.headers.get('Authorization')))
+            self.respond({'prompt_id': 'our-prompt'} if self.path == '/prompt' else {})
+
+        def do_GET(self):
+            calls.append((self.path, None, self.headers.get('Authorization')))
+            if self.path.startswith('/view?'):
+                data = BytesIO()
+                Image.new('RGBA', (64, 96), (50, 100, 200, 255 if control['opaque'] else 128)).save(data, 'PNG')
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(b'not an image' if control['invalid_image'] else data.getvalue())
+                return
+            if control['pending']:
+                self.respond({})
+            elif control['failure']:
+                self.respond({'our-prompt': {'status': {'status_str': 'error', 'messages': ['test node failed']}}})
+            else:
+                self.respond({'our-prompt': {'status': {'status_str': 'success', 'completed': True}, 'outputs': {
+                    '1': {'images': [{'filename': 'wrong.png'}]},
+                    '9': {'images': [{'filename': 'result image.png', 'subfolder': 'studio', 'type': 'output'}]},
+                }}})
+
+        def respond(self, body):
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(body).encode())
+
+    server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    yield f'http://127.0.0.1:{server.server_port}', calls, control
+    server.shutdown()
+    server.server_close()
+    thread.join()
+
+
+def remote_comfy_settings(url, **overrides):
+    return {'remote': {'generation': {'enabled': True, 'base_url': url,
+            'workflow': json.dumps(comfy_workflow()), **overrides}}}
+
+
+def test_remote_lm_studio_uses_its_own_model_authentication_and_load_policy(studio_client, vision_server, monkeypatch):
+    api = studio_client
+    monkeypatch.setenv('TEST_REMOTE_LM_KEY', 'test-remote-token')
+    observed = []
+    original = service.ImageAnalyzer._request
+
+    def record(analyzer, *args, **kwargs):
+        observed.append((analyzer.base_url, analyzer.api_key))
+        return original(analyzer, *args, **kwargs)
+
+    monkeypatch.setattr(service.ImageAnalyzer, '_request', record)
+    response = api.post('/api/image-studio/settings', json={'settings': {
+        'analysis': {'base_url': 'http://127.0.0.1:1/v1', 'model': 'unused-local'},
+        'remote': {'analysis': {'enabled': True, 'base_url': vision_server[0], 'model': 'vision',
+                               'api_key_env': 'TEST_REMOTE_LM_KEY', 'unload_others': False}},
+    }})
+    assert response.status_code == 200, response.text
+    assert 'test-remote-token' not in response.text
+    response = api.post('/api/image-studio/jobs', json={'kind': 'metadata', 'files': ['frames/bell_00.png']})
+    assert response.status_code == 200, response.text
+    assert wait_jobs(api.library.image_metadata)[0]['state'] == 'succeeded'
+    assert observed and all(item == (vision_server[0], 'test-remote-token') for item in observed)
+    assert any(path == '/api/v1/models/load' for path, _ in vision_server[1])
+    assert not any(path.endswith('/unload') for path, _ in vision_server[1])
+    value = json.loads((api.game / 'frames/bell_00.png.json').read_text())
+    assert value['analysis']['description'] == 'A golden bell.'
+    queue = (api.library.image_metadata.queue_path).read_text()
+    assert 'test-remote-token' not in queue
+
+
+def test_remote_comfy_workflow_generates_and_resizes_without_local_models(studio_client, comfy_server, monkeypatch):
+    api = studio_client
+    url, calls, _control = comfy_server
+    monkeypatch.setenv('COMFYUI_API_KEY', 'test-comfy-token')
+    response = api.post('/api/image-studio/settings', json={'settings': remote_comfy_settings(url, keep_original=True, steps=12, seed=7, cfg_scale=5.5)})
+    assert response.status_code == 200, response.text
+    value = metadata('new.png')
+    value['image'].update(width=14, height=21, transparency=True)
+    value['generation'].update(width=64, height=96, prompt='A remote green bell.')
+    saved = api.post('/api/image-studio/metadata', json={'file': 'new.png', 'metadata': value}).json()
+    api.post('/api/image-studio/jobs', json={'kind': 'image', 'files': [saved['file']]})
+    jobs = wait_jobs(api.library.image_metadata)
+    assert jobs[-1]['state'] == 'succeeded', jobs
+    workflow = next(body['prompt'] for path, body, _auth in calls if path == '/prompt')
+    assert workflow['5']['inputs']['width'] == 64 and workflow['5']['inputs']['height'] == 96
+    assert 'A remote green bell.' in workflow['6']['inputs']['text']
+    assert workflow['3']['inputs'] == {'seed': 7, 'steps': 12, 'cfg': 5.5}
+    assert 'result+image.png' in next(path for path, _body, _auth in calls if path.startswith('/view?'))
+    assert all(auth == 'Bearer test-comfy-token' for _path, _body, auth in calls)
+    output = Path(saved['path'] + '.generated.png')
+    with Image.open(output) as image:
+        assert image.size == (14, 21) and image.getchannel('A').getextrema() == (128, 128)
+    with Image.open(output.with_name(output.stem + '.original.png')) as image:
+        assert image.size == (64, 96)
+    assert not (api.game / 'new.png').exists()
+    assert json.loads(Path(saved['path']).read_text()) == value
+    assert 'test-comfy-token' not in api.library.image_metadata.queue_path.read_text()
+
+
+@pytest.mark.parametrize('failure', ['failure', 'invalid_image', 'opaque', 'pending'])
+def test_remote_comfy_failures_keep_existing_generated_files(studio, tmp_path, comfy_server, failure):
+    url, calls, control = comfy_server
+    control[failure] = True
+    studio.save_settings(remote_comfy_settings(url, timeout=1, keep_original=True))
+    root = tmp_path / 'resources'
+    root.mkdir()
+    source = root / 'new.png'
+    value = metadata('new.png')
+    value['image']['transparency'] = True
+    studio.save(source, root, value, '')
+    output = Path(str(source) + '.json.generated.png')
+    original = output.with_name(output.stem + '.original.png')
+    output.write_bytes(b'previous output')
+    original.write_bytes(b'previous original')
+    studio.enqueue('game', root, root, [source], 'image', overwrite=True)
+    jobs = wait_jobs(studio)
+    assert jobs[-1]['state'] == 'failed', jobs
+    assert output.read_bytes() == b'previous output' and original.read_bytes() == b'previous original'
+    if failure == 'pending':
+        assert 'timed out' in jobs[-1]['error']
+        assert any(path == '/queue' and body == {'delete': ['our-prompt']} for path, body, _ in calls)
+
+
+def test_remote_comfy_cancellation_removes_only_its_pending_prompt(studio, tmp_path, comfy_server):
+    url, calls, control = comfy_server
+    control['pending'] = True
+    studio.save_settings(remote_comfy_settings(url))
+    root = tmp_path / 'resources'
+    root.mkdir()
+    source = root / 'draft.png'
+    studio.save(source, root, metadata('draft.png'), '')
+    submitted = studio.enqueue('game', root, root, [source], 'image')['submitted'][0]
+    deadline = time.monotonic() + 5
+    while not any(path.startswith('/history/') for path, _body, _auth in calls):
+        assert time.monotonic() < deadline
+        time.sleep(0.01)
+    studio.cancel('game', submitted)
+    assert wait_jobs(studio)[-1]['state'] == 'cancelled'
+    assert any(path == '/queue' and body == {'delete': ['our-prompt']} for path, body, _ in calls)
+    assert not any(path == '/interrupt' for path, _body, _auth in calls)
+    assert not Path(str(source) + '.json.generated.png').exists()
+
+
+@pytest.mark.parametrize('change', [
+    {'base_url': 'file:///tmp/comfy'}, {'workflow': '{}'}, {'workflow': '{invalid'},
+    {'workflow': json.dumps({'nodes': []})}, {'prompt_node': 'absent'}, {'output_node': 'absent'},
+])
+def test_remote_settings_validation_keeps_previous_configuration(studio, change):
+    before = studio.settings()
+    with pytest.raises(AppError):
+        studio.save_settings(remote_comfy_settings('http://comfy:8188', **change))
+    assert studio.settings() == before
+
+
+def test_comfy_workflow_larger_than_default_request_limit_is_saved(studio_client):
+    workflow = comfy_workflow()
+    workflow['6']['_meta'] = {'title': 'x' * (140 * 1024)}
+    settings = remote_comfy_settings('http://comfy:8188', workflow=json.dumps(workflow))
+    response = studio_client.post('/api/image-studio/settings', json={'settings': settings})
+    assert response.status_code == 200, response.text[:200]
+    assert json.loads(response.json()['settings']['remote']['generation']['workflow']) == workflow
+
+
+def test_queued_generation_captures_remote_connection_and_workflow(studio, tmp_path, monkeypatch):
+    # Keep jobs pending so changes made after submission cannot be hidden by fast completion.
+    monkeypatch.setattr(studio, '_wake', lambda: None)
+    studio.save_settings(remote_comfy_settings('http://first-comfy:8188', seed=7))
+    root = tmp_path / 'resources'
+    root.mkdir()
+    source = root / 'draft.png'
+    studio.save(source, root, metadata('draft.png'), '')
+    studio.enqueue('game', root, root, [source], 'image')
+    old = deepcopy(studio.jobs[0])
+    studio.save_settings(remote_comfy_settings('http://second-comfy:8188', seed=99))
+    assert studio.jobs[0] == old
+    captured = studio.jobs[0]['settings']['remote']['generation']
+    assert captured['base_url'] == 'http://first-comfy:8188' and captured['seed'] == 7
+    assert json.loads(studio.jobs[0]['group'])[1] == 'remote'
+
+
+def test_cancel_all_atomically_cancels_active_workspace_and_keeps_other_jobs(studio_client, monkeypatch):
+    api = studio_client
+    studio = api.library.image_metadata
+    entered = threading.Event()
+    trace = []
+
+    def run(job, cancel):
+        trace.append((job['workspace'], Path(job['source']).name))
+        if job['workspace'] == 'game':
+            entered.set()
+            assert cancel.wait(5)
+
+    monkeypatch.setattr(studio, '_run', run)
+    submitted = api.post('/api/image-studio/jobs', json={
+        'kind': 'metadata', 'files': ['frames/bell_00.png', 'frames/bell_01.png'],
+    })
+    assert submitted.status_code == 200, submitted.text
+    assert entered.wait(3)
+    studio.enqueue('another-workspace', api.game.parent, api.game, [api.game / 'frames/bell_02.png'], 'metadata')
+    response = api.post('/api/image-studio/jobs/cancel-all')
+    assert response.status_code == 200, response.text
+    assert response.json()['queued'] == 0
+    assert [job['state'] for job in wait_jobs(studio)] == ['cancelled', 'cancelled']
+    other = wait_jobs(studio, 'another-workspace')
+    assert [job['state'] for job in other] == ['succeeded']
+    assert trace == [('game', 'bell_00.png'), ('another-workspace', 'bell_02.png')]
+    # Repeating the action when idle leaves all completed history intact.
+    history = studio.status('game')['jobs']
+    assert api.post('/api/image-studio/jobs/cancel-all').json()['jobs'] == history
+    assert studio.status('another-workspace')['jobs'] == other
+
+
+def test_metadata_catalog_includes_folder_and_asset_status_for_images_sequences_and_drafts(studio_client):
+    api = studio_client
+    png(api.game / 'art/icons/extra.png')
+    write(api.game / 'RssImagesData.json', {'images': [
+        {'id': 'STILL', 'path': 'frames/bell_00.png'},
+        {'id': 'ABSENT', 'path': 'art/missing.png'},
+    ]})
+    assert api.post('/api/asset-report').status_code == 200
+    draft = api.post('/api/image-studio/metadata', json={'file': 'drafts/new.png', 'metadata': metadata('new.png')})
+    assert draft.status_code == 200, draft.text
+    files = api.get('/api/image-studio/catalog').json()['files']
+    by_path = {item['path']: item for item in files if item['kind'] == 'image'}
+    assert (by_path['frames/bell_00.png']['folder'], by_path['frames/bell_00.png']['category']) == ('frames', 'available')
+    assert (by_path['art/missing.png']['folder'], by_path['art/missing.png']['category']) == ('art', 'missing')
+    assert not by_path['art/missing.png']['metadata'] and not by_path['art/missing.png']['exists']
+    assert by_path['art/icons/extra.png']['category'] == 'supplementary'
+    assert (by_path['drafts/new.png']['folder'], by_path['drafts/new.png']['category']) == ('drafts', 'draft')
+    assert by_path['drafts/new.png']['metadata'] and not by_path['drafts/new.png']['exists']
+    animations = [item for item in files if item['kind'] == 'sequence']
+    assert len(animations) == 2
+    assert all(item['folder'] == 'frames' and item['path'] == 'frames/bell_00.png' and item['category'] == 'available' for item in animations)

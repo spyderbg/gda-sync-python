@@ -3,7 +3,7 @@ export type AssetType = 'texture' | 'model' | 'material' | 'audio' | 'font' | 'r
 export type AssetSection = 'image' | 'sequence' | Exclude<AssetType, 'texture'>;
 export type AssetStatus = 'new' | 'modified' | 'synced';
 export type FolderKey = 'source' | 'destination';
-export type View ='dashboard' | 'library' | 'pending' | 'rssSync' | 'history' | 'backups' | 'settings' | 'game';
+export type View ='dashboard' | 'library' | 'pending' | 'rssSync' | 'history' | 'backups' | 'settings' | 'game' | 'imageStudio';
 
 /** A file of the game folder, which the asset library lists. */
 export interface Asset {

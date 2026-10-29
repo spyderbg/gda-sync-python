@@ -4,14 +4,15 @@ import type { ReportAsset } from '../types';
 import { baseName, reportPreviewURL, time } from '../format';
 import { studioAPI, generatedURL, type ImageJobs, type ImageMetadata, type ImageSettings, type MetadataDocument, type StudioCatalog } from '../imageStudio';
 import AppModal from './AppModal.vue';
+import ImageStudioBrowser from './ImageStudioBrowser.vue';
+import { registerNavigationGuard } from '../workspace';
 
-const props = defineProps<{ row?: ReportAsset; assets?: ReportAsset[]; stacked?: boolean }>();
+const props = defineProps<{ row?: ReportAsset; stacked?: boolean; embedded?: boolean }>();
 const emit = defineEmits<{ close: [] }>();
-const tab = ref<'metadata' | 'queue' | 'models'>('metadata');
+const tab = ref<'metadata' | 'queue' | 'models' | 'remote'>('metadata');
 const catalog = ref<StudioCatalog | null>(null);
 const document = ref<MetadataDocument | null>(null);
 const selected = ref('');
-const query = ref('');
 const error = ref('');
 const message = ref('');
 const working = ref(false);
@@ -30,15 +31,13 @@ const prompt = ref('');
 const previewFailed = ref(false);
 const dirty = computed(() => !!document.value && JSON.stringify([document.value.metadata, tags.value, objects.value, prompt.value]) !== original.value);
 const modelsDirty = computed(() => !!settings.value && JSON.stringify(settings.value.settings) !== settingsOriginal.value);
-const files = computed(() => catalog.value?.files.filter(file => file.name.toLowerCase().includes(query.value.toLowerCase())) ?? []);
 const current = computed(() => catalog.value?.files.find(file => file.file === selected.value));
 const metadata = computed(() => document.value?.metadata);
 const isSequence = computed(() => document.value?.kind === 'sequence');
 const fallbackPrompt = computed(() => [metadata.value?.analysis.description, metadata.value?.analysis.scene].filter(Boolean).join('\n'));
-const batchAssets = computed(() => props.row ? [props.row.id] : (props.assets ?? []).filter(row => row.type === 'texture'
-  && ['available', 'supplementary'].includes(row.category)).map(row => row.id));
 const recentJobs = computed(() => [...jobs.value.jobs].reverse());
 const activeJobs = computed(() => jobs.value.jobs.filter(job => ['queued', 'running', 'cancelling'].includes(job.state)));
+const cancellableJobs = computed(() => jobs.value.jobs.filter(job => ['queued', 'running'].includes(job.state)));
 const previewURL = computed(() => !document.value ? '' : preview.value === 'generated'
   ? generatedURL(document.value.file, lastFinished.value) : isSequence.value
     ? `/api/image-studio/sequence-preview?${new URLSearchParams({ file: document.value.file, revision: document.value.revision })}`
@@ -50,8 +49,12 @@ let loadId = 0;
 
 function clearMessages() { error.value = ''; message.value = ''; }
 function guardDiscard() { return !dirty.value || window.confirm('Discard unsaved metadata changes?'); }
+function canLeave() {
+  return !working.value && guardDiscard() && (!modelsDirty.value || window.confirm('Discard unsaved model settings?'));
+}
+const unregisterGuard = props.embedded ? registerNavigationGuard(canLeave) : undefined;
 function close() {
-  if (working.value || (!guardDiscard()) || (modelsDirty.value && !window.confirm('Discard unsaved model settings?'))) return;
+  if (!canLeave()) return;
   emit('close');
 }
 function markClean(value: MetadataDocument) {
@@ -116,13 +119,13 @@ async function save(): Promise<boolean> {
     return true;
   } catch (e) { error.value = (e as Error).message; return false; } finally { working.value = false; }
 }
-async function enqueue(kind: 'metadata' | 'image', batch = false) {
+async function enqueue(kind: 'metadata' | 'image', batch?: string[]) {
   if (!batch && kind === 'image' && (dirty.value || creating.value || !document.value?.exists) && !await save()) return;
   if (kind === 'metadata' && !batch && !guardDiscard()) return;
   clearMessages();
   working.value = true;
   try {
-    const body = batch ? { kind, assets: batchAssets.value, overwrite: overwrite.value }
+    const body = batch ? { kind, files: batch, overwrite: overwrite.value }
       : { kind, files: [document.value?.file], overwrite: overwrite.value };
     jobs.value = await studioAPI<ImageJobs>('jobs', body);
     message.value = `${jobs.value.submitted?.length ?? 0} job(s) submitted. Existing outputs are ${overwrite.value ? 'replaced after success' : 'kept'}.`;
@@ -132,6 +135,14 @@ async function enqueue(kind: 'metadata' | 'image', batch = false) {
 async function cancel(id: string) {
   try { jobs.value = await studioAPI<ImageJobs>('jobs/cancel', { id }); }
   catch (e) { error.value = (e as Error).message; }
+}
+async function cancelAll() {
+  clearMessages();
+  working.value = true;
+  try {
+    jobs.value = await studioAPI<ImageJobs>('jobs/cancel-all', {});
+    message.value = 'Cancellation requested for all active jobs in this workspace.';
+  } catch (e) { error.value = (e as Error).message; } finally { working.value = false; }
 }
 async function pollJobs() {
   try {
@@ -164,42 +175,24 @@ onMounted(async () => {
   } catch (e) { error.value = (e as Error).message; }
   if (!disposed) void pollJobs();
 });
-onBeforeUnmount(() => { disposed = true; loadId++; clearTimeout(timer); });
+onBeforeUnmount(() => { disposed = true; loadId++; clearTimeout(timer); unregisterGuard?.(); });
 </script>
 
 <template>
-  <AppModal title="Image studio" xl :stacked="stacked" dialog-class="image-studio" @close="close">
+  <component :is="embedded ? 'section' : AppModal" v-bind="embedded ? { class: 'card studio-page', 'aria-label': 'Image studio' } : { title: 'Image studio', xl: true, stacked, dialogClass: 'image-studio' }" @close="close">
     <div class="studio-tabs" role="tablist" aria-label="Image studio sections">
-      <button v-for="item in (['metadata', 'queue', 'models'] as const)" :key="item" type="button" role="tab"
+      <button v-for="item in (['metadata', 'queue', 'models', 'remote'] as const)" :key="item" type="button" role="tab"
               :aria-selected="tab === item" :class="{ active: tab === item }" @click="tab = item">
         <i aria-hidden="true" :class="['mdi', item === 'metadata' ? 'mdi-image-edit-outline' : item === 'queue' ? 'mdi-format-list-bulleted' : 'mdi-tune']" />
-        {{ item === 'metadata' ? 'Metadata' : item === 'queue' ? 'Generation queue' : 'Local models' }}
+        {{ item === 'metadata' ? 'Metadata' : item === 'queue' ? 'Generation queue' : item === 'models' ? 'Local models' : 'Remote models' }}
         <span v-if="item === 'queue' && activeJobs.length" class="badge badge-light">{{ activeJobs.length }}</span>
       </button>
     </div>
-    <div class="modal-body studio-body">
+    <div class="studio-body" :class="{ 'modal-body': !embedded }">
       <p v-if="error" class="alert alert-danger" role="alert">{{ error }}</p>
       <p v-if="message" class="alert alert-info" role="status">{{ message }}</p>
-      <template v-if="tab === 'metadata'">
-        <div class="studio-layout">
-          <aside class="studio-sidebar" aria-label="Image files">
-            <button type="button" class="btn btn-outline-primary" @click="newMetadata"><i aria-hidden="true" class="mdi mdi-plus" /> New image metadata</button>
-            <label class="sr-only" for="studio-search">Find image</label>
-            <input id="studio-search" v-model="query" class="form-control" type="search" placeholder="Find image or animation…">
-            <p class="studio-hint">{{ row?.sequence ? 'One shared description and prompt for the entire animation.' : `${catalog?.files.length ?? 0} images, animations and drafts` }}</p>
-            <div class="studio-file-list">
-              <button v-for="file in files" :key="file.file" type="button" :class="['studio-file', { active: selected === file.file }]" :title="file.name" @click="selectFile(file.file)">
-                <i aria-hidden="true" :class="['mdi', file.kind === 'sequence' ? 'mdi-animation-outline' : file.metadata ? 'mdi-file-document-check-outline' : 'mdi-image-outline']" />
-                <span>{{ file.name }}<small><template v-if="file.kind === 'sequence'">ImageSeq · {{ file.frameCount }} frames · </template>{{ file.metadata ? 'Metadata saved' : file.exists ? 'No metadata' : 'New image' }}{{ file.generated ? ' · Generated' : '' }}</small></span>
-              </button>
-            </div>
-            <template v-if="batchAssets.length && !row?.sequence">
-              <hr>
-              <p class="studio-hint">{{ row?.sequence ? 'Entire ImageSeq' : row ? 'This asset' : `${batchAssets.length} filtered image assets` }}</p>
-              <button type="button" class="btn btn-outline-primary btn-sm" :disabled="working" @click="enqueue('metadata', true)">Analyze batch</button>
-              <button type="button" class="btn btn-outline-primary btn-sm" :disabled="working" @click="enqueue('image', true)">Generate batch</button>
-            </template>
-          </aside>
+      <ImageStudioBrowser v-show="tab === 'metadata'" :files="catalog?.files ?? []" :selected="selected" :working="working" :batch="!row?.sequence"
+                            @select="selectFile($event)" @create="newMetadata" @analyze="enqueue('metadata', $event)" @generate="enqueue('image', $event)">
           <section class="studio-editor" aria-label="Image metadata editor">
             <p v-if="loading" role="status">Loading metadata…</p>
             <p v-else-if="!metadata" class="text-muted">Choose an image, or create metadata for a new image.</p>
@@ -234,21 +227,26 @@ onBeforeUnmount(() => { disposed = true; loadId++; clearTimeout(timer); });
               <details class="studio-provenance"><summary>Metadata file and provenance</summary><dl><dt>JSON file</dt><dd>{{ document?.path || `${newPath}.json` }}</dd><dt>Model</dt><dd>{{ metadata.model }}</dd><dt>Created</dt><dd>{{ time(metadata.created_at) }}</dd><dt v-if="metadata.image.sha256">Source SHA-256</dt><dd v-if="metadata.image.sha256">{{ metadata.image.sha256 }}</dd></dl><pre>{{ JSON.stringify(metadata, null, 2) }}</pre></details>
             </form>
           </section>
+      </ImageStudioBrowser>
+      <section v-if="tab === 'queue'" aria-label="Generation jobs">
+        <div class="studio-queue-heading">
+          <div><h6>{{ jobs.running ? 'A model is working' : jobs.queued ? 'Jobs waiting' : 'Queue is idle' }}</h6><p class="studio-hint">One job runs at a time. Jobs of the same type and model are grouped to reduce model switching. Jobs keep running when you leave Image studio.</p></div>
+          <div class="studio-queue-actions">
+            <span class="badge badge-light">{{ jobs.queued }} queued</span>
+            <button type="button" class="btn btn-outline-danger btn-sm" :disabled="working || !cancellableJobs.length" @click="cancelAll">Cancel All</button>
+          </div>
         </div>
-      </template>
-      <section v-else-if="tab === 'queue'" aria-label="Generation jobs">
-        <div class="studio-queue-heading"><div><h6>{{ jobs.running ? 'A local model is working' : jobs.queued ? 'Jobs waiting' : 'Queue is idle' }}</h6><p class="studio-hint">One job runs at a time. Jobs of the same type and model are grouped to reduce model switching. You can close this popup while they run.</p></div><span class="badge badge-light">{{ jobs.queued }} queued</span></div>
         <p v-if="!recentJobs.length" class="text-muted">Analyze an image or generate one from saved metadata to start a job.</p>
         <div v-for="job in recentJobs" :key="job.id" class="studio-job">
           <i aria-hidden="true" :class="['mdi', job.state === 'running' ? 'mdi-loading mdi-spin' : job.kind === 'metadata' ? 'mdi-file-document-outline' : 'mdi-image-outline']" />
           <div><strong>{{ job.kind === 'metadata' ? 'Analyze' : 'Generate' }} · {{ job.label ?? baseName(job.source) }}</strong><span class="studio-hint studio-job-path">{{ job.source }}</span><p v-if="job.error" class="text-danger">{{ job.error }}</p><p v-else-if="job.message" class="studio-hint">{{ job.message }}</p></div>
           <span :class="['badge', job.state === 'failed' ? 'badge-danger' : job.state === 'succeeded' ? 'badge-success' : 'badge-light']">{{ job.state }}</span>
-          <button v-if="['queued', 'running'].includes(job.state)" type="button" class="btn btn-outline-secondary btn-sm" @click="cancel(job.id)">Cancel</button>
+          <button v-if="['queued', 'running'].includes(job.state)" type="button" class="btn btn-outline-secondary btn-sm" :disabled="working" @click="cancel(job.id)">Cancel</button>
           <button v-if="job.state === 'succeeded'" type="button" class="btn btn-outline-primary btn-sm" @click="selectFile(job.target ?? job.source); tab = 'metadata'">View</button>
         </div>
       </section>
-      <form v-else-if="settings" class="studio-models" @submit.prevent="saveModels">
-        <p class="studio-hint">Models run on this computer. Configure installed weights and a local LM Studio server. No models are downloaded. Settings are stored in {{ settings.path }}.</p>
+      <form v-else-if="tab === 'models' && settings" class="studio-models" @submit.prevent="saveModels">
+        <p class="studio-hint">Configure installed weights and a local LM Studio server. Enable Remote models to use another computer for either operation. No models are downloaded. Settings are stored in {{ settings.path }}.</p>
         <fieldset><legend>Vision analysis · LM Studio</legend>
           <label class="studio-field">API base URL<input v-model="settings.settings.analysis.base_url" class="form-control" required></label>
           <label class="studio-field">Vision model<input v-model="settings.settings.analysis.model" class="form-control" required></label>
@@ -264,40 +262,71 @@ onBeforeUnmount(() => { disposed = true; loadId++; clearTimeout(timer); });
         </fieldset>
         <button type="submit" class="btn btn-primary" :disabled="working || !modelsDirty">Save model settings</button>
       </form>
+      <form v-else-if="tab === 'remote' && settings" class="studio-models" @submit.prevent="saveModels">
+        <p class="studio-hint">Use LM Studio and ComfyUI on other computers. Enable either connection to use it for new jobs; otherwise the corresponding Local models settings apply. Settings are stored in {{ settings.path }}.</p>
+        <fieldset><legend>Vision analysis · Remote LM Studio</legend>
+          <label class="studio-check"><input v-model="settings.settings.remote.analysis.enabled" type="checkbox"> Use remote LM Studio for analysis</label>
+          <label class="studio-field">Remote LM Studio API base URL<input v-model="settings.settings.remote.analysis.base_url" aria-label="Remote LM Studio API base URL" class="form-control" type="url" required placeholder="http://your-lm-studio-host:1234/v1"><small>Enable Serve on Local Network in LM Studio on that computer. Include /v1.</small></label>
+          <label class="studio-field">Remote vision model<input v-model="settings.settings.remote.analysis.model" class="form-control" required></label>
+          <label class="studio-field">LM Studio API key environment variable<input v-model="settings.settings.remote.analysis.api_key_env" aria-label="LM Studio API key environment variable" class="form-control" placeholder="LM_STUDIO_REMOTE_API_KEY"><small>Optional. Set this variable on the computer running EGT GDA Sync before starting it. Leave empty for a server without authentication.</small></label>
+          <div class="studio-dimensions"><label class="studio-field">Remote analysis timeout (seconds)<input v-model.number="settings.settings.remote.analysis.timeout" type="number" min="1" required class="form-control"></label><label class="studio-field">Remote maximum response tokens<input v-model.number="settings.settings.remote.analysis.max_tokens" type="number" min="1" required class="form-control"></label></div>
+          <label class="studio-check"><input v-model="settings.settings.remote.analysis.load_model" type="checkbox"> Load the remote vision model when analysis starts</label>
+          <label class="studio-check"><input v-model="settings.settings.remote.analysis.unload_others" type="checkbox"> Unload other models on the remote LM Studio server</label>
+        </fieldset>
+        <fieldset><legend>Image generation · Remote ComfyUI</legend>
+          <label class="studio-check"><input v-model="settings.settings.remote.generation.enabled" type="checkbox"> Use remote ComfyUI for image generation</label>
+          <label class="studio-field">ComfyUI server URL<input v-model="settings.settings.remote.generation.base_url" aria-label="ComfyUI server URL" class="form-control" type="url" required placeholder="http://your-comfyui-host:8188"><small>Use the reachable address of your ComfyUI server, without /v1.</small></label>
+          <label class="studio-field">ComfyUI API key environment variable<input v-model="settings.settings.remote.generation.api_key_env" aria-label="ComfyUI API key environment variable" class="form-control" placeholder="COMFYUI_API_KEY"><small>Optional Bearer token for an authenticated server or proxy. Leave empty for a server without authentication.</small></label>
+          <label class="studio-field">ComfyUI API workflow<textarea v-model="settings.settings.remote.generation.workflow" aria-label="ComfyUI API workflow" rows="12" class="form-control studio-workflow" :required="settings.settings.remote.generation.enabled" spellcheck="false" placeholder='Paste your Export (API) JSON here…' /><small>In ComfyUI, choose File → Export (API). Models and custom nodes must already exist on that computer. The workflow selects the generation model.</small></label>
+          <div class="studio-dimensions">
+            <label class="studio-field">Prompt node ID<input v-model="settings.settings.remote.generation.prompt_node" aria-label="Prompt node ID" class="form-control" required><small>Positive prompt node with a text input.</small></label>
+            <label class="studio-field">Size node ID<input v-model="settings.settings.remote.generation.size_node" aria-label="Size node ID" class="form-control" required><small>Latent/image node with width and height inputs. Uses the metadata's model render resolution.</small></label>
+            <label class="studio-field">Sampler node ID<input v-model="settings.settings.remote.generation.sampler_node" aria-label="Sampler node ID" class="form-control"><small>Node with steps, cfg, and seed or noise_seed inputs. Leave empty to keep the workflow's sampler settings.</small></label>
+            <label class="studio-field">Output node ID<input v-model="settings.settings.remote.generation.output_node" aria-label="Output node ID" class="form-control" required><small>SaveImage or another node that returns images. The first image is downloaded.</small></label>
+          </div>
+          <div class="studio-dimensions">
+            <label class="studio-field">ComfyUI steps<input v-model.number="settings.settings.remote.generation.steps" type="number" min="1" required class="form-control"></label>
+            <label class="studio-field">ComfyUI seed<input v-model.number="settings.settings.remote.generation.seed" type="number" required class="form-control"></label>
+            <label class="studio-field">ComfyUI guidance scale<input v-model.number="settings.settings.remote.generation.cfg_scale" type="number" min="0.1" step="0.1" required class="form-control"></label>
+            <label class="studio-field">ComfyUI timeout (seconds)<input v-model.number="settings.settings.remote.generation.timeout" type="number" min="1" required class="form-control"></label>
+          </div>
+          <label class="studio-check"><input v-model="settings.settings.remote.generation.keep_original" type="checkbox"> Also keep the original ComfyUI render as a PNG</label>
+          <p class="studio-hint">The downloaded image is resized to the metadata's output resolution. Transparent images require a workflow that produces alpha. Cancelling removes this job from the remote queue if pending and discards its result if already running.</p>
+        </fieldset>
+        <button type="submit" class="btn btn-primary" :disabled="working || !modelsDirty">Save model settings</button>
+      </form>
     </div>
-    <div class="modal-footer studio-footer">
+    <div class="studio-footer" :class="{ 'modal-footer': !embedded }">
       <label class="studio-check"><input v-model="overwrite" type="checkbox"> Replace existing metadata / generated PNGs after success</label>
       <div class="studio-footer-actions">
         <template v-if="tab === 'metadata' && metadata">
           <button type="button" class="btn btn-outline-primary" :disabled="working || loading" @click="save">Save metadata</button>
           <button type="button" class="btn btn-primary" :disabled="working || loading" @click="enqueue('image')">Save &amp; generate image</button>
         </template>
-        <button type="button" class="btn btn-light" :disabled="working" @click="close">Close</button>
+        <button v-if="!embedded" type="button" class="btn btn-light" :disabled="working" @click="close">Close</button>
       </div>
     </div>
-  </AppModal>
+  </component>
 </template>
 
 <style scoped>
 :global(.image-studio .modal-content) { height: min(920px, calc(100dvh - 64px)); }
-.studio-tabs { display: flex; gap: 24px; padding: 0 26px; border-bottom: 1px solid #e0e4ec; flex-shrink: 0; }
+.studio-page { overflow: hidden; }
+.studio-page .studio-body { overflow: visible; }
+.studio-page .studio-footer { display: flex; flex-wrap: wrap; gap: 16px; padding: 18px 24px; border-top: 1px solid #e0e4ec; background: white; position: sticky; bottom: 0; z-index: 2; }
+.studio-tabs { display: flex; flex-wrap: wrap; gap: 24px; padding: 0 26px; border-bottom: 1px solid #e0e4ec; flex-shrink: 0; }
 .studio-tabs button { border: 0; border-bottom: 3px solid transparent; background: none; padding: 16px 0; color: #68718a; cursor: pointer; }
 .studio-tabs button.active { color: #4b49ac; border-color: #4b49ac; }
 .studio-tabs .mdi { margin-right: 6px; }
 .studio-body { padding: 24px; overflow-y: auto; min-height: 0; }
-.studio-layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 28px; align-items: start; }
-.studio-sidebar { display: flex; flex-direction: column; gap: 12px; position: sticky; top: 0; min-width: 0; }
-.studio-sidebar hr { margin: 3px 0; width: 100%; }
 .studio-hint, .studio-field small, fieldset > small { font-size: 12px; color: #77809a; line-height: 1.5; }
-.studio-hint { margin: 0; }
-.studio-file-list { max-height: 410px; overflow-y: auto; border: 1px solid #e0e4ec; border-radius: 6px; }
-.studio-file { display: flex; align-items: flex-start; gap: 9px; text-align: left; padding: 11px; width: 100%; color: #384057; background: white; border: 0; border-bottom: 1px solid #edf0f5; cursor: pointer; }
-.studio-file.active { background: #eeedfc; color: #4b49ac; }
-.studio-file > span { overflow-wrap: anywhere; font-size: 12px; }
-.studio-file small { display: block; color: #77809a; margin-top: 3px; }
+.studio-hint { margin: 0; overflow-wrap: anywhere; }
 .studio-editor { min-width: 0; }
 .studio-editor h6 { margin: 0 0 6px; overflow-wrap: anywhere; }
 .studio-editor-heading, .studio-queue-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.studio-queue-heading { flex-wrap: wrap; }
+.studio-queue-heading > div:first-child { flex: 1; min-width: min(240px, 100%); }
+.studio-queue-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .studio-editor-heading .btn { flex-shrink: 0; }
 .studio-field { display: flex; flex-direction: column; gap: 7px; margin: 0 0 18px; font-size: 13px; }
 .studio-field textarea { resize: vertical; line-height: 1.5; min-height: 64px; }
@@ -336,8 +365,9 @@ legend { width: auto; font-size: 13px; margin-bottom: 8px; font-weight: 500; }
 .studio-job strong { font-size: 13px; }
 .studio-job p { font-size: 12px; margin: 5px 0 0; overflow-wrap: anywhere; }
 .studio-job-path { display: block; overflow-wrap: anywhere; }
+.studio-workflow { font-family: monospace; font-size: 12px; }
 .studio-models { max-width: 740px; margin: auto; }
 .studio-models fieldset { margin: 24px 0; padding-top: 18px; border-top: 1px solid #e0e4ec; }
 .studio-models legend { font-size: 16px; }
-@media (max-width: 767px) { .studio-layout { grid-template-columns: minmax(0, 1fr); } .studio-sidebar { position: static; } .studio-file-list { max-height: 150px; } .studio-dimensions { grid-template-columns: minmax(0, 1fr); } .studio-tabs { gap: 16px; padding: 0 14px; } .studio-body { padding: 16px; } }
+@media (max-width: 767px) { .studio-dimensions { grid-template-columns: minmax(0, 1fr); } .studio-tabs { gap: 16px; padding: 0 14px; } .studio-body { padding: 16px; } }
 </style>

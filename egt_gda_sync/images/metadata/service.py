@@ -25,6 +25,7 @@ from egt_gda_sync.app.errors import AppError
 from egt_gda_sync.images.dds import decode_dds
 from .analyzer import ImageAnalyzer
 from .config import DEFAULTS, _merge, load_config
+from .comfy import ComfyGenerator
 from .generator import ImageGenerator
 from .sequence import instruction as sequence_instruction, manifest, storyboard
 
@@ -226,6 +227,11 @@ class MetadataLibrary:
         try:
             _merge(validated, values)
             ImageAnalyzer(**{key: validated['analysis'][key] for key in ('base_url', 'model', 'timeout', 'max_tokens')})
+            remote = validated['remote']
+            ImageAnalyzer(**{key: remote['analysis'][key] for key in ('base_url', 'model', 'timeout', 'max_tokens')})
+            generator = ComfyGenerator(remote['generation'])
+            if remote['generation']['enabled'] or remote['generation']['workflow'].strip():
+                generator.validate()
         except ValueError as error:
             raise AppError(str(error)) from error
         with self.condition:
@@ -302,7 +308,11 @@ class MetadataLibrary:
         if kind not in ('metadata', 'image'):
             raise AppError('Choose metadata analysis or image generation')
         settings = self.settings()['settings']
-        group = json.dumps([kind, settings['analysis' if kind == 'metadata' else 'generation']], sort_keys=True)
+        operation = 'analysis' if kind == 'metadata' else 'generation'
+        remote = settings['remote'][operation]
+        operation_settings = remote if remote['enabled'] else settings[operation]
+        group = json.dumps([kind, 'remote' if remote['enabled'] else 'local', operation_settings], sort_keys=True)
+        keep_original = kind == 'image' and operation_settings['keep_original']
         batch = uuid.uuid4().hex
         jobs = []
         # Validate the entire submission before queueing its first job.
@@ -342,7 +352,7 @@ class MetadataLibrary:
                     continue
                 destination = Path(job['metadata'] if kind == 'metadata' else job['output'])
                 original = destination.with_name(f'{destination.stem}.original.png')
-                if not overwrite and (destination.exists() or (kind == 'image' and settings['generation']['keep_original'] and original.exists())):
+                if not overwrite and (destination.exists() or (keep_original and original.exists())):
                     job.update(state='skipped', finishedAt=now(), message='Existing output kept')
                 self.jobs.append(job)
                 submitted.append(job['id'])
@@ -360,6 +370,20 @@ class MetadataLibrary:
             elif job['state'] in ('running', 'cancelling'):
                 job['state'] = 'cancelling'
                 self.cancels[job_id].set()
+            self._persist()
+        return self.status(workspace)
+
+    def cancel_all(self, workspace: str) -> dict:
+        # Hold the worker's lock so no pending job starts between cancellations.
+        with self.condition:
+            for job in self.jobs:
+                if job['workspace'] != workspace:
+                    continue
+                if job['state'] == 'queued':
+                    job.update(state='cancelled', finishedAt=now())
+                elif job['state'] in ('running', 'cancelling'):
+                    job['state'] = 'cancelling'
+                    self.cancels[job['id']].set()
             self._persist()
         return self.status(workspace)
 
@@ -406,8 +430,14 @@ class MetadataLibrary:
         if revision(path) != expected['metadata'] or revision(source) != expected['source'] or not inputs_unchanged():
             raise AppError('An input changed while this job was queued. Queue it again.')
         analysis, generation = job['settings']['analysis'], job['settings']['generation']
+        remote = job['settings'].get('remote', DEFAULTS['remote'])
+        if job['kind'] == 'metadata' and remote['analysis']['enabled']:
+            analysis = remote['analysis']
+            api_key = os.environ.get(analysis['api_key_env']) if analysis['api_key_env'] else None
+        else:
+            api_key = os.environ.get('LM_STUDIO_API_KEY')
         analyzer = ImageAnalyzer(**{key: analysis[key] for key in ('base_url', 'model', 'timeout', 'max_tokens')},
-                                 api_key=os.environ.get('LM_STUDIO_API_KEY'))
+                                 api_key=api_key)
         if job['kind'] == 'metadata':
             sequence = job.get('sequence')
             if sequence:
@@ -434,15 +464,21 @@ class MetadataLibrary:
                     raise AppError('The image or metadata changed during analysis. Existing files were kept.', 409)
                 atomic_json(path, value)
         else:
-            generator = ImageGenerator(generation['diffusion_model'], generation['text_encoder'], generation['vae'],
-                                       executable=generation['sd_cli'], timeout=generation['timeout'])
+            remote_generation = remote['generation']['enabled']
+            if remote_generation:
+                generation = {**generation, **remote['generation']}
+                api_key = os.environ.get(generation['api_key_env']) if generation['api_key_env'] else None
+                generator = ComfyGenerator(generation, api_key=api_key)
+            else:
+                generator = ImageGenerator(generation['diffusion_model'], generation['text_encoder'], generation['vae'],
+                                           executable=generation['sd_cli'], timeout=generation['timeout'])
             generator.validate()
             # Generate privately from a snapshot. Publish only after rechecking every input and output.
             with tempfile.TemporaryDirectory(prefix='image-job-') as directory:
                 snapshot, rendered = Path(directory) / 'metadata.json', Path(directory) / 'image.png'
                 target = {'file': job.get('target', str(source)), 'source': str(source), 'path': str(path), 'sequence': job.get('sequence')}
                 atomic_json(snapshot, self.document(target, root, draft=False)['metadata'])
-                if generation['unload_lm_studio']:
+                if not remote_generation and generation['unload_lm_studio']:
                     analyzer.unload_all_models()
                 generator.generate(snapshot, rendered, width=generation['width'], height=generation['height'],
                                    steps=generation['steps'], seed=generation['seed'], cfg_scale=generation['cfg_scale'],

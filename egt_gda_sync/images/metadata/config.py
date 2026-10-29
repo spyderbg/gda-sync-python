@@ -18,6 +18,19 @@ DEFAULTS = {
         "timeout": 1800, "width": 1024, "height": 1024, "steps": 40, "seed": 42,
         "cfg_scale": 6.0, "unload_lm_studio": True, "keep_original": False,
     },
+    "remote": {
+        "analysis": {
+            "enabled": False, "base_url": "http://localhost:1234/v1", "model": "qwen/qwen3-vl-8b",
+            "timeout": 180, "max_tokens": 1200, "load_model": True, "unload_others": False,
+            "api_key_env": "LM_STUDIO_REMOTE_API_KEY",
+        },
+        "generation": {
+            "enabled": False, "base_url": "http://localhost:8188", "timeout": 1800,
+            "api_key_env": "COMFYUI_API_KEY", "workflow": "", "prompt_node": "6",
+            "size_node": "5", "sampler_node": "3", "output_node": "9",
+            "steps": 40, "seed": 42, "cfg_scale": 6.0, "keep_original": False,
+        },
+    },
 }
 
 
@@ -80,6 +93,6 @@ def _merge(defaults: dict, supplied: object, prefix: str = "") -> None:
         else:
             if not isinstance(value, str):
                 raise ValueError(f"{name} must be a string")
-            if not value.strip() and key not in ("diffusion_model", "text_encoder", "vae"):
+            if not value.strip() and key not in ("diffusion_model", "text_encoder", "vae", "workflow", "sampler_node", "api_key_env"):
                 raise ValueError(f"{name} must not be empty")
             defaults[key] = value

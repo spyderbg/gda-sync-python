@@ -41,6 +41,7 @@ const assetEntries = computed<Entry[]>(() => [...ASSET_CATEGORIES, ...(countSect
 // The browser game plays the workspace's game from its assets (frontend/src/game).
 const gameEntries = computed<Entry[]>(() => [
   { key: 'game', label: 'Play', icon: 'mdi-slot-machine-outline', title: 'Play the game in the browser', active: ui.view === 'game', onSelect: () => navigate('game') },
+  { key: 'imageStudio', label: 'Image studio', icon: 'mdi-image-edit-outline', title: 'Analyze images, edit metadata and generate artwork', active: ui.view === 'imageStudio', onSelect: () => navigate('imageStudio') },
 ]);
 
 const sections = computed(() => [

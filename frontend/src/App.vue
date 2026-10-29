@@ -10,11 +10,12 @@ import AppSidebar from './layout/AppSidebar.vue';
 import DashboardView from './views/DashboardView.vue';
 import AssetsLibraryView from './views/AssetsLibraryView.vue';
 import SettingsView from './views/SettingsView.vue';
+import ImageStudioView from './views/ImageStudioView.vue';
 import BackupsView from './views/BackupsView.vue';
 import SyncHistoryView from './views/SyncHistoryView.vue';
 import SyncInProgressView from './views/SyncInProgressView.vue';
 import SyncView from './views/SyncView.vue';
-import { data, isLibraryView, load, loadError, stopped, ui } from './workspace';
+import { data, isLibraryView, load, loadError, stopped, ui, navigate } from './workspace';
 
 // The browser game (its engine, states and views) loads when its page first opens.
 const GameView = defineAsyncComponent(() => import('./game/GameView.vue'));
@@ -28,7 +29,7 @@ const visibleSearch = () => [...document.querySelectorAll<HTMLInputElement>('[da
 
 async function focusSearch() {
   if (!visibleSearch()) {
-    if (!isLibraryView.value) ui.view = 'library';
+    if (!isLibraryView.value) navigate('library');
     await nextTick();
   }
   visibleSearch()?.focus();
@@ -66,6 +67,7 @@ onBeforeUnmount(() => {
           <BackupsView v-else-if="ui.view === 'backups'" />
           <SettingsView v-else-if="ui.view === 'settings'" />
           <GameView v-else-if="ui.view === 'game'" />
+          <ImageStudioView v-else-if="ui.view === 'imageStudio'" />
         </div>
         <AppFooter />
       </div>

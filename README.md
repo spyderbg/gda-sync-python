@@ -228,11 +228,25 @@ Apply also requires the preview's `fingerprint`. Preview is read-only; all four 
 
 ### Image metadata and generation
 
-**Image studio** in the Asset library, or **Image metadata…** in an Image/ImageSeq's details, analyzes image assets
-with a local LM Studio vision model. The backend Python package `egt_gda_sync.images.metadata` adapts the analyzer,
+**Game → Image studio** in the sidebar opens a full-page studio; **Image metadata…** in an Image/ImageSeq's details opens the same tools in a popup for that asset. Analyze image assets
+with a local or remote LM Studio vision model. The backend Python package `egt_gda_sync.images.metadata` adapts the analyzer,
 metadata format and stable-diffusion.cpp runner from the sibling `image-analyzer` project. It also decodes DDS
 (including BC7) to PNG for vision input. Width, height, transparency and the original file's SHA-256 come from the
 image, rather than the model. Supported inputs are DDS, PNG, JPEG, WebP, BMP, TGA and TIFF.
+
+The **Metadata** tab uses Asset library-style filter buttons with counts: **All**, **With metadata**, and
+**Without metadata**. Combine them with image type (Images / ImagesSeq), asset status, folder (including its
+subfolders), and search by name, path or animation ID. **Tree view** groups images and animations into collapsible
+folders; common or other-game assets appear under **Shared resources**. **List view** keeps the full paths visible.
+Use Expand all / Collapse all or the arrow keys to browse the tree; searching opens matching branches. Filters stay
+set when switching studio tabs. Filtering an open image out keeps its editor and unsaved changes available.
+Click one image or folder to select it; only that row is highlighted. An image opens its metadata and is the sole
+batch target. A folder targets matching images in that folder and its subfolders, even while collapsed. The separate
+arrow expands or collapses a folder without changing the selection. Space or Enter selects the focused row; the
+arrow keys navigate and expand or collapse folders. Selection stays active across filters and tree/list layouts.
+**Analyze batch** includes only targets whose source images exist; **Generate batch** includes only targets with
+saved metadata, including image drafts. Counts on both buttons show the eligible jobs. Select **Game folder** to
+process all matching images in the game. Metadata counts refresh after saving metadata or completing analysis.
 
 Metadata is UTF-8 JSON beside the image: `bell.dds.json`. Its structured editor shows description, scene, objects,
 tags, OCR text and provenance, and edits **Output resolution**, **Model render resolution**, transparency and an
@@ -262,12 +276,13 @@ unresized PNG as `bell.dds.json.generated.original.png`. New drafts can be reope
 report includes their generated images. The per-submission **Replace existing…** checkbox controls regeneration;
 otherwise existing outputs are skipped. Failed or cancelled jobs preserve existing output.
 
-**Generation queue** is one persistent worker for the entire Library, across workspaces. Metadata analysis and
+**Generation queue** is one persistent worker for the entire Library, across workspaces. **Cancel All** cancels all
+queued jobs and requests cancellation of the running job in the current workspace, keeping completed history and other workspaces' jobs. Metadata analysis and
 image generation never run concurrently. Pending jobs with the current operation type and model settings are
 drained together before switching types, reducing vision/diffusion model switches. Jobs capture their workspace,
 input revisions and settings when submitted. Changing workspaces or settings does not redirect queued work; editing
 an input invalidates its queued result. Cancel stops a queued job immediately; an active vision request discards its
-result on return, and an active diffusion runner is terminated. Closing the popup keeps work running. On application
+result on return, and an active diffusion runner is terminated. Leaving Image studio or closing an asset popup keeps work running. On application
 restart, queued jobs resume and interrupted jobs are marked failed for explicit retry. Queue history is stored in
 `image-jobs.json` in the app-data folder, retaining the newest 1000 completed jobs.
 
@@ -278,9 +293,32 @@ configuration. Relative weights/executable paths resolve against that file. LM S
 `LM_STUDIO_API_KEY`. No model or runner is downloaded automatically. The runner must support Qwen-Image-2.1;
 the matching VAE is required. Model unloading options are editable because they affect other local model clients.
 
+**Remote models** has independent switches for **Remote LM Studio** analysis and **Remote ComfyUI** generation.
+Disabled switches use the corresponding Local models configuration. The remote settings are stored under
+`remote.analysis` and `remote.generation` in the same `image-analyzer.json`; existing configurations default to local.
+For LM Studio, enter the other computer's API URL (including `/v1`), vision model, and timeout. Enable
+[Serve on Local Network](https://lmstudio.ai/docs/developer/core/server/serve-on-network) on that computer.
+Model loading and unloading are configurable; unloading other users' remote models is off by default.
+If authentication is enabled, set `LM_STUDIO_REMOTE_API_KEY` before starting EGT GDA Sync, or configure a different
+API key environment variable. Only the variable's name is stored, not its value.
+
+For ComfyUI, enter its reachable server URL (for example `http://your-host:8188`), then paste a workflow from
+**File → Export (API)**. The workflow selects the model, weights and custom nodes installed on that computer.
+Configure the positive **Prompt node ID** (`text` input), **Size node ID** (`width` and `height` inputs), optional
+**Sampler node ID** (`steps`, `cfg`, and `seed` or `noise_seed` inputs), and **Output node ID** that returns images.
+Defaults `6`, `5`, `3`, and `9` match ComfyUI's standard basic workflow; use the IDs in your own export.
+Leaving Sampler node ID empty preserves its workflow settings. Otherwise the configured steps, seed (negative for
+random), and guidance scale override the sampler. Model render dimensions come from metadata; the downloaded image
+is resized to its output dimensions. Transparency requires an RGBA-producing workflow, and **Keep original** also
+saves its unresized PNG. Optional Bearer authentication uses `COMFYUI_API_KEY` or the configured environment variable.
+Requests are sent by the backend, using ComfyUI's [prompt, history, and view routes](https://docs.comfy.org/development/comfyui-server/comms_routes).
+Cancelling or timing out removes only this prompt from the remote pending queue. A running remote workflow can
+finish on its server, but its result is discarded; other users' running workflows are never interrupted.
+Queued jobs retain the connection and workflow settings captured at submission. No request is sent merely by saving settings.
+
 API: `GET /api/image-studio/catalog?asset=<optional id>`, `GET /metadata?file=<image path or sequence key>` and `POST /metadata`
 with `{file, metadata, revision}`; `GET /jobs`, `POST /jobs` with `{kind: "metadata" | "image", assets?: [id],
-files?: [image path], overwrite?: false}`, and `POST /jobs/cancel` with `{id}`; `GET /settings` and `POST /settings`
+files?: [image path], overwrite?: false}`, and `POST /jobs/cancel` with `{id}` or `POST /jobs/cancel-all` for the current workspace; `GET /settings` and `POST /settings`
 with `{settings}`. These paths share the `/api/image-studio` prefix. `GET /generated?file=<image path>` serves the
 result PNG. Animation entries use the catalog's `sequence:<asset-id>` key in place of an image path;
 `GET /sequence-preview?file=<sequence key>` serves their contact sheet. Mutations use the usual session guard. Reads and writes stay inside workspace resources without links;
@@ -566,11 +604,12 @@ The interface uses the SCSS of the [StarAdmin Free Bootstrap Admin Template](htt
 
 ## Vue views
 
-The interface has five page views in `frontend/src/views`:
+The interface has the following page views in `frontend/src/views`:
 
 | Vue file | Purpose |
 | --- | --- |
 | [DashboardView.vue](frontend/src/views/DashboardView.vue) | Workspace selection using [WorkspaceCard.vue](frontend/src/components/WorkspaceCard.vue), with the project usage guide above and combined statistics, charts, and file lists for all configured workspaces. Opening a workspace card selects it and opens Asset library. Inspecting a file selects its owning workspace. |
+| [ImageStudioView.vue](frontend/src/views/ImageStudioView.vue) | **Game → Image studio** (`imageStudio`), immediately after **Play**. Full-page image and animation metadata editing, batch analysis/generation, generation queue, and local/remote model settings. Uses [ImageStudio.vue](frontend/src/components/ImageStudio.vue), which also powers the per-asset metadata popup. |
 | [AssetsLibraryView.vue](frontend/src/views/AssetsLibraryView.vue) | The sidebar's **Asset library** (`library`). Shows the newest asset report of the workspace (`GET /api/asset-report`), which its **Rescan** writes (`POST /api/asset-report`): the report file, its counts by status (which filter the assets when clicked), and the folders its assets are in, the Game path first, each on its own line, which show only that folder's assets when clicked, then the assets in grid or list form as [AssetCard.vue](frontend/src/components/AssetCard.vue) cards, with status filters, search by path, entry id or sequence, and the sidebar's sections (Images and ImagesSeq for textures, then the other types). A card shows the asset's preview, name, folder, size, status and the entries that load it; an image sequence plays its frames. Clicking an asset opens [AssetDetails.vue](frontend/src/components/AssetDetails.vue), a dialog like the Sync page's resource details: a large preview, what the status means, the descriptor entries that load the asset, its game path with buttons to copy it or open its folder, and its format, size, resolution, pixel format, mip levels and modification time; a sequence also shows how it plays and each frame. A font is drawn with itself, with each Font entry's declared characters, the ones it misses marked, its names and glyph count, and a card warns when a font misses declared characters. An RTF shows its pages: a card has a strip of them, and the dialog draws the chosen page in each language, with [RtfPreview.vue](frontend/src/components/RtfPreview.vue), and lists its pages and the files they miss. Escape closes the dialog. Views can be selected with their check boxes and shown together in [ViewsDetails.vue](frontend/src/components/ViewsDetails.vue), drawn one over another. Inspecting a file on the Dashboard opens the library with a search for its name. |
 | [SyncView.vue](frontend/src/views/SyncView.vue) | The sidebar's **Sync** page (`pending`). Shows only the workspace's latest successful GDA sync report, never the library scan. Opens with the workspace section (name, the report file, the report's compared, not-in-sync, in-sync and supplementary counts, and the GDA and Game folders), then lists the report's **Different**, **Missing**, **Invalid** and **Supplementary** resources in report order as [ResourceCard.vue](frontend/src/components/ResourceCard.vue) cards, in the look of the Asset library's cards: the game file's preview, name, folder and the report's status, with status filters, search, and buttons to copy the game path or GDA path. A **Different** resource spans the row and shows each GDA file with its name as a card beside it, closest folder first; the first is the one Sync copies. A **Different** or **Missing** image instead shows, on one line, every GDA image that may show the same picture: its possible matches by content and its same-named GDA files, most likely first, each with its probability and match type, in cards of the game image's card size. Only the GDA images scroll sideways, right of the copy arrow. Clicking anywhere on an image's card chooses it, and clicking it again clears the choice; Left and Right choose the previous and next image; the copy arrow between the cards stays disabled until an image is chosen, then copies the chosen image, which also syncs a missing image. A GDA image with the game file's contents cannot be chosen, since copying it changes nothing. An image sequence is one card that plays its frames with [SequencePreview.vue](frontend/src/components/SequencePreview.vue): a frame every `frameTime` milliseconds, `loopCount` times (`0` repeats forever), each loop after the first starting at frame `loopTo`, showing only the `source` rectangle of a frame that has one. Its frames load when the card comes into view, and it plays only while in view; clicking the preview plays it again from the first frame. The card lists the sequence's files that are not in sync, and a **Different** sequence plays its GDA frames beside it. Clicking a card, or its details button, opens [ResourceDetails.vue](frontend/src/components/ResourceDetails.vue), a dialog like the Asset library's asset details: a large preview, beside the GDA file's when the GDA has one, what the status means, where the resource is declared, its game and GDA paths with buttons to copy them or open their folders, and the format, size, resolution, pixel format, mip levels and modification time of the game and GDA files side by side, with values that differ in red. An image sequence plays in the dialog, with its frame time, loops, the duration of one loop, the totals of its files and the status of each frame. **Sync this resource** asks to sync it, and Escape closes the dialog. An image's details show only the game image and one GDA image, with the image matching algorithms' values for the pair: the image chosen on its card, or else the most likely one, which **Sync this resource** copies. Left and Right choose the previous and next GDA image without closing the dialog, which then compares the game image with the new one (only the new image's file details are read), and the card shows the new choice. The file details come from `POST /api/rss-sync/details`, which reads only files inside the workspace's resources and GDA folders. An RTF is one card for its folder, with its pages and the files that are not in sync; a **Different** one shows the closest GDA folder's pages beside it, labelled with what Sync changes, and the other GDA folders that hold its `.rtf` file. Its details draw the game and GDA pages side by side, on the same page, compare the two projects, and list every file with what Sync does to it. Syncing an RTF makes the game's folder a copy of the closest GDA folder: it copies the changed files and the ones only the GDA has, and deletes the ones only the game has, unless a descriptor declares them, each replaced or deleted file saved in your backups. Deleting a **Supplementary** RTF deletes its whole folder, and removing an **Invalid** one's declarations removes the entries that declare its `.rtf` file. The check box of a card with an action selects it; a **Missing** card has none. Previews come from `GET /api/rss-sync/preview`, which serves only image, audio, and font files, and the page layout of an RTF (`.rtf`) as JSON, inside the workspace's resources and GDA folders. A font is drawn with itself by [FontPreview.vue](frontend/src/components/FontPreview.vue): a card shows "Aa" and a line of text once it scrolls into view, and offers to load a font larger than 2 MB instead of loading it; the details dialog is a specimen: the font's family and style, its alphabets and digits, a sample of each writing system it can draw (Latin Extended, Cyrillic, Greek, Arabic, Hebrew, Thai, Japanese, Chinese, Korean) and its currency signs, a waterfall of text to type from 12 to 72 px with the declared size marked, and each declared range, with the characters the font misses marked. The preview response's `X-Font-Facts` header names the samples the font can draw, so a card shows the font's own writing system. A different font shows the game and GDA versions side by side with the same text, and the table compares their names, glyph counts, and how many of each `Font` entry's characters they have, from `POST /api/rss-sync/details` with the entries' `chars`. **Sync all pending**, and **Sync selected** for a selection of **Different** resources, copy the GDA image chosen on each image's card, or else its most likely GDA image, the closest GDA file of any other file, or of each different frame of a sequence, over the game resource (`POST /api/rss-sync/copy`, with the chosen image of each image in `gdaFiles`; the backend refuses one that is not a candidate of the image in the report), back up the replaced file, and start a new comparison. For other selections the button reads **Remove declarations** (**Invalid**), **Delete selected** (**Supplementary**), or **Apply to selected** (several statuses), and a confirmation lists the resources by action before `POST /api/rss-sync/apply` applies them. Each resource is sent with the status it was selected with, and one that a newer report gives another status is refused. The sidebar's Sync badge counts the report summary's resources that are not in sync. Without a report it shows only a notice and Rescan. |
 | [SyncInProgressView.vue](frontend/src/views/SyncInProgressView.vue) | The sidebar's **In sync** page (`rssSync`). Displays the resource comparison report with **In sync**, **Missing**, **Different**, **Invalid**, and **Supplementary** categories, scan progress, matching GDA paths, descriptor references, and DDS mip-level differences. An image sequence is one row with its id and how it plays, and its GDA files are summed up by folder. |
