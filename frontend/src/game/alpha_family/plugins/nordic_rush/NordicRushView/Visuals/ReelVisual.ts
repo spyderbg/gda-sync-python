@@ -43,7 +43,7 @@ export class ReelVisual extends BaseVisual {
   private m_hasAttraction = false;
   private m_bStoppedSoundPlayed = false;
   private m_bAttractionSoundPlayed = false;
-  private readonly m_usReelMovPiece: number;
+  private m_usReelMovPiece: number;
   private m_usReelTicksStopEvent = 0;
   private m_wildId: SymbolId = -1;
 
@@ -84,6 +84,43 @@ export class ReelVisual extends BaseVisual {
         ids.push(text.GetId());
       }
     }
+  }
+
+  /** Takes its view's config again, changed while the game plays: it makes its symbols' elements again, and reads its
+   * step per tick and its stop's ticks again; it keeps its symbols and where it is.
+   * @browserOnly */
+  ReloadConfig() {
+    const config = this.m_baseReelsView.GetReelsViewConfig();
+    for (const ids of this.m_symbolElementIds.values()) this.m_elementsList.Remove(ids);
+    this.m_symbolElementIds.clear();
+    this.m_usReelMovPiece = config.reelingParamsConfig.normalDeltaPosPerTick;
+    for (const it of config.symbolsConfig) {
+      const ids: string[] = [];
+      this.m_symbolElementIds.set(it.id, ids);
+
+      const image = this.m_elementsList.Create(ImageElement, it.rssId).SetAlignment(Alignment.MiddleCenter);
+      image.SetHidden(true);
+      ids.push(image.GetId());
+
+      if ((it.overlayImage?.rssId ?? '') !== '') {
+        const overlay = this.m_elementsList.Create(ImageElement, it.overlayImage!.rssId)
+          .SetPivot({ x: it.overlayImage!.ox, y: it.overlayImage!.oy })
+          .SetAlignment(Alignment.MiddleCenter);
+        overlay.SetHidden(true);
+        ids.push(overlay.GetId());
+      }
+
+      if ((it.overlayText?.text ?? '') !== '') {
+        const text = this.m_elementsList.Create(TextElement);
+        text.SetStyleId(it.overlayText!.styleId);
+        text.SetPivot({ x: it.overlayText!.ox, y: it.overlayText!.oy });
+        text.SetAlignment(Alignment.MiddleCenter);
+        text.SetText(it.overlayText!.text);
+        text.SetHidden(true);
+        ids.push(text.GetId());
+      }
+    }
+    this.SetSubScreenIdx(this.GetSubScreenIdx());
   }
 
   private get subScreen() {

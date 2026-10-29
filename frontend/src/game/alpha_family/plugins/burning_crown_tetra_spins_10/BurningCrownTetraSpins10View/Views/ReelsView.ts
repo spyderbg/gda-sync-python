@@ -2,6 +2,7 @@
 
 import { IsArrayOf } from '@game/engine/GameCore/Common/ContainerHelpers';
 import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { BrowserOnly } from '@game/engine/GameCore/Common/BrowserOnly';
 import { IAudioApi, type IAudioPlayback } from '@game/engine/Game/RuntimeImport/IAudioApi';
 import { IResources } from '@game/engine/Game/RuntimeExport/IResources';
 import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
@@ -42,6 +43,8 @@ export class ReelsView extends BaseView implements IReelsView, BaseReelsView {
     this.RuntimeAdd(IReelsView, this);
     this.RuntimeAdd(IReelsView.Events, this.m_events);
     this.LoadConfig();
+    // when its config's file changes, the reels make their symbols again from it
+    BrowserOnly(() => this.WatchConfig('ReelsViewConfig', () => this.ReloadConfig()));
     this.InitElementsList(ReelsViewId);
     return true;
   }
@@ -230,6 +233,18 @@ export class ReelsView extends BaseView implements IReelsView, BaseReelsView {
 
   private LoadConfig() {
     this.m_config = this.RuntimeGet(IResources).GetIData<ReelsViewConfig>('ReelsViewConfig');
+  }
+
+  /** Reads its config again, when its file changed, once its reels have stopped: they make their symbols again from it.
+   * @browserOnly */
+  private ReloadConfig() {
+    if (this.m_reels.some(reel => !reel.HasStopped())) return false;
+    this.LoadConfig();
+    for (const reel of this.m_reels) {
+      reel.ReloadConfig();
+      reel.SetWildId(this.m_config.reelingParamsConfig.wildSymbolId);
+    }
+    return true;
   }
 
   /** The sound of the reel that stopped: its category's sound (BurningCrownTetraSpins10 has no scatters or expanding

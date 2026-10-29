@@ -2,6 +2,7 @@
 // reels' winning symbols, and the jokers over a stack of winning wilds, which fade in over the single wilds.
 
 import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { BrowserOnly } from '@game/engine/GameCore/Common/BrowserOnly';
 import { IResources } from '@game/engine/Game/RuntimeExport/IResources';
 import { EraseIf } from '@game/engine/GameCore/Common/ContainerHelpers';
 import { AssertUnless, Unless } from '@game/engine/GameCore/Common/Defensive';
@@ -52,6 +53,8 @@ export class WinFiguresView extends BaseView implements IWinFiguresView {
 
     const resources = this.RuntimeGet(IResources);
     this.m_config = resources.GetIData<WinFiguresViewConfig>('WinFiguresViewConfig');
+    // when its config's file changes, the figures shown are made again from it
+    BrowserOnly(() => this.WatchConfig('WinFiguresViewConfig', () => this.ReloadConfig()));
 
     return true;
   }
@@ -64,6 +67,20 @@ export class WinFiguresView extends BaseView implements IWinFiguresView {
     this.RuntimeRemove(IWinFiguresView.Events);
 
     super.Deinit();
+  }
+
+  /** Reads its config again, when its file changed, and makes the figures shown again from it (from their loops), and the
+   * jokers over the stacked wilds, which fade in again.
+   * @browserOnly */
+  private ReloadConfig() {
+    this.m_config = this.RuntimeGet(IResources).GetIData<WinFiguresViewConfig>('WinFiguresViewConfig');
+    this.RemoveWinFigures();
+    if (!this.m_allWinSymbols.length) return;
+
+    this.CreateWinFigures(this.m_allWinSymbols, true);
+    this.CreateWildFigures();
+    this.CreateWildCrossFade();
+    tweeny.start(this.m_wildCrossFade);
   }
 
   // IWinFiguresView

@@ -39,7 +39,7 @@ export class ReelVisual extends BaseVisual {
   private m_hasAttraction = false;
   private m_bStoppedSoundPlayed = false;
   private m_bAttractionSoundPlayed = false;
-  private readonly m_usReelMovPiece: number;
+  private m_usReelMovPiece: number;
   private m_usReelTicksStopEvent = 0;
   private m_wildId: SymbolId = -1;
 
@@ -53,6 +53,22 @@ export class ReelVisual extends BaseVisual {
       image.SetHidden(true); // drawn by the reel only
       this.m_resIds.set(symbol.id, image.GetId());
     }
+  }
+
+  /** Takes its view's config again, changed while the game plays: it makes its symbols' elements again, and reads its
+   * step per tick and its stop's ticks again; it keeps its symbols and where it is.
+   * @browserOnly */
+  ReloadConfig() {
+    const config = this.m_baseReelsView.GetReelsViewConfig();
+    this.m_elementsList.Remove([...this.m_resIds.values()]);
+    this.m_resIds.clear();
+    this.m_usReelMovPiece = config.reelingParamsConfig.normalDeltaPosPerTick;
+    for (const symbol of config.symbolsConfig) {
+      const image = this.m_elementsList.Create(ImageElement, symbol.rssId).SetAlignment(Alignment.MiddleCenter);
+      image.SetHidden(true); // drawn by the reel only
+      this.m_resIds.set(symbol.id, image.GetId());
+    }
+    this.SetSubScreenIdx(this.GetSubScreenIdx());
   }
 
   private get subScreen() {

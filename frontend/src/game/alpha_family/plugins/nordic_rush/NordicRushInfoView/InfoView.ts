@@ -15,6 +15,7 @@ import { ElementsList } from '@game/engine/GameVideoCtrl/ViewElements/ElementsLi
 import { TextElement } from '@game/engine/GameVideoCtrl/ViewElements/TextElement';
 import { ILocalization } from '@game/engine/Game/RuntimeImport/ILocalization';
 import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { BrowserOnly } from '@game/engine/GameCore/Common/BrowserOnly';
 import { Unless } from '@game/engine/GameCore/Common/Defensive';
 import type { uint32_t } from '@game/engine/GameCore/Common/Types';
 import { Stopwatch } from '@game/engine/GameCore/Tools/Timers';
@@ -365,6 +366,8 @@ export class InfoView extends BaseView implements IInfoView {
     this.InitElementsList(InfoViewId, () => {
       this.OnElementsListLoaded();
     });
+    // when its config's file changes, its pages are placed and animated again from it
+    BrowserOnly(() => this.WatchConfig('InfoViewConfig', () => this.ReloadConfig()));
     this.InitElementsListsExtended();
 
     this.m_data.language = 'English';
@@ -397,6 +400,16 @@ export class InfoView extends BaseView implements IInfoView {
 
   private LoadConfig() {
     this.m_config = this.RuntimeGet(IResources).GetIData<InfoViewConfig>('InfoViewConfig');
+  }
+
+  /** Reads its config again, when its file changed, and makes again what it made from it, as when its elements list
+   * loads, once no page slides in.
+   * @browserOnly */
+  private ReloadConfig() {
+    if (this.m_nextPage !== EInfoViewPageType.Undefined) return false;
+    this.OnElementsListLoaded();
+    this.m_currentPageTransform.set_position(this.GetCurrentPageDefaultPos());
+    return true;
   }
 
   private InitAnimations() {

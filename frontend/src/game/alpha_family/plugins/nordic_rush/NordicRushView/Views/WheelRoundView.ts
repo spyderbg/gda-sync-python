@@ -10,6 +10,7 @@ import { RemapClamped } from '@game/engine/GameCore/Common/Interpolation';
 import { type float, type int, type int64_t, type size_t, static_cast } from '@game/engine/GameCore/Common/Types';
 import { EgtALogCategoryClass } from '@game/engine/GameCore/Log/LogCategory';
 import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { BrowserOnly } from '@game/engine/GameCore/Common/BrowserOnly';
 import { AnimElement } from '@game/engine/GameVideoCtrl/ViewElements/AnimElement';
 import { ImageElement } from '@game/engine/GameVideoCtrl/ViewElements/ImageElement';
 import { TextElement } from '@game/engine/GameVideoCtrl/ViewElements/TextElement';
@@ -208,6 +209,8 @@ export class WheelRoundView extends BaseView implements IWheelRoundView {
     });
 
     this.LoadConfig();
+    // when its config's file changes, the sectors' wins are written again with it
+    BrowserOnly(() => this.WatchConfig('WheelRoundViewConfig', () => this.ReloadConfig()));
     this.SetVisible(false);
 
     return true;
@@ -604,6 +607,13 @@ export class WheelRoundView extends BaseView implements IWheelRoundView {
   private LoadConfig() {
     const resources = this.RuntimeGet(IResources);
     this.m_config = resources.GetIData<WheelRoundViewConfig>('WheelRoundViewConfig');
+  }
+
+  /** Reads its config again, when its file changed, and writes the sectors' wins again with it.
+   * @browserOnly */
+  private ReloadConfig() {
+    this.LoadConfig();
+    if (this.m_elementsList.IsLoaded()) this.SetSectorWinsText();
   }
 }
 

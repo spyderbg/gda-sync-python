@@ -11,6 +11,7 @@ import { BaseView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/BaseView'
 import { IResources } from '@game/engine/Game/RuntimeExport/IResources';
 import { ILocalization } from '@game/engine/Game/RuntimeImport/ILocalization';
 import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { BrowserOnly } from '@game/engine/GameCore/Common/BrowserOnly';
 import type { uint32_t } from '@game/engine/GameCore/Common/Types';
 import { Stopwatch } from '@game/engine/GameCore/Tools/Timers';
 import { transformf, vec3 } from '@game/hat_libs/egt_math/transform';
@@ -319,6 +320,8 @@ export class InfoView extends BaseView implements IInfoView {
     this.InitElementsList(InfoViewId, () => {
       this.OnElementsListLoaded();
     });
+    // when its config's file changes, its pages are placed and animated again from it
+    BrowserOnly(() => this.WatchConfig('InfoViewConfig', () => this.ReloadConfig()));
     this.m_data.language = 'English';
     this.m_data.certificationCode = 'TEST : CUSTOM CERTIFICATION CODE';
     this.m_data.serialNumber = 'TEST: SERIAL NUMBER';
@@ -349,6 +352,16 @@ export class InfoView extends BaseView implements IInfoView {
 
   private LoadConfig() {
     this.m_config = this.RuntimeGet(IResources).GetIData<InfoViewConfig>('InfoViewConfig');
+  }
+
+  /** Reads its config again, when its file changed, and makes again what it made from it, as when its elements list
+   * loads, once no page slides in.
+   * @browserOnly */
+  private ReloadConfig() {
+    if (this.m_nextPage !== EInfoViewPageType.Undefined) return false;
+    this.OnElementsListLoaded();
+    this.m_currentPageTransform.set_position(this.GetCurrentPageDefaultPos());
+    return true;
   }
 
   private InitAnimations() {

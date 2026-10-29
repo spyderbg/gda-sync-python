@@ -42,6 +42,17 @@ export class DimSubScreenVisual extends BaseVisual {
     this.m_elementsList.TryGet(this.m_elementId)?.SetHidden(!isDimmed);
   }
 
+  /** Makes its image again from its view's config, changed while the game plays, dimmed as it was.
+   * @browserOnly */
+  ReloadConfig() {
+    const isDimmed = this.m_elementsList.TryGet(this.m_elementId)?.GetHidden() === false;
+    this.RemoveElementId(this.m_elementId);
+    this.m_elementId = '';
+    this.CreateImageElement();
+    this.SetSubScreenIdx(this.GetSubScreenIdx());
+    this.SetDimmed(isDimmed);
+  }
+
   private CreateImageElement() {
     const rssKey = this.m_dimSubScreenConfig.dimImageRssKeys?.[DimKey];
     if (!rssKey) return;

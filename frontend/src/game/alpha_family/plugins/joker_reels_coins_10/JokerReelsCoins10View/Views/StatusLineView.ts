@@ -4,6 +4,7 @@
 
 import { IResources } from '@game/engine/Game/RuntimeExport/IResources';
 import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { BrowserOnly } from '@game/engine/GameCore/Common/BrowserOnly';
 import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
 import { Alignment } from '@game/engine/GameVideoCtrl/ViewElements/BaseElement';
 import { make_sentinel, sentinel } from '@game/hat_libs/egt_hpp/sentinel';
@@ -100,6 +101,8 @@ export class StatusLineView extends BaseView implements IStatusLineView {
     this.RuntimeAdd(IStatusLineView.Events, this.m_events);
 
     this.LoadConfig();
+    // when its config's file changes, what it shows is made again from it
+    BrowserOnly(() => this.WatchConfig('StatusLineViewConfig', () => this.ReloadConfig()));
     this.InitElementsList(StatusLineViewId, () => {
       this.OnElementsListLoaded();
     });
@@ -361,5 +364,13 @@ export class StatusLineView extends BaseView implements IStatusLineView {
 
   private LoadConfig() {
     this.m_config = this.RuntimeGet(IResources).GetIData<StatusLineViewConfig>('StatusLineViewConfig');
+  }
+
+  /** Reads its config again, when its file changed, and makes again what it shows from it, as when its elements list
+   * loads.
+   * @browserOnly */
+  private ReloadConfig() {
+    this.LoadConfig();
+    this.OnElementsListLoaded();
   }
 }

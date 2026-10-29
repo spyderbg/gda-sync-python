@@ -3,6 +3,7 @@
 
 import type { Point, RssRect } from '@game/engine/Game/RuntimeExport/IResources';
 import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { BrowserOnly } from '@game/engine/GameCore/Common/BrowserOnly';
 import { make_sentinel, sentinel } from '@game/hat_libs/egt_hpp/sentinel';
 import * as tweeny from '@game/hat_libs/tweeny/tweeny';
 import { Stopwatch } from '@game/engine/GameCore/Tools/Timers';
@@ -68,6 +69,8 @@ export class TetraRoundView extends BaseView implements ITetraRoundView, BaseRee
     this.RuntimeAdd(ITetraRoundView, this);
     this.RuntimeAdd(ITetraRoundView.Events, this.m_events);
     this.LoadConfig();
+    // when its config's file changes, the reels and the sub screens' dimming are made again from it
+    BrowserOnly(() => this.WatchConfig('TetraRoundViewConfig', () => this.ReloadConfig()));
     this.m_linesAnimations = this.m_config.subScreensConfig.subScreens.map(() => ({
       blink: new tweeny.tween_action(), showTimer: new tweeny.tween_action(), showFast: false, finishedPosted: false, pendingClear: false,
     }));
@@ -499,6 +502,20 @@ export class TetraRoundView extends BaseView implements ITetraRoundView, BaseRee
 
   private LoadConfig() {
     this.m_config = this.RuntimeGet(IResources).GetIData<ReelsViewConfig>('TetraRoundViewConfig');
+  }
+
+  /** Reads its config again, when its file changed, once its reels have stopped: they and the sub screens' dimming make
+   * their images again from it (the lines and figures read it as they are shown).
+   * @browserOnly */
+  private ReloadConfig() {
+    if (this.m_reels.some(reel => !reel.HasStopped())) return false;
+    this.LoadConfig();
+    for (const reel of this.m_reels) {
+      reel.ReloadConfig();
+      reel.SetWildId(this.m_config.reelingParamsConfig.wildSymbolId);
+    }
+    for (const dimVisual of this.m_dimSubScreens) dimVisual.ReloadConfig();
+    return true;
   }
 
   private ChooseStopSound(subScreenIdx: number, reelIdx: number) {

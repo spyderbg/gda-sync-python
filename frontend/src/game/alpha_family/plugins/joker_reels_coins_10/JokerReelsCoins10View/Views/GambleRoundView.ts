@@ -9,6 +9,7 @@ import { assert, Unless } from '@game/engine/GameCore/Common/Defensive';
 import { Copy, type int, type int64_t, type int8_t, type size_t, static_cast } from '@game/engine/GameCore/Common/Types';
 import { EgtALogCategoryClass } from '@game/engine/GameCore/Log/LogCategory';
 import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { BrowserOnly } from '@game/engine/GameCore/Common/BrowserOnly';
 import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
 import { AnimElement } from '@game/engine/GameVideoCtrl/ViewElements/AnimElement';
 import { ImageElement } from '@game/engine/GameVideoCtrl/ViewElements/ImageElement';
@@ -156,6 +157,8 @@ export class GambleRoundView extends BaseView implements IGambleRoundView {
     this.InitElementsList(GambleRoundViewId, () => {
       this.OnElementsListLoaded();
     });
+    // when its config's file changes, its cards' slides and history are made again from it
+    BrowserOnly(() => this.WatchConfig('GambleRoundViewConfig', () => this.ReloadConfig()));
 
     this.SetVisible(false);
     return true;
@@ -176,6 +179,18 @@ export class GambleRoundView extends BaseView implements IGambleRoundView {
     this.m_config = resources.GetIData<GambleRoundViewConfig>('GambleRoundViewConfig');
 
     assert(this.m_config.visibleHistorySize <= static_cast<int>(HistoryCardIds.length));
+  }
+
+  /** Reads its config again, when its file changed, and makes its animations (the cards' slides) and its history again
+   * from it, once none of the animations whose end the round waits for runs.
+   * @browserOnly */
+  private ReloadConfig() {
+    const animations = [this.m_actionIdle, this.m_actionResult, this.m_actionSlideCards];
+    if (animations.some(action => tweeny.is_running(action) || tweeny.is_paused(action))) return false;
+    this.LoadConfig();
+    this.InitAnimations();
+    this.OnHistoryChanged();
+    return true;
   }
 
   Deinit() {

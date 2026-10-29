@@ -112,9 +112,22 @@ wheel, or a win.
 - An IData file (`idata/1920x1080/<View>.json`) can be edited while the game plays too (the browser game's: C++ reads
   an IData into its struct once). The resource manager watches every IData file, and gives the IData's object the
   changed values in place, so that a view's config, which is that object, and the parts of it its visuals hold, have
-  them: what the view reads from its config when it draws or makes something shows the change, such as the win squares'
-  offsets (`winSquareOffsets`) at the next win. What a view made from its config when it started (its reels and their
-  symbols, a timer's duration) keeps the old values until the game starts again.
+  them: what a view reads from its config when it draws or shows something takes the change there, such as the win
+  squares' offsets (`winSquareOffsets`) at the next win. What it made from its config, every view with a config makes
+  again: it watches the config (`BaseView.WatchConfig`, called in `BrowserOnly(...)`), and on its next `Process` its
+  `ReloadConfig` (`@browserOnly`) reads it again and makes again
+  - the lines view's (`LinesView.json`): its autoplay idle timer, and the lines shown, whose show starts over (the fast
+    show with its sound);
+  - the status line's (`StatusLineView.json`) and the info screen's (`DefaultInfoView.json`, or the integration's):
+    what they show, as when their elements list loads (the info screen once no page slides in);
+  - the reels' (`ReelsView.json`, and the tetra round's `TetraRoundView.json`): their symbols' images, step per tick and
+    stop ticks, and the tetra sub screens' dimming, once the reels have stopped;
+  - the win figures' (`WinFiguresView.json`): the figures shown, from their loops (Nordic Rush's once no comets fly);
+  - the wheel's (`WheelRoundView.json`): the sectors' wins' texts; the gamble's (`GambleRoundView.json`): the cards'
+    slides and its history, once none of its animations runs.
+
+  A view's callback returns false while what it would make again is busy, and is called again on the next `Process`.
+  The tetra round's number of sub screens keeps its old value until the game starts again.
 - The math was checked by simulation: the main round of `var_10BCTS_8435.json` returns about 84.0–84.5% over 3 million
   rounds (the setup's `simRtp` is 84.35%), the tetra round about 100% over 600,000 rounds.
 

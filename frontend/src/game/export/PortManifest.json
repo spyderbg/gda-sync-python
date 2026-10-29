@@ -2094,8 +2094,8 @@
    "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/BaseView.h",
    "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/BaseView.cpp"
   ],
-  "sha256": "826f9a57bc7c4860dfe44431afb7da6c6d3f00d52954fd3cd54a6c24064c39b4",
-  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "sha256": "1147b21d03be3c38a2010523e204437201932f1475d1edeca3b0087fefd997d8",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/BaseView.h": "ee77778cbf2f64fbe558e41530e0e58aeff69f0b7a087d02fb6d9d55900f9ff9",
    "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/BaseView.cpp": "c17f1e5b76ad99874e9fc04717d076fbd686a6160d467c2edda685456dcb6e55"
@@ -2184,8 +2184,8 @@
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10InfoView/InfoView.h",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10InfoView/InfoView.cpp"
   ],
-  "sha256": "272cd80b1f64a263ffb45b2f38a0928c36ea2383f7b688854790f813a8b3ff2a",
-  "cppCommit": "f0c46d2a37422c811dea77221127db2101f537dd",
+  "sha256": "c3dc118fb4bc3516a374b4a97338d0657c5d7e498bfe26f00f82ba7b9ad64e7b",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
   "cppSha256": {
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10InfoView/InfoView.h": "1c6624fc55b2f146526111f6b7bde06b0f3c304e29c6f08350a6549870622533",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10InfoView/InfoView.cpp": "d0115a02545ab47886de2899e251846da286bb8a5ed9b05abcc66e962accfe50"
@@ -2574,8 +2574,8 @@
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/LinesView.h",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/LinesView.cpp"
   ],
-  "sha256": "eb264523e5e3ed9cb3ecc27383871bee6796192e677a80e2c5d9e78a82da1a03",
-  "cppCommit": "f0c46d2a37422c811dea77221127db2101f537dd",
+  "sha256": "903dc66c4d022a0a80b224ce12a2430511d898c8c00d7999a9fec1f1a45e6671",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
   "cppSha256": {
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/LinesView.h": "3e2be33b72fa94a6e547a315c12d0d3477603ed46534d684b8c3d7f928ead0ce",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/LinesView.cpp": "be5907a50d4c62f9b8d13f14e722e52cc26e175288fb36e1d0836684bc39e246"
@@ -2606,8 +2606,8 @@
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/ReelsView.h",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/ReelsView.cpp"
   ],
-  "sha256": "0f94e05d6459b1ef9dea30f562efc9fb3e98b10a479b62dcf34505530201b847",
-  "cppCommit": "f0c46d2a37422c811dea77221127db2101f537dd",
+  "sha256": "c1444e71450822241fb10f1e2f86c09edead89abab36a3b7cda00f2c6975f6e4",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
   "cppSha256": {
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/ReelsView.h": "e78990d494bd8051a63cc8f2a8517692c112bd6a899b6e06d35b74b0dbad69e8",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/ReelsView.cpp": "dbf8b603092009f0e67115496424e9ad9f80d5aa6534df70fb400ee93bc4028f"
@@ -2640,8 +2640,8 @@
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/StatusLineView.h",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/StatusLineView.cpp"
   ],
-  "sha256": "fe16a8d82379bf81f463986c88fbf735078b73ee062845621709f8574754be50",
-  "cppCommit": "9d7930a1cd2322b661f223fd2821c93554d5dea2",
+  "sha256": "c2e531cc3ce4f0470e6cef91b3e9251f0a7deee18ee802feb90178d811f6dce2",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
   "cppSha256": {
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/StatusLineView.h": "c39c87a3381af5c6a407885d2830804f651516f433db9c7abbc9002bd915e758",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/StatusLineView.cpp": "22de67a6e1879d9c0fb7308e5d9acb8a4f6415eb47d3a12f6343c4ed9ce73039"
@@ -2664,8 +2664,8 @@
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/TetraRoundView.h",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/TetraRoundView.cpp"
   ],
-  "sha256": "77646e3591baa9010015c6f99608d53375220eb4930e42d1b416ae009cf5cd30",
-  "cppCommit": "f0c46d2a37422c811dea77221127db2101f537dd",
+  "sha256": "c5e6199e015c6bd34ce21149dd4eeffee723d3ebe9bc3570da1fbcf97219813e",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
   "cppSha256": {
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/TetraRoundView.h": "b97ff58b410e8d2df4ae3573d1070f9ca50457962ab96d5c2d6bf490d15ae524",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/TetraRoundView.cpp": "0d506b3b84542110894aa6cc108a52c66bb6ec5c64b7d2f5c723ed5bb52c0cb6"
@@ -2688,8 +2688,8 @@
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/WinFiguresView.h",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/WinFiguresView.cpp"
   ],
-  "sha256": "3a1761294f47a3d015be75879265cd47a020ff40f34dcd32d0205fdb3059bc55",
-  "cppCommit": "f0c46d2a37422c811dea77221127db2101f537dd",
+  "sha256": "bf22aeb6b7e2197c3793e717f2115f05fe005f5f4d2f2a2cf76f5ef5cd19e780",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
   "cppSha256": {
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/WinFiguresView.h": "a07022ec78f6fc178da0523b309b214e13a2b17a28c140478dd8af8c5c3ad8f1",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/WinFiguresView.cpp": "7b438a5e80b3c0306ce00731e9428dc28f97a47743f1bc094bd4b0093cb22dec"
@@ -2712,8 +2712,8 @@
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Visuals/DimSubScreenVisual.h",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Visuals/DimSubScreenVisual.cpp"
   ],
-  "sha256": "5c4bfaf6eef6602bb99f8d5d97307d461b79b4e33f37d31a23308adc4a706ffc",
-  "cppCommit": "f0c46d2a37422c811dea77221127db2101f537dd",
+  "sha256": "ecdaa790bedcd1c922db3173f7ef6d16e84b01c5dcc0a5c5eaf711e065411b53",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
   "cppSha256": {
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Visuals/DimSubScreenVisual.h": "46dcb7f54a50f3bd25211b5fb37b59b7d90673a5cbcaa52ada55f857f1cab896",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Visuals/DimSubScreenVisual.cpp": "f9c15c179ce94bfec8b62fcdf7ec049323a5b2efd6f83dd281b31170c0137778"
@@ -2748,8 +2748,8 @@
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Visuals/ReelVisual.h",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Visuals/ReelVisual.cpp"
   ],
-  "sha256": "eea69ec3a9d842aeb8dac6bc71d8c59b1f0b639adf6a418a3c1010f39a0836f7",
-  "cppCommit": "f0c46d2a37422c811dea77221127db2101f537dd",
+  "sha256": "c0ae32dc22dac0353ebc32e67261eb859ae39a1a641f86e4d86fd7c688bff078",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
   "cppSha256": {
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Visuals/ReelVisual.h": "caf90cd3b02525aeb113200a1c792db55614e5a5b40e5e0436ee1dda25219826",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Visuals/ReelVisual.cpp": "d7cfb822b03ca99b4635f74e3afb98f2379644950b1670cbc777e10b0d11ed68"
@@ -2840,8 +2840,8 @@
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsInfoView/InfoView.h",
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsInfoView/InfoView.cpp"
   ],
-  "sha256": "bd70ba499316d188438276ef5162b21417afc0a85a0a934b9c84cf3b879da9d7",
-  "cppCommit": "0be2c0e3236b529c2f02da30807ff1af190f4895",
+  "sha256": "53ebcf057dac83738966a17aef3887d3ba3e597051b834d3e4360fab09873946",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
   "cppSha256": {
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsInfoView/InfoView.h": "b1c981be93e319016470c7b76bd0f58a81c9083e866842c6a338ef1ab903c837",
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsInfoView/InfoView.cpp": "8b6689e79cfd833ff7b73710492752b472d909ec4d2c4efd82c7789576bab904"
@@ -3264,8 +3264,8 @@
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/GambleRoundView.h",
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/GambleRoundView.cpp"
   ],
-  "sha256": "b5fd3a075f9dd1d98229f8cc29ce8664e7b5408242588891144783a7ce1887de",
-  "cppCommit": "0be2c0e3236b529c2f02da30807ff1af190f4895",
+  "sha256": "47fc070d9f6af3880f2a7598ff79da6c8ddb7fade3491d3db653c395bbea8499",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
   "cppSha256": {
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/GambleRoundView.h": "b48b9c2f96ea8732f40ea3d16828b0e84b90f7ce93017164c233e264d81f551e",
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/GambleRoundView.cpp": "9ffcd523eb419be49cab8231d5ddb525effa1de1a1a0038e5d23563a47371b9a"
@@ -3322,8 +3322,8 @@
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/LinesView.h",
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/LinesView.cpp"
   ],
-  "sha256": "844ee152b4db3e159f09cabaa9b9674a4e8a00f59d5aa1344ba6a43a8a05db68",
-  "cppCommit": "0be2c0e3236b529c2f02da30807ff1af190f4895",
+  "sha256": "53db3bf92cdbe7f89e8f77dbdc7a7a35c1e85c333ab535b9963c781c142c7f6e",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
   "cppSha256": {
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/LinesView.h": "fd7b587d355b2a3f4c3c1cdc5a7fe977f583d231f81cd3bcebd516672052843b",
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/LinesView.cpp": "75186eb88b9bb8efe186ca78b333289c0ca99c4efe5c9a8b9d50d87ae0df5c74"
@@ -3354,8 +3354,8 @@
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/ReelsView.h",
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/ReelsView.cpp"
   ],
-  "sha256": "419daaedf9fb6cf1cf1131a1d98c22918da21330760512cecc8f3e91c4e0a856",
-  "cppCommit": "0be2c0e3236b529c2f02da30807ff1af190f4895",
+  "sha256": "36268e3e1a1200aa4b3eb07033f425d216e8449cf246783a73dc5812aa168196",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
   "cppSha256": {
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/ReelsView.h": "75e9c41ddb5e5897f0f68c2a5bb526fbc9c776545db5970a66905039fda18f3b",
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/ReelsView.cpp": "fa4437c0ae3bbc7cbbf44ba7cfc6955578648781eaf781f0f5687e8ebbd643ed"
@@ -3388,8 +3388,8 @@
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/StatusLineView.h",
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/StatusLineView.cpp"
   ],
-  "sha256": "7e5bf2aea8913b9476c1cc56730751d8766832f5b3fdd890c92a048324f8e030",
-  "cppCommit": "0be2c0e3236b529c2f02da30807ff1af190f4895",
+  "sha256": "ea9563de7325223550bb7975e36497e2c01eec7c116511ee8197bea9b0b2f863",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
   "cppSha256": {
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/StatusLineView.h": "8565a7e9b834c0941d51b618645ae10924b472ccab8fecffe30575dda74f41ae",
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/StatusLineView.cpp": "5cf26772cc38e7f8afb7e95135e42fbb062a480960cf7df5c505db94028b517b"
@@ -3422,8 +3422,8 @@
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/WheelRoundView.h",
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/WheelRoundView.cpp"
   ],
-  "sha256": "763bdf8328b560c72ff486c825d435a0a4fdbad06bc47f2900581229e08ba57b",
-  "cppCommit": "0be2c0e3236b529c2f02da30807ff1af190f4895",
+  "sha256": "44f820ed0ec9067a64f2a2c829d80fd56d395c717361720ea5f00050437c46a3",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
   "cppSha256": {
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/WheelRoundView.h": "0e8061a44b45e52d353275e995a2ed111bf2de003faa8d765452b58296baf983",
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/WheelRoundView.cpp": "035cedea000e0c1413ff757bdcf70708d4ee655282eb3d8f43c44e7c0177ac15"
@@ -3444,8 +3444,8 @@
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/WinFiguresView.h",
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/WinFiguresView.cpp"
   ],
-  "sha256": "aa32e604fe1cdcf89733fa9f29f4051eb619fda63f122a4228ae0a0ea106b87d",
-  "cppCommit": "0be2c0e3236b529c2f02da30807ff1af190f4895",
+  "sha256": "057e3fea646928695723e121a1989edff1024e0ba7727ad9868b41f932594133",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
   "cppSha256": {
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/WinFiguresView.h": "832b9fa643845b46fc4380f11a07abbcceba240edbb2085c75842ffe86c248ba",
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/WinFiguresView.cpp": "fd6b591ff0dff4d74ef7e84592d78cf452b4ca30f4734c0e9f79a5568f1a3fa9"
@@ -3490,8 +3490,8 @@
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Visuals/ReelVisual.h",
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Visuals/ReelVisual.cpp"
   ],
-  "sha256": "169b59412f1d8a42106ae42b1678d59384d960ee0b691f3c34becbd8cceaa69c",
-  "cppCommit": "0be2c0e3236b529c2f02da30807ff1af190f4895",
+  "sha256": "d0228a6dd54af4f678a57bf58d3793ab52b0eb9ef9a9dbf15c901d796ee79481",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
   "cppSha256": {
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Visuals/ReelVisual.h": "5a0bed7adad9ed7d64ae31bc9c1aa952f47f331324dc0638450bda7f6c387528",
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Visuals/ReelVisual.cpp": "72ef51ad5ec6349cf74afa49cede3b560d231292ffa4f0c38fa4d80fc0317d60"
@@ -3568,7 +3568,7 @@
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10InfoView/InfoView.h",
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10InfoView/InfoView.cpp"
   ],
-  "sha256": "c943e13ccdf75176dfa8609524025307a71d263140ec3af9406584075d46235f",
+  "sha256": "c95cd13026449197f2ce0680b19eed8eee5f25ab0f306fefa564c45b30b0f2f1",
   "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
   "cppSha256": {
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10InfoView/InfoView.h": "34de7e1df92a7093c48d06903871e7607b42e5a2b5d6c77d0a47e4f1b9fa7bce",
@@ -3980,7 +3980,7 @@
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/GambleRoundView.h",
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/GambleRoundView.cpp"
   ],
-  "sha256": "181f0d543671ebacf4353f4b5bc9ac2c9b44f992265396542ec75b87d64bbcf9",
+  "sha256": "bcbc1839b5a41ee61003cfe11321ebe8aba5a25119be88447535bc476364ce3a",
   "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
   "cppSha256": {
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/GambleRoundView.h": "a414ee3f66380fa1fd01c4fbc0f2976dd410863f6b480b1c69432872a284b164",
@@ -4038,7 +4038,7 @@
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/LinesView.h",
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/LinesView.cpp"
   ],
-  "sha256": "c77b2fe4ef91c92425481e0bf87cad73dcd3740095d2f0ecd74404d7ff962a55",
+  "sha256": "7646f28a71b4ab6153701bbbca0dbd8e50758b3ad079f0808cd8f40f8c85b9c3",
   "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
   "cppSha256": {
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/LinesView.h": "bb9b8cb3a2a27ace4945460e250b8a45ec33e6e5f829a971639ccf7ce9cf1425",
@@ -4070,7 +4070,7 @@
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/ReelsView.h",
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/ReelsView.cpp"
   ],
-  "sha256": "c9e71af4ebaccca0417265b73b0d983db8360ce0e12fb00aa5d3a4cfc35c3ed8",
+  "sha256": "126e7a84008c1d30c9864f32706b47c3d6e1aaf055031653743ebfb3b23971c9",
   "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
   "cppSha256": {
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/ReelsView.h": "f1fa76a2a8158214f41702065636ffd55e5eb59cf92a71120eca29f264efbc78",
@@ -4104,7 +4104,7 @@
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/StatusLineView.h",
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/StatusLineView.cpp"
   ],
-  "sha256": "c9f90681d06264128879dc0ff690189b0e608da35a34ae0deae1a0a4ebd59b4e",
+  "sha256": "495f635c575c575dec3d0050c7adeb1217be18ecf9b4eed72fd50d1fbd1375f5",
   "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
   "cppSha256": {
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/StatusLineView.h": "d369345e4343058aa566987d8421cede7e50157a4f760e7bad438acae09c2c0e",
@@ -4138,7 +4138,7 @@
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/WheelRoundView.h",
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/WheelRoundView.cpp"
   ],
-  "sha256": "eb96e0b61e10dc7cb38104614197781ffb8e77a85336d9a764f924723777a84c",
+  "sha256": "454b088d95e7a8eb26255fa78e31b36d690eaded4f602bdd2d4ee3c3092f6baf",
   "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
   "cppSha256": {
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/WheelRoundView.h": "f61f7f1c2d8ba09913c16c993da16b30ee8b866c54463be476db12261e39a3ee",
@@ -4160,7 +4160,7 @@
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/WinFiguresView.h",
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/WinFiguresView.cpp"
   ],
-  "sha256": "6868272225ae45a3745cd7c69c6629f65c02970dd9d020b048c11b44c630db89",
+  "sha256": "dfde77e1637836ba7f4f2a3b5c2c4d814dfc69ce10f19cbc52986ebaeb751faa",
   "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
   "cppSha256": {
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/WinFiguresView.h": "1cf2693e747b3a20bb8ec5635cf96547f1cbd9d8bdd8308683119c28623bd914",
@@ -4206,7 +4206,7 @@
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Visuals/ReelVisual.h",
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Visuals/ReelVisual.cpp"
   ],
-  "sha256": "8e8081d89a92c593b7d68e6ecc21dd9889e2ca748e38081a6ee8b297a3796738",
+  "sha256": "3113319c6584339b1fe15257c799aab852ba8997ef6ec454257ce1df91d0d8c5",
   "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
   "cppSha256": {
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Visuals/ReelVisual.h": "a6bb5d0ab7bfefba4c7bfdab283104163b3e8016e63f94e2418ed307a74e72eb",
@@ -4308,8 +4308,8 @@
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/InfoView.h",
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/InfoView.cpp"
   ],
-  "sha256": "511740e53c7a3cf52cd19deece454a771c2dcf242bf2437bae7156ac3f592116",
-  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "sha256": "03109dbd2acd64d5e5a4560a863f780b5b623fbb84f04b20a48f745b268b80e7",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
   "cppSha256": {
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/InfoView.h": "f45cabb0d20097b220a84e29aa34d65692452b8de62682574dcaa4024fcbc15f",
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/InfoView.cpp": "443b8f5fd609f1f7518af3f2eec172e3acef9e5d5e5e042bc836eff598681258"
@@ -4794,8 +4794,8 @@
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/LinesView.h",
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/LinesView.cpp"
   ],
-  "sha256": "1d5a3787b4fa38a87bda693d12cd153f8a12843ad55b8141b084a5da85636447",
-  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "sha256": "1edbda4a610494fa825291ebaa3954daddaf443941a7c72e3a4bd12c52a84a03",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
   "cppSha256": {
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/LinesView.h": "c9510dcf2b0d8bc56490440059e1d9f789558ef45cbd9140694a00e6c0915395",
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/LinesView.cpp": "77309b870c151b6f0d45e6b8e37c9b6904e98e188d9223be484b6a24ceb96b0b"
@@ -4838,8 +4838,8 @@
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/ReelsView.h",
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/ReelsView.cpp"
   ],
-  "sha256": "895ff23ceab0be86e73528da3fe9779182f847963e5239443636c844c2b8964b",
-  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "sha256": "cc8b0db8293bc0b48ba70abefb3d8bfc7369dbe43d3128a5cf2931a5e17322ef",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
   "cppSha256": {
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/ReelsView.h": "c6b1160c67e11971aa34f75062aec703cc1bddb4fbacf19f75b25536a93ae999",
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/ReelsView.cpp": "8f457693f36b14b3a437376924757d59de186e9cc841803a894e61e8ab3f75cb"
@@ -4872,8 +4872,8 @@
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/StatusLineView.h",
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/StatusLineView.cpp"
   ],
-  "sha256": "0576aa048286c051275d353cce0613bf8171149b8b67b2c463d67cc5bf37075b",
-  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "sha256": "9cb1c194efb51d7cd8da0fb8b1d84401876d70353795353e2e02f3ed7d4e855d",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
   "cppSha256": {
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/StatusLineView.h": "d78370e225301828318b2ec5aa39f908964793c9b0bf43ab9a217b9e9ab71cf4",
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/StatusLineView.cpp": "5cf26772cc38e7f8afb7e95135e42fbb062a480960cf7df5c505db94028b517b"
@@ -4906,8 +4906,8 @@
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/WheelRoundView.h",
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/WheelRoundView.cpp"
   ],
-  "sha256": "5d1a855020332a2ef4ad8062f55930503912f107a695504b1e15fe4650409636",
-  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "sha256": "5c76c0fa03c9ec1919f066fa13e09a3ea4e2fa3317ca1a1f9c8f9246652cae74",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
   "cppSha256": {
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/WheelRoundView.h": "bbb240eebd2ad010cbc4610fae5e47c0bb9ca5a56c005ba504920c695dccf12d",
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/WheelRoundView.cpp": "e6496b70a8232c2618bc86e807c13a39828a6181178a04766e5363a7d4bbe5fd"
@@ -4928,8 +4928,8 @@
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/WinFiguresView.h",
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/WinFiguresView.cpp"
   ],
-  "sha256": "b12a010c0f9e4cde3131309ba7f6940eab0265961d12e0b1f750e74fd40d0470",
-  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "sha256": "0dd467df0ddae9605b60c0a0fadc6d414a3697d9603b1fb9adc8b3820ab440ad",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
   "cppSha256": {
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/WinFiguresView.h": "5a8684a3c90304cee0c00b22a995425b64843395cffc82b26b3319cc7877ab5d",
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/WinFiguresView.cpp": "f0b172661d5a896e3d669c096d27f929989192b3a55d5468e92ff367d6a669a5"
@@ -4974,8 +4974,8 @@
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/ReelVisual.h",
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/ReelVisual.cpp"
   ],
-  "sha256": "4539bf59081428d12c7002aa9a9941f2c83ea79d91a28476dbd08f5f39cb96e3",
-  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "sha256": "f892816e01c550a70821b87aad1fe13b37b2050632d4cd63287f9619eb4c71a5",
+  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
   "cppSha256": {
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/ReelVisual.h": "ff23d02bb61c1c3c68e284c317e219a7aca123fca850f02f9dca405874d49302",
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/ReelVisual.cpp": "d2cf8365d2684a826a2c0c7301c4e340c89f51660e1b35a73a7a5214507272b5"

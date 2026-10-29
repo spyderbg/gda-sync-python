@@ -2,6 +2,7 @@
 // the main reels' winning symbols.
 
 import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { BrowserOnly } from '@game/engine/GameCore/Common/BrowserOnly';
 import { IResources } from '@game/engine/Game/RuntimeExport/IResources';
 import * as tweeny from '@game/hat_libs/tweeny/tweeny';
 import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
@@ -29,6 +30,9 @@ export class WinFiguresView extends BaseView implements IWinFiguresView {
   private m_winFigures: WinFigureVisual[] = [];
   private m_stackedFigures: SymbolViewInfos = [];
   private m_allWinSymbols = '';
+  /** The win symbols shown, which a changed config makes again (ReloadConfig).
+   * @browserOnly */
+  private m_shownWinSymbols: SymbolViewInfo[] = [];
   private m_wildCrossFade = new tweeny.tween_action();
 
   constructor() {
@@ -41,6 +45,8 @@ export class WinFiguresView extends BaseView implements IWinFiguresView {
     this.RuntimeAdd(IWinFiguresView.Events, this.m_events);
     this.InitElementsList(WinFiguresViewId);
     this.m_config = this.RuntimeGet(IResources).GetIData<WinFiguresViewConfig>('WinFiguresViewConfig');
+    // when its config's file changes, the figures shown are made again from it
+    BrowserOnly(() => this.WatchConfig('WinFiguresViewConfig', () => this.ReloadConfig()));
     return true;
   }
 
@@ -50,6 +56,20 @@ export class WinFiguresView extends BaseView implements IWinFiguresView {
     this.RuntimeRemove(IWinFiguresView);
     this.RuntimeRemove(IWinFiguresView.Events);
     super.Deinit();
+  }
+
+  /** Reads its config again, when its file changed, and makes the figures shown again from it (from their loops), and the
+   * jokers over the stacked wilds, which fade in again.
+   * @browserOnly */
+  private ReloadConfig() {
+    this.m_config = this.RuntimeGet(IResources).GetIData<WinFiguresViewConfig>('WinFiguresViewConfig');
+    this.RemoveWinFigures();
+    if (!this.m_allWinSymbols) return;
+
+    this.CreateWinFigures(this.m_shownWinSymbols, true);
+    this.CreateWildFigures();
+    this.CreateWildCrossFade();
+    tweeny.start(this.m_wildCrossFade);
   }
 
   Draw(drawList: DrawList) {
@@ -67,6 +87,9 @@ export class WinFiguresView extends BaseView implements IWinFiguresView {
     this.CreateWildFigures();
     this.CreateWildCrossFade();
     this.m_allWinSymbols = key;
+    BrowserOnly(() => {
+      this.m_shownWinSymbols = [...allWinSymbols.values()];
+    });
 
     tweeny.start(this.m_wildCrossFade);
   }

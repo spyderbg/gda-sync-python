@@ -194,6 +194,10 @@ export class ResourceManager extends BaseModule implements IResources {
     return this.idatas.get(id) as T;
   }
 
+  GetIDataFile(id: string) {
+    return this.Choose(this.descriptors.idatas, id)?.path ?? null;
+  }
+
   GetElementsList(id: string) {
     return this.views.get(id) ?? null;
   }

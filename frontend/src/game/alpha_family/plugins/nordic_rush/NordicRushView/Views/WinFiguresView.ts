@@ -3,6 +3,7 @@
 // dummy_comet_target_pos one after another (all at once when fast-forwarded).
 
 import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { BrowserOnly } from '@game/engine/GameCore/Common/BrowserOnly';
 import { IAudioApi } from '@game/engine/Game/RuntimeImport/IAudioApi';
 import { IResources, type Point } from '@game/engine/Game/RuntimeExport/IResources';
 import { AssertUnless, Unless } from '@game/engine/GameCore/Common/Defensive';
@@ -81,6 +82,8 @@ export class WinFiguresView extends BaseView implements IWinFiguresView {
 
     const resources = this.RuntimeGet(IResources);
     this.m_config = resources.GetIData<WinFiguresViewConfig>('WinFiguresViewConfig');
+    // when its config's file changes, the figures shown are made again from it
+    BrowserOnly(() => this.WatchConfig('WinFiguresViewConfig', () => this.ReloadConfig()));
 
     return true;
   }
@@ -96,6 +99,20 @@ export class WinFiguresView extends BaseView implements IWinFiguresView {
     this.RuntimeRemove(IWinFiguresView.Events);
 
     super.Deinit();
+  }
+
+  /** Reads its config again, when its file changed, and makes the figures shown again from it (from their loops), once
+   * no comets fly; the wait for their animations goes on.
+   * @browserOnly */
+  private ReloadConfig() {
+    if (this.m_mode === EMode.Comets) return false;
+    this.m_config = this.RuntimeGet(IResources).GetIData<WinFiguresViewConfig>('WinFiguresViewConfig');
+    if (this.m_mode !== EMode.Symbols) return true;
+
+    const animWait = this.m_animWait;
+    this.CreateWinFigures(true);
+    this.m_animWait = animWait;
+    return true;
   }
 
   // IWinFiguresView

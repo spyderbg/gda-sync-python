@@ -2,6 +2,7 @@
 // reels' winning symbols.
 
 import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { BrowserOnly } from '@game/engine/GameCore/Common/BrowserOnly';
 import { IResources } from '@game/engine/Game/RuntimeExport/IResources';
 import { Unless } from '@game/engine/GameCore/Common/Defensive';
 import type { SymbolViewInfo, SymbolViewInfos } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
@@ -46,6 +47,8 @@ export class WinFiguresView extends BaseView implements IWinFiguresView {
 
     const resources = this.RuntimeGet(IResources);
     this.m_config = resources.GetIData<WinFiguresViewConfig>('WinFiguresViewConfig');
+    // when its config's file changes, the figures shown are made again from it
+    BrowserOnly(() => this.WatchConfig('WinFiguresViewConfig', () => this.ReloadConfig()));
 
     return true;
   }
@@ -58,6 +61,14 @@ export class WinFiguresView extends BaseView implements IWinFiguresView {
     this.RuntimeRemove(IWinFiguresView.Events);
 
     super.Deinit();
+  }
+
+  /** Reads its config again, when its file changed, and makes the figures shown again from it (from their loops).
+   * @browserOnly */
+  private ReloadConfig() {
+    this.m_config = this.RuntimeGet(IResources).GetIData<WinFiguresViewConfig>('WinFiguresViewConfig');
+    this.RemoveWinFigures();
+    this.CreateWinFigures(this.m_allWinSymbols, true);
   }
 
   // IWinFiguresView

@@ -134,6 +134,9 @@ export interface IResources {
   HasIData(id: string): boolean;
   /** The JSON of an IData, as the C++ rss::convert reads it. */
   GetIData<T>(id: string): T;
+  /** The file of an IData entry, which a view that watches its config watches (the browser game's: C++ reads an IData
+   * once). */
+  GetIDataFile(id: string): string | null;
   GetElementsList(id: string): ElementsListData | null;
   /** The file of an ElementsList entry, which the elements list watches (rss::convertFilepath). */
   GetElementsListFile(id: string): string | null;

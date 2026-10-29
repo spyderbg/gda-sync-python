@@ -2,6 +2,7 @@
 // lines, shown one at a time: fast once (then showFastLinesFinished), then slowly, over and over.
 
 import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { BrowserOnly } from '@game/engine/GameCore/Common/BrowserOnly';
 import { make_sentinel, sentinel } from '@game/hat_libs/egt_hpp/sentinel';
 import * as tweeny from '@game/hat_libs/tweeny/tweeny';
 import { IAudioApi, type IAudioPlayback } from '@game/engine/Game/RuntimeImport/IAudioApi';
@@ -71,6 +72,8 @@ export class LinesView extends BaseView implements ILinesView {
     this.RuntimeAdd(ILinesView.Events, this.m_events);
 
     this.InitConfig();
+    // when its config's file changes, the lines shown are made again from it
+    BrowserOnly(() => this.WatchConfig('LinesViewConfig', () => this.ReloadConfig()));
 
     this.InitElementsList(LinesViewId, () => {
       this.OnElementsListLoaded();
@@ -451,6 +454,24 @@ export class LinesView extends BaseView implements ILinesView {
 
   private InitConfig() {
     this.m_config = this.RuntimeGet(IResources).GetIData<LinesViewConfig>('LinesViewConfig');
+  }
+
+  /** Reads its config again, when its file changed, and makes again what it made from it: the idle timer, and the lines
+   * shown, whose show starts over (the fast show with its sound).
+   * @browserOnly */
+  private ReloadConfig() {
+    const combinations = this.m_combinations;
+    const fast = this.m_isShowFast;
+    const autoPlayEnabled = this.m_isAutoPlayEnabled;
+    const animationCommand = this.m_lastAnimationCommand;
+
+    this.ClearLines();
+    this.InitConfig();
+    this.InitIdleTimer();
+    if (!combinations.length) return;
+
+    this.ShowCombinations(combinations, fast, autoPlayEnabled);
+    if (animationCommand === AnimationCommand.PauseAnimations) this.PauseAnimations();
   }
 
   private InitIdleTimer() {

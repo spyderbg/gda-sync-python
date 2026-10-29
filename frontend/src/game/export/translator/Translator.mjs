@@ -1038,10 +1038,14 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
     const ret = (declaration.type && this.CppTypeNode(declaration.type)) || this.CppType(this.checker.getReturnTypeOfSignature(signature), declaration);
     const params = declaration.parameters.map(param => `${this.DeclaredType(param, true)} ${param.name.getText()}`);
     this.returnType = ret;
+    // reset when it cannot be translated too, or the next file's callbacks would capture by reference
     this.inFunction = true;
-    const body = this.Block(declaration.body, 3);
-    this.inFunction = false;
-    return `${I}${I}${ret} ${declaration.name.text}(${params.join(', ')})\n${I}${I}${body}\n`;
+    try {
+      const body = this.Block(declaration.body, 3);
+      return `${I}${I}${ret} ${declaration.name.text}(${params.join(', ')})\n${I}${I}${body}\n`;
+    } finally {
+      this.inFunction = false;
+    }
   }
 
   /** A module constant, for the .cpp's anonymous namespace: an id, a list of ids, a number. */
@@ -1065,8 +1069,12 @@ ${[...getterDefinitions, ...definitions].join('\n\n')}
     }
     const type = declaration.type ? this.CppTypeNode(declaration.type) : null;
     this.atModule = true;
-    const value = this.Expr(init).replace(/\[&\]/g, '[]').replace(/\[=\]/g, '[]');
-    this.atModule = false;
+    let value;
+    try {
+      value = this.Expr(init).replace(/\[&\]/g, '[]').replace(/\[=\]/g, '[]');
+    } finally {
+      this.atModule = false;
+    }
     return `${I}${I}[[maybe_unused]] const ${type ?? 'auto'} ${name} = ${value};`;
   }
 
