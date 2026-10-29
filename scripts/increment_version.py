@@ -9,6 +9,7 @@ uses only the standard library. See docs/version_releases.md for the workflow.
 from __future__ import annotations
 
 import argparse
+import ast
 import json
 import os
 import re
@@ -22,6 +23,7 @@ from zoneinfo import ZoneInfo
 
 PACKAGE = "frontend/package.json"
 LOCKFILE = "frontend/package-lock.json"
+BACKEND_VERSION = "egt_gda_sync/__init__.py"
 CHANGELOG = "docs/log_changes.md"
 CATEGORIES = ("Added", "Changed", "Deprecated", "Removed", "Fixed", "Security")
 VERSION = re.compile(r"[0-9]\.[0-9]\.[0-9]\Z")
@@ -85,6 +87,46 @@ def increment(version: str, part: str = "build") -> str:
     if number > 999:
         raise ReleaseError(f"Cannot increment {version}: the single-digit version limit is 9.9.9.")
     return f"{number // 100}.{number // 10 % 10}.{number % 10}"
+
+
+def backend_version_file(root: Path, current: str, version: str) -> str:
+    """Update the static package version without importing the app or replacing its other definitions."""
+    path = root / BACKEND_VERSION
+    try:
+        source = path.read_bytes().decode("utf-8")
+    except FileNotFoundError:
+        return ('"""EGT GDA Sync: a local-first studio asset sync application."""\n\n'
+                f'__version__ = "{version}"\nAPP_ID = "egt-gda-sync"\n')
+    except (OSError, UnicodeError) as exc:
+        raise ReleaseError(f"Cannot read {BACKEND_VERSION}: {exc}") from exc
+    try:
+        tree = ast.parse(source, filename=BACKEND_VERSION)
+    except SyntaxError as exc:
+        raise ReleaseError(f"Cannot parse {BACKEND_VERSION}: {exc}") from exc
+    assignments = []
+    for node in tree.body:
+        targets = node.targets if isinstance(node, ast.Assign) else [node.target] if isinstance(node, ast.AnnAssign) else []
+        if any(isinstance(target, ast.Name) and target.id == "__version__" for target in targets):
+            if len(targets) != 1:
+                raise ReleaseError(f"{BACKEND_VERSION}: __version__ must have its own assignment.")
+            assignments.append(node)
+    if not assignments:
+        newline = "\r\n" if "\r\n" in source else "\n"
+        return source.rstrip() + f'{newline}{newline}__version__ = "{version}"{newline}'
+    if len(assignments) != 1:
+        raise ReleaseError(f"{BACKEND_VERSION}: expected one __version__ assignment.")
+    value = assignments[0].value
+    if not isinstance(value, ast.Constant) or not isinstance(value.value, str):
+        raise ReleaseError(f"{BACKEND_VERSION}: __version__ must be a string literal.")
+    if value.value != current:
+        raise ReleaseError(f"Backend version {value.value!r} in {BACKEND_VERSION} differs from frontend version {current!r}; "
+                           "synchronize them before releasing.")
+    # AST columns count UTF-8 bytes, rather than characters. Replace only the literal, preserving comments and APP_ID.
+    encoded = source.encode("utf-8")
+    lines = encoded.splitlines(keepends=True)
+    start = sum(map(len, lines[:value.lineno - 1])) + value.col_offset
+    end = sum(map(len, lines[:value.end_lineno - 1])) + value.end_col_offset
+    return (encoded[:start] + json.dumps(version).encode("utf-8") + encoded[end:]).decode("utf-8")
 
 
 def require_clean(git: Git) -> None:
@@ -255,6 +297,7 @@ def plan_release(git: Git, part: str) -> ReleasePlan:
             raise ReleaseError("package.json and package-lock.json root versions must match before releasing.")
     except (OSError, ValueError, KeyError, TypeError) as exc:
         raise ReleaseError(f"Cannot read frontend version files: {exc}") from exc
+    backend = backend_version_file(git.root, current, version)
     tag = release_tag(version)
     if git.exists(f"refs/tags/{tag}"):
         raise ReleaseError(f"Tag {tag} already exists; refusing to overwrite a release.")
@@ -274,6 +317,7 @@ def plan_release(git: Git, part: str) -> ReleasePlan:
     return ReleasePlan(head, version, {
         PACKAGE: json.dumps(package, indent=2, ensure_ascii=False) + "\n",
         LOCKFILE: json.dumps(lock, indent=2, ensure_ascii=False) + "\n",
+        BACKEND_VERSION: backend,
         CHANGELOG: changelog,
     }, subjects)
 
