@@ -270,7 +270,11 @@ prompt; it does not synthesize an animated sequence. **Analyze batch** / **Gener
 submit one job per selected image or animation; repeated selections of the same asset are deduplicated.
 
 **New image metadata** creates a sidecar at an image path relative to the game folder, even when that image does not
-exist yet. Enter a prompt and sizes, then **Save & generate image**. The original image and metadata stay intact;
+exist yet. Enter a prompt and sizes, then **Generate image**. The editor stays open so more render scales can be queued.
+Each generation captures its metadata and model settings at submission. Different scales or prompts create separate
+jobs and retained PNGs in `.asset-metadata/generations`; **View** opens that job's result. The common generated PNG
+beside the metadata follows the latest successful generation. Repeating the same settings keeps the existing result
+unless **Replace existing…** is enabled. The original source image stays intact;
 the generated result is `bell.dds.json.generated.png`, viewable in the studio. **Keep original** also saves the model's
 unresized PNG as `bell.dds.json.generated.original.png`. New drafts can be reopened from the studio before an asset
 report includes their generated images. The per-submission **Replace existing…** checkbox controls regeneration;
@@ -280,8 +284,10 @@ otherwise existing outputs are skipped. Failed or cancelled jobs preserve existi
 queued jobs and requests cancellation of the running job in the current workspace, keeping completed history and other workspaces' jobs. Metadata analysis and
 image generation never run concurrently. Pending jobs with the current operation type and model settings are
 drained together before switching types, reducing vision/diffusion model switches. Jobs capture their workspace,
-input revisions and settings when submitted. Changing workspaces or settings does not redirect queued work; editing
-an input invalidates its queued result. Cancel stops a queued job immediately; an active vision request discards its
+input revisions and settings when submitted. Changing workspaces or settings does not redirect queued work. Generation
+uses its captured metadata, so later prompt or size edits can be submitted independently. Changing source pixels or
+animation inputs still invalidates the queued result; analysis also refuses to replace metadata edited after submission.
+Cancel stops a queued job immediately; an active vision request discards its
 result on return, and an active diffusion runner is terminated. Leaving Image studio or closing an asset popup keeps work running. On application
 restart, queued jobs resume and interrupted jobs are marked failed for explicit retry. Queue history is stored in
 `image-jobs.json` in the app-data folder, retaining the newest 1000 completed jobs.

@@ -417,6 +417,68 @@ def test_generation_uses_edited_prompt_render_and_output_size_keeps_sources(stud
     assert api.get('/api/image-studio/generated', params={'file': saved['file']}).content == before
 
 
+@pytest.mark.parametrize('restart', [False, True])
+def test_generations_capture_distinct_scales_and_keep_each_result(studio, tmp_path, monkeypatch, restart):
+    studio.save_settings(runner_settings(tmp_path))
+    wake = studio._wake
+    monkeypatch.setattr(studio, '_wake', lambda: None)
+    source = png(tmp_path / 'bell.png')
+    value = metadata(source.name)
+    value['image'].update(width=7, height=5, transparency=True)
+    submitted, rendered = [], []
+    for width in (32, 64, 128):
+        value['generation'].update(width=width, height=width)
+        studio.save(source, tmp_path, value, service.revision(service.sidecar(source)))
+        response = studio.enqueue('game', tmp_path, tmp_path, [source], 'image')
+        submitted.extend(response['submitted'])
+    assert len(set(submitted)) == 3
+    assert studio.enqueue('game', tmp_path, tmp_path, [source], 'image')['submitted'] == [submitted[-1]]
+    assert len(studio.jobs) == 3
+    assert [job['renderSize']['width'] for job in studio.status('game')['jobs']] == [32, 64, 128]
+    assert all('inputMetadata' not in job for job in studio.status('game')['jobs'])
+    saved = service.sidecar(source).read_bytes()
+    assert [job['inputMetadata']['generation']['width'] for job in json.loads(studio.queue_path.read_text())] == [32, 64, 128]
+
+    def generate(_self, meta_path, output_path, **_options):
+        snapshot = json.loads(Path(meta_path).read_text())
+        width = snapshot['generation']['width']
+        rendered.append(width)
+        Image.new('RGBA', (7, 5), (width, 0, 0, 128)).save(output_path)
+
+    monkeypatch.setattr(service.ImageGenerator, 'generate', generate)
+    if restart:
+        studio.close()
+        active = service.MetadataLibrary(str(studio.home), threading.Lock())
+        active.start()
+    else:
+        active = studio
+        monkeypatch.setattr(studio, '_wake', wake)
+        with studio.condition:
+            studio._wake()
+    try:
+        jobs = wait_jobs(active)
+        assert [job['state'] for job in jobs] == ['succeeded'] * 3, jobs
+        assert rendered == [32, 64, 128]
+        assert service.sidecar(source).read_bytes() == saved
+        assert len({job['result'] for job in jobs}) == 3
+        for job, width in zip(jobs, rendered):
+            with Image.open(active.generated_result('game', job['id'])) as image:
+                assert image.getpixel((0, 0)) == (width, 0, 0, 128)
+        with pytest.raises(AppError, match='not found'):
+            active.generated_result('another-workspace', jobs[0]['id'])
+        assert active.enqueue('game', tmp_path, tmp_path, [source], 'image')['jobs'][-1]['state'] == 'skipped'
+        # A new scale also remains a separate job after previous runs completed.
+        value['generation'].update(width=256, height=256)
+        active.save(source, tmp_path, value, service.revision(service.sidecar(source)))
+        active.enqueue('game', tmp_path, tmp_path, [source], 'image')
+        assert wait_jobs(active)[-1]['state'] == 'succeeded'
+        assert rendered[-1] == 256
+        assert Path(jobs[0]['result']).is_file()
+    finally:
+        if restart:
+            active.close()
+
+
 def test_restart_marks_interrupted_job_failed_and_resumes_queued_with_captured_workspace(tmp_path, monkeypatch):
     root = tmp_path / 'resources'
     root.mkdir()

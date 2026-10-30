@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import type { ReportAsset } from '../types';
 import { baseName, reportPreviewURL, time } from '../format';
-import { studioAPI, generatedURL, type ImageJobs, type ImageMetadata, type ImageSettings, type MetadataDocument, type StudioCatalog } from '../imageStudio';
+import { studioAPI, generatedURL, jobGeneratedURL, type ImageJobs, type ImageMetadata, type ImageSettings, type MetadataDocument, type StudioCatalog } from '../imageStudio';
 import AppModal from './AppModal.vue';
 import ImageStudioBrowser from './ImageStudioBrowser.vue';
 import ImageStudioQueue from './ImageStudioQueue.vue';
@@ -26,6 +26,7 @@ const creating = ref(false);
 const newPath = ref('art/generated/new-image.png');
 const overwrite = ref(false);
 const preview = ref<'source' | 'generated'>('source');
+const previewJob = ref('');
 const tags = ref('');
 const objects = ref('');
 const prompt = ref('');
@@ -38,15 +39,27 @@ const isSequence = computed(() => document.value?.kind === 'sequence');
 const fallbackPrompt = computed(() => [metadata.value?.analysis.description, metadata.value?.analysis.scene].filter(Boolean).join('\n'));
 const activeJobs = computed(() => jobs.value.jobs.filter(job => ['queued', 'running', 'cancelling'].includes(job.state)));
 const previewURL = computed(() => !document.value ? '' : preview.value === 'generated'
-  ? generatedURL(document.value.file, lastFinished.value) : isSequence.value
+  ? previewJob.value ? jobGeneratedURL(previewJob.value, lastFinished.value) : generatedURL(document.value.file, lastFinished.value) : isSequence.value
     ? `/api/image-studio/sequence-preview?${new URLSearchParams({ file: document.value.file, revision: document.value.revision })}`
     : reportPreviewURL(document.value.file, document.value.revision));
 const lastFinished = computed(() => jobs.value.jobs.flatMap(job => job.finishedAt ? [job.finishedAt] : []).sort().pop() ?? '');
+const previewOutput = computed(() => jobs.value.jobs.find(job => job.id === previewJob.value)?.result ?? document.value?.generated);
 let timer: ReturnType<typeof setTimeout> | undefined;
 let disposed = false;
 let loadId = 0;
 
 function clearMessages() { error.value = ''; message.value = ''; }
+function scaledRenderSize(factor: number) {
+  if (!metadata.value) return null;
+  const { width, height } = metadata.value.image;
+  if (![width, height].every(value => Number.isInteger(value) && value > 0)) return null;
+  const scaled = { width: Math.ceil(width * factor / 32) * 32, height: Math.ceil(height * factor / 32) * 32 };
+  return scaled.width <= 16384 && scaled.height <= 16384 && scaled.width * scaled.height <= 64 * 1024 * 1024 ? scaled : null;
+}
+function setRenderScale(factor: number) {
+  const scaled = scaledRenderSize(factor);
+  if (metadata.value && scaled) Object.assign(metadata.value.generation, scaled);
+}
 function guardDiscard() { return !dirty.value || window.confirm('Discard unsaved metadata changes?'); }
 function canLeave() {
   return !working.value && guardDiscard() && (!modelsDirty.value || window.confirm('Discard unsaved model settings?'));
@@ -67,20 +80,26 @@ async function loadCatalog() {
   catalog.value = await studioAPI<StudioCatalog>(`catalog${props.row ? `?asset=${encodeURIComponent(props.row.id)}` : ''}`);
 }
 async function selectFile(file: string, discard = true) {
-  if (discard && !guardDiscard()) return;
+  if (discard && !guardDiscard()) return false;
   clearMessages();
   const request = ++loadId;
   selected.value = file;
   loading.value = true;
   try {
     const value = await studioAPI<MetadataDocument>(`metadata?file=${encodeURIComponent(file)}`);
-    if (request !== loadId || disposed || (!discard && dirty.value)) return;
+    if (request !== loadId || disposed || (!discard && dirty.value)) return false;
     selected.value = file;
     creating.value = false;
     preview.value = value.generated ? 'generated' : 'source';
+    previewJob.value = '';
     previewFailed.value = false;
     markClean(value);
-  } catch (e) { error.value = (e as Error).message; } finally { if (request === loadId) loading.value = false; }
+    return true;
+  } catch (e) { error.value = (e as Error).message; return false; } finally { if (request === loadId) loading.value = false; }
+}
+async function viewJob(file: string, jobId?: string) {
+  if (await selectFile(file) && jobId) { previewJob.value = jobId; preview.value = 'generated'; }
+  tab.value = 'metadata';
 }
 function newMetadata() {
   if (!guardDiscard()) return;
@@ -96,6 +115,7 @@ function newMetadata() {
   };
   markClean({ file: '', path: '', exists: false, revision: '', metadata, generated: null });
   preview.value = 'source';
+  previewJob.value = '';
 }
 async function save(): Promise<boolean> {
   if (!document.value || !metadata.value) return false;
@@ -127,8 +147,8 @@ async function enqueue(kind: 'metadata' | 'image', batch?: string[]) {
     const body = batch ? { kind, files: batch, overwrite: overwrite.value }
       : { kind, files: [document.value?.file], overwrite: overwrite.value };
     jobs.value = await studioAPI<ImageJobs>('jobs', body);
-    message.value = `${jobs.value.submitted?.length ?? 0} job(s) submitted. Existing outputs are ${overwrite.value ? 'replaced after success' : 'kept'}.`;
-    tab.value = 'queue';
+    message.value = `${jobs.value.submitted?.length ?? 0} job(s) submitted. ${kind === 'image' ? 'Existing results with the same settings' : 'Existing metadata'} are ${overwrite.value ? 'replaced after success' : 'kept'}.`;
+    if (kind === 'metadata') tab.value = 'queue';
   } catch (e) { error.value = (e as Error).message; } finally { working.value = false; }
 }
 async function retry(id: string, force = false) {
@@ -159,7 +179,10 @@ async function pollJobs() {
     jobs.value = value;
     if (changed) {
       await loadCatalog();
-      if (document.value && !loading.value && selected.value === document.value.file && !dirty.value && !creating.value) await selectFile(document.value.file, false);
+      if (document.value && !loading.value && selected.value === document.value.file && !dirty.value && !creating.value) {
+        const jobId = previewJob.value;
+        if (await selectFile(document.value.file, false) && value.jobs.some(job => job.id === jobId && job.state === 'succeeded')) previewJob.value = jobId;
+      }
     }
   } catch (e) { error.value = (e as Error).message; }
   finally { if (!disposed) timer = setTimeout(pollJobs, 1200); }
@@ -220,11 +243,19 @@ onBeforeUnmount(() => { disposed = true; loadId++; clearTimeout(timer); unregist
                 </div>
                 <div class="studio-image"><img v-if="!previewFailed" :src="previewURL" :alt="preview === 'source' ? isSequence ? 'Representative animation frames' : 'Source image' : 'Generated image'" @error="previewFailed = true"><span v-else class="text-muted">Preview unavailable</span></div>
                 <p v-if="isSequence && preview === 'source'" class="studio-output-path">Frames are shown in playback order. Analysis uses up to 12 samples across the full animation, including the first and last frames.</p>
-                <p v-if="preview === 'generated'" class="studio-output-path">{{ document?.generated }}<small>Rescan the Asset library to list this PNG as a new asset.</small></p>
+                <p v-if="preview === 'generated'" class="studio-output-path">{{ previewOutput }}<small>The latest generated image is also available beside the metadata file.</small></p>
               </div>
               <div class="studio-dimensions">
                 <fieldset><legend>Output resolution</legend><div class="studio-size"><label>Width<input v-model.number="metadata.image.width" type="number" min="1" max="16384" required class="form-control"></label><span>×</span><label>Height<input v-model.number="metadata.image.height" type="number" min="1" max="16384" required class="form-control"></label></div></fieldset>
-                <fieldset><legend>Model render resolution</legend><div class="studio-size"><label>Render width<input v-model.number="metadata.generation.width" type="number" min="32" max="16384" step="32" required class="form-control"></label><span>×</span><label>Render height<input v-model.number="metadata.generation.height" type="number" min="32" max="16384" step="32" required class="form-control"></label></div><small>Multiples of 32. Resized to the output resolution.</small></fieldset>
+                <fieldset>
+                  <legend>Model render resolution</legend>
+                  <div class="studio-size"><label>Render width<input v-model.number="metadata.generation.width" type="number" min="32" max="16384" step="32" required class="form-control"></label><span>×</span><label>Render height<input v-model.number="metadata.generation.height" type="number" min="32" max="16384" step="32" required class="form-control"></label></div>
+                  <div class="studio-render-scales" role="group" aria-label="Render resolution multiplier">
+                    <span>Scale from output</span>
+                    <button v-for="factor in [1, 2, 4, 8]" :key="factor" type="button" class="btn btn-outline-primary btn-sm" :disabled="working || loading || !scaledRenderSize(factor)" :title="`Set render size to ${factor}× output resolution, rounded up to multiples of 32`" @click="setRenderScale(factor)">{{ factor }}×</button>
+                  </div>
+                  <small>Multiples of 32. Resized to the output resolution.</small>
+                </fieldset>
               </div>
               <label class="studio-check"><input v-model="metadata.image.transparency" type="checkbox"> Transparent background</label>
               <label class="studio-field">Description<textarea v-model="metadata.analysis.description" rows="4" class="form-control" placeholder="Describe the image you want to create…" /></label>
@@ -254,7 +285,7 @@ onBeforeUnmount(() => { disposed = true; loadId++; clearTimeout(timer); unregist
       </ImageStudioBrowser>
       <ImageStudioQueue v-if="tab === 'queue'" :jobs="jobs" :catalog="catalog" :working="working"
         @retry="retry" @cancel="cancel" @cancel-all="cancelAll" @compose="tab = 'metadata'"
-        @view="selectFile($event); tab = 'metadata'" />
+        @view="viewJob" />
       <form v-else-if="tab === 'models' && settings" class="studio-models" @submit.prevent="saveModels">
         <p class="studio-hint">Configure installed weights and a local LM Studio server. Enable Remote models to use another computer for either operation. No models are downloaded. Settings are stored in {{ settings.path }}.</p>
         <fieldset><legend>Vision analysis · LM Studio</legend>
@@ -345,6 +376,9 @@ legend { width: auto; font-size: 13px; margin-bottom: 8px; font-weight: 500; }
 .studio-size label { min-width: 0; margin: 0; flex: 1; font-size: 11px; color: #77809a; }
 .studio-size input { margin-top: 5px; }
 .studio-size > span { padding-bottom: 10px; color: #77809a; }
+.studio-render-scales { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 10px 0 6px; }
+.studio-render-scales > span { font-size: 11px; color: #77809a; margin-right: 2px; }
+.studio-render-scales .btn { min-width: 34px; height: 26px; padding: 0 7px; font-size: 12px; }
 .studio-check { display: flex; align-items: center; gap: 8px; margin: 0 0 18px; font-size: 12px; color: #68718a; }
 .studio-check input { accent-color: #4b49ac; }
 .studio-preview { border: 1px solid #e0e4ec; border-radius: 7px; margin-bottom: 22px; overflow: hidden; }

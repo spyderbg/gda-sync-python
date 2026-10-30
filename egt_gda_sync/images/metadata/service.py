@@ -1,6 +1,6 @@
 """Editable image sidecars and one persistent worker for all local model work.
 
-Jobs snapshot workspace roots, model settings and input revisions at submission.
+Jobs snapshot workspace roots, model settings and generation metadata at submission.
 They never follow the currently selected workspace. Each ImageSeq has one shared
 description and one queued job. Pending jobs of the same operation/model run
 together to avoid repeatedly loading the vision and diffusion models.
@@ -257,6 +257,9 @@ class MetadataLibrary:
                 job.pop('sequence', None)
                 job.pop('group', None)
                 job.pop('expected', None)
+                snapshot = job.pop('inputMetadata', None)
+                if snapshot:
+                    job['renderSize'] = {key: snapshot['generation'][key] for key in ('width', 'height')}
             return {'jobs': jobs, 'running': any(job['state'] in ('running', 'cancelling') for job in jobs),
                     'queued': sum(job['state'] == 'queued' for job in jobs)}
 
@@ -332,16 +335,22 @@ class MetadataLibrary:
                 raise AppError(f'Unsupported image type: {source.suffix}')
             if kind == 'metadata' and not source.is_file():
                 raise AppError(f'The source image does not exist: {source.name}')
+            snapshot = None
             if kind == 'image':
                 if not path.is_file():
                     raise AppError(f'Create metadata first: {source.name}')
-                self.document(target, root, draft=False)
+                snapshot = self.document(target, root, draft=False)['metadata']
             jobs.append({'id': uuid.uuid4().hex, 'batch': batch, 'workspace': workspace,
                          'root': str(root), 'game': str(game), 'source': str(source), 'metadata': str(path),
                          'output': str(output), 'kind': kind, 'state': 'queued', 'createdAt': now(),
                          'settings': settings, 'group': group, 'overwrite': overwrite,
                          'expected': {'source': revision(source), 'metadata': revision(path), 'output': revision(output)}})
             jobs[-1]['target'] = target_key(target)
+            if snapshot is not None:
+                fingerprint = hashlib.sha256(json.dumps([workspace, str(path), snapshot, group], sort_keys=True).encode()).hexdigest()
+                result = checked(game / '.asset-metadata' / 'generations' / f'{fingerprint}.png', root)
+                jobs[-1].update(inputMetadata=snapshot, result=str(result))
+                jobs[-1]['expected']['result'] = revision(result)
             if sequence:
                 jobs[-1]['sequence'] = deepcopy(sequence)
                 jobs[-1]['label'] = sequence['id'] or sequence['paths'][0]
@@ -355,7 +364,8 @@ class MetadataLibrary:
             submitted = []
             for job in jobs:
                 existing = next((old for old in self.jobs if old['kind'] == kind and old['metadata'] == job['metadata']
-                                 and old['state'] not in TERMINAL), None)
+                                 and old['state'] not in TERMINAL
+                                 and (kind == 'metadata' or old.get('result') == job.get('result'))), None)
                 if existing:
                     if retry_job is not None:
                         raise AppError('This image already has an active job', 409)
@@ -363,7 +373,15 @@ class MetadataLibrary:
                     continue
                 destination = Path(job['metadata'] if kind == 'metadata' else job['output'])
                 original = destination.with_name(f'{destination.stem}.original.png')
-                if not overwrite and (destination.exists() or (keep_original and original.exists())):
+                exists = destination.exists()
+                if kind == 'image':
+                    previous_generations = any(old['kind'] == 'image' and old['metadata'] == job['metadata']
+                                               and old.get('inputMetadata') and old['state'] == 'succeeded' for old in self.jobs)
+                    # Existing outputs from before retained variants were added
+                    # still follow the user's original overwrite choice.
+                    exists = Path(job['result']).exists() or (not previous_generations and
+                             (exists or (keep_original and original.exists())))
+                if not overwrite and exists:
                     job.update(state='skipped', finishedAt=now(), message='Existing output kept')
                 if retry_job is not None:
                     job['id'] = retry_job['id']
@@ -376,6 +394,17 @@ class MetadataLibrary:
             self._persist()
             self._wake()
         return {**self.status(workspace), 'submitted': submitted}
+
+    def generated_result(self, workspace: str, job_id: str) -> str:
+        """Open the retained result for this workspace's completed generation."""
+        with self.condition:
+            job = next((job for job in self.jobs if job['workspace'] == workspace and job['id'] == job_id), None)
+            if job is None or job['kind'] != 'image' or job['state'] != 'succeeded':
+                raise AppError('Generated image not found', 404)
+            path = checked(job.get('result', job['output']), job['root'])
+            if not path.is_file():
+                raise AppError('Generated image not found', 404)
+            return str(path)
 
     def retry(self, workspace: str, job_id: str, *, force: bool = False) -> dict:
         """Requeue the same job last (first in the UI), refreshing inputs and settings."""
@@ -457,10 +486,11 @@ class MetadataLibrary:
         root = Path(job['root'])
         source, path, output = (checked(job[key], root) for key in ('source', 'metadata', 'output'))
         expected = job['expected']
+        captured_metadata = job.get('inputMetadata')
         def inputs_unchanged():
             return all(revision(checked(file, root)) == digest for file, digest in expected.get('inputs', {}).items())
 
-        if revision(path) != expected['metadata'] or revision(source) != expected['source'] or not inputs_unchanged():
+        if (captured_metadata is None and revision(path) != expected['metadata']) or revision(source) != expected['source'] or not inputs_unchanged():
             raise AppError('An input changed while this job was queued. Queue it again.')
         analysis, generation = job['settings']['analysis'], job['settings']['generation']
         remote = job['settings'].get('remote', DEFAULTS['remote'])
@@ -506,11 +536,16 @@ class MetadataLibrary:
                 generator = ImageGenerator(generation['diffusion_model'], generation['text_encoder'], generation['vae'],
                                            executable=generation['sd_cli'], timeout=generation['timeout'])
             generator.validate()
+            # The common preview follows the latest successful variant. Each
+            # variant also has its own retained PNG, independent of later edits.
+            output_revision = revision(output) if captured_metadata is not None else expected['output']
+            original = checked(output.with_name(f'{output.stem}.original.png'), root)
+            original_revision = revision(original) if captured_metadata is not None else expected.get('original', '')
             # Generate privately from a snapshot. Publish only after rechecking every input and output.
             with tempfile.TemporaryDirectory(prefix='image-job-') as directory:
                 snapshot, rendered = Path(directory) / 'metadata.json', Path(directory) / 'image.png'
                 target = {'file': job.get('target', str(source)), 'source': str(source), 'path': str(path), 'sequence': job.get('sequence')}
-                atomic_json(snapshot, self.document(target, root, draft=False)['metadata'])
+                atomic_json(snapshot, job.get('inputMetadata') or self.document(target, root, draft=False)['metadata'])
                 if not remote_generation and generation['unload_lm_studio']:
                     analyzer.unload_all_models()
                 generator.generate(snapshot, rendered, width=generation['width'], height=generation['height'],
@@ -520,14 +555,20 @@ class MetadataLibrary:
                     if cancel.is_set() or self.stopping.is_set():
                         return
                     checked(output, root)
-                    if (revision(path) != expected['metadata'] or revision(output) != expected['output']
+                    if ((job.get('inputMetadata') is None and revision(path) != expected['metadata']) or revision(output) != output_revision
                             or revision(source) != expected['source'] or not inputs_unchanged()):
                         raise AppError('The metadata or generated image changed during generation. Existing files were kept.', 409)
                     original = checked(output.with_name(f'{output.stem}.original.png'), root)
-                    if generation['keep_original'] and revision(original) != expected.get('original', ''):
+                    if generation['keep_original'] and revision(original) != original_revision:
                         raise AppError('The original render changed during generation. Existing files were kept.', 409)
                     output.parent.mkdir(parents=True, exist_ok=True)
                     files = [(output, rendered)]
+                    if job.get('result'):
+                        result = checked(job['result'], root)
+                        if revision(result) != expected['result']:
+                            raise AppError('This generation result changed during generation. Existing files were kept.', 409)
+                        result.parent.mkdir(parents=True, exist_ok=True)
+                        files.append((result, rendered))
                     if generation['keep_original']:
                         files.append((original, rendered.with_name('image.original.png')))
                     self._publish_images(files)

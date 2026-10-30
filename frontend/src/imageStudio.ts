@@ -22,6 +22,7 @@ export interface ImageJob {
   id: string; source: string; target?: string; label?: string; kind: 'metadata' | 'image';
   state: 'queued' | 'running' | 'cancelling' | 'succeeded' | 'skipped' | 'failed' | 'cancelled';
   createdAt: string; startedAt?: string; finishedAt?: string; model?: string; error?: string; message?: string;
+  result?: string; renderSize?: { width: number; height: number };
 }
 export interface ImageJobs { jobs: ImageJob[]; queued: number; running: boolean; submitted?: string[] }
 export interface RemoteAnalysisSettings {
@@ -43,3 +44,4 @@ export interface ModelSettings {
 export interface ImageSettings { path: string; settings: ModelSettings }
 export const studioAPI = <T>(path: string, body?: unknown) => api<T>(`image-studio/${path}`, body === undefined ? 'GET' : 'POST', body);
 export const generatedURL = (file: string, revision: string) => `/api/image-studio/generated?${new URLSearchParams({ file, revision })}`;
+export const jobGeneratedURL = (id: string, revision: string) => `/api/image-studio/jobs/${encodeURIComponent(id)}/image?${new URLSearchParams({ revision })}`;

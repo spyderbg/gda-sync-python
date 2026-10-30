@@ -1,5 +1,6 @@
 """Image metadata is editable, can be created manually, and drives the queued PNG generator."""
 import json
+import re
 
 import pytest
 from playwright.sync_api import expect
@@ -50,8 +51,14 @@ def test_create_metadata_edit_render_size_and_generate_image(new_context, metada
     dialog.get_by_label('Generation prompt', exact=True).fill('A polished emerald bell, centered.')
     dialog.get_by_label('Width', exact=True).fill('14')
     dialog.get_by_label('Height', exact=True).fill('21')
-    dialog.get_by_label('Render width', exact=True).fill('64')
-    dialog.get_by_label('Render height', exact=True).fill('96')
+    dialog.get_by_label('Render width', exact=True).fill('320')
+    dialog.get_by_label('Render height', exact=True).fill('320')
+    scales = dialog.get_by_role('group', name='Render resolution multiplier', exact=True)
+    scales.get_by_role('button', name='4×', exact=True).click()
+    expect(dialog.get_by_label('Render width', exact=True)).to_have_value('64')
+    expect(dialog.get_by_label('Render height', exact=True)).to_have_value('96')
+    scales.get_by_role('button', name='4×', exact=True).click()
+    expect(dialog.get_by_label('Render width', exact=True)).to_have_value('64')
     dialog.get_by_label('Transparent background', exact=True).check()
     dialog.get_by_role('button', name='Save metadata', exact=True).click()
     expect(dialog.get_by_role('status')).to_have_text('Metadata saved.')
@@ -73,6 +80,8 @@ def test_create_metadata_edit_render_size_and_generate_image(new_context, metada
     assert value['generation'] == {'width': 64, 'height': 96, 'prompt': 'A polished emerald bell, centered.'}
     assert value['image']['width'] == 14 and value['image']['height'] == 21
     dialog.get_by_role('button', name='Generate image', exact=True).click()
+    expect(dialog.get_by_role('tab', name='Metadata', exact=True)).to_have_attribute('aria-selected', 'true')
+    dialog.get_by_role('tab', name='Generation queue', exact=True).click()
     expect(dialog.get_by_role('tab', name='Generation queue')).to_have_attribute('aria-selected', 'true')
     expect(dialog.locator('.studio-job').filter(has_text='new-bell.png').get_by_text('succeeded', exact=True)).to_be_visible(timeout=10000)
     dialog.get_by_role('button', name='View', exact=True).click()
@@ -88,6 +97,68 @@ def test_create_metadata_edit_render_size_and_generate_image(new_context, metada
     page.get_by_role('button', name='Image studio', exact=True).click()
     dialog.get_by_role('treeitem', name='Open art/new-bell.png', exact=True).click()
     expect(dialog.get_by_label('Generation prompt', exact=True)).to_have_value('A polished emerald bell, centered.')
+
+
+def test_submit_multiple_render_scales_without_leaving_metadata(new_context, metadata_backend):
+    backend, game = metadata_backend
+    # Keep the first runner busy while the user submits two more scales.
+    release = backend.log.parent / 'release-generation'
+    runner = backend.log.parent / 'sd-cli'
+    script = runner.read_text()
+    shebang, body = script.split('\n', 1)
+    runner.write_text(shebang + '\nimport time\nfrom pathlib import Path\n'
+                      f'while not Path({str(release)!r}).exists(): time.sleep(0.05)\n' + body)
+    page = new_context().new_page()
+    studio = open_studio(page, backend)
+    studio.get_by_role('button', name='New image metadata', exact=True).click()
+    studio.get_by_label('Image path', exact=True).fill('scales.png')
+    studio.get_by_label('Description', exact=True).fill('A golden bell.')
+    studio.get_by_label('Width', exact=True).fill('64')
+    studio.get_by_label('Height', exact=True).fill('96')
+    ids = []
+    for factor in (1, 2, 4):
+        studio.get_by_role('group', name='Render resolution multiplier', exact=True).get_by_role('button', name=f'{factor}×', exact=True).click()
+        with page.expect_response(lambda response: response.url.endswith('/api/image-studio/jobs') and response.request.method == 'POST') as submitted:
+            studio.get_by_role('button', name='Generate image', exact=True).click()
+        assert submitted.value.ok, submitted.value.text()
+        ids.extend(submitted.value.json()['submitted'])
+        expect(studio.get_by_role('tab', name='Metadata', exact=True)).to_have_attribute('aria-selected', 'true')
+    assert len(set(ids)) == 3
+    studio.get_by_role('tab', name=re.compile('^Generation queue')).click()
+    expect(studio.locator('.studio-job')).to_have_count(3)
+    expect(studio.locator('.studio-job .badge').filter(has_text='running')).to_have_count(1)
+    expect(studio.locator('.studio-job .badge').filter(has_text='queued')).to_have_count(2)
+    for size in ('64 × 96', '128 × 192', '256 × 384'):
+        expect(studio.get_by_text(f'Render: {size}', exact=True)).to_be_visible()
+    release.write_text('go')
+    expect(studio.locator('.studio-job .badge').filter(has_text='succeeded')).to_have_count(3, timeout=15000)
+    headers = {'x-gda-token': page.request.get(backend.url + '/api/session').json()['token']}
+    jobs = page.request.get(backend.url + '/api/image-studio/jobs', headers=headers).json()['jobs']
+    assert len({job['result'] for job in jobs}) == 3
+    BUILD.mkdir(exist_ok=True)
+    page.screenshot(path=str(BUILD / 'image-studio-multiple-scales.png'), full_page=True)
+    for index, job_id in enumerate(reversed(ids)):
+        studio.locator('.studio-job').nth(index).get_by_role('button', name='View', exact=True).click()
+        expect(studio.get_by_role('img', name='Generated image', exact=True)).to_have_attribute('src', re.compile(f'/jobs/{job_id}/image'))
+        studio.get_by_role('tab', name='Generation queue', exact=True).click()
+    assert json.loads((game / 'scales.png.json').read_text())['generation']['width'] == 256
+
+
+def test_render_multipliers_disable_sizes_beyond_render_limits(new_context, metadata_backend):
+    backend, _game = metadata_backend
+    page = new_context().new_page()
+    studio = open_studio(page, backend)
+    studio.get_by_role('button', name='New image metadata', exact=True).click()
+    scales = studio.get_by_role('group', name='Render resolution multiplier', exact=True)
+    studio.get_by_label('Width', exact=True).fill('8192')
+    studio.get_by_label('Height', exact=True).fill('8192')
+    expect(scales.get_by_role('button', name='1×', exact=True)).to_be_enabled()
+    expect(scales.get_by_role('button', name='2×', exact=True)).to_be_disabled()
+    studio.get_by_label('Width', exact=True).fill('16384')
+    studio.get_by_label('Height', exact=True).fill('32')
+    expect(scales.get_by_role('button', name='2×', exact=True)).to_be_disabled()
+    studio.get_by_label('Width', exact=True).fill('0')
+    expect(scales.get_by_role('button', name='1×', exact=True)).to_be_disabled()
 
 
 def test_analyze_from_asset_details_then_edit_without_losing_source(new_context, metadata_backend):

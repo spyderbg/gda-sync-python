@@ -606,6 +606,11 @@ def create_app(
     def generated_image(file: Annotated[str, Query(max_length=4096)]) -> Response:
         return FileResponse(library.generated_image(file), media_type='image/png', headers={'Cache-Control': 'no-store'})
 
+    @app.get('/api/image-studio/jobs/{job_id}/image')
+    def generated_job_image(job_id: Annotated[str, StringConstraints(pattern=r'^[a-f0-9]{32}$')]) -> Response:
+        return FileResponse(library.image_metadata.generated_result(library._active_workspace()[0], job_id),
+                            media_type='image/png', headers={'Cache-Control': 'no-store'})
+
     @app.get('/api/image-studio/sequence-preview')
     def metadata_sequence_preview(file: Annotated[str, Query(max_length=4096)]) -> Response:
         return Response(library.metadata_sequence_preview(file), media_type='image/png', headers={'Cache-Control': 'no-store'})

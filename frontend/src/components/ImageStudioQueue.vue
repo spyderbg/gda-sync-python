@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { baseName, reportPreviewURL, time } from '../format';
-import { generatedURL, type ImageJob, type ImageJobs, type StudioCatalog } from '../imageStudio';
+import { generatedURL, jobGeneratedURL, type ImageJob, type ImageJobs, type StudioCatalog } from '../imageStudio';
 
 const props = defineProps<{ jobs: ImageJobs; catalog: StudioCatalog | null; working: boolean }>();
 const emit = defineEmits<{
-  retry: [id: string, force?: boolean]; cancel: [id: string]; cancelAll: []; view: [file: string]; compose: [];
+  retry: [id: string, force?: boolean]; cancel: [id: string]; cancelAll: []; view: [file: string, jobId?: string]; compose: [];
 }>();
 const recentJobs = computed(() => [...props.jobs.jobs].reverse());
 const cancellable = computed(() => props.jobs.jobs.some(job => ['queued', 'running'].includes(job.state)));
@@ -20,7 +20,8 @@ function thumbnail(job: ImageJob) {
   if (job.kind !== 'image') return '';
   const file = job.target ?? job.source;
   const revision = job.finishedAt ?? job.createdAt;
-  const url = files.value.get(file)?.generated ? generatedURL(file, revision) : reportPreviewURL(job.source, revision);
+  const url = job.state === 'succeeded' && job.result ? jobGeneratedURL(job.id, revision)
+    : files.value.get(file)?.generated ? generatedURL(file, revision) : reportPreviewURL(job.source, revision);
   return failedPreviews.value[job.id] === url ? '' : url;
 }
 function previewError(job: ImageJob) { failedPreviews.value[job.id] = thumbnail(job); }
@@ -58,6 +59,7 @@ function duration(job: ImageJob) {
           <div class="studio-job-details">
             <strong class="studio-job-name" :title="job.source">{{ job.label ?? baseName(job.source) }}</strong>
             <p class="studio-job-model" :title="job.model || 'Model not configured'">{{ job.kind === 'metadata' ? 'Analyze' : 'Generate' }} <span aria-hidden="true">·</span> {{ job.model || 'Model not configured' }}</p>
+            <p v-if="job.renderSize" class="studio-job-size">Render: {{ job.renderSize.width }} × {{ job.renderSize.height }}</p>
           </div>
           <time class="studio-job-date" :datetime="job.createdAt" :title="new Date(job.createdAt).toLocaleString()">{{ time(job.createdAt) }}</time>
           <div class="studio-job-execution">
@@ -67,7 +69,7 @@ function duration(job: ImageJob) {
           <button v-if="job.state === 'skipped' && job.kind === 'image'" type="button" class="btn btn-outline-primary btn-sm" :disabled="working" title="Regenerate and replace the existing output after success" @click="emit('retry', job.id, true)">Generate</button>
           <button v-if="['failed', 'cancelled'].includes(job.state)" type="button" class="btn btn-outline-primary btn-sm" :disabled="working" @click="emit('retry', job.id)">Retry</button>
           <button v-if="['queued', 'running'].includes(job.state)" type="button" class="btn btn-outline-danger btn-sm" :disabled="working" @click="emit('cancel', job.id)">Cancel</button>
-          <button v-if="job.state === 'succeeded'" type="button" class="btn btn-outline-primary btn-sm" @click="emit('view', job.target ?? job.source)">View</button>
+          <button v-if="job.state === 'succeeded'" type="button" class="btn btn-outline-primary btn-sm" @click="emit('view', job.target ?? job.source, job.kind === 'image' ? job.id : undefined)">View</button>
           <p v-if="job.error" class="studio-job-note text-danger">{{ job.error }}</p>
           <p v-else-if="job.message" class="studio-job-note">{{ job.message }}</p>
         </div>
@@ -101,6 +103,7 @@ function duration(job: ImageJob) {
 .studio-job-name { display: block; color: #222344; font-size: 14px; overflow-wrap: anywhere; }
 .studio-job-model { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: #687596; margin: 7px 0 0; }
 .studio-job-model span { padding: 0 4px; }
+.studio-job-size { margin: 5px 0 0; font-size: 11px; color: #77809a; }
 .studio-job-date, .studio-job-duration { font-size: 12px; color: #687596; font-variant-numeric: tabular-nums; }
 .studio-job-date { white-space: nowrap; }
 .studio-job-execution { min-width: 0; }
