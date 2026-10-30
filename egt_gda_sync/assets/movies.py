@@ -219,7 +219,8 @@ def align(first: dict, second: dict, mine: np.ndarray, theirs: np.ndarray) -> tu
     step_first, step_second = first["step"] or 1.0, second["step"] or 1.0
     times = np.arange(len(mine)) * step_first
     shortest = min(len(mine) * step_first, len(theirs) * step_second)
-    best: tuple[bool, float, float, np.ndarray, np.ndarray] | None = None
+    best: tuple[float, np.ndarray, np.ndarray] | None = None
+    best_rank = (False, -math.inf)
     for offset in np.arange(-times[-1], len(theirs) * step_second, step_second):
         indexes = np.round((times + offset) / step_second).astype(int)
         inside = (indexes >= 0) & (indexes < len(theirs))
@@ -228,10 +229,12 @@ def align(first: dict, second: dict, mine: np.ndarray, theirs: np.ndarray) -> tu
         rows = np.nonzero(inside)[0]
         enough = len(rows) * step_first >= MIN_OVERLAP * shortest
         score = float(differences[rows, indexes[rows]].mean())
-        if best is None or (enough, -score) > (best[0], -best[1]):
-            best = (enough, score, float(offset), rows, indexes[rows])
+        rank = (enough, -score)
+        if best is None or rank > best_rank:
+            best_rank = rank
+            best = (float(offset), rows, indexes[rows])
     assert best is not None  # The offset 0 overlaps the first frames.
-    return best[2], list(zip(best[3].tolist(), best[4].tolist())), differences
+    return best[0], list(zip(best[1].tolist(), best[2].tolist())), differences
 
 
 def compare_fingerprints(first: dict, second: dict) -> dict:

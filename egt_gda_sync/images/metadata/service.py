@@ -180,7 +180,7 @@ class MetadataLibrary:
             lease = (self.home / 'image-model-queue.lock').open('a+b')
             try:
                 if os.name == 'nt':
-                    import msvcrt
+                    import msvcrt  # pylint: disable=import-error  # Only available on Windows.
                     lease.seek(0)
                     if not lease.read(1):
                         lease.write(b'0')

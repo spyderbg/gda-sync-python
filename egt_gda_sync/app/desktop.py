@@ -177,7 +177,7 @@ def _linux_default_browser(env: Mapping[str, str] = os.environ) -> str | None:
 
 def _windows_default_browser() -> str | None:
     """Find the executable of the default web browser from the registry."""
-    import winreg  # Windows only
+    import winreg  # pylint: disable=import-error  # Only available on Windows.
 
     try:
         with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\Shell\Associations\UrlAssociations\https\UserChoice") as key:
