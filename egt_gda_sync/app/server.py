@@ -120,6 +120,10 @@ class ImageJobBody(_Body):
     id: Annotated[str, StringConstraints(pattern=r'^[a-f0-9]{32}$')]
 
 
+class ImageJobRetryBody(ImageJobBody):
+    force: bool = False
+
+
 class ViewPosition(_Body):
     index: Annotated[int, Field(ge=0, le=100000)]
     x: Annotated[float, Field(allow_inf_nan=False, ge=-1e6, le=1e6)]
@@ -577,6 +581,10 @@ def create_app(
     @app.post('/api/image-studio/jobs')
     def queue_image_jobs(body: ImageJobsBody) -> dict:
         return library.queue_image_jobs(body.kind, body.assets, body.files, body.overwrite)
+
+    @app.post('/api/image-studio/jobs/retry')
+    def retry_image_job(body: ImageJobRetryBody) -> dict:
+        return library.image_metadata.retry(library._active_workspace()[0], body.id, force=body.force)
 
     @app.post('/api/image-studio/jobs/cancel')
     def cancel_image_job(body: ImageJobBody) -> dict:

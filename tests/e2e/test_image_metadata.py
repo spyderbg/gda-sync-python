@@ -40,6 +40,11 @@ def test_create_metadata_edit_render_size_and_generate_image(new_context, metada
     page = new_context().new_page()
     dialog = open_studio(page, backend)
     dialog.get_by_role('button', name='New image metadata', exact=True).click()
+    dialog.get_by_text('Metadata file and provenance', exact=True).click()
+    folder_button = dialog.get_by_role('button', name='Open metadata folder', exact=True)
+    code_button = dialog.get_by_role('button', name='Open metadata file in VS Code', exact=True)
+    expect(folder_button).to_be_disabled()
+    expect(code_button).to_be_disabled()
     dialog.get_by_label('Image path', exact=True).fill('art/new-bell.png')
     dialog.get_by_label('Description', exact=True).fill('A golden bell with a red ribbon.')
     dialog.get_by_label('Generation prompt', exact=True).fill('A polished emerald bell, centered.')
@@ -50,10 +55,24 @@ def test_create_metadata_edit_render_size_and_generate_image(new_context, metada
     dialog.get_by_label('Transparent background', exact=True).check()
     dialog.get_by_role('button', name='Save metadata', exact=True).click()
     expect(dialog.get_by_role('status')).to_have_text('Metadata saved.')
+    opened = []
+
+    def record_open(route):
+        opened.append((route.request.url.rsplit('/', 1)[-1], route.request.post_data_json))
+        route.fulfill(json={'opened': True})
+
+    page.route('**/api/rss-sync/open-*', record_open)
+    folder_button.click()
+    code_button.click()
+    assert opened == [
+        ('open-folder', {'file': str(game / 'art/new-bell.png.json'), 'isFolder': False}),
+        ('open-declaration', {'descriptor': str(game / 'art/new-bell.png.json'), 'line': 1}),
+    ]
+    expect(dialog.locator('.studio-provenance pre')).to_have_css('max-height', '480px')
     value = json.loads((game / 'art/new-bell.png.json').read_text())
     assert value['generation'] == {'width': 64, 'height': 96, 'prompt': 'A polished emerald bell, centered.'}
     assert value['image']['width'] == 14 and value['image']['height'] == 21
-    dialog.get_by_role('button', name='Save & generate image', exact=True).click()
+    dialog.get_by_role('button', name='Generate image', exact=True).click()
     expect(dialog.get_by_role('tab', name='Generation queue')).to_have_attribute('aria-selected', 'true')
     expect(dialog.locator('.studio-job').filter(has_text='new-bell.png').get_by_text('succeeded', exact=True)).to_be_visible(timeout=10000)
     dialog.get_by_role('button', name='View', exact=True).click()
@@ -93,6 +112,122 @@ def test_analyze_from_asset_details_then_edit_without_losing_source(new_context,
     dialog.get_by_label('Vision model', exact=True).fill('another-vision-model')
     dialog.get_by_role('button', name='Save model settings', exact=True).click()
     expect(dialog.get_by_role('status')).to_contain_text('Model settings saved.')
+
+
+def test_force_regenerates_skipped_image_without_adding_job(new_context, metadata_backend):
+    backend, game = metadata_backend
+    page = new_context().new_page()
+    studio = open_studio(page, backend)
+    headers = {'x-gda-token': page.request.get(backend.url + '/api/session').json()['token']}
+    response = page.request.post(backend.url + '/api/image-studio/metadata', headers=headers,
+                                 data={'file': 'bell.png', 'metadata': metadata('bell.png')})
+    assert response.ok, response.text()
+    output = png(game / 'bell.png.json.generated.png')
+    original = output.read_bytes()
+    response = page.request.post(backend.url + '/api/image-studio/jobs', headers=headers,
+                                 data={'kind': 'image', 'files': ['bell.png']})
+    assert response.ok, response.text()
+    skipped_id, = response.json()['submitted']
+    studio.get_by_role('tab', name='Generation queue', exact=True).click()
+    expect(studio.locator('.studio-job').get_by_text('skipped', exact=True)).to_be_visible()
+    force = studio.get_by_role('button', name='Generate', exact=True)
+    expect(force).to_be_enabled()
+    expect(studio.get_by_label('Replace existing metadata / generated PNGs after success')).not_to_be_checked()
+    with page.expect_request(lambda request: request.url.endswith('/api/image-studio/jobs/retry')) as submitted:
+        force.click()
+    assert submitted.value.post_data_json == {'id': skipped_id, 'force': True}
+    expect(studio.locator('.studio-job')).to_have_count(1)
+    expect(studio.locator('.studio-job').get_by_text('succeeded', exact=True)).to_be_visible(timeout=10000)
+    expect(force).to_have_count(0)
+    assert output.read_bytes() != original
+    expect(studio.get_by_label('Replace existing metadata / generated PNGs after success')).not_to_be_checked()
+
+
+def test_failed_job_can_be_retried_after_fixing_model_settings(new_context, metadata_backend, vision_server):
+    backend, game = metadata_backend
+    page = new_context().new_page()
+    studio = open_studio(page, backend)
+    studio.get_by_role('tab', name='Local models', exact=True).click()
+    studio.get_by_label('API base URL', exact=True).fill('http://127.0.0.1:1/v1')
+    studio.get_by_role('button', name='Save model settings', exact=True).click()
+    expect(studio.get_by_role('status')).to_contain_text('Model settings saved.')
+    studio.get_by_role('tab', name='Metadata', exact=True).click()
+    studio.get_by_role('button', name='Analyze image', exact=True).click()
+    failed = studio.locator('.studio-job').filter(has=page.get_by_text('failed', exact=True))
+    expect(failed.get_by_role('button', name='Retry', exact=True)).to_be_visible(timeout=10000)
+    # Add a newer entry so retrying the older job must move it to the top.
+    headers = {'x-gda-token': page.request.get(backend.url + '/api/session').json()['token']}
+    png(game / 'second.png')
+    response = page.request.post(backend.url + '/api/image-studio/jobs', headers=headers,
+                                 data={'kind': 'metadata', 'files': ['second.png']})
+    assert response.ok, response.text()
+    expect(studio.locator('.studio-job')).to_have_count(2)
+    expect(studio.locator('.studio-job').first).to_contain_text('second.png')
+    failed = studio.locator('.studio-job').filter(has=page.get_by_text('bell.png', exact=True))
+    studio.get_by_role('tab', name='Local models', exact=True).click()
+    studio.get_by_label('API base URL', exact=True).fill(vision_server[0])
+    studio.get_by_role('button', name='Save model settings', exact=True).click()
+    expect(studio.get_by_role('status')).to_contain_text('Model settings saved.')
+    studio.get_by_role('tab', name='Generation queue', exact=True).click()
+    failed.get_by_role('button', name='Retry', exact=True).click()
+    expect(studio.locator('.studio-job')).to_have_count(2)
+    expect(studio.locator('.studio-job').first.locator('.studio-job-name')).to_have_text('bell.png')
+    expect(failed.get_by_text('succeeded', exact=True)).to_be_visible(timeout=10000)
+    expect(failed.get_by_text('failed', exact=True)).to_have_count(0)
+    expect(failed.get_by_role('button', name='Retry', exact=True)).to_have_count(0)
+    studio.get_by_role('button', name='View', exact=True).click()
+    expect(studio.get_by_label('Description', exact=True)).to_have_value('A golden bell.')
+    assert (game / 'bell.png.json').is_file()
+
+
+def test_generation_queue_shows_previews_models_times_and_responsive_actions(new_context, metadata_backend):
+    backend, game = metadata_backend
+    states = ['failed', 'skipped', 'succeeded', 'running', 'queued']
+    jobs = []
+    for index, state in enumerate(states):
+        name = f'{state}.png'
+        png(game / name)
+        write(game / f'{name}.json', metadata(name))
+        png(game / f'{name}.json.generated.png')
+        job = {'id': f'{index:032x}', 'kind': 'metadata' if state == 'failed' else 'image',
+               'state': state, 'source': str(game / name), 'target': str(game / name),
+               'createdAt': '2026-10-30T10:20:00Z', 'model': 'vision' if state == 'failed' else 'captured-model.gguf'}
+        if state not in ('queued', 'skipped'):
+            job['startedAt'] = '2026-10-30T10:22:00Z'
+        if state in ('failed', 'skipped', 'succeeded'):
+            job['finishedAt'] = '2026-10-30T10:24:14Z'
+        if state == 'failed':
+            job['error'] = 'The model server could not be reached.'
+        jobs.append(job)
+    page = new_context().new_page()
+    page.route('**/api/image-studio/jobs', lambda route: route.fulfill(json={'jobs': jobs, 'queued': 1, 'running': True}))
+    studio = open_studio(page, backend)
+    studio.get_by_role('tab', name='Generation queue', exact=True).click()
+    expect(studio.get_by_role('heading', name='Generation queue', exact=True)).to_be_visible()
+    expect(studio.locator('.studio-job')).to_have_count(5)
+    done = studio.locator('.studio-job').filter(has=page.get_by_text('succeeded.png', exact=True))
+    expect(done.locator('.studio-job-model')).to_have_text('Generate · captured-model.gguf')
+    expect(done.locator('.studio-job-date')).to_have_attribute('datetime', '2026-10-30T10:20:00Z')
+    expect(done.locator('.studio-job-duration')).to_have_text('2m 14s')
+    expect(done.locator('.studio-job-preview img')).to_have_js_property('naturalWidth', 7)
+    skipped = studio.locator('.studio-job').filter(has=page.get_by_text('skipped.png', exact=True))
+    expect(skipped.get_by_role('button', name='Generate', exact=True)).to_be_visible()
+    expect(skipped.locator('.studio-job-duration')).to_have_text('—')
+    failed = studio.locator('.studio-job').filter(has=page.get_by_text('failed.png', exact=True))
+    expect(failed.locator('.studio-job-preview .mdi-file-document-outline')).to_be_visible()
+    expect(failed.get_by_text('The model server could not be reached.', exact=True)).to_be_visible()
+    expect(studio.get_by_role('progressbar', name='Job in progress')).to_have_count(1)
+    assert studio.get_by_role('progressbar', name='Job in progress').get_attribute('aria-valuenow') is None
+    BUILD.mkdir(exist_ok=True)
+    page.screenshot(path=str(BUILD / 'image-studio-queue-desktop.png'), full_page=True)
+    page.set_viewport_size({'width': 390, 'height': 844})
+    expect(page.locator('.main-panel')).to_have_css('width', '390px')
+    expect(page.locator('.main-panel')).to_have_css('margin-left', '0px')
+    expect(done.get_by_role('button', name='View', exact=True)).to_be_visible()
+    assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
+    page.screenshot(path=str(BUILD / 'image-studio-queue-mobile.png'), full_page=True)
+    studio.get_by_role('button', name='Generate images', exact=True).click()
+    expect(studio.get_by_role('tab', name='Metadata', exact=True)).to_have_attribute('aria-selected', 'true')
 
 
 def test_sequence_has_one_shared_description_and_prompt(new_context, metadata_backend):

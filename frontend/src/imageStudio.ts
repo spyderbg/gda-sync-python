@@ -21,7 +21,7 @@ export interface StudioCatalog { workspace: string; game: string; files: StudioF
 export interface ImageJob {
   id: string; source: string; target?: string; label?: string; kind: 'metadata' | 'image';
   state: 'queued' | 'running' | 'cancelling' | 'succeeded' | 'skipped' | 'failed' | 'cancelled';
-  createdAt: string; finishedAt?: string; error?: string; message?: string;
+  createdAt: string; startedAt?: string; finishedAt?: string; model?: string; error?: string; message?: string;
 }
 export interface ImageJobs { jobs: ImageJob[]; queued: number; running: boolean; submitted?: string[] }
 export interface RemoteAnalysisSettings {

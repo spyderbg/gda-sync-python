@@ -5,7 +5,8 @@ import { baseName, reportPreviewURL, time } from '../format';
 import { studioAPI, generatedURL, type ImageJobs, type ImageMetadata, type ImageSettings, type MetadataDocument, type StudioCatalog } from '../imageStudio';
 import AppModal from './AppModal.vue';
 import ImageStudioBrowser from './ImageStudioBrowser.vue';
-import { registerNavigationGuard } from '../workspace';
+import ImageStudioQueue from './ImageStudioQueue.vue';
+import { openDeclaration, openResourceFolder, registerNavigationGuard } from '../workspace';
 
 const props = defineProps<{ row?: ReportAsset; stacked?: boolean; embedded?: boolean }>();
 const emit = defineEmits<{ close: [] }>();
@@ -35,9 +36,7 @@ const current = computed(() => catalog.value?.files.find(file => file.file === s
 const metadata = computed(() => document.value?.metadata);
 const isSequence = computed(() => document.value?.kind === 'sequence');
 const fallbackPrompt = computed(() => [metadata.value?.analysis.description, metadata.value?.analysis.scene].filter(Boolean).join('\n'));
-const recentJobs = computed(() => [...jobs.value.jobs].reverse());
 const activeJobs = computed(() => jobs.value.jobs.filter(job => ['queued', 'running', 'cancelling'].includes(job.state)));
-const cancellableJobs = computed(() => jobs.value.jobs.filter(job => ['queued', 'running'].includes(job.state)));
 const previewURL = computed(() => !document.value ? '' : preview.value === 'generated'
   ? generatedURL(document.value.file, lastFinished.value) : isSequence.value
     ? `/api/image-studio/sequence-preview?${new URLSearchParams({ file: document.value.file, revision: document.value.revision })}`
@@ -132,6 +131,15 @@ async function enqueue(kind: 'metadata' | 'image', batch?: string[]) {
     tab.value = 'queue';
   } catch (e) { error.value = (e as Error).message; } finally { working.value = false; }
 }
+async function retry(id: string, force = false) {
+  clearMessages();
+  working.value = true;
+  try {
+    jobs.value = await studioAPI<ImageJobs>('jobs/retry', { id, force });
+    message.value = force ? 'Regeneration submitted. Existing output will be replaced after success.'
+      : 'Retry submitted using the latest saved model settings.';
+  } catch (e) { error.value = (e as Error).message; } finally { working.value = false; }
+}
 async function cancel(id: string) {
   try { jobs.value = await studioAPI<ImageJobs>('jobs/cancel', { id }); }
   catch (e) { error.value = (e as Error).message; }
@@ -147,7 +155,7 @@ async function cancelAll() {
 async function pollJobs() {
   try {
     const value = await studioAPI<ImageJobs>('jobs');
-    const changed = value.jobs.some(job => job.finishedAt && !jobs.value.jobs.some(old => old.id === job.id && old.finishedAt));
+    const changed = value.jobs.some(job => job.finishedAt && !jobs.value.jobs.some(old => old.id === job.id && old.finishedAt === job.finishedAt));
     jobs.value = value;
     if (changed) {
       await loadCatalog();
@@ -224,27 +232,29 @@ onBeforeUnmount(() => { disposed = true; loadId++; clearTimeout(timer); unregist
               <label class="studio-field">Generation prompt<textarea v-model="prompt" aria-label="Generation prompt" rows="4" class="form-control" :placeholder="fallbackPrompt || 'Use the description and scene, or enter a custom prompt'" /><small>Leave empty to use the description and scene. Transparency instructions are added automatically.</small></label>
               <div class="studio-dimensions"><label class="studio-field">Objects<input v-model="objects" class="form-control" placeholder="Comma-separated objects"></label><label class="studio-field">Tags<input v-model="tags" class="form-control" placeholder="Comma-separated tags"></label></div>
               <label class="studio-field">Text in image<textarea v-model="metadata.analysis.text" rows="2" class="form-control" /></label>
-              <details class="studio-provenance"><summary>Metadata file and provenance</summary><dl><dt>JSON file</dt><dd>{{ document?.path || `${newPath}.json` }}</dd><dt>Model</dt><dd>{{ metadata.model }}</dd><dt>Created</dt><dd>{{ time(metadata.created_at) }}</dd><dt v-if="metadata.image.sha256">Source SHA-256</dt><dd v-if="metadata.image.sha256">{{ metadata.image.sha256 }}</dd></dl><pre>{{ JSON.stringify(metadata, null, 2) }}</pre></details>
+              <details class="studio-provenance">
+                <summary>Metadata file and provenance</summary>
+                <dl>
+                  <dt>JSON file</dt>
+                  <dd class="studio-metadata-file">
+                    <span>{{ document?.path || `${newPath}.json` }}</span>
+                    <span class="studio-file-actions">
+                      <button type="button" class="details-icon" aria-label="Open metadata folder" :title="document?.exists && !creating ? 'Open metadata folder' : 'Save metadata first'" :disabled="working || loading || creating || !document?.exists" @click="document && openResourceFolder(document.path)"><i aria-hidden="true" class="mdi mdi-folder-open-outline" /></button>
+                      <button type="button" class="details-icon" aria-label="Open metadata file in VS Code" :title="document?.exists && !creating ? 'Open metadata file in VS Code' : 'Save metadata first'" :disabled="working || loading || creating || !document?.exists" @click="document && openDeclaration(document.path, 1)"><i aria-hidden="true" class="mdi mdi-code-braces" /></button>
+                    </span>
+                  </dd>
+                  <dt>Model</dt><dd>{{ metadata.model }}</dd>
+                  <dt>Created</dt><dd>{{ time(metadata.created_at) }}</dd>
+                  <dt v-if="metadata.image.sha256">Source SHA-256</dt><dd v-if="metadata.image.sha256">{{ metadata.image.sha256 }}</dd>
+                </dl>
+                <pre>{{ JSON.stringify(metadata, null, 2) }}</pre>
+              </details>
             </form>
           </section>
       </ImageStudioBrowser>
-      <section v-if="tab === 'queue'" aria-label="Generation jobs">
-        <div class="studio-queue-heading">
-          <div><h6>{{ jobs.running ? 'A model is working' : jobs.queued ? 'Jobs waiting' : 'Queue is idle' }}</h6><p class="studio-hint">One job runs at a time. Jobs of the same type and model are grouped to reduce model switching. Jobs keep running when you leave Image studio.</p></div>
-          <div class="studio-queue-actions">
-            <span class="badge badge-light">{{ jobs.queued }} queued</span>
-            <button type="button" class="btn btn-outline-danger btn-sm" :disabled="working || !cancellableJobs.length" @click="cancelAll">Cancel All</button>
-          </div>
-        </div>
-        <p v-if="!recentJobs.length" class="text-muted">Analyze an image or generate one from saved metadata to start a job.</p>
-        <div v-for="job in recentJobs" :key="job.id" class="studio-job">
-          <i aria-hidden="true" :class="['mdi', job.state === 'running' ? 'mdi-loading mdi-spin' : job.kind === 'metadata' ? 'mdi-file-document-outline' : 'mdi-image-outline']" />
-          <div><strong>{{ job.kind === 'metadata' ? 'Analyze' : 'Generate' }} · {{ job.label ?? baseName(job.source) }}</strong><span class="studio-hint studio-job-path">{{ job.source }}</span><p v-if="job.error" class="text-danger">{{ job.error }}</p><p v-else-if="job.message" class="studio-hint">{{ job.message }}</p></div>
-          <span :class="['badge', job.state === 'failed' ? 'badge-danger' : job.state === 'succeeded' ? 'badge-success' : 'badge-light']">{{ job.state }}</span>
-          <button v-if="['queued', 'running'].includes(job.state)" type="button" class="btn btn-outline-secondary btn-sm" :disabled="working" @click="cancel(job.id)">Cancel</button>
-          <button v-if="job.state === 'succeeded'" type="button" class="btn btn-outline-primary btn-sm" @click="selectFile(job.target ?? job.source); tab = 'metadata'">View</button>
-        </div>
-      </section>
+      <ImageStudioQueue v-if="tab === 'queue'" :jobs="jobs" :catalog="catalog" :working="working"
+        @retry="retry" @cancel="cancel" @cancel-all="cancelAll" @compose="tab = 'metadata'"
+        @view="selectFile($event); tab = 'metadata'" />
       <form v-else-if="tab === 'models' && settings" class="studio-models" @submit.prevent="saveModels">
         <p class="studio-hint">Configure installed weights and a local LM Studio server. Enable Remote models to use another computer for either operation. No models are downloaded. Settings are stored in {{ settings.path }}.</p>
         <fieldset><legend>Vision analysis · LM Studio</legend>
@@ -301,7 +311,7 @@ onBeforeUnmount(() => { disposed = true; loadId++; clearTimeout(timer); unregist
       <div class="studio-footer-actions">
         <template v-if="tab === 'metadata' && metadata">
           <button type="button" class="btn btn-outline-primary" :disabled="working || loading" @click="save">Save metadata</button>
-          <button type="button" class="btn btn-primary" :disabled="working || loading" @click="enqueue('image')">Save &amp; generate image</button>
+          <button type="button" class="btn btn-primary" :disabled="working || loading" @click="enqueue('image')">Generate image</button>
         </template>
         <button v-if="!embedded" type="button" class="btn btn-light" :disabled="working" @click="close">Close</button>
       </div>
@@ -323,10 +333,7 @@ onBeforeUnmount(() => { disposed = true; loadId++; clearTimeout(timer); unregist
 .studio-hint { margin: 0; overflow-wrap: anywhere; }
 .studio-editor { min-width: 0; }
 .studio-editor h6 { margin: 0 0 6px; overflow-wrap: anywhere; }
-.studio-editor-heading, .studio-queue-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
-.studio-queue-heading { flex-wrap: wrap; }
-.studio-queue-heading > div:first-child { flex: 1; min-width: min(240px, 100%); }
-.studio-queue-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.studio-editor-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
 .studio-editor-heading .btn { flex-shrink: 0; }
 .studio-field { display: flex; flex-direction: column; gap: 7px; margin: 0 0 18px; font-size: 13px; }
 .studio-field textarea { resize: vertical; line-height: 1.5; min-height: 64px; }
@@ -353,18 +360,16 @@ legend { width: auto; font-size: 13px; margin-bottom: 8px; font-weight: 500; }
 .studio-provenance summary { cursor: pointer; color: #4b49ac; }
 .studio-provenance dl { margin: 12px 0; }
 .studio-provenance dd { overflow-wrap: anywhere; font-family: monospace; }
-.studio-provenance pre { max-height: 240px; overflow: auto; }
+.studio-metadata-file { display: flex; align-items: flex-start; gap: 8px; }
+.studio-metadata-file > span:first-child { flex: 1; min-width: 0; }
+.studio-file-actions { display: flex; flex-shrink: 0; gap: 4px; }
+.studio-file-actions button:disabled { opacity: .4; cursor: default; }
+.studio-provenance pre { max-height: 480px; overflow: auto; }
 .studio-footer-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .studio-footer { justify-content: space-between; }
 .studio-footer label { margin: 0; }
 .studio-output-path { padding: 9px 12px; margin: 0; font-size: 11px; color: #77809a; overflow-wrap: anywhere; }
 .studio-output-path small { display: block; margin-top: 4px; }
-.studio-job { display: flex; align-items: flex-start; gap: 14px; padding: 16px 0; border-bottom: 1px solid #e0e4ec; }
-.studio-job > .mdi { color: #4b49ac; font-size: 22px; }
-.studio-job > div { flex: 1; min-width: 0; }
-.studio-job strong { font-size: 13px; }
-.studio-job p { font-size: 12px; margin: 5px 0 0; overflow-wrap: anywhere; }
-.studio-job-path { display: block; overflow-wrap: anywhere; }
 .studio-workflow { font-family: monospace; font-size: 12px; }
 .studio-models { max-width: 740px; margin: auto; }
 .studio-models fieldset { margin: 24px 0; padding-top: 18px; border-top: 1px solid #e0e4ec; }

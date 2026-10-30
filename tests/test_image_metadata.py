@@ -722,6 +722,156 @@ def test_queued_generation_captures_remote_connection_and_workflow(studio, tmp_p
     assert json.loads(studio.jobs[0]['group'])[1] == 'remote'
 
 
+@pytest.mark.parametrize('kind', ['metadata', 'image'])
+@pytest.mark.parametrize('file', ['frames/bell_00.png', 'sequence:imageseq:NORMAL'])
+def test_retry_uses_current_settings_and_inputs_preserving_target_and_overwrite(studio_client, tmp_path, vision_server, kind, file):
+    api = studio_client
+    # Use the catalog's actual sequence key, including its descriptor identity.
+    if file.startswith('sequence:'):
+        file = next(item['file'] for item in api.get('/api/image-studio/catalog').json()['files']
+                    if item['kind'] == 'sequence' and item['name'] == 'NORMAL')
+    response = api.post('/api/image-studio/metadata', json={'file': file, 'metadata': metadata()})
+    assert response.status_code == 200, response.text
+    document = response.json()
+    output = Path(f"{document['path']}.generated.png")
+    png(output)
+    original_output = output.read_bytes()
+    settings = runner_settings(tmp_path, fail=True)
+    settings['analysis'] = {'base_url': 'http://127.0.0.1:1/v1', 'model': 'vision'}
+    assert api.post('/api/image-studio/settings', json={'settings': settings}).status_code == 200
+    submitted = api.post('/api/image-studio/jobs', json={'kind': kind, 'files': [file], 'overwrite': True})
+    assert submitted.status_code == 200, submitted.text
+    studio = api.library.image_metadata
+    failed = wait_jobs(studio)[0]
+    assert failed['state'] == 'failed'
+    # Changing inputs and fixing the model configuration must be picked up by Retry.
+    value = document['metadata']
+    value['analysis']['description'] = 'An updated bell.'
+    response = api.post('/api/image-studio/metadata', json={
+        'file': file, 'metadata': value, 'revision': document['revision'],
+    })
+    assert response.status_code == 200, response.text
+    settings = runner_settings(tmp_path)
+    settings['analysis'] = {'base_url': vision_server[0], 'model': 'vision'}
+    assert api.post('/api/image-studio/settings', json={'settings': settings}).status_code == 200
+    response = api.post('/api/image-studio/jobs/retry', json={'id': failed['id']})
+    assert response.status_code == 200, response.text
+    retried, = wait_jobs(studio)
+    assert retried['id'] == failed['id'] and retried['state'] == 'succeeded'
+    assert 'error' not in retried
+    assert response.json()['submitted'] == [retried['id']]
+    for key in ('kind', 'target', 'source', 'metadata', 'output', 'overwrite', 'label'):
+        assert retried.get(key) == failed.get(key)
+    if kind == 'metadata':
+        assert json.loads(Path(document['path']).read_text())['analysis']['description'] == 'A golden bell.'
+    else:
+        assert output.read_bytes() != original_output
+
+
+def test_retry_rejects_other_workspaces_and_live_jobs_and_deduplicates_attempts(studio_client, monkeypatch):
+    api = studio_client
+    studio = api.library.image_metadata
+    monkeypatch.setattr(studio, '_wake', lambda: None)
+    submitted = api.post('/api/image-studio/jobs', json={'kind': 'metadata', 'files': ['frames/bell_00.png']}).json()
+    job = studio.jobs[0]
+    assert api.post('/api/image-studio/jobs/retry', json={'id': submitted['submitted'][0]}).status_code == 409
+    assert api.post('/api/image-studio/jobs/retry', json={'id': '0' * 32}).status_code == 404
+    job.update(state='failed', error='Connection refused', finishedAt=service.now())
+    job['workspace'] = 'another-workspace'
+    assert api.post('/api/image-studio/jobs/retry', json={'id': job['id']}).status_code == 404
+    job['workspace'] = 'game'
+    first = api.post('/api/image-studio/jobs/retry', json={'id': job['id']})
+    second = api.post('/api/image-studio/jobs/retry', json={'id': job['id']})
+    assert first.status_code == 200 and second.status_code == 409
+    assert first.json()['submitted'] == [job['id']]
+    assert len(studio.jobs) == 1 and studio.jobs[0]['overwrite'] is False
+    assert not {'error', 'finishedAt', 'startedAt'} & job.keys()
+    assert api.post('/api/image-studio/jobs/cancel', json={'id': job['id']}).status_code == 200
+    response = api.post('/api/image-studio/jobs/retry', json={'id': job['id']})
+    assert response.status_code == 200 and response.json()['queued'] == 1
+    assert len(studio.jobs) == 1
+
+
+@pytest.mark.parametrize('fail', [False, True])
+def test_force_regenerates_skipped_image_in_place_and_keeps_existing_output_on_failure(studio_client, tmp_path, fail):
+    api = studio_client
+    studio = api.library.image_metadata
+    settings = runner_settings(tmp_path, fail=fail)
+    assert api.post('/api/image-studio/settings', json={'settings': settings}).status_code == 200
+    file = 'frames/bell_00.png'
+    response = api.post('/api/image-studio/metadata', json={'file': file, 'metadata': metadata()})
+    assert response.status_code == 200, response.text
+    path = Path(response.json()['path'])
+    output = png(Path(f'{path}.generated.png'))
+    original = output.read_bytes()
+    source = (api.game / file).read_bytes()
+    saved_metadata = path.read_bytes()
+    response = api.post('/api/image-studio/jobs', json={'kind': 'image', 'files': [file]})
+    skipped, = response.json()['jobs']
+    assert skipped['state'] == 'skipped' and skipped['overwrite'] is False
+    assert api.post('/api/image-studio/jobs/retry', json={'id': skipped['id']}).status_code == 409
+    response = api.post('/api/image-studio/jobs/retry', json={'id': skipped['id'], 'force': True})
+    assert response.status_code == 200, response.text
+    regenerated, = wait_jobs(studio)
+    assert regenerated['id'] == skipped['id'] and regenerated['overwrite'] is True
+    assert regenerated['state'] == ('failed' if fail else 'succeeded')
+    assert 'message' not in regenerated
+    assert (output.read_bytes() == original) is fail
+    assert (api.game / file).read_bytes() == source and path.read_bytes() == saved_metadata
+
+
+def test_force_only_accepts_skipped_generation_in_active_workspace(studio_client, monkeypatch):
+    api = studio_client
+    studio = api.library.image_metadata
+    monkeypatch.setattr(studio, '_wake', lambda: None)
+    api.post('/api/image-studio/jobs', json={'kind': 'metadata', 'files': ['frames/bell_00.png']})
+    job = studio.jobs[0]
+    body = {'id': job['id'], 'force': True}
+    for state in ('queued', 'running', 'cancelling', 'succeeded', 'failed', 'cancelled', 'skipped'):
+        job['state'] = state
+        assert api.post('/api/image-studio/jobs/retry', json=body).status_code == 409
+    job.update(kind='image', workspace='another-workspace')
+    assert api.post('/api/image-studio/jobs/retry', json=body).status_code == 404
+    assert len(studio.jobs) == 1
+
+
+def test_queue_status_exposes_captured_model_names_without_model_settings(studio, tmp_path, monkeypatch):
+    monkeypatch.setattr(studio, '_wake', lambda: None)
+    source = png(tmp_path / 'bell.png')
+    write(service.sidecar(source), metadata())
+    settings = runner_settings(tmp_path)
+    settings['analysis'] = {'model': 'original-vision'}
+    studio.save_settings(settings)
+    studio.enqueue('game', tmp_path, tmp_path, [source], 'metadata', overwrite=True)
+    studio.enqueue('game', tmp_path, tmp_path, [source], 'image')
+    settings['analysis']['model'] = 'new-vision'
+    settings['generation']['diffusion_model'] = '/models/new-diffusion.gguf'
+    studio.save_settings(settings)
+    jobs = studio.status('game')['jobs']
+    assert [job['model'] for job in jobs] == ['original-vision', 'diffusion']
+    assert all('settings' not in job and 'expected' not in job for job in jobs)
+    # Older saved jobs have their model label derived from the captured configuration too.
+    studio.jobs[0]['settings']['remote']['analysis'].update(enabled=True, model='remote-vision')
+    studio.jobs[1]['settings']['remote']['generation']['enabled'] = True
+    assert [job['model'] for job in studio.status('game')['jobs']] == ['remote-vision', 'ComfyUI']
+
+
+def test_retry_moves_existing_job_to_top_and_persists_order(studio_client, monkeypatch):
+    api = studio_client
+    studio = api.library.image_metadata
+    monkeypatch.setattr(studio, '_wake', lambda: None)
+    response = api.post('/api/image-studio/jobs', json={
+        'kind': 'metadata', 'files': ['frames/bell_00.png', 'frames/bell_01.png'],
+    })
+    first_id, second_id = response.json()['submitted']
+    studio.jobs[0].update(state='failed', error='Connection refused', startedAt=service.now(), finishedAt=service.now())
+    response = api.post('/api/image-studio/jobs/retry', json={'id': first_id})
+    assert response.status_code == 200, response.text
+    assert [job['id'] for job in response.json()['jobs']] == [second_id, first_id]
+    assert response.json()['jobs'][-1]['state'] == 'queued'
+    assert [job['id'] for job in json.loads(studio.queue_path.read_text())] == [second_id, first_id]
+
+
 def test_cancel_all_atomically_cancels_active_workspace_and_keeps_other_jobs(studio_client, monkeypatch):
     api = studio_client
     studio = api.library.image_metadata

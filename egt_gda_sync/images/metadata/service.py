@@ -248,8 +248,13 @@ class MetadataLibrary:
         with self.condition:
             jobs = [deepcopy(job) for job in self.jobs if job['workspace'] == workspace]
             for job in jobs:
+                settings = job.pop('settings', {})
+                operation = 'analysis' if job['kind'] == 'metadata' else 'generation'
+                remote = settings.get('remote', {}).get(operation, {})
+                selected = remote if remote.get('enabled') else settings.get(operation, {})
+                job['model'] = (selected.get('model', '') if operation == 'analysis' else
+                                'ComfyUI' if remote.get('enabled') else Path(selected.get('diffusion_model', '')).name)
                 job.pop('sequence', None)
-                job.pop('settings', None)
                 job.pop('group', None)
                 job.pop('expected', None)
             return {'jobs': jobs, 'running': any(job['state'] in ('running', 'cancelling') for job in jobs),
@@ -303,6 +308,10 @@ class MetadataLibrary:
         return self.document(target, root)
 
     def enqueue(self, workspace: str, root: Path, game: Path, sources: list[Path | dict], kind: str, *, overwrite: bool = False) -> dict:
+        return self._enqueue(workspace, root, game, sources, kind, overwrite=overwrite)
+
+    def _enqueue(self, workspace: str, root: Path, game: Path, sources: list[Path | dict], kind: str, *,
+                 overwrite: bool = False, retry_job: dict | None = None) -> dict:
         if not self.started:
             self.start()
         if kind not in ('metadata', 'image'):
@@ -348,17 +357,40 @@ class MetadataLibrary:
                 existing = next((old for old in self.jobs if old['kind'] == kind and old['metadata'] == job['metadata']
                                  and old['state'] not in TERMINAL), None)
                 if existing:
+                    if retry_job is not None:
+                        raise AppError('This image already has an active job', 409)
                     submitted.append(existing['id'])
                     continue
                 destination = Path(job['metadata'] if kind == 'metadata' else job['output'])
                 original = destination.with_name(f'{destination.stem}.original.png')
                 if not overwrite and (destination.exists() or (keep_original and original.exists())):
                     job.update(state='skipped', finishedAt=now(), message='Existing output kept')
+                if retry_job is not None:
+                    job['id'] = retry_job['id']
+                    self.jobs.remove(retry_job)
+                    retry_job.clear()
+                    retry_job.update(job)
+                    job = retry_job
                 self.jobs.append(job)
                 submitted.append(job['id'])
             self._persist()
             self._wake()
         return {**self.status(workspace), 'submitted': submitted}
+
+    def retry(self, workspace: str, job_id: str, *, force: bool = False) -> dict:
+        """Requeue the same job last (first in the UI), refreshing inputs and settings."""
+        with self.condition:
+            job = next((job for job in self.jobs if job['id'] == job_id and job['workspace'] == workspace), None)
+            if job is None:
+                raise AppError('Image job not found', 404)
+            if force and (job['state'] != 'skipped' or job['kind'] != 'image'):
+                raise AppError('Only skipped image generation jobs can be force regenerated', 409)
+            if not force and job['state'] not in ('failed', 'cancelled'):
+                raise AppError('Only failed or cancelled image jobs can be retried', 409)
+            target = {'file': job.get('target', job['source']), 'source': job['source'],
+                      'path': job['metadata'], 'sequence': job.get('sequence')}
+            return self._enqueue(workspace, Path(job['root']), Path(job['game']), [target], job['kind'],
+                                 overwrite=force or job['overwrite'], retry_job=job)
 
     def cancel(self, workspace: str, job_id: str) -> dict:
         with self.condition:
@@ -399,16 +431,17 @@ class MetadataLibrary:
                 cancel = self.cancels[job['id']] = threading.Event()
                 job.update(state='running', startedAt=now())
                 self._persist()
+            failure = None
             try:
                 self._run(job, cancel)
-                with self.condition:
-                    job['state'] = 'cancelled' if cancel.is_set() or self.stopping.is_set() else 'succeeded'
             except Exception as error:  # A failed file must not stop the queue.
-                with self.condition:
-                    job.update(state='cancelled' if cancel.is_set() or self.stopping.is_set() else 'failed', error=str(error))
+                failure = str(error)
             finally:
                 with self.condition:
-                    job['finishedAt'] = now()
+                    job.update(state='cancelled' if cancel.is_set() or self.stopping.is_set() else
+                               'failed' if failure is not None else 'succeeded', finishedAt=now())
+                    if failure is not None:
+                        job['error'] = failure
                     self.cancels.pop(job['id'], None)
                     self._persist()
         self._release_lease()
