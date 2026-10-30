@@ -5,10 +5,11 @@ import { generatedURL, jobGeneratedURL, type ImageJob, type ImageJobs, type Stud
 
 const props = defineProps<{ jobs: ImageJobs; catalog: StudioCatalog | null; working: boolean }>();
 const emit = defineEmits<{
-  retry: [id: string, force?: boolean]; cancel: [id: string]; cancelAll: []; view: [file: string, jobId?: string]; compose: [];
+  retry: [id: string, force?: boolean]; cancel: [id: string]; cancelAll: []; clean: []; view: [file: string, jobId?: string]; compose: [];
 }>();
 const recentJobs = computed(() => [...props.jobs.jobs].reverse());
 const cancellable = computed(() => props.jobs.jobs.some(job => ['queued', 'running'].includes(job.state)));
+const cleanable = computed(() => props.jobs.jobs.some(job => ['succeeded', 'skipped', 'failed', 'cancelled'].includes(job.state)));
 const files = computed(() => new Map(props.catalog?.files.map(file => [file.file, file]) ?? []));
 const failedPreviews = ref<Record<string, string>>({});
 const now = ref(Date.now());
@@ -44,6 +45,7 @@ function duration(job: ImageJob) {
         </div>
         <div class="studio-queue-actions">
           <span class="studio-job-count">{{ jobs.jobs.length }} {{ jobs.jobs.length === 1 ? 'job' : 'jobs' }}<small v-if="jobs.queued"> · {{ jobs.queued }} queued</small></span>
+          <button type="button" class="btn btn-outline-secondary btn-sm" :disabled="working || !cleanable" title="Clear finished jobs from this workspace's queue. Images and saved configurations are kept." @click="emit('clean')">Clean</button>
           <button type="button" class="btn btn-outline-danger btn-sm" :disabled="working || !cancellable" @click="emit('cancelAll')">Cancel All</button>
           <button type="button" class="btn btn-primary btn-sm" :disabled="working" @click="emit('compose')"><i class="mdi mdi-plus" aria-hidden="true" /> Generate images</button>
         </div>
@@ -66,7 +68,7 @@ function duration(job: ImageJob) {
             <div v-if="job.state === 'running' || job.state === 'cancelling'" class="studio-job-progress" role="progressbar" :aria-label="job.state === 'cancelling' ? 'Cancelling job' : 'Job in progress'"><span /></div>
             <span class="studio-job-duration" :aria-label="`Elapsed time: ${duration(job)}`">{{ duration(job) }}</span>
           </div>
-          <button v-if="job.state === 'skipped' && job.kind === 'image'" type="button" class="btn btn-outline-primary btn-sm" :disabled="working" title="Regenerate and replace the existing output after success" @click="emit('retry', job.id, true)">Generate</button>
+          <button v-if="job.state === 'skipped' && job.kind === 'image'" type="button" class="btn btn-outline-primary btn-sm" :disabled="working" title="Generate using this job's saved configuration and replace its output after success" @click="emit('retry', job.id, true)">Generate</button>
           <button v-if="['failed', 'cancelled'].includes(job.state)" type="button" class="btn btn-outline-primary btn-sm" :disabled="working" @click="emit('retry', job.id)">Retry</button>
           <button v-if="['queued', 'running'].includes(job.state)" type="button" class="btn btn-outline-danger btn-sm" :disabled="working" @click="emit('cancel', job.id)">Cancel</button>
           <button v-if="job.state === 'succeeded'" type="button" class="btn btn-outline-primary btn-sm" @click="emit('view', job.target ?? job.source, job.kind === 'image' ? job.id : undefined)">View</button>

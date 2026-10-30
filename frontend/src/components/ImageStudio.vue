@@ -6,7 +6,7 @@ import { studioAPI, generatedURL, jobGeneratedURL, type ImageJobs, type ImageMet
 import AppModal from './AppModal.vue';
 import ImageStudioBrowser from './ImageStudioBrowser.vue';
 import ImageStudioQueue from './ImageStudioQueue.vue';
-import { openDeclaration, openResourceFolder, registerNavigationGuard } from '../workspace';
+import { notify, openDeclaration, openResourceFolder, registerNavigationGuard } from '../workspace';
 
 const props = defineProps<{ row?: ReportAsset; stacked?: boolean; embedded?: boolean }>();
 const emit = defineEmits<{ close: [] }>();
@@ -25,30 +25,45 @@ const settingsOriginal = ref('');
 const creating = ref(false);
 const newPath = ref('art/generated/new-image.png');
 const overwrite = ref(false);
-const preview = ref<'source' | 'generated'>('source');
+const preview = ref<'source' | 'generated' | 'comparison'>('source');
 const previewJob = ref('');
 const tags = ref('');
 const objects = ref('');
 const prompt = ref('');
-const previewFailed = ref(false);
+const previewFailed = ref<string[]>([]);
 const dirty = computed(() => !!document.value && JSON.stringify([document.value.metadata, tags.value, objects.value, prompt.value]) !== original.value);
 const modelsDirty = computed(() => !!settings.value && JSON.stringify(settings.value.settings) !== settingsOriginal.value);
 const current = computed(() => catalog.value?.files.find(file => file.file === selected.value));
 const metadata = computed(() => document.value?.metadata);
 const isSequence = computed(() => document.value?.kind === 'sequence');
 const fallbackPrompt = computed(() => [metadata.value?.analysis.description, metadata.value?.analysis.scene].filter(Boolean).join('\n'));
+const copyablePrompt = computed(() => prompt.value.trim() ? prompt.value : fallbackPrompt.value);
 const activeJobs = computed(() => jobs.value.jobs.filter(job => ['queued', 'running', 'cancelling'].includes(job.state)));
-const previewURL = computed(() => !document.value ? '' : preview.value === 'generated'
-  ? previewJob.value ? jobGeneratedURL(previewJob.value, lastFinished.value) : generatedURL(document.value.file, lastFinished.value) : isSequence.value
+const sourcePreviewURL = computed(() => !document.value ? '' : isSequence.value
     ? `/api/image-studio/sequence-preview?${new URLSearchParams({ file: document.value.file, revision: document.value.revision })}`
     : reportPreviewURL(document.value.file, document.value.revision));
+const generatedPreviewURL = computed(() => !document.value ? '' : previewJob.value
+  ? jobGeneratedURL(previewJob.value, lastFinished.value) : generatedURL(document.value.file, lastFinished.value));
+const previewURL = computed(() => preview.value === 'generated' ? generatedPreviewURL.value : sourcePreviewURL.value);
+const comparisonPreviews = computed(() => [
+  { key: 'source', alt: isSequence.value ? 'Representative animation frames' : 'Source image', url: sourcePreviewURL.value },
+  { key: 'generated', alt: 'Generated image', url: generatedPreviewURL.value },
+]);
 const lastFinished = computed(() => jobs.value.jobs.flatMap(job => job.finishedAt ? [job.finishedAt] : []).sort().pop() ?? '');
-const previewOutput = computed(() => jobs.value.jobs.find(job => job.id === previewJob.value)?.result ?? document.value?.generated);
+const previewedJob = computed(() => jobs.value.jobs.find(job => job.id === previewJob.value));
+const previewOutput = computed(() => previewedJob.value?.result ?? document.value?.generated);
 let timer: ReturnType<typeof setTimeout> | undefined;
 let disposed = false;
 let loadId = 0;
 
 function clearMessages() { error.value = ''; message.value = ''; }
+async function copyGenerationPrompt() {
+  if (!copyablePrompt.value.trim()) return;
+  try {
+    await navigator.clipboard.writeText(copyablePrompt.value);
+    notify('Generation prompt copied to clipboard.');
+  } catch { notify('Clipboard access is unavailable in this browser.', true); }
+}
 function scaledRenderSize(factor: number) {
   if (!metadata.value) return null;
   const { width, height } = metadata.value.image;
@@ -90,9 +105,9 @@ async function selectFile(file: string, discard = true) {
     if (request !== loadId || disposed || (!discard && dirty.value)) return false;
     selected.value = file;
     creating.value = false;
-    preview.value = value.generated ? 'generated' : 'source';
+    preview.value = !discard && preview.value === 'comparison' && value.generated ? 'comparison' : value.generated ? 'generated' : 'source';
     previewJob.value = '';
-    previewFailed.value = false;
+    previewFailed.value = [];
     markClean(value);
     return true;
   } catch (e) { error.value = (e as Error).message; return false; } finally { if (request === loadId) loading.value = false; }
@@ -148,7 +163,6 @@ async function enqueue(kind: 'metadata' | 'image', batch?: string[]) {
       : { kind, files: [document.value?.file], overwrite: overwrite.value };
     jobs.value = await studioAPI<ImageJobs>('jobs', body);
     message.value = `${jobs.value.submitted?.length ?? 0} job(s) submitted. ${kind === 'image' ? 'Existing results with the same settings' : 'Existing metadata'} are ${overwrite.value ? 'replaced after success' : 'kept'}.`;
-    if (kind === 'metadata') tab.value = 'queue';
   } catch (e) { error.value = (e as Error).message; } finally { working.value = false; }
 }
 async function retry(id: string, force = false) {
@@ -156,8 +170,8 @@ async function retry(id: string, force = false) {
   working.value = true;
   try {
     jobs.value = await studioAPI<ImageJobs>('jobs/retry', { id, force });
-    message.value = force ? 'Regeneration submitted. Existing output will be replaced after success.'
-      : 'Retry submitted using the latest saved model settings.';
+    message.value = force ? "Regeneration submitted using this job's saved configuration. Existing output will be replaced after success."
+      : 'Retry submitted using saved inputs and the latest model settings.';
   } catch (e) { error.value = (e as Error).message; } finally { working.value = false; }
 }
 async function cancel(id: string) {
@@ -170,6 +184,14 @@ async function cancelAll() {
   try {
     jobs.value = await studioAPI<ImageJobs>('jobs/cancel-all', {});
     message.value = 'Cancellation requested for all active jobs in this workspace.';
+  } catch (e) { error.value = (e as Error).message; } finally { working.value = false; }
+}
+async function cleanQueue() {
+  clearMessages();
+  working.value = true;
+  try {
+    jobs.value = await studioAPI<ImageJobs>('jobs/clean', {});
+    message.value = 'Finished jobs cleared from this workspace’s queue. Images and saved configurations kept.';
   } catch (e) { error.value = (e as Error).message; } finally { working.value = false; }
 }
 async function pollJobs() {
@@ -237,13 +259,21 @@ onBeforeUnmount(() => { disposed = true; loadId++; clearTimeout(timer); unregist
               <label v-if="creating" class="studio-field">Image path <input v-model="newPath" aria-label="Image path" class="form-control" required placeholder="art/generated/new-image.png"><small>Relative to the game folder. A .json metadata file is created beside this path.</small></label>
               <div v-if="!creating && (current?.exists || document?.generated)" :class="['studio-preview', { 'is-sequence': isSequence && preview === 'source' }]">
                 <div class="studio-preview-tabs">
-                  <button v-if="current?.exists" type="button" :class="{ active: preview === 'source' }" @click="preview = 'source'; previewFailed = false">{{ isSequence ? 'Animation frames' : 'Source image' }}</button>
-                  <button v-if="document?.generated" type="button" :class="{ active: preview === 'generated' }" @click="preview = 'generated'; previewFailed = false">Generated image</button>
-                  <a v-if="preview === 'generated'" :href="previewURL" target="_blank" rel="noopener">Open PNG <i aria-hidden="true" class="mdi mdi-open-in-new" /></a>
+                  <div class="studio-preview-modes" role="tablist" aria-label="Image preview">
+                    <button v-if="current?.exists" type="button" role="tab" :aria-selected="preview === 'source'" :class="{ active: preview === 'source' }" @click="preview = 'source'; previewFailed = []">{{ isSequence ? 'Animation frames' : 'Source image' }}</button>
+                    <button v-if="document?.generated" type="button" role="tab" :aria-selected="preview === 'generated'" :class="{ active: preview === 'generated' }" @click="preview = 'generated'; previewFailed = []">Generated image</button>
+                    <button v-if="current?.exists && document?.generated" type="button" role="tab" :aria-selected="preview === 'comparison'" :class="{ active: preview === 'comparison' }" @click="preview = 'comparison'; previewFailed = []">Side by side</button>
+                  </div>
+                  <a v-if="preview !== 'source'" :href="generatedPreviewURL" target="_blank" rel="noopener">Open PNG <i aria-hidden="true" class="mdi mdi-open-in-new" /></a>
                 </div>
-                <div class="studio-image"><img v-if="!previewFailed" :src="previewURL" :alt="preview === 'source' ? isSequence ? 'Representative animation frames' : 'Source image' : 'Generated image'" @error="previewFailed = true"><span v-else class="text-muted">Preview unavailable</span></div>
-                <p v-if="isSequence && preview === 'source'" class="studio-output-path">Frames are shown in playback order. Analysis uses up to 12 samples across the full animation, including the first and last frames.</p>
-                <p v-if="preview === 'generated'" class="studio-output-path">{{ previewOutput }}<small>The latest generated image is also available beside the metadata file.</small></p>
+                <div v-if="preview === 'comparison'" class="studio-preview-comparison" role="tabpanel" aria-label="Side by side">
+                  <figure v-for="pane in comparisonPreviews" :key="pane.key">
+                    <div class="studio-image"><img v-if="!previewFailed.includes(pane.url)" :src="pane.url" :alt="pane.alt" @error="previewFailed.push(pane.url)"><span v-else class="text-muted">Preview unavailable</span></div>
+                  </figure>
+                </div>
+                <div v-else class="studio-image"><img v-if="!previewFailed.includes(previewURL)" :src="previewURL" :alt="preview === 'source' ? isSequence ? 'Representative animation frames' : 'Source image' : 'Generated image'" @error="previewFailed.push(previewURL)"><span v-else class="text-muted">Preview unavailable</span></div>
+                <p v-if="isSequence && preview !== 'generated'" class="studio-output-path">Frames are shown in playback order. Analysis uses up to 12 samples across the full animation, including the first and last frames.</p>
+                <p v-if="preview !== 'source'" class="studio-output-path">{{ previewOutput }}<small v-if="previewedJob?.renderSize">Saved render resolution: {{ previewedJob.renderSize.width }} × {{ previewedJob.renderSize.height }}</small><small>The latest generated image is also available beside the metadata file.</small></p>
               </div>
               <div class="studio-dimensions">
                 <fieldset><legend>Output resolution</legend><div class="studio-size"><label>Width<input v-model.number="metadata.image.width" type="number" min="1" max="16384" required class="form-control"></label><span>×</span><label>Height<input v-model.number="metadata.image.height" type="number" min="1" max="16384" required class="form-control"></label></div></fieldset>
@@ -260,7 +290,11 @@ onBeforeUnmount(() => { disposed = true; loadId++; clearTimeout(timer); unregist
               <label class="studio-check"><input v-model="metadata.image.transparency" type="checkbox"> Transparent background</label>
               <label class="studio-field">Description<textarea v-model="metadata.analysis.description" rows="4" class="form-control" placeholder="Describe the image you want to create…" /></label>
               <label class="studio-field">Scene<textarea v-model="metadata.analysis.scene" rows="2" class="form-control" placeholder="Setting, background and lighting" /></label>
-              <label class="studio-field">Generation prompt<textarea v-model="prompt" aria-label="Generation prompt" rows="4" class="form-control" :placeholder="fallbackPrompt || 'Use the description and scene, or enter a custom prompt'" /><small>Leave empty to use the description and scene. Transparency instructions are added automatically.</small></label>
+              <div class="studio-field">
+                <div class="studio-field-heading"><span>Generation prompt</span><button type="button" class="details-icon" aria-label="Copy generation prompt" title="Copy generation prompt" :disabled="!copyablePrompt.trim()" @click="copyGenerationPrompt"><i aria-hidden="true" class="mdi mdi-content-copy" /></button></div>
+                <textarea v-model="prompt" aria-label="Generation prompt" rows="4" class="form-control" :placeholder="fallbackPrompt || 'Use the description and scene, or enter a custom prompt'" />
+                <small>Leave empty to use the description and scene. Transparency instructions are added automatically.</small>
+              </div>
               <div class="studio-dimensions"><label class="studio-field">Objects<input v-model="objects" class="form-control" placeholder="Comma-separated objects"></label><label class="studio-field">Tags<input v-model="tags" class="form-control" placeholder="Comma-separated tags"></label></div>
               <label class="studio-field">Text in image<textarea v-model="metadata.analysis.text" rows="2" class="form-control" /></label>
               <details class="studio-provenance">
@@ -284,7 +318,7 @@ onBeforeUnmount(() => { disposed = true; loadId++; clearTimeout(timer); unregist
           </section>
       </ImageStudioBrowser>
       <ImageStudioQueue v-if="tab === 'queue'" :jobs="jobs" :catalog="catalog" :working="working"
-        @retry="retry" @cancel="cancel" @cancel-all="cancelAll" @compose="tab = 'metadata'"
+        @retry="retry" @cancel="cancel" @cancel-all="cancelAll" @clean="cleanQueue" @compose="tab = 'metadata'"
         @view="viewJob" />
       <form v-else-if="tab === 'models' && settings" class="studio-models" @submit.prevent="saveModels">
         <p class="studio-hint">Configure installed weights and a local LM Studio server. Enable Remote models to use another computer for either operation. No models are downloaded. Settings are stored in {{ settings.path }}.</p>
@@ -367,6 +401,8 @@ onBeforeUnmount(() => { disposed = true; loadId++; clearTimeout(timer); unregist
 .studio-editor-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
 .studio-editor-heading .btn { flex-shrink: 0; }
 .studio-field { display: flex; flex-direction: column; gap: 7px; margin: 0 0 18px; font-size: 13px; }
+.studio-field-heading { display: flex; align-items: center; gap: 6px; }
+.studio-field-heading .details-icon:disabled { opacity: .4; cursor: default; }
 .studio-field textarea { resize: vertical; line-height: 1.5; min-height: 64px; }
 .studio-dimensions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; margin-bottom: 15px; }
 .studio-dimensions > .studio-field { margin-bottom: 0; }
@@ -382,10 +418,14 @@ legend { width: auto; font-size: 13px; margin-bottom: 8px; font-weight: 500; }
 .studio-check { display: flex; align-items: center; gap: 8px; margin: 0 0 18px; font-size: 12px; color: #68718a; }
 .studio-check input { accent-color: #4b49ac; }
 .studio-preview { border: 1px solid #e0e4ec; border-radius: 7px; margin-bottom: 22px; overflow: hidden; }
-.studio-preview-tabs { display: flex; align-items: center; gap: 14px; padding: 7px 12px; background: #f8f9fc; }
+.studio-preview-tabs { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; padding: 7px 12px; background: #f8f9fc; }
+.studio-preview-modes { display: flex; flex-wrap: wrap; gap: 14px; }
 .studio-preview-tabs button { background: none; border: 0; padding: 5px 0; cursor: pointer; font-size: 12px; color: #77809a; }
 .studio-preview-tabs button.active { color: #4b49ac; font-weight: 600; }
 .studio-preview-tabs a { margin-left: auto; font-size: 12px; }
+.studio-preview-comparison { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.studio-preview-comparison figure { min-width: 0; margin: 0; }
+.studio-preview-comparison figure + figure { border-left: 1px solid #e0e4ec; }
 .studio-image { height: 180px; display: flex; align-items: center; justify-content: center; padding: 12px; background: repeating-conic-gradient(#f0f1f5 0% 25%, white 0% 50%) 50% / 16px 16px; }
 .studio-image img { max-width: 100%; max-height: 100%; object-fit: contain; }
 .studio-preview.is-sequence .studio-image { height: 380px; }

@@ -33,6 +33,8 @@ EXTENSIONS = {'.dds', '.png', '.jpg', '.jpeg', '.webp', '.bmp', '.tga', '.tif', 
 MAX_METADATA = 1024 * 1024
 MAX_IMAGE = 64 * 1024 * 1024
 TERMINAL = {'succeeded', 'skipped', 'failed', 'cancelled'}
+JOB_CONFIGURATION = ('id', 'workspace', 'root', 'game', 'source', 'metadata', 'output', 'target', 'kind',
+                     'label', 'settings', 'group', 'overwrite', 'expected', 'sequence', 'inputMetadata', 'result')
 
 
 def now() -> str:
@@ -244,9 +246,49 @@ class MetadataLibrary:
         self.jobs = [job for job in self.jobs if job['state'] not in TERMINAL or job in finished]
         atomic_json(self.queue_path, self.jobs)
 
+    def _configuration_path(self, job: dict) -> Path:
+        workspace = hashlib.sha256(job['workspace'].encode()).hexdigest()[:16]
+        if len(job['id']) != 32 or any(char not in '0123456789abcdef' for char in job['id']):
+            raise AppError('Invalid image job ID')
+        return checked(Path(job['game']) / '.asset-metadata' / 'jobs' / workspace / job['id'] / 'config.json', job['root'])
+
+    def _save_configuration(self, job: dict) -> None:
+        path = self._configuration_path(job)
+        configuration = {key: deepcopy(job[key]) for key in JOB_CONFIGURATION if key in job}
+        atomic_json(path, {'schema_version': 1, **configuration})
+        job['configuration'] = str(path)
+
+    def _load_configuration(self, job: dict) -> dict:
+        if not job.get('configuration'):
+            # Migrate older queue entries using their captured inputs. Never
+            # guess an old render size from metadata that has since been edited.
+            if job['kind'] == 'image' and not job.get('inputMetadata'):
+                if revision(checked(job['metadata'], job['root'])) != job['expected'].get('metadata'):
+                    raise AppError('The original generation configuration is unavailable. Submit a new job from Metadata.')
+                target = {'file': job.get('target', job['source']), 'source': job['source'],
+                          'path': job['metadata'], 'sequence': job.get('sequence')}
+                job['inputMetadata'] = self.document(target, Path(job['root']), draft=False)['metadata']
+            self._save_configuration(job)
+            with self.condition:
+                self._persist()
+        path = self._configuration_path(job)
+        if str(path) != job['configuration']:
+            raise AppError('Invalid image job configuration path')
+        try:
+            configuration = json.loads(path.read_text(encoding='utf-8'))
+        except (OSError, ValueError) as error:
+            raise AppError(f'Cannot read the saved image job configuration: {path.name}') from error
+        identity = ('id', 'workspace', 'root', 'game', 'source', 'metadata', 'output', 'target', 'kind', 'result')
+        if (not isinstance(configuration, dict) or configuration.get('schema_version') != 1
+                or any(configuration.get(key) != job.get(key) for key in identity)):
+            raise AppError('The image job configuration does not match this job')
+        if configuration.get('inputMetadata') is not None:
+            validate_metadata(configuration['inputMetadata'])
+        return configuration
+
     def status(self, workspace: str) -> dict:
         with self.condition:
-            jobs = [deepcopy(job) for job in self.jobs if job['workspace'] == workspace]
+            jobs = [deepcopy(job) for job in self.jobs if job['workspace'] == workspace and not job.get('cleared')]
             for job in jobs:
                 settings = job.pop('settings', {})
                 operation = 'analysis' if job['kind'] == 'metadata' else 'generation'
@@ -314,12 +356,14 @@ class MetadataLibrary:
         return self._enqueue(workspace, root, game, sources, kind, overwrite=overwrite)
 
     def _enqueue(self, workspace: str, root: Path, game: Path, sources: list[Path | dict], kind: str, *,
-                 overwrite: bool = False, retry_job: dict | None = None) -> dict:
+                 overwrite: bool = False, retry_job: dict | None = None,
+                 configuration: dict | None = None, refresh_settings: bool = False) -> dict:
         if not self.started:
             self.start()
         if kind not in ('metadata', 'image'):
             raise AppError('Choose metadata analysis or image generation')
-        settings = self.settings()['settings']
+        settings = (self.settings()['settings'] if configuration is None or refresh_settings
+                    else deepcopy(configuration['settings']))
         operation = 'analysis' if kind == 'metadata' else 'generation'
         remote = settings['remote'][operation]
         operation_settings = remote if remote['enabled'] else settings[operation]
@@ -339,7 +383,8 @@ class MetadataLibrary:
             if kind == 'image':
                 if not path.is_file():
                     raise AppError(f'Create metadata first: {source.name}')
-                snapshot = self.document(target, root, draft=False)['metadata']
+                snapshot = (deepcopy(configuration['inputMetadata']) if configuration is not None
+                            else self.document(target, root, draft=False)['metadata'])
             jobs.append({'id': uuid.uuid4().hex, 'batch': batch, 'workspace': workspace,
                          'root': str(root), 'game': str(game), 'source': str(source), 'metadata': str(path),
                          'output': str(output), 'kind': kind, 'state': 'queued', 'createdAt': now(),
@@ -363,7 +408,7 @@ class MetadataLibrary:
         with self.condition:
             submitted = []
             for job in jobs:
-                existing = next((old for old in self.jobs if old['kind'] == kind and old['metadata'] == job['metadata']
+                existing = next((old for old in self.jobs if old['workspace'] == workspace and old['kind'] == kind and old['metadata'] == job['metadata']
                                  and old['state'] not in TERMINAL
                                  and (kind == 'metadata' or old.get('result') == job.get('result'))), None)
                 if existing:
@@ -385,6 +430,8 @@ class MetadataLibrary:
                     job.update(state='skipped', finishedAt=now(), message='Existing output kept')
                 if retry_job is not None:
                     job['id'] = retry_job['id']
+                self._save_configuration(job)
+                if retry_job is not None:
                     self.jobs.remove(retry_job)
                     retry_job.clear()
                     retry_job.update(job)
@@ -407,7 +454,7 @@ class MetadataLibrary:
             return str(path)
 
     def retry(self, workspace: str, job_id: str, *, force: bool = False) -> dict:
-        """Requeue the same job last (first in the UI), refreshing inputs and settings."""
+        """Requeue saved inputs; failed retries may pick up corrected model settings."""
         with self.condition:
             job = next((job for job in self.jobs if job['id'] == job_id and job['workspace'] == workspace), None)
             if job is None:
@@ -416,10 +463,12 @@ class MetadataLibrary:
                 raise AppError('Only skipped image generation jobs can be force regenerated', 409)
             if not force and job['state'] not in ('failed', 'cancelled'):
                 raise AppError('Only failed or cancelled image jobs can be retried', 409)
+            configuration = self._load_configuration(job)
             target = {'file': job.get('target', job['source']), 'source': job['source'],
-                      'path': job['metadata'], 'sequence': job.get('sequence')}
+                      'path': job['metadata'], 'sequence': configuration.get('sequence')}
             return self._enqueue(workspace, Path(job['root']), Path(job['game']), [target], job['kind'],
-                                 overwrite=force or job['overwrite'], retry_job=job)
+                                 overwrite=force or job['overwrite'], retry_job=job,
+                                 configuration=configuration, refresh_settings=not force)
 
     def cancel(self, workspace: str, job_id: str) -> dict:
         with self.condition:
@@ -445,6 +494,17 @@ class MetadataLibrary:
                 elif job['state'] in ('running', 'cancelling'):
                     job['state'] = 'cancelling'
                     self.cancels[job['id']].set()
+            self._persist()
+        return self.status(workspace)
+
+    def clean(self, workspace: str) -> dict:
+        """Clear finished rows while retaining configurations and generated results."""
+        with self.condition:
+            for job in self.jobs:
+                if job['workspace'] == workspace and job['state'] in TERMINAL:
+                    # Retain execution history for existing-result detection and
+                    # any generated image that is still open in the editor.
+                    job['cleared'] = True
             self._persist()
         return self.status(workspace)
 
@@ -483,6 +543,9 @@ class MetadataLibrary:
                 self.started = False
 
     def _run(self, job: dict, cancel: threading.Event) -> None:
+        # The per-workspace file is the execution configuration; the queue index
+        # contains status and a copy for display, rather than mutable editor state.
+        job = {**job, **{key: value for key, value in self._load_configuration(job).items() if key in JOB_CONFIGURATION}}
         root = Path(job['root'])
         source, path, output = (checked(job[key], root) for key in ('source', 'metadata', 'output'))
         expected = job['expected']

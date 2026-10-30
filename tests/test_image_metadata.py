@@ -267,7 +267,7 @@ def test_long_animation_covers_first_and_last_and_rejects_changes_to_unsampled_f
     release.set()
     assert [job['state'] for job in wait_jobs(api.library.image_metadata)] == ['succeeded', 'failed']
     assert len(requests) == 1
-    assert not list((api.game / '.asset-metadata').rglob('*.json'))
+    assert not list((api.game / '.asset-metadata' / 'sequences').glob('*.imageseq.json'))
 
 
 def test_manual_create_edit_conflict_validation_and_draft_discovery(studio_client):
@@ -467,6 +467,8 @@ def test_generations_capture_distinct_scales_and_keep_each_result(studio, tmp_pa
         with pytest.raises(AppError, match='not found'):
             active.generated_result('another-workspace', jobs[0]['id'])
         assert active.enqueue('game', tmp_path, tmp_path, [source], 'image')['jobs'][-1]['state'] == 'skipped'
+        assert active.clean('game')['jobs'] == []
+        assert Path(active.generated_result('game', jobs[0]['id'])).is_file()
         # A new scale also remains a separate job after previous runs completed.
         value['generation'].update(width=256, height=256)
         active.save(source, tmp_path, value, service.revision(service.sidecar(source)))
@@ -786,7 +788,7 @@ def test_queued_generation_captures_remote_connection_and_workflow(studio, tmp_p
 
 @pytest.mark.parametrize('kind', ['metadata', 'image'])
 @pytest.mark.parametrize('file', ['frames/bell_00.png', 'sequence:imageseq:NORMAL'])
-def test_retry_uses_current_settings_and_inputs_preserving_target_and_overwrite(studio_client, tmp_path, vision_server, kind, file):
+def test_retry_uses_current_models_preserving_saved_generation_inputs_target_and_overwrite(studio_client, tmp_path, vision_server, kind, file):
     api = studio_client
     # Use the catalog's actual sequence key, including its descriptor identity.
     if file.startswith('sequence:'):
@@ -806,7 +808,7 @@ def test_retry_uses_current_settings_and_inputs_preserving_target_and_overwrite(
     studio = api.library.image_metadata
     failed = wait_jobs(studio)[0]
     assert failed['state'] == 'failed'
-    # Changing inputs and fixing the model configuration must be picked up by Retry.
+    # Retry accepts corrected model settings while preserving generation inputs.
     value = document['metadata']
     value['analysis']['description'] = 'An updated bell.'
     response = api.post('/api/image-studio/metadata', json={
@@ -828,6 +830,9 @@ def test_retry_uses_current_settings_and_inputs_preserving_target_and_overwrite(
         assert json.loads(Path(document['path']).read_text())['analysis']['description'] == 'A golden bell.'
     else:
         assert output.read_bytes() != original_output
+        args = json.loads((tmp_path / 'runner-args.json').read_text())
+        assert 'A golden bell.' in args[args.index('-p') + 1]
+        assert 'An updated bell.' not in args[args.index('-p') + 1]
 
 
 def test_retry_rejects_other_workspaces_and_live_jobs_and_deduplicates_attempts(studio_client, monkeypatch):
@@ -880,6 +885,115 @@ def test_force_regenerates_skipped_image_in_place_and_keeps_existing_output_on_f
     assert 'message' not in regenerated
     assert (output.read_bytes() == original) is fail
     assert (api.game / file).read_bytes() == source and path.read_bytes() == saved_metadata
+
+
+@pytest.mark.parametrize('restart,legacy', [(False, False), (True, False), (True, True)])
+def test_skipped_generation_reuses_saved_configuration_after_editor_and_model_changes(studio, tmp_path, restart, legacy):
+    settings = runner_settings(tmp_path)
+    settings['generation']['seed'] = 7
+    studio.save_settings(settings)
+    source = png(tmp_path / 'bell.png')
+    value = metadata(source.name)
+    value['image'].update(width=14, height=21, transparency=True)
+    value['generation'].update(width=64, height=96, prompt='The original golden bell.')
+    studio.save(source, tmp_path, value, '')
+    png(Path(f'{source}.json.generated.png'))
+    skipped = studio.enqueue('game', tmp_path, tmp_path, [source], 'image')['jobs'][0]
+    assert skipped['state'] == 'skipped'
+    config_path = Path(skipped['configuration'])
+    saved_config = json.loads(config_path.read_text())
+    assert saved_config['workspace'] == 'game'
+    assert saved_config['inputMetadata']['generation']['width'] == 64
+    if legacy:
+        studio.jobs[0].pop('configuration')
+        config_path.unlink()
+        with studio.condition:
+            studio._persist()
+    value['generation'].update(width=256, height=384, prompt='A newer silver bell.')
+    studio.save(source, tmp_path, value, service.revision(service.sidecar(source)))
+    studio.save_settings({'generation': {'diffusion_model': '/missing/new-model.gguf', 'seed': 99}})
+    if restart:
+        studio.close()
+        active = service.MetadataLibrary(str(studio.home), threading.Lock())
+        active.start()
+    else:
+        active = studio
+    try:
+        response = active.retry('game', skipped['id'], force=True)
+        assert response['submitted'] == [skipped['id']]
+        regenerated, = wait_jobs(active)
+        assert regenerated['state'] == 'succeeded', regenerated
+        assert regenerated['renderSize'] == {'width': 64, 'height': 96}
+        assert regenerated['result'] == skipped['result']
+        args = json.loads((tmp_path / 'runner-args.json').read_text())
+        assert args[args.index('-W') + 1] == '64' and args[args.index('-H') + 1] == '96'
+        assert args[args.index('--seed') + 1] == '7'
+        assert 'original golden bell' in args[args.index('-p') + 1]
+        config = json.loads(config_path.read_text())
+        assert config['inputMetadata'] == saved_config['inputMetadata']
+        assert config['settings'] == saved_config['settings']
+        assert active.document(source, tmp_path)['metadata'] == value
+        assert active.settings()['settings']['generation']['seed'] == 99
+    finally:
+        if restart:
+            active.close()
+
+
+def test_legacy_skipped_generation_does_not_guess_missing_original_render_size(studio, tmp_path):
+    source = png(tmp_path / 'bell.png')
+    value = metadata(source.name)
+    studio.save(source, tmp_path, value, '')
+    png(Path(f'{source}.json.generated.png'))
+    skipped = studio.enqueue('game', tmp_path, tmp_path, [source], 'image')['jobs'][0]
+    Path(skipped['configuration']).unlink()
+    studio.jobs[0].pop('configuration')
+    studio.jobs[0].pop('inputMetadata')
+    value['generation'].update(width=64, height=96)
+    studio.save(source, tmp_path, value, service.revision(service.sidecar(source)))
+    with pytest.raises(AppError, match='original generation configuration is unavailable'):
+        studio.retry('game', skipped['id'], force=True)
+    assert studio.status('game')['jobs'][0]['state'] == 'skipped'
+
+
+def test_analysis_configurations_are_workspace_specific_and_used_for_execution(studio, tmp_path, monkeypatch):
+    monkeypatch.setattr(studio, '_wake', lambda: None)
+    source = png(tmp_path / 'bell.png')
+    studio.save_settings({'analysis': {'model': 'first-model', 'load_model': False}})
+    first = studio.enqueue('first-workspace', tmp_path, tmp_path, [source], 'metadata')['jobs'][0]
+    studio.save_settings({'analysis': {'model': 'second-model', 'load_model': False}})
+    second = studio.enqueue('second-workspace', tmp_path, tmp_path, [source], 'metadata')['jobs'][0]
+    assert first['id'] != second['id']
+    first_path, second_path = Path(first['configuration']), Path(second['configuration'])
+    assert first_path.parent.parent != second_path.parent.parent
+    assert json.loads(first_path.read_text())['settings']['analysis']['model'] == 'first-model'
+    assert json.loads(second_path.read_text())['settings']['analysis']['model'] == 'second-model'
+    # Execution must read the saved file rather than a mutable cached copy.
+    studio.jobs[0]['settings']['analysis']['model'] = 'incorrect-cached-model'
+    observed = []
+
+    def analyze(analyzer, _source, *, data):
+        observed.append(analyzer.model)
+        return metadata(source.name)
+
+    monkeypatch.setattr(service.ImageAnalyzer, 'analyze', analyze)
+    studio._run(studio.jobs[0], threading.Event())
+    assert observed == ['first-model']
+
+
+@pytest.mark.parametrize('missing', [False, True])
+def test_skipped_generation_does_not_fall_back_when_saved_configuration_is_unreadable(studio, tmp_path, missing):
+    source = png(tmp_path / 'bell.png')
+    studio.save(source, tmp_path, metadata(source.name), '')
+    png(Path(f'{source}.json.generated.png'))
+    job = studio.enqueue('game', tmp_path, tmp_path, [source], 'image')['jobs'][0]
+    config_path = Path(job['configuration'])
+    if missing:
+        config_path.unlink()
+    else:
+        config_path.write_text('invalid JSON')
+    with pytest.raises(AppError, match='Cannot read the saved image job configuration'):
+        studio.retry('game', job['id'], force=True)
+    assert studio.status('game')['jobs'][0]['state'] == 'skipped'
 
 
 def test_force_only_accepts_skipped_generation_in_active_workspace(studio_client, monkeypatch):
@@ -964,6 +1078,37 @@ def test_cancel_all_atomically_cancels_active_workspace_and_keeps_other_jobs(stu
     history = studio.status('game')['jobs']
     assert api.post('/api/image-studio/jobs/cancel-all').json()['jobs'] == history
     assert studio.status('another-workspace')['jobs'] == other
+
+
+def test_clean_queue_keeps_active_jobs_other_workspaces_and_saved_configurations(studio_client, monkeypatch):
+    api = studio_client
+    studio = api.library.image_metadata
+    monkeypatch.setattr(service.MetadataLibrary, '_wake', lambda self: None)
+    states = ['succeeded', 'skipped', 'failed', 'cancelled', 'queued', 'running', 'cancelling']
+    sources = [png(api.game / f'clean-{index}.png') for index in range(len(states))]
+    studio.enqueue('game', api.game.parent, api.game, sources, 'metadata')
+    studio.enqueue('other-workspace', api.game.parent, api.game, [sources[0]], 'metadata')
+    for job, state in zip(studio.jobs, states):
+        job['state'] = state
+    studio.jobs[-1]['state'] = 'succeeded'
+    active = studio.status('game')['jobs'][4:]
+    other = studio.status('other-workspace')
+    configurations = {job['configuration']: Path(job['configuration']).read_bytes() for job in studio.jobs}
+
+    response = api.post('/api/image-studio/jobs/clean')
+    assert response.status_code == 200, response.text
+    assert response.json() == {'jobs': active, 'queued': 1, 'running': True}
+    assert api.get('/api/image-studio/jobs').json() == response.json()
+    assert studio.status('other-workspace') == other
+    assert api.post('/api/image-studio/jobs/clean').json() == response.json()
+    assert {path: Path(path).read_bytes() for path in configurations} == configurations
+
+    # Reload the persisted history without starting any model work. Interrupted
+    # active jobs may fail on startup, but cleared rows must not reappear.
+    studio.close()
+    studio.start()
+    assert [job['id'] for job in studio.status('game')['jobs']] == [job['id'] for job in active]
+    assert studio.status('other-workspace') == other
 
 
 def test_metadata_catalog_includes_folder_and_asset_status_for_images_sequences_and_drafts(studio_client):

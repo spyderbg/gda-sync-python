@@ -594,6 +594,10 @@ def create_app(
     def cancel_all_image_jobs() -> dict:
         return library.image_metadata.cancel_all(library._active_workspace()[0])
 
+    @app.post('/api/image-studio/jobs/clean')
+    def clean_image_jobs() -> dict:
+        return library.image_metadata.clean(library._active_workspace()[0])
+
     @app.get('/api/image-studio/settings')
     def image_settings() -> dict:
         return library.image_metadata.settings()

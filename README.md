@@ -281,7 +281,9 @@ report includes their generated images. The per-submission **Replace existing…
 otherwise existing outputs are skipped. Failed or cancelled jobs preserve existing output.
 
 **Generation queue** is one persistent worker for the entire Library, across workspaces. **Cancel All** cancels all
-queued jobs and requests cancellation of the running job in the current workspace, keeping completed history and other workspaces' jobs. Metadata analysis and
+queued jobs and requests cancellation of the running job in the current workspace, keeping completed history and other workspaces' jobs.
+**Clean** clears finished jobs (succeeded, skipped, failed or cancelled) from the current workspace's list. Queued and
+running jobs, generated images, and saved configurations are kept; cleared rows stay hidden after a restart. Metadata analysis and
 image generation never run concurrently. Pending jobs with the current operation type and model settings are
 drained together before switching types, reducing vision/diffusion model switches. Jobs capture their workspace,
 input revisions and settings when submitted. Changing workspaces or settings does not redirect queued work. Generation
@@ -291,6 +293,13 @@ Cancel stops a queued job immediately; an active vision request discards its
 result on return, and an active diffusion runner is terminated. Leaving Image studio or closing an asset popup keeps work running. On application
 restart, queued jobs resume and interrupted jobs are marked failed for explicit retry. Queue history is stored in
 `image-jobs.json` in the app-data folder, retaining the newest 1000 completed jobs.
+Each queued analysis or generation also saves its execution configuration under the workspace game's
+`.asset-metadata/jobs/<workspace-hash>/<job-id>/config.json`. The hash separates workspaces that share a game folder.
+The worker reads that file, including captured model settings, generation metadata and animation inputs. **Generate**
+on a skipped job reuses that saved configuration, so later editor changes cannot alter its render size or prompt.
+**Retry** also keeps the saved generation inputs, while accepting updated model settings to fix connection or model-path
+errors. Existing queue entries with captured inputs are migrated when used; unavailable original configurations are
+reported instead of being guessed from newer metadata.
 
 Configure **Local models** once: LM Studio base URL and vision model, and installed diffusion, text encoder, VAE and
 `sd-cli` paths. Defaults match `image-analyzer` (Qwen vision / Qwen-Image generation). Settings live in the app-data
