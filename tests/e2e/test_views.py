@@ -265,6 +265,63 @@ def test_element_selection_with_shift_control_and_space_visibility(new_context, 
     expect(dialog.get_by_role('group', name='Moved elements')).to_contain_text('Drag an element')
 
 
+def test_arrows_move_the_selection_with_grouped_undo_and_save(new_context, view_backend):
+    main = Path(view_backend.get('/api/library')['config']['destination']) / 'v/1920x1080/MainView.json'
+    original = json.loads(main.read_text())
+    page = new_context().new_page()
+    page.goto(view_backend.url)
+    page.get_by_role('list', name='Workspaces').get_by_role('button', name='View game', exact=True).click()
+    navigation = page.get_by_role('navigation', name='Main navigation')
+    navigation.get_by_role('button', name='Asset library', exact=True).click()
+    page.get_by_role('button', name='Rescan').first.click()
+    navigation.get_by_role('button', name='ElementsList', exact=True).click()
+    page.locator('.report-asset').filter(has_text='1920 × 1080 · 10 elements').locator('.asset-hit-target').click()
+    dialog = page.get_by_role('dialog')
+    dialog.get_by_text('10 elements, drawn in this order').click()
+    rows = dialog.locator('.view-elements tbody tr')
+    rows.nth(0).locator('td.details-code').first.click()
+    rows.nth(2).locator('td.details-code').first.click(modifiers=['Control'])
+
+    def positions(red, faded):
+        for name, (x, y) in [('image_red', red), ('image_faded', faded)]:
+            expect(dialog.get_by_role('button', name=f'x of {name}:')).to_have_text(str(x))
+            expect(dialog.get_by_role('button', name=f'y of {name}:')).to_have_text(str(y))
+        expect(dialog.get_by_role('button', name='x of image_turned:')).to_have_text('300')
+        expect(dialog.get_by_role('button', name='y of image_turned:')).to_have_text('300')
+
+    page.keyboard.press('ArrowRight')
+    positions((101, 50), (501, 100))
+    page.keyboard.press('Shift+ArrowDown')
+    positions((101, 60), (501, 110))
+    expect(dialog.locator('.view-elements tr.is-picked')).to_have_count(2)
+    expect(dialog.get_by_role('group', name='Moved elements')).to_contain_text('2 elements moved')
+    # Each Undo reverses a key press for both elements together.
+    page.keyboard.press('Control+z')
+    positions((101, 50), (501, 100))
+    page.keyboard.press('Control+z')
+    positions((100, 50), (500, 100))
+    expect(dialog.get_by_role('group', name='Moved elements')).to_contain_text('Drag an element')
+    page.keyboard.press('ArrowLeft')
+    page.keyboard.press('ArrowUp')
+    positions((99, 49), (499, 99))
+    assert json.loads(main.read_text()) == original
+
+    # Typing and navigating inside a text field must not nudge the selection.
+    sample = dialog.get_by_role('textbox', name='Sample text of the text elements', exact=True)
+    sample.fill('Bell')
+    sample.press('ArrowLeft')
+    positions((99, 49), (499, 99))
+    moved = dialog.get_by_role('group', name='Moved elements')
+    moved.get_by_role('button', name='Save', exact=True).click()
+    expect(moved).to_contain_text('Drag an element')
+    saved = json.loads(main.read_text())
+    assert saved['elements'][0]['position'] == {'x': 99, 'y': 49}
+    assert saved['elements'][2]['position'] == {'x': 499, 'y': 99}
+    for index in range(len(original['elements'])):
+        if index not in (0, 2):
+            assert saved['elements'][index] == original['elements'][index]
+
+
 def test_selected_views_are_shown_together_in_one_dialog(new_context, view_backend):
     page = new_context().new_page()
     errors = []

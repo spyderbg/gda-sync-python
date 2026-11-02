@@ -54,7 +54,7 @@ const CARD_WIDTH = 640;
 const failed = reactive(new Set<string>());
 const hidden = ref(false);
 const outlines = ref(false);
-/** The active element for dragging, and the elements selected for visibility changes. */
+/** The active element for dragging, and the elements selected for visibility and position changes. */
 const picked = ref<string | null>(null);
 const selected = ref(new Set<string>());
 const anchor = ref<string | null>(null);
@@ -70,7 +70,8 @@ function setVisible(layer: number, element: ViewElement, value: boolean) {
 // The elements moved and not saved yet, by their view and index, with where they are moved to; and the changes, the
 // latest last, each with where its element was before it.
 const moves = ref<Record<string, [number, number]>>({});
-const history = ref<{ key: string; before?: [number, number] }[]>([]);
+type PositionChange = { key: string; before?: [number, number] };
+const history = ref<PositionChange[][]>([]);
 
 // The views drawn, in drawing order, and those hidden.
 const stack = computed<ViewLayer[]>(() => props.layers ?? [{ file: props.file, name: props.name, facts: props.facts }]);
@@ -182,7 +183,7 @@ function setPosition(layer: number, element: ViewElement, position: [number, num
 /** Start a change of an element's position, which Undo takes back as a whole, and pick the element. */
 function beginChange(layer: number, element: ViewElement) {
   const key = keyOf(layer, element);
-  history.value = [...history.value, { key, before: moves.value[key] }];
+  history.value = [...history.value, [{ key, before: moves.value[key] }]];
   if (!selected.value.has(key)) selected.value = new Set([key]);
   picked.value = key;
   anchor.value = key;
@@ -192,8 +193,29 @@ function undo() {
   if (!last) return;
   history.value = history.value.slice(0, -1);
   const next = { ...moves.value };
-  if (last.before) next[last.key] = last.before;
-  else delete next[last.key];
+  for (const change of last) {
+    if (change.before) next[change.key] = change.before;
+    else delete next[change.key];
+  }
+  moves.value = next;
+}
+/** One key press moves the whole selection, and Undo restores it as one change. */
+function nudgeSelection(dx: number, dy: number) {
+  const next = { ...moves.value };
+  const changes: PositionChange[] = [];
+  for (const layer of stack.value.keys()) {
+    for (const element of elementsOf(layer)) {
+      const key = keyOf(layer, element);
+      if (!selected.value.has(key)) continue;
+      changes.push({ key, before: moves.value[key] });
+      const [x, y] = positionOf(layer, element);
+      const position: [number, number] = [x + dx, y + dy];
+      if (position[0] === element.position[0] && position[1] === element.position[1]) delete next[key];
+      else next[key] = position;
+    }
+  }
+  if (!changes.length) return;
+  history.value = [...history.value, changes];
   moves.value = next;
 }
 function discard() {
@@ -215,12 +237,24 @@ async function save() {
       const kept = { ...moves.value };
       for (const key of keys) delete kept[key];
       moves.value = kept;
-      history.value = history.value.filter(item => !item.key.startsWith(`${layer}:`));
+      history.value = history.value.map(change => change.filter(item => !item.key.startsWith(`${layer}:`))).filter(change => change.length);
     }
   } finally { saving.value = false; }
 }
 function onKeydown(event: KeyboardEvent) {
+  if (event.defaultPrevented) return;
   const target = event.target as HTMLElement | null;
+  const inSelection = props.large && selected.value.size && viewer.value?.contains(target)
+    && !target?.closest('input, textarea, select, button, a, summary, [contenteditable]');
+  const direction: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+  if (inSelection && props.editable && !saving.value && direction[event.key] && !event.ctrlKey && !event.metaKey && !event.altKey) {
+    event.preventDefault();
+    event.stopPropagation();
+    const [dx, dy] = direction[event.key];
+    const step = event.shiftKey ? 10 : 1;
+    nudgeSelection(dx * step, dy * step);
+    return;
+  }
   if (props.large && event.key === ' ' && !event.ctrlKey && !event.metaKey && !event.altKey && selected.value.size
       && viewer.value?.contains(target) && !target?.closest('input, textarea, select, button, a, summary, [contenteditable]')) {
     event.preventDefault();
@@ -386,7 +420,7 @@ const labelSize = computed(() => Math.max(14, resolution.value.width / 90));
       <span class="view-preview-caption">{{ facts.resolution.width }} × {{ facts.resolution.height }} · {{ number(facts.elements) }} element{{ plural(facts.elements) }}</span>
     </div>
   </div>
-  <div v-else ref="viewer" class="view-viewer" tabindex="-1">
+  <div v-else ref="viewer" class="view-viewer" tabindex="-1" @keydown="onKeydown">
     <div class="view-viewer-toolbar">
       <CheckBox :checked="outlines" label="Outline every element" @change="outlines = $event">Elements</CheckBox>
       <CheckBox v-if="totals.texts" :checked="hideTextNames" label="Hide the names of text elements" @change="hideTextNames = $event">Hide text names</CheckBox>
@@ -459,7 +493,7 @@ const labelSize = computed(() => Math.max(14, resolution.value.width / 90));
       <p v-else-if="state === 'loading'" class="view-stage-state text-muted"><i aria-hidden="true" class="mdi mdi-loading mdi-spin" />Loading the elements…</p>
     </div>
     <p v-for="message in errors" :key="message" class="text-danger view-viewer-error">{{ message }}</p>
-    <p v-if="state === 'ready'" class="view-viewer-note text-muted">Shift-click selects a range. Ctrl-click adds or removes an element. Space toggles visibility for the selection.</p>
+    <p v-if="state === 'ready'" class="view-viewer-note text-muted">Shift-click selects a range. Ctrl-click adds or removes an element. Space toggles visibility for the selection.<span v-if="editable"> Arrow keys move the selection by 1 pixel, or 10 with Shift.</span></p>
     <template v-for="(layer, index) in stack" :key="layer.file">
       <details v-if="elementsOf(index).length" class="view-elements">
         <summary>{{ many ? `${layer.name}: ` : '' }}{{ number(elementsOf(index).length) }} element{{ plural(elementsOf(index).length) }}, drawn in this order</summary>
