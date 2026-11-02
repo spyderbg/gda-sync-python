@@ -1,25 +1,47 @@
-// Egt::Game::AlphaFamily::KnobsView (BurningCrownTetraSpins10View/Views/KnobsView.h/.cpp): the main reels' line knobs
-// beside the reels; in the tetra round it draws nothing, and shows its tetra view (KnobsTetraView) instead.
+// Egt::Game::AlphaFamily::KnobsView (BurningCrownTetraSpins10View/Views/KnobsView.h/.cpp): the line knobs beside the
+// reels, one pair for the main reels and two for the tetra screens.
 
 import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
-import { Unless } from '@game/engine/GameCore/Common/Defensive';
 import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
 import { IControlViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IControlView';
 import { EKnobsType, IKnobsView } from '@game/alpha_family/libs/AlphaFamily/Views/IOverlayViews.bridge';
 import { BaseView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/BaseView';
-import type { KnobsTetraView } from './KnobsTetraView';
 
 const KnobsViewId = 'KnobsView';
+
+const ImageKnobsLeftId = 'image_knobs_left';
+const ImageKnobsRightId = 'image_knobs_right';
+const AnimSparklesLeftId = 'anim_sparkles_left';
+const AnimSparklesRightId = 'anim_sparkles_right';
+
+const ImageKnobsLeftTetra01Id = 'image_knobs_left_tetra_01';
+const ImageKnobsRightTetra01Id = 'image_knobs_right_tetra_01';
+const ImageKnobsLeftTetra02Id = 'image_knobs_left_tetra_02';
+const ImageKnobsRightTetra02Id = 'image_knobs_right_tetra_02';
+const AnimSparklesLeftTetra01Id = 'anim_sparkles_left_tetra_01';
+const AnimSparklesRightTetra01Id = 'anim_sparkles_right_tetra_01';
+const AnimSparklesLeftTetra02Id = 'anim_sparkles_left_tetra_02';
+const AnimSparklesRightTetra02Id = 'anim_sparkles_right_tetra_02';
+
+const ElementsMainRoundIds = [ImageKnobsLeftId, ImageKnobsRightId, AnimSparklesLeftId, AnimSparklesRightId];
+const ElementsTetraRoundIds = [
+  ImageKnobsLeftTetra01Id,
+  ImageKnobsRightTetra01Id,
+  ImageKnobsLeftTetra02Id,
+  ImageKnobsRightTetra02Id,
+  AnimSparklesLeftTetra01Id,
+  AnimSparklesRightTetra01Id,
+  AnimSparklesLeftTetra02Id,
+  AnimSparklesRightTetra02Id,
+];
 
 export class KnobsView extends BaseView implements IKnobsView {
   protected readonly m_events = new IControlViewEvents();
 
   private m_knobsType = EKnobsType.Normal;
-  private readonly m_tetraView: KnobsTetraView | null;
 
-  constructor(tetraView: KnobsTetraView | null) {
+  constructor() {
     super(KnobsViewId);
-    this.m_tetraView = tetraView;
   }
 
   // BaseView
@@ -44,7 +66,11 @@ export class KnobsView extends BaseView implements IKnobsView {
   }
 
   Draw(drawList: DrawList) {
-    if (this.m_knobsType === EKnobsType.Tetra) return;
+    // (C++ draws once into a dummy list to activate the lazy load: the browser's elements list loads in Init)
+
+    const isTetraView = this.m_knobsType === EKnobsType.Tetra;
+    this.m_elementsList.SetHidden(isTetraView, ElementsMainRoundIds);
+    this.m_elementsList.SetHidden(!isTetraView, ElementsTetraRoundIds);
 
     super.Draw(drawList);
   }
@@ -56,7 +82,6 @@ export class KnobsView extends BaseView implements IKnobsView {
 
   SetVisible(visible: boolean) {
     this.m_control.SetVisible(visible);
-    this.UpdateTetraViewVisibility();
   }
 
   SetFocused(focused: boolean) {
@@ -70,11 +95,5 @@ export class KnobsView extends BaseView implements IKnobsView {
   // IKnobsView
   SetKnobsType(knobsType: EKnobsType) {
     this.m_knobsType = knobsType;
-    this.UpdateTetraViewVisibility();
-  }
-
-  private UpdateTetraViewVisibility() {
-    if (Unless(this.m_tetraView)) return;
-    this.m_tetraView!.SetVisible(this.IsVisible() && this.m_knobsType === EKnobsType.Tetra);
   }
 }

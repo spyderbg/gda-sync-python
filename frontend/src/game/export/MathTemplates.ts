@@ -18,7 +18,7 @@ export function MathModuleFiles({ game, simulatorName }: MathTemplateNames): Rec
 
 #include <Egt/AlphaFamily/Math/Reel/VisualAnalyse/VisualAnalyze.data.h>
 #include <Egt/AlphaFamily/RuntimeExport/IMathRules.h>
-#include <Egt/ModuleManager/IModule.h>
+#include <Egt/Module/IModule.h>
 
 #include <map>
 #include <memory>
@@ -90,7 +90,7 @@ namespace Egt::Game::AlphaFamily
 `,
     [`MathTypes.h`]: `#pragma once
 
-#include <Egt/ModuleManager/IModule.h>
+#include <Egt/Module/IModule.h>
 
 #include <Egt/Game/RuntimeExport/IMathTypes.h>
 
@@ -197,7 +197,7 @@ namespace Egt::Game::AlphaFamily
 
 #include <Egt/${game}Math/MathRules.data.h>
 
-#include <Egt/ModuleManager/BaseModule.h>
+#include <Egt/Module/BaseModule.h>
 
 namespace Egt::Game::AlphaFamily
 {

@@ -26,9 +26,7 @@ import { BetMenuView } from './Views/BetMenuView';
 import { BigWinView } from './Views/BigWinView';
 import { CreditBarView } from './Views/CreditBarView';
 import { CreditsWinBarView } from './Views/CreditsWinBarView';
-import { GameBackgroundTetraView } from './Views/GameBackgroundTetraView';
 import { GameBackgroundView } from './Views/GameBackgroundView';
-import { KnobsTetraView } from './Views/KnobsTetraView';
 import { KnobsView } from './Views/KnobsView';
 import { LanguageMenuView } from './Views/LanguageMenuView';
 import { LinesView } from './Views/LinesView';
@@ -123,9 +121,7 @@ export class BurningCrownTetraSpins10View extends BaseModule {
   }
 
   private CreateViews() {
-    const knobsTetraView = new KnobsTetraView();
-    const gameBackgroundTetraView = new GameBackgroundTetraView();
-    this.AddViews('background', this.MadeWith(new GameBackgroundView(gameBackgroundTetraView), gameBackgroundTetraView), gameBackgroundTetraView);
+    this.AddViews('background', new GameBackgroundView());
     this.AddViews('rounds', new ReelsView(), new WinFiguresView());
     this.AddViews('', new TetraRoundView());
     this.AddViews(
@@ -136,8 +132,7 @@ export class BurningCrownTetraSpins10View extends BaseModule {
       new LinesView(),
       new StatusLineView(),
       new AutoPlayView(),
-      this.MadeWith(new KnobsView(knobsTetraView), knobsTetraView),
-      knobsTetraView,
+      new KnobsView(),
     );
     this.AddViews('menus', new BetMenuView(), new LanguageMenuView(), new SoundMenuView());
     this.AddViews(

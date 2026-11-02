@@ -7,7 +7,7 @@ export function ViewModuleH(game: string): string {
 
 #include <Egt/AlphaFamilyVideoCtrl/BaseView.h>
 #include <Egt/ImGuiEx/Extensions/Utils.h>
-#include <Egt/ModuleManager/BaseModule.h>
+#include <Egt/Module/BaseModule.h>
 
 #include <video_ctrl/draw_list.h>
 

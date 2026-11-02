@@ -1,23 +1,33 @@
 // Egt::Game::AlphaFamily::GameBackgroundView (BurningCrownTetraSpins10View/Views/GameBackgroundView.h/.cpp): the main
-// background and the panel; in the tetra round it hides, and shows its tetra view (GameBackgroundTetraView) instead.
+// or the tetra background, and the panel.
 
 import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
-import { Unless } from '@game/engine/GameCore/Common/Defensive';
+import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
 import { IControlViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IControlView';
 import { EBackgroundType, IGameBackgroundView } from '@game/alpha_family/libs/AlphaFamily/Views/IOverlayViews.bridge';
 import { BaseView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/BaseView';
-import type { GameBackgroundTetraView } from './GameBackgroundTetraView';
 
 const GameBackgroundViewId = 'GameBackgroundView';
+
+const ImageBackgroundId = 'image_game_background';
+const ImageBackgroundFrameId = 'image_game_background_frame';
+const ImagePanelBackgroundId = 'image_panel_background';
+const ImagePanelBackgroundFrameId = 'image_panel_background_frame';
+
+const ImageBackgroundTetraId = 'image_game_background_tetra';
+const ImageGameBackgroundFrameTetraId = 'image_game_background_frame_tetra';
+const ImagePanelBackgroundTetraId = 'image_panel_background_tetra';
+const ImagePanelBackgroundFrameTetraId = 'image_panel_background_frame_tetra';
+
+const AnimPanelTetraBetBarId = 'anim_panel_tetra_bet_bar';
 
 export class GameBackgroundView extends BaseView implements IGameBackgroundView {
   protected readonly m_events = new IControlViewEvents();
 
-  private readonly m_tetraView: GameBackgroundTetraView | null;
+  private m_backgroundType = EBackgroundType.Main;
 
-  constructor(tetraView: GameBackgroundTetraView | null) {
+  constructor() {
     super(GameBackgroundViewId);
-    this.m_tetraView = tetraView;
   }
 
   // BaseView
@@ -41,17 +51,32 @@ export class GameBackgroundView extends BaseView implements IGameBackgroundView 
     super.Deinit();
   }
 
+  Draw(drawList: DrawList) {
+    // (C++ draws once into a dummy list to activate the lazy load: the browser's elements list loads in Init)
+
+    const isTetraView = this.m_backgroundType === EBackgroundType.Tetra;
+
+    this.m_elementsList.TryGet(ImageBackgroundId)?.SetHidden(isTetraView);
+    this.m_elementsList.TryGet(ImageBackgroundFrameId)?.SetHidden(isTetraView);
+    this.m_elementsList.TryGet(ImagePanelBackgroundId)?.SetHidden(isTetraView);
+    this.m_elementsList.TryGet(ImagePanelBackgroundFrameId)?.SetHidden(isTetraView);
+
+    this.m_elementsList.TryGet(ImageBackgroundTetraId)?.SetHidden(!isTetraView);
+    this.m_elementsList.TryGet(ImageGameBackgroundFrameTetraId)?.SetHidden(!isTetraView);
+    this.m_elementsList.TryGet(ImagePanelBackgroundTetraId)?.SetHidden(!isTetraView);
+    this.m_elementsList.TryGet(ImagePanelBackgroundFrameTetraId)?.SetHidden(!isTetraView);
+
+    this.m_elementsList.TryGet(AnimPanelTetraBetBarId)?.SetHidden(!isTetraView);
+
+    super.Draw(drawList);
+  }
+
   IsOpaqueFullScreen() {
-    return this.IsVisible();
+    return true;
   }
 
   // IGameBackgroundView
   SetBackgroundType(type: EBackgroundType) {
-    const isTetraView = type === EBackgroundType.Tetra;
-
-    super.SetVisible(!isTetraView);
-
-    if (Unless(this.m_tetraView)) return;
-    this.m_tetraView!.SetVisible(isTetraView);
+    this.m_backgroundType = type;
   }
 }
