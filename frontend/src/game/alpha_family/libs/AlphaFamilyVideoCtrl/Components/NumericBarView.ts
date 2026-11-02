@@ -1,6 +1,7 @@
 // Egt::Game::AlphaFamily::NumericBarView (AlphaFamilyVideoCtrl/Components/NumericBarView.h): a bar that shows a value
 // and counts to new values by an accumulation, posting animatingDone with the value when it gets there.
 
+import { Clock } from '@game/engine/Game/Utils/Clock';
 import type { Runtime, InterfaceToken } from '@game/engine/GameCore/RuntimeAccess';
 import { Accumulation } from '@game/alpha_family/libs/AlphaFamily/Views/Tools/AccumulationControl';
 import { type AccumulationDescriptor, AccumulationType } from '@game/alpha_family/libs/AlphaFamily/Views/Tools/AccumulationControl.data';
@@ -37,7 +38,7 @@ export abstract class NumericBarView<T, E extends INumericBarViewEvents> extends
 
   SetAccumulation(accumulation: AccumulationDescriptor) {
     this.m_runningAccumulation = accumulation;
-    this.m_accumulationStart = performance.now();
+    this.m_accumulationStart = Clock.now();
     this.m_currentValue = accumulation.initialValue;
     if (accumulation.type === AccumulationType.eInstantly) this.FinishAccumulation(true);
   }
@@ -96,7 +97,7 @@ export abstract class NumericBarView<T, E extends INumericBarViewEvents> extends
     super.Process();
     const accumulation = this.m_runningAccumulation;
     if (!accumulation) return;
-    const elapsed = performance.now() - this.m_accumulationStart;
+    const elapsed = Clock.now() - this.m_accumulationStart;
     const steps = accumulation.steps;
     const last = steps[steps.length - 1];
     if (!last || elapsed >= last.endTimeSinceStartMs) {

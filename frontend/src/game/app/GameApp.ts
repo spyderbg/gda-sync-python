@@ -4,15 +4,19 @@
 // reacts), then PostProcess (the video draws the frame).
 
 import { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { IModuleManager, type ModuleLoadConfig } from '@game/engine/Game/RuntimeExport/IModuleManager';
 import type { IModule, ModuleConfig } from '@game/engine/ModuleManager/BaseModule';
 import { AudioManager } from '@game/engine/AudioManager/AudioManager';
+import { DebugImguiOverlay } from '@game/engine/DebugImguiOverlay/DebugImguiOverlay';
 import { FileWatch } from '@game/engine/FileWatch/FileWatch';
 import { ResourceManager } from '@game/engine/ResourceManager/ResourceManager';
 import { VideoManager } from '@game/engine/VideoManager/VideoManager';
 import { AlphaFamilyGameflow } from '@game/integration/AlphaFamilyGameflow/AlphaFamilyGameflow';
 import { BrowserKernel, type BrowserKernelConfig } from '@game/integration/BrowserKernel/BrowserKernel';
+import { RngPresetManager } from '@game/integration/RngPresetManager/RngPresetManager';
+import { AutomationManager } from '@game/integration/AutomationManager/AutomationManager';
 import type { GameAssetReport, GameProject, GameProjectModule } from './GameBackend';
-import { GameModuleName, MODULES } from './ModuleRegistry';
+import { FAMILY_TOOL_MODULES, GameModuleName, MODULES } from './ModuleRegistry';
 
 export interface GameModuleEntry {
   name: string;
@@ -32,7 +36,7 @@ export interface GameStartOptions {
   kernel?: BrowserKernelConfig;
 }
 
-export class GameApp {
+export class GameApp implements IModuleManager {
   readonly runtime = new Runtime();
   readonly modules: GameModuleEntry[] = [];
   /** Modules of the config that the browser game does not have. */
@@ -55,14 +59,25 @@ export class GameApp {
 
   async Start(options: GameStartOptions) {
     const { project } = options;
+    // the module manager, which loads a module while the game runs (the automation's view module)
+    this.runtime.Add(IModuleManager, this);
     const capping = GameApp.Capping(project);
     this.Add('ResourceManager', new ResourceManager(project, options.report), {}, true);
     // a view reloads its elements list when its file changes (C++'s FileWatch, in debug and QA builds)
     this.Add('FileWatch', new FileWatch(), {}, true);
     this.Add('VideoManager', new VideoManager(options.canvas, options.infoCanvas ?? null, options.topperCanvas ?? null), {}, true);
     this.Add('AudioManager', new AudioManager(), {}, true);
+    // the debug tools' menu bar (C++'s DebugImguiOverlay, of the QA and debug builds' modules config)
+    this.Add('DebugImguiOverlay', new DebugImguiOverlay(), {}, true);
     this.Add('BrowserKernel', new BrowserKernel(), { capping, ...options.kernel }, true);
     this.Add('AlphaFamilyGameflow', new AlphaFamilyGameflow(), {}, true);
+    // The QA builds' tools (configs/alpha_family/modules/AlphaGameModules_QA.json), in its order: the automation, which
+    // plays games with the view module of its stubs, before the RNG Queue, which the RNG tools add to (on a round's
+    // start, the automation records the round's numbers before the queue lets its engine go).
+    this.Add('AutomationManager', new AutomationManager(), {
+      stubViewModule: { name: 'AlphaFamilyAutomationView', space: 'Egt::Game::AlphaFamily', header: 'Egt/AlphaFamilyAutomationView/AlphaFamilyAutomationView.h' },
+    }, true);
+    this.Add('RngPresetManager', new RngPresetManager(), {}, true);
     // The family's modules (the capping splash...), then the game's. The engine's are made above.
     const engine = new Set(this.modules.map(entry => entry.name));
     for (const module of [...(project.familyModules?.config.modules ?? []), ...GameApp.GameModules(project)]) {
@@ -70,6 +85,10 @@ export class GameApp {
       const descriptor = MODULES[module.name];
       if (descriptor) this.Add(module.name, descriptor.create(), module.config ?? {}, false);
       else this.skipped.push(module.name);
+    }
+    // the family's debug tools, after the game's modules (they read its math rules)
+    for (const name of FAMILY_TOOL_MODULES) {
+      if (!this.modules.some(entry => entry.name === name) && MODULES[name]) this.Add(name, MODULES[name].create(), {}, false);
     }
     for (const entry of this.modules) {
       if (!(await entry.module.Init(this.runtime, entry.config))) throw new Error(`${entry.name}: Init failed`);
@@ -88,6 +107,36 @@ export class GameApp {
       if (setups[0]?.maxCap) return setups[0].maxCap;
     }
     return 0;
+  }
+
+  ////////////////////////////////////////////////////////////////////////////////
+  /// IModuleManager: a module of the registry loaded while the game runs, and unloaded
+  ////////////////////////////////////////////////////////////////////////////////
+
+  LoadModule(runtime: Runtime, config: ModuleLoadConfig) {
+    const descriptor = MODULES[config.name];
+    if (!descriptor || this.IsModuleLoaded(config.name)) return false;
+    const module = descriptor.create();
+    const loaded = module.Init(runtime, config.config);
+    if (loaded instanceof Promise || !loaded || !module.PostInit() || (module.Start && !module.Start())) {
+      console.error(`GameApp: loading ${config.name} failed`);
+      return false;
+    }
+    this.Add(config.name, module, config.config, false);
+    return true;
+  }
+
+  UnloadModule(name: string) {
+    const index = this.modules.findIndex(entry => entry.name === name);
+    if (index < 0) return;
+    const [entry] = this.modules.splice(index, 1);
+    entry.module.Stop?.();
+    entry.module.PreDeinit();
+    entry.module.Deinit();
+  }
+
+  IsModuleLoaded(name: string) {
+    return this.modules.some(entry => entry.name === name);
   }
 
   private Add(name: string, module: IModule, config: ModuleConfig, engine: boolean) {
@@ -112,8 +161,9 @@ export class GameApp {
   private Frame = () => {
     if (!this.running) return;
     try {
-      for (const entry of this.modules) entry.module.Process();
-      for (const entry of this.modules) entry.module.PostProcess();
+      // a copy: a module may unload during the frame (the automation's, when its games end)
+      for (const entry of [...this.modules]) entry.module.Process();
+      for (const entry of [...this.modules]) entry.module.PostProcess();
       this.onFrame?.();
     } catch (error) {
       this.running = false;
@@ -129,6 +179,7 @@ export class GameApp {
     cancelAnimationFrame(this.frame);
     for (const entry of [...this.modules].reverse()) {
       try {
+        entry.module.Stop?.();
         entry.module.PreDeinit();
       } catch (error) {
         console.error(error);
@@ -142,5 +193,6 @@ export class GameApp {
       }
     }
     this.modules.length = 0;
+    this.runtime.Remove(IModuleManager);
   }
 }

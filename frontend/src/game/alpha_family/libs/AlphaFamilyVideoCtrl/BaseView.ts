@@ -3,6 +3,7 @@
 // list changes (HandleFileChanged), it loads the list again while it is visible; when the file of a config it watches
 // changes (WatchConfig, the browser game's), it calls the view back.
 
+import { Clock } from '@game/engine/Game/Utils/Clock';
 import { IResources } from '@game/engine/Game/RuntimeExport/IResources';
 import { RuntimeHolder, type Runtime } from '@game/engine/GameCore/RuntimeAccess';
 import { Timers } from '@game/engine/GameCore/Tools/Timers';
@@ -41,7 +42,7 @@ export abstract class BaseView extends RuntimeHolder {
     for (const config of this.m_watchedConfigs) {
       if (config.changed && config.onChanged() !== false) config.changed = false;
     }
-    const now = performance.now();
+    const now = Clock.now();
     this.m_timers.Process(now);
     this.m_elementsList.Update(now);
   }

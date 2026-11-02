@@ -1,7 +1,7 @@
 // The BrowserKernel module: the cabinet around the game, in the browser. It keeps the player's credit (in the
 // browser's storage), plays the kernel's part in matches, and provides the services a C++ integration provides: the
 // wallet, the limits, the localization, the hardware buttons (the keyboard and the page's panel), the recovery's state
-// change actions, responsible gaming and the application control.
+// change actions, responsible gaming, the application control and the game pause (IPauseControl).
 
 import { EventQueue } from '@game/engine/Core/Event';
 import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
@@ -12,6 +12,8 @@ import { IRecovery, IRecoveryEvents, type IStateChangeAction } from '@game/engin
 import { IAppControl, IResponsibleGaming, IResponsibleGamingEvents } from '@game/engine/Game/RuntimeImport/IResponsibleGaming';
 import { IWallet, IWalletEvents, TransactionType } from '@game/engine/Game/RuntimeImport/IWallet';
 import { BaseModule, type ModuleConfig } from '@game/engine/ModuleManager/BaseModule';
+import { Clock } from '@game/engine/Game/Utils/Clock';
+import { IPauseControl, type PauseReason } from '@game/integration/Runtime/IPauseControl';
 import { IKernelIntegration, IKernelIntegrationEvents, type IKernelApi } from './IKernelIntegration';
 
 const CREDIT_STORAGE_KEY = 'egt-game-credit';
@@ -72,6 +74,19 @@ export class BrowserKernel extends BaseModule implements IKernelApi, IKernelInte
     const kernel = this;
     this.RuntimeAdd(IKernelIntegration, this);
     this.RuntimeAdd(IKernelIntegration.Events, this.kernelEvents);
+    // the game pause (C++'s PauseMonitor): paused while any reason holds it
+    const pauses = new Set<PauseReason>();
+    this.RuntimeAdd(IPauseControl, {
+      Request: reason => {
+        pauses.add(reason);
+        Clock.SetPaused(true);
+      },
+      Release: reason => {
+        pauses.delete(reason);
+        Clock.SetPaused(pauses.size > 0);
+      },
+      IsHeld: reason => pauses.has(reason),
+    });
     this.RuntimeAdd(IWallet, { GetCredit: () => kernel.credit, StartCashout: () => kernel.Cashout() });
     this.RuntimeAdd(IWallet.Events, this.walletEvents);
     this.RuntimeAdd(ILimits, {
@@ -128,6 +143,8 @@ export class BrowserKernel extends BaseModule implements IKernelApi, IKernelInte
   }
 
   Deinit() {
+    this.RuntimeRemove(IPauseControl);
+    Clock.SetPaused(false);
     for (const token of Object.values(HW_BUTTONS)) {
       this.RuntimeRemove(token);
       this.RuntimeRemove(token.Events);

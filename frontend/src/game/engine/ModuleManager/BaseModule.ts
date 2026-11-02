@@ -8,6 +8,9 @@ export type ModuleConfig = Record<string, unknown>;
 export interface IModule {
   Init(runtime: Runtime, config: ModuleConfig): boolean | Promise<boolean>;
   PostInit(): boolean;
+  /** Once a module loaded while the game runs is initialized (C++'s IModule::Start), and before it unloads (Stop). */
+  Start?(): boolean;
+  Stop?(): void;
   Process(): void;
   PostProcess(): void;
   PreDeinit(): void;

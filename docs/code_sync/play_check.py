@@ -13,6 +13,13 @@ errors. See game_sync.md and library_sync.md.
 at a time). --press STATE=KEY presses KEY (a key of the Play page: g Gamble, r Red, b Black, t Take win...) instead of
 START, once each time the game's states come to STATE.
 
+--rng-preset PATH queues an RNG preset of the game's DevMathRngPreset.json before the first START, as Tools → RNG
+Presets does, by the path of its menus ("Win/Reel Main/Seven/x5", "Scenarios/Main Game/Mega Win (100x)"); it may be
+given more than once, in the order the rounds play them. The RNG Queue is printed before and after the play.
+
+    .venv/bin/python -I docs/code_sync/play_check.py --workspace burning_crown_tetra_spins_10 \
+        --rng-preset "Win/Reel Main/Seven/x5" --rng-preset "No Win/Reel Tetra" --until Tetra
+
 The app runs from egt_gda_sync/static (build it first: .venv/bin/python scripts/build.py), in an isolated app data
 folder made in --out: the project's config/workspace.json, with the workspace as the default one, and its newest asset
 report from the app's own data folder, so that the game finds its resources without a rescan. Nothing is written to
@@ -66,6 +73,7 @@ def main() -> int:
     parser.add_argument("--workspace", required=True, help="the workspace's id or game name (config/workspace.json)")
     parser.add_argument("--preset", action="append", default=[], help="a Developer panel's Next round button: the first is pressed before the first START, each other once the one before it has played")
     parser.add_argument("--press", action="append", default=[], metavar="STATE=KEY", help="press KEY instead of START once each time the states come to STATE")
+    parser.add_argument("--rng-preset", action="append", default=[], metavar="PATH", help="an RNG preset (Tools → RNG Presets) to queue before the first START, by its menus' path")
     parser.add_argument("--until", required=True, help="text of the game's states to reach, such as Tetra or FreeRound")
     parser.add_argument("--timeout", type=float, default=240, help="seconds the play may take (default 240)")
     parser.add_argument("--out", type=Path, help="folder for the app data folder and the screenshots (default: a new temporary one)")
@@ -124,6 +132,28 @@ def main() -> int:
                     page.wait_for_function("button => button.classList.contains('btn-primary')", arg=preset.element_handle(), timeout=5_000)
                     print(f"preset: {name}")
 
+            def open_tool(name: str, window: str):
+                page.get_by_role("button", name="Tools").click()
+                page.get_by_role("menuitem", name=name, exact=True).click()
+                return page.get_by_role("dialog", name=window)
+
+            def rng_queue() -> str:
+                rows = open_tool("RNG Queue", "RNG Queue").locator("tbody tr").all_inner_texts()
+                return " ; ".join(" ".join(row.split()) for row in rows)
+
+            if args.rng_preset:
+                window = open_tool("RNG Presets", "RNG Preset")
+                for path in args.rng_preset:
+                    scope, *menus, item = [window, *path.split("/")]
+                    for menu in menus:
+                        button = scope.get_by_role("button", name=menu, exact=True).first
+                        if button.get_attribute("aria-expanded") != "true":
+                            button.click()
+                        scope = scope.get_by_role("group", name=menu, exact=True).first
+                    scope.get_by_role("button", name=item, exact=True).first.click()
+                    print(f"rng preset: {path}")
+                print("rng queue:", rng_queue())
+
             next_preset()
             page.keyboard.press("Space")
             start, last, pressed = time.monotonic(), "", False
@@ -139,6 +169,7 @@ def main() -> int:
                     reached = True
                     time.sleep(2.5)
                     screen.screenshot(path=str(out / "until.png"))
+                    print(f"         rounds at {args.until} (newest first):", " ; ".join(page.locator(".game-dev-list li").all_inner_texts()) or "none")
                 if reached and "Idle" in current and args.until not in current:
                     back = True
                     break
@@ -158,6 +189,8 @@ def main() -> int:
                 time.sleep(0.4)
             screen.screenshot(path=str(out / "end.png"))
             print("rounds (newest first):", " ; ".join(page.locator(".game-dev-list li").all_inner_texts()) or "none")
+            if args.rng_preset:
+                print("rng queue after:", rng_queue())
             browser.close()
     finally:
         backend.stop()

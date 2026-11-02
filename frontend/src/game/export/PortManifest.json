@@ -28,8 +28,8 @@
    "alpha_family/libs/src/Egt/AlphaFamily/Math/Common/Weighted.h",
    "alpha_family/libs/src/Egt/AlphaFamily/Math/Common/Weighted.cpp"
   ],
-  "sha256": "4068bf12e236819e4cae643b7f1f82abe4fe1b74f896d2fe6f15fb4734289ad2",
-  "cppCommit": "f0c46d2a37422c811dea77221127db2101f537dd",
+  "sha256": "d33b98127c1b305901e6eccb82f29a845637640ed7b53c6d8fa9076df7db605e",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamily/Math/Common/Weighted.h": "6022c3acfbaba4d9314fd646e1a8030ee9451dba7f6db8654d154baf721b54b5",
    "alpha_family/libs/src/Egt/AlphaFamily/Math/Common/Weighted.cpp": "e25aa348e3c2241a6dbc8fbd736b8a9aa5db365a967d11f8d0ca196f3941b999"
@@ -1105,6 +1105,30 @@
    "alpha_family/libs/src/Egt/AlphaFamily/Views/Tools/BarsSync.cpp": "7e3dff0ef03e585e5246e0d03810cecad2882664f93372825cb5dcc36b0aaef5"
   }
  },
+ "alpha_family/libs/AlphaFamilyMathToolUtils/ResultToRng.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyMathToolUtils/ResultToRng.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyMathToolUtils/ResultToRng.cpp"
+  ],
+  "sha256": "caa7451838e4f04578373a76727fd82ee9bc624aaf1b640052e60e45efe48aef",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamilyMathToolUtils/ResultToRng.h": "13bf8b88463fa9788fb8ef1631010c19118564bf97a2635325c1bbc7e8cc9904",
+   "alpha_family/libs/src/Egt/AlphaFamilyMathToolUtils/ResultToRng.cpp": "6c694f244cd15b99778b069533c1dab255a0977dc6892eefdf9e3658c20a840e"
+  }
+ },
+ "alpha_family/libs/AlphaFamilyMathToolUtils/RulesHelper.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamilyMathToolUtils/RulesHelper.h",
+   "alpha_family/libs/src/Egt/AlphaFamilyMathToolUtils/RulesHelper.cpp"
+  ],
+  "sha256": "98ef29dd077de3c81b8786f739813ed9d1d1d8ff25c175c37ee1f18ab691632b",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamilyMathToolUtils/RulesHelper.h": "141965503e0588dd29a5afc9becf1ec7a4d5fa9c630a61b8ce6481d42c45fabd",
+   "alpha_family/libs/src/Egt/AlphaFamilyMathToolUtils/RulesHelper.cpp": "4a3fa7f53b48c1ef542de0e4a208d41c3e3f14d41317e1dcb0ec119f3188e53e"
+  }
+ },
  "alpha_family/libs/AlphaFamilyStatesLibrary/BetManager.data.ts": {
   "cpp": [
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/BetManager.data.h"
@@ -2094,8 +2118,8 @@
    "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/BaseView.h",
    "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/BaseView.cpp"
   ],
-  "sha256": "1147b21d03be3c38a2010523e204437201932f1475d1edeca3b0087fefd997d8",
-  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "sha256": "af4b69ae98e95f144e603c476dbd41e19728816b3b5445fe295bfe07316671c0",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/BaseView.h": "ee77778cbf2f64fbe558e41530e0e58aeff69f0b7a087d02fb6d9d55900f9ff9",
    "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/BaseView.cpp": "c17f1e5b76ad99874e9fc04717d076fbd686a6160d467c2edda685456dcb6e55"
@@ -2139,10 +2163,710 @@
   "cpp": [
    "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/Components/NumericBarView.h"
   ],
-  "sha256": "dccc219ea9bf66950d1591b5cdcb6296dff7de1b06ca8a75d121900d0e25edc2",
-  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "sha256": "752f6a44909765b38c0da418ccdc4a2a2129343f1dfe36f0e6da1c548b6d0e80",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/Components/NumericBarView.h": "0ce38d646461d0cdbb78770b558a664336f8f5319d4ab74e61bc4bacdfcab3ae"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/AlphaFamilyAutomationView.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/AlphaFamilyAutomationView.data.h"
+  ],
+  "sha256": "6744088c99ce7d15996dd52d73a02ee0b813a1dc97808696bdee3292ceca94af",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/AlphaFamilyAutomationView.data.h": "0c282869aabb44bd56b3921d087e0e846de6e7340d719a805396bca3e45f3435"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/AlphaFamilyAutomationView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/AlphaFamilyAutomationView.h",
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/AlphaFamilyAutomationView.cpp"
+  ],
+  "sha256": "d56db0065231be881eb3aab902dbef87dd725cf5336a77937f17c3f9727c701e",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/AlphaFamilyAutomationView.h": "2ce331cace595815efff9b43f2a906e452430dffbee6e39aa0446b966f76d51a",
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/AlphaFamilyAutomationView.cpp": "10365938e360abda08984bbb0219a688174997321887dfaa574fb21d90f2fc51"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Components/IStubView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Components/IStubView.h"
+  ],
+  "sha256": "d6ff179735cd72061f354c17c82be1f40bbad86aba16d92403a0dcf37f022662",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Components/IStubView.h": "ad80dbe8ed9874841d60c1441f34198e4ff908a5653594b815ff87e4f1ae1e1b"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Components/StubControl.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Components/StubControl.h"
+  ],
+  "sha256": "67c9030f4edaa8307ed2b7f62da32e8e1cb7bc034d2b8fa875b12ac70b7416e8",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Components/StubControl.h": "768dbe0fa3016cb7508539abba149f80d5179e541f082c7eccb0ad0f63b4a60d"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Components/StubHwButton.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Components/StubHwButton.h"
+  ],
+  "sha256": "285ad69916a0a5132a3545d2c41bd8e8c2faeab7f1c84a3828d9d831ec9b67ea",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Components/StubHwButton.h": "19aae1553b2d10670197702ba7a74bbc4ab05e086cb028bebf6b2ea85f24a714"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Components/StubNumericBarView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Components/StubNumericBarView.h"
+  ],
+  "sha256": "eb53ba0f8bf5154f585c41b20d28b5a1c7eb37d93f507b976173fa5d3205c562",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Components/StubNumericBarView.h": "53abf34368918a12f7ced47510df92a9faf99615f24e2e230637273dca96a24e"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Components/StubSwButton.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Components/StubSwButton.h"
+  ],
+  "sha256": "775f479d091b2815ee7857978cfe0daafeb1c9e512f81f1c73a9cf8960a4b06f",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Components/StubSwButton.h": "c5d76002aa7c0aa43b5fc66e360fe140411babb9a60b2aaec182836b21f17319"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Components/StubView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Components/StubView.h"
+  ],
+  "sha256": "bd09609014c2a10dfc5562939a956fa16492a81a10c73a8cf7cc4a399ff4ec63",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Components/StubView.h": "3d80578b176f5f2df09dc0fafbdc562d020b00172d88d384d69c238692501cbf"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubAutoPlayView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubAutoPlayView.h"
+  ],
+  "sha256": "cd1417233a34a84f6d5faa94e61d281a8bfc579173a0f3c371d5e950a0a0da87",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubAutoPlayView.h": "f4535d40484c276104f96821e2211ded989992b4c736c448ce663a7b77625a7f"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubBetBarView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubBetBarView.h"
+  ],
+  "sha256": "76c4a6afbefbbea60a93af1c95bfec2b5d411fd3e5d32f0574a096a5a4e91013",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubBetBarView.h": "95ef1944e0dc0241fb11b7562e428c712f5bc761ad5045231c8304532cfad353"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubBetDownSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubBetDownSwButtonView.h"
+  ],
+  "sha256": "925bd0f2b3538eb32f562dc85bcaddedc3c9b407d0af79d13a1d654d2b4c5237",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubBetDownSwButtonView.h": "5a0e482773303ffe744da5c59eebe114e491bbe791f04b3d1be6f90e05237c2e"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubBetMenuView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubBetMenuView.h"
+  ],
+  "sha256": "dc887adcd68b5d681564f96c7a1039fe0aa7da8e7c6d9ebcc84a41310491685d",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubBetMenuView.h": "7662006d57b3959c42a8ba414209bdc3073bd0c5ec072ce9dec03ddef8832cc4"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubBetUpSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubBetUpSwButtonView.h"
+  ],
+  "sha256": "a38076c74f9cd8f5f908c2dbf191b82830f038ff7c66ae2a263a38e9e373bcf1",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubBetUpSwButtonView.h": "9c42eb84d99c79ece1174658c91515c4ab4a43078242cfce8bb79a81f5870857"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubBigWinView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubBigWinView.h"
+  ],
+  "sha256": "cd07a1255dd0ae64f9123d45f1236715bf5d91bfe5d011ae29e5bbd9b5bf0687",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubBigWinView.h": "495073f91f6d86b78ca74853dd8b64d30fdec89e8887683cfa88f2f8af7dd3ad"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubCappingSplashView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubCappingSplashView.h"
+  ],
+  "sha256": "c318d55c8e4cb4320edbe93ee5e6950e9766efa446864d631e08f771e0a0d4b8",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubCappingSplashView.h": "062f57c00fd89061361e5b66da50f7df108b94e860487c9da87bd6478fdedd93"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubCoinsBarView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubCoinsBarView.h"
+  ],
+  "sha256": "de4f7f31edbccbd88867ff9d1ce46e0cd47835ccfe3aac8a01c1b04c9cd4ce36",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubCoinsBarView.h": "ffe7064f2d5e3317ae9a644dae125134052c65eb8f45fb062e5011aa53163e4a"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubCoinsFreeSpinBarView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubCoinsFreeSpinBarView.h"
+  ],
+  "sha256": "5108a95471f730e5af2541af81ae87035102ada478ccc7006514596a524a238e",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubCoinsFreeSpinBarView.h": "515f059024cfb09d857c5d1f9a94415f7acb22b2990a5ab0bbed0aa68f386c3c"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubCoinsRoundOverlayView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubCoinsRoundOverlayView.h"
+  ],
+  "sha256": "f9553d8af4197f157f11ec8ac0a79edcbc6ac177366838e2301c764da0e1f596",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubCoinsRoundOverlayView.h": "38622127f62a8416b1a22a4fce9a085a74b0523229f3687f884e977d12c9b06d"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubCoinsWinBarView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubCoinsWinBarView.h"
+  ],
+  "sha256": "0a4784d7219d48b515e61f0a61d5f1e73f8ff7161a3188e115d24300e4d878e2",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubCoinsWinBarView.h": "9d430d223249cdddc49206033aa1cec2ebc1ef8812d1f999b8b7251cb08acd6d"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubCreditBarView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubCreditBarView.h"
+  ],
+  "sha256": "4cce743c2056c493ec3c5fcadef953123f63d910c09871fe4cd248409abe49da",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubCreditBarView.h": "a77999420b794abf65b17a4daeec44fbdb9366e28abe4501ef281b798a695915"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubCreditsWinBarView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubCreditsWinBarView.h"
+  ],
+  "sha256": "db441349f330ebf19bf59884764f598201aa4823d165115529f9a169e5f23311",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubCreditsWinBarView.h": "657a128f0be3dc11bfe7e420ebadb91cbd5cf3cc9db4cda1c7480d8a93fdbe4e"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubExitGameSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubExitGameSwButtonView.h"
+  ],
+  "sha256": "a92f6d72b2554a32bc30a1cb6db189a979e79eaafe23f2734a3edf392386f0a2",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubExitGameSwButtonView.h": "d1aa3049b7786a221fc8dca9d44cba6199bb0d08b4dba0162f2b2284c657c54d"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubExtraFreeSpinBarView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubExtraFreeSpinBarView.h"
+  ],
+  "sha256": "a392cc201d8ccc8a99c99c7a7af087bb9373ff81af80b47367fc502ce9c0a616",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubExtraFreeSpinBarView.h": "4673a0187c813162792bd7a22d9416ca91e46b9c5851394cdcefd1d282c4e9d7"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubExtraRoundOverlayView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubExtraRoundOverlayView.h"
+  ],
+  "sha256": "7309dd52d244bfdea6374a0d525767552e67820ce5c2ad1ba3b8c02c30e41b0f",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubExtraRoundOverlayView.h": "f17415f5c041399bb585c366eca0a30be10e61de6bf33149242ba9fe524090d7"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubExtraSpinBarView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubExtraSpinBarView.h"
+  ],
+  "sha256": "43e7ffb74bd03edc8ce721680d1d2b637a081b11cc0071436b89991c68edad5c",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubExtraSpinBarView.h": "298f27c36d78d58d41484efd6e1909d666733a4244cc43754784ad01c3972695"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubFreeRoundOverlayView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubFreeRoundOverlayView.h"
+  ],
+  "sha256": "98b683327853c02b832d4edcc509ea0e6b2f7e1b5d3b089754e8b97d6c35357e",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubFreeRoundOverlayView.h": "d52bedcefc03dd838404c931bf21d3df6ed5e872d1c184d2671972bfef2ca9fe"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubFreeRoundRetriggerView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubFreeRoundRetriggerView.h"
+  ],
+  "sha256": "72df6290f7fb932eecc0c39cb40b4d64472bdcf25c063532073ccc98c1ccdca9",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubFreeRoundRetriggerView.h": "e0e50d9499340bc0903e16caa267f916fa8943ba3bb2f1d9f812cb6b6f7f6986"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubFreeSpinBarView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubFreeSpinBarView.h"
+  ],
+  "sha256": "157c54ec9dc137483cdcec6c044810fa37df050c1d7e45707ab388040e8642cf",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubFreeSpinBarView.h": "9f846a5101832e0e356bc2f292ff2c4499faf765e52fafbd126cb4c674731def"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubGambleBlackSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubGambleBlackSwButtonView.h"
+  ],
+  "sha256": "cb349016a734f4f3681344210f729293432d42855cb9455b2c2c29a84de5fa65",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubGambleBlackSwButtonView.h": "4147fd70eac7db1727c6da35451ae0c90b7fe4fa65779a3444bc1d91860584f3"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubGambleRedSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubGambleRedSwButtonView.h"
+  ],
+  "sha256": "2b260ac921dee35dfa4f60a48fc360bec46bb060ab9bc459b37d9ee2de0f79bb",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubGambleRedSwButtonView.h": "ed6dcb9229b9a7efa81b1e71d9eb534d3758d38eda7112b870d60c89900c0a02"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubHoldAndSpinBarView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubHoldAndSpinBarView.h"
+  ],
+  "sha256": "c904c730d9ffe3142ca2551ac253c198ec6df151a3ba91882b83554ad183a428",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubHoldAndSpinBarView.h": "ce2695c75ba5da8001e5f56b92a8cca92dddb9e166749bfc5cb70b6a5b37382b"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubHoldAndSpinRoundInfoView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubHoldAndSpinRoundInfoView.h"
+  ],
+  "sha256": "8647dd7da39b7e85ffc90451f57327fc8426e6c7fa5d01ab3406205558232369",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubHoldAndSpinRoundInfoView.h": "fcb2a72e0e8690393bf7d6ad541cc6025c1b1cd9ddb68d0e7e2fe3afb74599b1"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubHoldAndSpinRoundOverlayView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubHoldAndSpinRoundOverlayView.h"
+  ],
+  "sha256": "8873ab9ac4635dbba1f460b950299389cef6c2b06bc5be77b36a80489e2a50ee",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubHoldAndSpinRoundOverlayView.h": "3e480ea8bbe005241263823d16311354a978d67f36ed2248263d1972289e4ccc"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubInfoSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubInfoSwButtonView.h"
+  ],
+  "sha256": "8b59a35c2119112b23ab583d30b12d7bff024f1ad40a42f4dde18f3e80637699",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubInfoSwButtonView.h": "de79ec1bc5fa70eee78da1467cfe343e78314a96e22363483e8a58a80c000298"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubInfoView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubInfoView.h"
+  ],
+  "sha256": "1221bebb018db728ad60866ebd0b0ec89f89955ebc107c42840a57adced0d4da",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubInfoView.h": "9fbb58197ee28d0f27955705f759b65878be8e92e84c46b024dee6fb875eb98e"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubKnobsView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubKnobsView.h"
+  ],
+  "sha256": "9a145cd186088899b9bb2f814429b026f11174dd0a293c6d97cb77d573d6df52",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubKnobsView.h": "fba8dee65641330fe69f218f65f4c99a111ec768362aa4620245dad60fbbb038"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubLanguageSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubLanguageSwButtonView.h"
+  ],
+  "sha256": "52da51b4bd023db727687127e62935ad0e3479380354f87d0a0b3c7592c9890d",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubLanguageSwButtonView.h": "8e9f59a102504d93153146b14b970963468a58352cd9a922e4ff6e298dcdd8fa"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubLineDownSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubLineDownSwButtonView.h"
+  ],
+  "sha256": "f57ea8212c349828e4eafd662e2f1772da1bf087f76dfbdb27a37d922157f57e",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubLineDownSwButtonView.h": "6e07872db37014d6a7890b3517be577ead5443dca7f73668d03c60140c2d8ebb"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubLinesView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubLinesView.h"
+  ],
+  "sha256": "73d22740deecb4ba495b4e0708991f0371469b9b3895f9cbca81193a4d88aa37",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubLinesView.h": "7470026aff1bd64e7d8dd5dd8660516c570acd672ba38c6030bc775d7d28a421"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubLineUpSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubLineUpSwButtonView.h"
+  ],
+  "sha256": "84e328efb38c92a0734bf0455ffc11c84da885b3070981b1bb9abebf5f2d6c89",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubLineUpSwButtonView.h": "97e13fb0903fbfde37280fd7cc77eb0767295d5619da61e3fb9b3991c924b2b0"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubReelsOverlayView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubReelsOverlayView.h"
+  ],
+  "sha256": "b0e42cfa477410f17da26de768d01d9df28006f5c42336df0d2b798530bc5a94",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubReelsOverlayView.h": "43524a51453a1cfb3a19adb056ef68c072786244489719b60780eaf026842bea"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubReelsView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubReelsView.h"
+  ],
+  "sha256": "622fab8a336e1dff8e146e8dd573f745a47bb28e53f11bba380d99354cf4945b",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubReelsView.h": "0a18683bfcb22e6827005506156e4378affc236e88aab6072fcccfd2332e4f61"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubResponsibleSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubResponsibleSwButtonView.h"
+  ],
+  "sha256": "8791f9802cbd6f4281b104fbcf1842810c17b768cb2903345adfed24caa41cfa",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubResponsibleSwButtonView.h": "3a7cdac6fa8d3ff2b337495abb548ab695441f4ba8cd97a4956ea66f955a9f03"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubSoundVolumeSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubSoundVolumeSwButtonView.h"
+  ],
+  "sha256": "8d9e0641cf3cd9ccc0e1f1def26cc895cf6cc62fb3e520632bbdc6c202945691",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubSoundVolumeSwButtonView.h": "7b2783d803ff9e3c7f0b9d61caa321b0b1e18cb01a1f77f199197038381c70b6"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubStartGameHwButton.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubStartGameHwButton.h"
+  ],
+  "sha256": "7a68d501a36cb008e5c508257cdb10eea9c5ea84ee946b37d3f006b1a823fd12",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubStartGameHwButton.h": "2e3dfdf55b22a4a2ed3121d031a3dd99ddb90afb2e149530297259ebcaf6f953"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubStatusLineView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubStatusLineView.h"
+  ],
+  "sha256": "fc1c9118777d86e4ada3d6e0dcb521f0692a58366dd24aa04e023a00a2810b15",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubStatusLineView.h": "403d5623195a614e1a9266145085204f88a7df9a244f5564cf4a6b37dba3606e"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubStopSingleReelSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubStopSingleReelSwButtonView.h"
+  ],
+  "sha256": "8223256ae53d8fdc29e1c149c2a67ecc2d14037991742b5724123947bfc24522",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubStopSingleReelSwButtonView.h": "9aba80cd5aec20720ed10928149c167d74d2924c20514063bc0b1746e4e4f94c"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubTakeCoinsSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubTakeCoinsSwButtonView.h"
+  ],
+  "sha256": "7c3beb80ee954505de713c6c2903056b874c428cb0c79f572c3ac19b01dae247",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubTakeCoinsSwButtonView.h": "68a3d0e7f2dab0b9799dd80b70806450dc4e0db40f6eb8ccdecb9022617c62f8"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubTetraRoundOverlayView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubTetraRoundOverlayView.h"
+  ],
+  "sha256": "5da8fda920b4e5cbf31f21bc7dc50913d2fe2a4bb31861b78953fceca92bd46e",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubTetraRoundOverlayView.h": "c40750dc32ad894b8380b4533bd745b4ea6f502e7499508da6482c604d6a703f"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubTetraRoundView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubTetraRoundView.h"
+  ],
+  "sha256": "0a26bc13bc9bc084b8492fbbd198df4e799412f1db311db42277ff8a977dcae4",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubTetraRoundView.h": "2b99139d96ae7808ea25d469a579389d859de69413eedbda2052c7606a108711"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubWheelRoundOverlayView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubWheelRoundOverlayView.h"
+  ],
+  "sha256": "24f2fc7f96c59aabf22b40d700c100342e8f3e5db5718526faec97da4a74df87",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubWheelRoundOverlayView.h": "504e67c78b90c343655d5c1548bf611477749b75f4a0a528911dcff1c7ab8f01"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubWheelRoundView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubWheelRoundView.h"
+  ],
+  "sha256": "399c7bf393016dfc88c6ee510c49f54ff7b6620dfaebc03f5923d51fd3973275",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubWheelRoundView.h": "0d0ec00c3b9a95be41768aea0e0c8345e4f9909451ad3d3726bbc4a1600235f1"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubWheelStartSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubWheelStartSwButtonView.h"
+  ],
+  "sha256": "c70d230b8087ebcbbf55b0f965a1052aa7223c359e2fcf99c73f743d38191b25",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubWheelStartSwButtonView.h": "2d1b4f4ab0a9074fff61db4ec3d427ef589c7787db66c079e9c1d088f274d890"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubWinFiguresView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubWinFiguresView.h"
+  ],
+  "sha256": "bdabffe7e073cda5fccf22bcc3553af4cede05a0481bc9cac9de456a1f79a7e1",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubWinFiguresView.h": "393852281aa86a7998c304c824d7da62e41aa6c722526a514500657061459e82"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/WheelStrategy_StubStartGameHwButton.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/WheelStrategy_StubStartGameHwButton.h"
+  ],
+  "sha256": "00d13b1e4eb0190a36d403e29da96e4f2a70b09c9e7dc4aa63aa763202674832",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/WheelStrategy_StubStartGameHwButton.h": "184ef5c7c7b697bcad7f6fab9c29750f9621afea1558a3b33122637b58df3e37"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/WheelStrategy_StubTakeCoinsSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/WheelStrategy_StubTakeCoinsSwButtonView.h"
+  ],
+  "sha256": "d98e56eb18e162e338fc1ea2cdb52d6ee969aa5f01f3f998c99b283dd444af1b",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/WheelStrategy_StubTakeCoinsSwButtonView.h": "862d1e47e7d959282144450cba674240af28330bc4e00334370126374894403e"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyMathRngPreset/AlphaFamilyMathRngPreset.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyMathRngPreset/AlphaFamilyMathRngPreset.h",
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyMathRngPreset/AlphaFamilyMathRngPreset.cpp"
+  ],
+  "sha256": "8968793f8bef63ce1098f38d876a85e5f80521f5a036ee10c24cac5687fb9646",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyMathRngPreset/AlphaFamilyMathRngPreset.h": "7ffa176e8ca106436a0be8417da38cef43feac6f4092e9f0ae7e0e24dff79e3b",
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyMathRngPreset/AlphaFamilyMathRngPreset.cpp": "c25297dfd90f7b8a5747fd583c9d429a5920cb0650dc869e7c3cd629ddcca135"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyMathRngPreset/RngPresetContext.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyMathRngPreset/RngPresetContext.h"
+  ],
+  "sha256": "cec4378084218aa9b0f0d7872baa406949a96f1f44a0ee502ffe995ca4f02ab9",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyMathRngPreset/RngPresetContext.h": "2305bc123ea43d954d5da8063dd710a3f88b3360bdac2a9e997aaaab92158e66"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyMathRngPreset/RngPresets.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyMathRngPreset/RngPresets.data.h"
+  ],
+  "sha256": "211ecb8194e4a78faedba276aa86b6a4b39b4116114d85ce1f095b3e86437ceb",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyMathRngPreset/RngPresets.data.h": "88b91a6d8ee1d720ed0b6b02b2081e8a6846c903f96e575dfa0da3708daa5c5f"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyMathRngPreset/RngPresets.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyMathRngPreset/RngPresets.h",
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyMathRngPreset/RngPresets.cpp"
+  ],
+  "sha256": "029abe1e3eb85617d3043788eb8a31d8312ca2f25e7ee4a42fdd182d2e4f074d",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyMathRngPreset/RngPresets.h": "4fb20712fca9e1065b8dcccca70d5a3bff0478015f4139b2db42855f62b77801",
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyMathRngPreset/RngPresets.cpp": "0d03c9e9260ad9777e9fb78faec4cc7cb2ff301680a1beab76e12a1d7890f126"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyMathRngPreset/RngQueueGridPreview.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyMathRngPreset/RngQueueGridPreview.h",
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyMathRngPreset/RngQueueGridPreview.cpp"
+  ],
+  "sha256": "b72276e146a1f424110a80db3a54995825c342f298b4d7d74c306ccf91fd3bcf",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyMathRngPreset/RngQueueGridPreview.h": "5a346d6e98870d0d99efc79a4ea6c974707a14565505846963ac6bb341cbb201",
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyMathRngPreset/RngQueueGridPreview.cpp": "5ee473925faad27c0ff7bd5a06b1aec6336ffb15003f620a2ac35018a89df132"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyMathRngTool/AlphaFamilyMathRngTool.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyMathRngTool/AlphaFamilyMathRngTool.h",
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyMathRngTool/AlphaFamilyMathRngTool.cpp"
+  ],
+  "sha256": "ba2cdb920c52ad9023a68b1e0e27bfd6b7a4ef5230ee0c3aa2f7a87acd89c171",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyMathRngTool/AlphaFamilyMathRngTool.h": "c6ebea2feb7f3c11cbdb51b37b2915ebaef321724103959755cd12bb4f1b1056",
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyMathRngTool/AlphaFamilyMathRngTool.cpp": "93ed13f9c7a9a5960f374a560ee2b3044bdcdeae44c4cef111f219d37f0c61e6"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyMathRngTool/RngTool.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyMathRngTool/RngTool.h",
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyMathRngTool/RngTool.cpp"
+  ],
+  "sha256": "e24f611958c9e9a2483065f436b8d6c41a83c1bb2984bd1dde6ad39bc9db9cad",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyMathRngTool/RngTool.h": "3d856c01e1fced58024acf739d8307c3896209720e0e30b35a0841dcc1a300f8",
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyMathRngTool/RngTool.cpp": "96906e5810929c5e1628a11b364427aa865a6456c4302349b02e234901fcc408"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyMathRngTool/RngToolContext.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyMathRngTool/RngToolContext.h"
+  ],
+  "sha256": "61d327c9659cf89bb76d26760d193e04c6587f944c8712acbd62bea108d58955",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyMathRngTool/RngToolContext.h": "f6331391db180a4ccc47db592f485e235b98d4168ef1116b6d464bb2c6c62071"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyMathRngTool/RngToolReel.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyMathRngTool/RngToolReel.h",
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyMathRngTool/RngToolReel.cpp"
+  ],
+  "sha256": "04f98006a77fa5d8df0ea7127789f32267f9cb6837ca45e88a8443bdde5523ed",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyMathRngTool/RngToolReel.h": "f4c7f96edd726f30bfccdfa4872396fd5401f97b5b457dd561cdce48f8f26ac6",
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyMathRngTool/RngToolReel.cpp": "0e1fab2f85ffad1e0839711f9b0243aba77e490599e8b9665aa1ba666e7337e5"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyMathRngTool/RngToolReelRound.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyMathRngTool/RngToolReelRound.h",
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyMathRngTool/RngToolReelRound.cpp"
+  ],
+  "sha256": "3269e83a075a6f93d9892d337c82fb080e97910c7a68582a9acd53b124835520",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyMathRngTool/RngToolReelRound.h": "1cd2323dabe3e7a8450207f3c3cb87cf10bf7c20aad0f65b2b8d16b8684c5553",
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyMathRngTool/RngToolReelRound.cpp": "03ab3f0a9630cd723805b7d3dc9a78c24995600d3d3394f81f3d51a7a7acfc7f"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyMathRngTool/RngToolReelRoundSubscreen.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyMathRngTool/RngToolReelRoundSubscreen.h",
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyMathRngTool/RngToolReelRoundSubscreen.cpp"
+  ],
+  "sha256": "46d8d4f6042ee2121d2ee91b75f5badbd33efb772956e8c0b1cc61c6992c93db",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyMathRngTool/RngToolReelRoundSubscreen.h": "f56ac869e51a075a54d72c5cca0f13018dcfee594c9a9e71c995db10576c98e4",
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyMathRngTool/RngToolReelRoundSubscreen.cpp": "9684fe49ac93fb10ba3f17f3da64786bd9d74590789ef55fea650da2497799ff"
+  }
+ },
+ "alpha_family/plugins/alpha_family/AlphaFamilyMathRngTool/RngToolWheelRound.ts": {
+  "cpp": [
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyMathRngTool/RngToolWheelRound.h",
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyMathRngTool/RngToolWheelRound.cpp"
+  ],
+  "sha256": "bd2b16ee4c94eba7a59e6d9c39d5457182ff7f578c5ce3eec677eac728414e01",
+  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "cppSha256": {
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyMathRngTool/RngToolWheelRound.h": "5f4b308a92620b92c2a4d6626cfbc173c3f135c2fa345a3e946a9b0ff17e1ca5",
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyMathRngTool/RngToolWheelRound.cpp": "6256326b3b203e3e4651bddcfa38e7556c200d7ea923f1ec94cb67e1177c2905"
   }
  },
  "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10Fsm/BurningCrownTetraSpins10Fsm.ts": {

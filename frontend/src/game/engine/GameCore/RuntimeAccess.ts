@@ -31,6 +31,14 @@ export class Runtime {
     this.services.delete(token);
   }
 
+  /** RuntimeAccess::Overwrite: the token's entry replaced (a debug tool's stub of a view); returns the entry it had,
+   * which the tool puts back when it is done. */
+  Overwrite<T>(token: RuntimeToken<T>, value: T): T | undefined {
+    const previous = this.services.get(token) as T | undefined;
+    this.services.set(token, value);
+    return previous;
+  }
+
   Get<T>(token: RuntimeToken<T>): T {
     if (!this.services.has(token)) throw new Error(`Runtime is missing ${token.name}`);
     return this.services.get(token) as T;

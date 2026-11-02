@@ -21,6 +21,17 @@ import { MODULES } from '@game/app/ModuleRegistry';
 import type { GameFsm } from '@game/engine/Game/Fsm/GameFsm';
 import type { InfoViewPages, ViewModule } from '@game/app/GameModules';
 import type { MathExportInput } from '@game/export/MathExporter';
+import { DebugImguiOverlay } from '@game/engine/DebugImguiOverlay/DebugImguiOverlay';
+import type { MainMenuItem } from '@game/engine/Game/RuntimeExport/IDebugOverlay';
+import { RngPresetManager } from '@game/integration/RngPresetManager/RngPresetManager';
+import RngQueueWindow from './debug/RngQueueWindow.vue';
+import RngQueueUnlockWindow from './debug/RngQueueUnlockWindow.vue';
+import RngPresetWindow from './debug/RngPresetWindow.vue';
+import RngPickerWindow from './debug/RngPickerWindow.vue';
+import AutomationWindow from './debug/AutomationWindow.vue';
+import { AutomationManager } from '@game/integration/AutomationManager/AutomationManager';
+import { AlphaFamilyMathRngTool } from '@game/alpha_family/plugins/alpha_family/AlphaFamilyMathRngTool/AlphaFamilyMathRngTool';
+import { AlphaFamilyMathRngPreset } from '@game/alpha_family/plugins/alpha_family/AlphaFamilyMathRngPreset/AlphaFamilyMathRngPreset';
 
 const report = shallowRef<GameAssetReport | null>(null);
 const reportError = ref('');
@@ -36,6 +47,10 @@ const topperOpen = ref(false);
 /** Whether the info screen shows; Info opens it. */
 const infoOpen = ref(false);
 const devOpen = ref(false);
+/** The debug tools' windows (C++'s ImGui windows over the game): redrawn on each page refresh and after their commands. */
+const toolsTick = ref(0);
+/** The Tools menu of the debug overlay's main menu bar, while it shows. */
+const toolsMenu = shallowRef<MainMenuItem[] | null>(null);
 const exportResult = ref<{ folder: string; id: string; files: string[] } | null>(null);
 const exportReport = shallowRef<PluginExport['report'] | null>(null);
 
@@ -198,6 +213,33 @@ function refreshLive() {
   live.infoPage = pages ? EInfoViewPageType[pages.current] : '';
   const images = app?.Get(VideoManager)?.TryGetImages();
   live.images = images ? `${images.loadedCount} / ${images.size}` : '';
+  toolsTick.value++;
+}
+
+/** The tools' open windows: each module keeps whether its window is open (C++'s ImGuiEx::SBool). */
+const toolWindows = computed(() => {
+  void toolsTick.value;
+  const rngQueue = app?.Get(RngPresetManager) ?? null;
+  const rngPreset = app?.Get(AlphaFamilyMathRngPreset) ?? null;
+  const rngPicker = app?.Get(AlphaFamilyMathRngTool) ?? null;
+  const automation = app?.Get(AutomationManager) ?? null;
+  return {
+    automation: automation?.m_imguiWindowOpen.value ? automation : null,
+    rngPicker: rngPicker?.m_imguiWindowOpen.value ? rngPicker : null,
+    rngPreset: rngPreset?.m_imguiWindowOpen.value ? rngPreset : null,
+    rngQueue: rngQueue?.m_imguiWindowOpen.value ? rngQueue : null,
+    rngQueueUnlock: rngQueue?.m_imguiUnlockWindowOpen.value ? rngQueue : null,
+  };
+});
+
+function toggleToolsMenu() {
+  toolsMenu.value = toolsMenu.value ? null : app?.Get(DebugImguiOverlay)?.GetMainMenuBar().Menu('Tools') ?? [];
+}
+
+function selectTool(item: MainMenuItem) {
+  item.select();
+  toolsMenu.value = null;
+  toolsTick.value++;
 }
 
 async function start() {
@@ -234,6 +276,8 @@ async function start() {
 function stop() {
   app?.Stop();
   app = null;
+  toolsMenu.value = null;
+  toolsTick.value++;
 }
 
 async function load() {
@@ -283,10 +327,19 @@ function fullscreen() {
 }
 
 function onKeydown(event: KeyboardEvent) {
-  if (state.value !== 'running' || event.ctrlKey || event.metaKey || event.altKey) return;
+  if (state.value !== 'running' || event.metaKey || event.altKey) return;
   // On the game's page the keys are the cabinet's: Space is START even when a button has the focus.
   const target = event.target as HTMLElement;
   if (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable) return;
+  if (event.ctrlKey) {
+    // the debug tools' shortcuts (C++'s imguiShortcuts: Ctrl+A, the Automation window)
+    const shortcut = app?.Get(DebugImguiOverlay)?.GetShortcuts().Find(event);
+    if (!shortcut) return;
+    event.preventDefault();
+    shortcut.action();
+    toolsTick.value++;
+    return;
+  }
   if (document.querySelector('.modal.show')) return;
   const name = KEYS[event.key];
   if (!name) return;
@@ -478,10 +531,25 @@ onBeforeUnmount(() => {
           <button type="button" class="btn btn-outline-secondary btn-sm" title="Full screen" aria-label="Full screen" @click="fullscreen"><i class="mdi mdi-fullscreen" aria-hidden="true" /></button>
           <button type="button" class="btn btn-outline-secondary btn-sm" :aria-expanded="infoOpen" title="The cabinet's info screen, with the help pages" @click="infoOpen = !infoOpen"><i class="mdi mdi-monitor" aria-hidden="true" /> Info screen</button>
           <button type="button" class="btn btn-outline-secondary btn-sm" :aria-expanded="topperOpen" title="The cabinet's topper screen" @click="topperOpen = !topperOpen"><i class="mdi mdi-monitor-shimmer" aria-hidden="true" /> Topper</button>
+          <div class="game-tools">
+            <button type="button" class="btn btn-outline-secondary btn-sm" :aria-expanded="!!toolsMenu" aria-haspopup="menu" title="The debug tools (the C++ debug overlay's Tools menu)" @click="toggleToolsMenu"><i class="mdi mdi-tools" aria-hidden="true" /> Tools <i class="mdi mdi-menu-down" aria-hidden="true" /></button>
+            <div v-if="toolsMenu" class="game-tools-menu card shadow-sm" role="menu">
+              <button v-for="item in toolsMenu" :key="item.label" type="button" class="dropdown-item game-tools-item" role="menuitem" @click="selectTool(item)">
+                <span>{{ item.label }}</span><kbd v-if="item.shortcut">{{ item.shortcut }}</kbd>
+              </button>
+              <span v-if="!toolsMenu.length" class="dropdown-item-text text-muted">No tools</span>
+            </div>
+          </div>
           <button type="button" class="btn btn-outline-secondary btn-sm" :aria-expanded="devOpen" @click="devOpen = !devOpen"><i class="mdi mdi-code-tags" aria-hidden="true" /> Developer</button>
         </div>
       </div>
     </div>
+
+    <RngQueueWindow v-if="toolWindows.rngQueue" :manager="toolWindows.rngQueue" :tick="toolsTick" @changed="toolsTick++" />
+    <AutomationWindow v-if="toolWindows.automation" :manager="toolWindows.automation" :tick="toolsTick" @changed="toolsTick++" />
+    <RngPickerWindow v-if="toolWindows.rngPicker" :module="toolWindows.rngPicker" :tick="toolsTick" @changed="toolsTick++" />
+    <RngPresetWindow v-if="toolWindows.rngPreset" :module="toolWindows.rngPreset" :tick="toolsTick" @changed="toolsTick++" />
+    <RngQueueUnlockWindow v-if="toolWindows.rngQueueUnlock" :manager="toolWindows.rngQueueUnlock" :tick="toolsTick" @changed="toolsTick++" />
 
     <div v-show="topperOpen" class="card game-card game-info-card">
       <div class="card-body p-0">
@@ -662,6 +730,29 @@ onBeforeUnmount(() => {
 
 .game-panel-gap {
   flex: 1 1 auto;
+}
+
+.game-tools {
+  position: relative;
+}
+
+.game-tools-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+
+  kbd {
+    font-size: 0.7rem;
+  }
+}
+
+.game-tools-menu {
+  position: absolute;
+  z-index: 1040;
+  right: 0;
+  bottom: 100%;
+  min-width: 160px;
+  padding: 0.25rem 0;
 }
 
 .game-dev-states {

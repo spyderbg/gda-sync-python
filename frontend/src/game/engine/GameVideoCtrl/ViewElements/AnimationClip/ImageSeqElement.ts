@@ -2,6 +2,7 @@
 // frame every frameTime milliseconds, loopCount times (the element's own, or else the sequence's; 0 repeats from frame
 // loopTo forever).
 
+import { Clock } from '@game/engine/Game/Utils/Clock';
 import type { Color, RssImageSequence } from '@game/engine/Game/RuntimeExport/IResources';
 import { IResources } from '@game/engine/Game/RuntimeExport/IResources';
 import { RuntimeHolder, type Runtime } from '@game/engine/GameCore/RuntimeAccess';
@@ -13,7 +14,7 @@ export class ImageSeqElement extends IAnimationClip {
   private readonly m_runtime = new RuntimeHolder();
   private m_ownRepeatCount: number | null = null;
   private m_playing = true;
-  private m_startTime = performance.now();
+  private m_startTime = Clock.now();
   private m_frame = 0;
 
   constructor(runtime: Runtime, private readonly m_key: string) {
@@ -37,7 +38,7 @@ export class ImageSeqElement extends IAnimationClip {
   Play() {
     if (!this.m_playing) {
       this.m_playing = true;
-      this.m_startTime = performance.now() - this.FrameStart(this.m_frame);
+      this.m_startTime = Clock.now() - this.FrameStart(this.m_frame);
     }
     return true;
   }
@@ -48,13 +49,13 @@ export class ImageSeqElement extends IAnimationClip {
 
   Rewind() {
     this.m_frame = 0;
-    this.m_startTime = performance.now();
+    this.m_startTime = Clock.now();
     return true;
   }
 
   PlayFromLoopFrame() {
     this.m_frame = this.Sequence()?.loopTo ?? 0;
-    this.m_startTime = performance.now() - this.FrameStart(this.m_frame);
+    this.m_startTime = Clock.now() - this.FrameStart(this.m_frame);
     this.m_playing = true;
     return true;
   }

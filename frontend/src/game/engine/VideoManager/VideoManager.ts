@@ -2,6 +2,7 @@
 // draws on, and IVideoManager, the render layers over it (the capping splash...). The browser's canvas is that screen,
 // scaled to the page; touches are mapped back to the view resolution. Its Process updates the started tweens (tweeny).
 
+import { Clock } from '@game/engine/Game/Utils/Clock';
 import * as tweeny from '@game/hat_libs/tweeny/tweeny';
 import { IResources } from '@game/engine/Game/RuntimeExport/IResources';
 import { Runtime } from '@game/engine/GameCore/RuntimeAccess';
@@ -74,7 +75,7 @@ export class VideoManager extends BaseModule implements IVideo, IVideoManager {
 
   /** Runs the tweens by the time since the last frame (C++'s stopwatch). */
   Process() {
-    const now = performance.now();
+    const now = Clock.now();
     const dt = this.m_lastProcess === null ? 0 : now - this.m_lastProcess;
     this.m_lastProcess = now;
     tweeny.update(dt);

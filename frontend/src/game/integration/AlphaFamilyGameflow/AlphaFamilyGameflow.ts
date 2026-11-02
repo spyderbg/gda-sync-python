@@ -1,5 +1,7 @@
 // Egt::Integration::AlphaFamily::AlphaFamilyGameflow (integration/libs/src/Egt/AlphaFamilyGameflow): provides IGameflow,
-// the match and its rounds with the kernel. A match's wallet keeps its currencies: starting it rewards MainSpinEnergy of
+// the match and its rounds with the kernel, and IGameflowIntegration, its events for the integration's modules. A round
+// is calculated with the kernel's numbers, or with the RNG Queue's or the automation's while they override them
+// (GetRoundRng). A match's wallet keeps its currencies: starting it rewards MainSpinEnergy of
 // the bet, which the main round consumes; rounds reward credits, which tetra rounds consume; the credits left are paid
 // at its end. The next round is the one whose currency the match has (GetNextRoundType), or a tetra round while the
 // match has credits for it (CheckTetraRound), or the coins wheel when the coins' least win reaches the cap
@@ -19,6 +21,9 @@ import { IMathRules } from '@game/alpha_family/libs/AlphaFamily/RuntimeExport/IM
 import { type IGameflow, IGameflow as IGameflowToken, IGameflowEvents } from '@game/alpha_family/libs/AlphaFamily/RuntimeImport/IGameflow.bridge';
 import type { EndMatchRequest, EndRoundRequest, StartMatchRequest, StartRoundRequest } from '@game/alpha_family/libs/AlphaFamily/RuntimeImport/IGameflow.data';
 import { IKernelIntegration } from '@game/integration/BrowserKernel/IKernelIntegration';
+import { type IGameflowIntegration, IGameflowIntegration as IGameflowIntegrationToken, IGameflowIntegrationEvents } from '@game/integration/Runtime/IGameflowIntegration';
+import { IRngPresetManager } from '@game/integration/Runtime/IRngPresetManager';
+import { IAutomationManager } from '@game/integration/Runtime/IAutomationManager';
 
 const RngBatchCount = 64;
 
@@ -74,8 +79,11 @@ export interface RoundPreset {
   condition: (result: RoundResult) => boolean;
 }
 
-export class AlphaFamilyGameflow extends BaseModule implements IGameflow {
+export class AlphaFamilyGameflow extends BaseModule implements IGameflow, IGameflowIntegration {
   private readonly m_events = new IGameflowEvents();
+  private readonly m_integrationEvents = new IGameflowIntegrationEvents();
+  /** The engine of the kernel's numbers the round is calculated with (C++'s volatileRngEngine). */
+  private volatileRngEngine: IRng | null = null;
   private match: Match | null = null;
   private round: Round | null = null;
   private numbers: number[] = [];
@@ -87,6 +95,8 @@ export class AlphaFamilyGameflow extends BaseModule implements IGameflow {
     super.Init(runtime, config);
     this.RuntimeAdd(IGameflowToken, this);
     this.RuntimeAdd(IGameflowToken.Events, this.m_events);
+    this.RuntimeAdd(IGameflowIntegrationToken, this);
+    this.RuntimeAdd(IGameflowIntegrationToken.Events, this.m_integrationEvents);
     const kernel = this.RuntimeGet(IKernelIntegration.Events);
     kernel.startMatchReply.RegisterInstant(this, success => this.OnKernelStartMatchReply(success));
     kernel.startRoundReply.RegisterInstant(this, () => this.OnKernelStartRoundReply());
@@ -101,6 +111,8 @@ export class AlphaFamilyGameflow extends BaseModule implements IGameflow {
     if (kernel) for (const event of Object.values(kernel)) event.Unregister(this);
     this.RuntimeRemove(IGameflowToken);
     this.RuntimeRemove(IGameflowToken.Events);
+    this.RuntimeRemove(IGameflowIntegrationToken);
+    this.RuntimeRemove(IGameflowIntegrationToken.Events);
     super.Deinit();
   }
 
@@ -127,6 +139,9 @@ export class AlphaFamilyGameflow extends BaseModule implements IGameflow {
       creditBet: request.bet, kernelStarted: false, cappingInfo: null, consecutives: [],
       wallet: { rewarded: new Currencies(), consumed: new Currencies(), blocked: new Currencies() },
     };
+
+    this.m_integrationEvents.matchStarting.Post(this.match.creditBet);
+
     this.Kernel().RequestStartMatch(request.bet);
   }
 
@@ -151,8 +166,13 @@ export class AlphaFamilyGameflow extends BaseModule implements IGameflow {
 
         match.wallet.rewarded.Add(Currency.WheelToken, coinsWheelTokensCount);
       }
+
+      this.m_integrationEvents.matchStarted.Post(match.creditBet);
     } else {
+      // Destroy Match
       this.match = null;
+
+      this.m_integrationEvents.matchCanceled.Post(match.creditBet);
     }
     this.m_events.startMatchReply.Post({ approved: success, bet: match.creditBet });
   }
@@ -168,6 +188,9 @@ export class AlphaFamilyGameflow extends BaseModule implements IGameflow {
     this.round = { input: request.roundInput.Clone(), result: null, kernelStarted: false, kernelOutcome: false, showFastLines: request.showFastLines };
     // blocking the currencies that will be used for starting the round
     this.match.wallet.blocked.AddAll(this.round.input.consume);
+
+    this.m_integrationEvents.roundStarting.Post(this.round.input.roundType);
+
     this.Kernel().RequestStartRound(this.RuntimeGetConst(IMathTypes).GetRoundTypeName(this.round.input.roundType));
   }
 
@@ -179,6 +202,8 @@ export class AlphaFamilyGameflow extends BaseModule implements IGameflow {
     match.wallet.consumed.AddAll(round.input.consume);
     match.wallet.blocked.SubtractAll(round.input.consume);
     this.numbers = [];
+    // Create empty engine
+    this.volatileRngEngine = new HistoryEngine(new KernelNumbersEngine(this.numbers));
     this.Kernel().RequestRandoms(RngBatchCount);
   }
 
@@ -199,13 +224,17 @@ export class AlphaFamilyGameflow extends BaseModule implements IGameflow {
   private CalculateRoundResult() {
     const round = this.round!;
     let resultOrError;
-    if (this.preset && this.preset.roundType === round.input.roundType) {
+    if (this.IsRoundRngOverrideUsed()) {
+      // the RNG tools' numbers (C++'s GetRoundRng): no kernel numbers are used
+      resultOrError = this.CalculateRoundOf(round.input, this.GetRoundRng());
+    } else if (this.preset && this.preset.roundType === round.input.roundType) {
       resultOrError = this.CalculatePresetRound(this.preset);
       this.preset = null;
     } else {
       // A thrown InsufficientRandomBits comes back as an error: the round asks the kernel for more numbers and retries.
       const engine = new KernelNumbersEngine(this.numbers);
       const rng = new HistoryEngine(engine);
+      this.volatileRngEngine = rng;
       const generate = engine.Generate.bind(engine);
       let insufficient = false;
       engine.Generate = (op, range) => {
@@ -234,9 +263,12 @@ export class AlphaFamilyGameflow extends BaseModule implements IGameflow {
     const round = this.round!;
     let last = null;
     for (let attempt = 0; attempt < 200_000; attempt++) {
-      const result = this.CalculateRoundOf(round.input, new HistoryEngine(new MonteCarloEngine()));
+      const rng = new HistoryEngine(new MonteCarloEngine());
+      const result = this.CalculateRoundOf(round.input, rng);
       if (!(result instanceof RoundResult)) return result;
       last = result;
+      // the round's numbers are the attempt's (the automation records them)
+      this.volatileRngEngine = rng;
       if (preset.condition(result)) return result;
     }
     console.warn(`AlphaFamilyGameflow: no round met the preset "${preset.name}"`);
@@ -249,6 +281,13 @@ export class AlphaFamilyGameflow extends BaseModule implements IGameflow {
     const result = round.result!;
     this.history.push({ roundType: result.GetRoundType(), bet: result.GetBet(), win: result.GetSummary().rewards.Get(Currency.Credits), rngs: result.m_replay.rngs });
     if (this.history.length > 100) this.history.shift();
+
+    this.m_integrationEvents.roundStarted.Post(result.GetRoundType());
+
+    /// Round outcome confirmed => rng no longer needed
+    /// Note: clear rng engine after roundStarted event
+    this.volatileRngEngine = null;
+
     /// Finaly complete the round
     this.m_events.startRoundReply.Post({ roundResult: result, showFastLines: round.showFastLines });
   }
@@ -260,6 +299,10 @@ export class AlphaFamilyGameflow extends BaseModule implements IGameflow {
   RequestEndRound(_request: EndRoundRequest) {
     const round = this.round;
     if (!round?.kernelOutcome) throw new Error('RequestEndRound: round not approved');
+
+    const roundType = round.result!.GetRoundType();
+    this.m_integrationEvents.roundEnding.Post(roundType);
+
     /// Transfer round rewards to match wallet
     this.ApplyCapping(round.result!, ECapTiming.AfterRoundOutcome);
     const summary = round.result!.GetSummary();
@@ -270,6 +313,9 @@ export class AlphaFamilyGameflow extends BaseModule implements IGameflow {
     this.AddConsecutiveRoundEndRewards(summary.rewards);
     /// Destroy round
     this.round = null;
+
+    this.m_integrationEvents.roundEnded.Post(roundType);
+
     this.m_events.endRoundReply.Post({});
   }
 
@@ -280,18 +326,63 @@ export class AlphaFamilyGameflow extends BaseModule implements IGameflow {
   RequestEndMatch(_request: EndMatchRequest) {
     if (this.round) throw new Error('RequestEndMatch: round not ended');
     if (!this.match?.kernelStarted) throw new Error('RequestEndMatch: match not started');
-    this.Kernel().RequestEndMatch(this.GetMatchCurrenciesAvailable().Get(Currency.Credits));
+
+    const creditWin = this.GetMatchCurrenciesAvailable().Get(Currency.Credits);
+    this.m_integrationEvents.matchEnding.Post(creditWin);
+
+    this.Kernel().RequestEndMatch(creditWin);
   }
 
   private OnKernelEndMatchReply(netWinAfterTaxes: number) {
     /// Destroy match
     this.match = null;
+
+    this.m_integrationEvents.matchEnded.Post(netWinAfterTaxes);
+
     this.m_events.endMatchReply.Post({ totalMatchWin: netWinAfterTaxes });
   }
 
   ////////////////////////////////////////////////////////////////////////////////
   /// Helpers
   ////////////////////////////////////////////////////////////////////////////////
+
+  /** The round's random numbers: the RNG tools' while they override them, else the kernel's. */
+  GetRoundRng(): IRng {
+    const rngPreset = this.RuntimeTryGet(IRngPresetManager);
+    if (rngPreset) {
+      if (rngPreset.ShouldOverrideRng()) {
+        return rngPreset.GetOverrideRng();
+      }
+    }
+
+    const automation = this.RuntimeTryGet(IAutomationManager);
+    if (automation) {
+      if (automation.ShouldOverrideRng()) {
+        return automation.GetOverrideRng();
+      }
+    }
+
+    if (!this.volatileRngEngine) throw new Error('GetRoundRng: no round is being calculated');
+    return this.volatileRngEngine;
+  }
+
+  IsRoundRngOverrideUsed() {
+    const rngPreset = this.RuntimeTryGetConst(IRngPresetManager);
+    if (rngPreset) {
+      if (rngPreset.ShouldOverrideRng()) {
+        return true;
+      }
+    }
+
+    const automation = this.RuntimeTryGetConst(IAutomationManager);
+    if (automation) {
+      if (automation.ShouldOverrideRng()) {
+        return true;
+      }
+    }
+
+    return false;
+  }
 
   IsIdle() {
     return !this.match;

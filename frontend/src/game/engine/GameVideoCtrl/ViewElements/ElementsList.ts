@@ -3,6 +3,7 @@
 // It watches its file (IFileWatch): when the file changes, it is dirty, and its view loads it again (BaseView): in
 // place when the file has the same elements (Update), else anew.
 
+import { Clock } from '@game/engine/Game/Utils/Clock';
 import { Runtime, RuntimeHolder } from '@game/engine/GameCore/RuntimeAccess';
 import type { Color, Point, ViewElementData } from '@game/engine/Game/RuntimeExport/IResources';
 import { IFileWatch } from '@game/engine/Game/RuntimeExport/IFileWatch';
@@ -219,7 +220,7 @@ export class ElementsList extends RuntimeHolder {
     return this.elements;
   }
 
-  Update(now = performance.now()) {
+  Update(now = Clock.now()) {
     for (const element of this.elements) element.Update(now);
     // update elements list dirty flag; it stays dirty until loaded, so that a hidden view loads it when it shows
     if (now > this.dirtyCheckTime) {

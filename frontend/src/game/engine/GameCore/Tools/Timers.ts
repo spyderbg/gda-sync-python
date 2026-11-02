@@ -1,5 +1,7 @@
 // Delayed actions of a view, run from its Process: what the C++ views do with tweeny delays and stopwatches.
 
+import { Clock } from '@game/engine/Game/Utils/Clock';
+
 export class Timers {
   private next = 1;
   private readonly timers = new Map<number, { at: number; callback: () => void }>();
@@ -7,7 +9,7 @@ export class Timers {
   /** Runs callback once delay milliseconds have passed; returns its id. */
   After(delay: number, callback: () => void) {
     const id = this.next++;
-    this.timers.set(id, { at: performance.now() + delay, callback });
+    this.timers.set(id, { at: Clock.now() + delay, callback });
     return id;
   }
 
@@ -23,7 +25,7 @@ export class Timers {
     return !!id && this.timers.has(id);
   }
 
-  Process(now = performance.now()) {
+  Process(now = Clock.now()) {
     for (const [id, timer] of [...this.timers].sort((a, b) => a[1].at - b[1].at)) {
       if (timer.at > now) continue;
       this.timers.delete(id);
@@ -35,24 +37,24 @@ export class Timers {
 /** Stopwatch::Measure, in milliseconds. */
 /** Egt::GameCore::Stopwatch: the time it has run, in ms, which pauses and resumes. */
 export class Stopwatch {
-  private start = performance.now();
+  private start = Clock.now();
   private pausedAt: number | null = null;
 
   Measure() {
-    return (this.pausedAt ?? performance.now()) - this.start;
+    return (this.pausedAt ?? Clock.now()) - this.start;
   }
 
   Reset() {
-    this.start = this.pausedAt ?? performance.now();
+    this.start = this.pausedAt ?? Clock.now();
   }
 
   Pause() {
-    this.pausedAt ??= performance.now();
+    this.pausedAt ??= Clock.now();
   }
 
   Resume() {
     if (this.pausedAt === null) return;
-    this.start += performance.now() - this.pausedAt;
+    this.start += Clock.now() - this.pausedAt;
     this.pausedAt = null;
   }
 

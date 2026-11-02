@@ -39,11 +39,19 @@ for (const [path, exports] of Object.entries(PLUGIN_MODULES)) {
   };
 }
 
+/** The family's debug tools' plugin (game/alpha_family/plugins/alpha_family): the RNG Presets, the RNG Picker, the
+ * automation's views. Its modules are no game's. */
+export const FAMILY_TOOLS_PLUGIN = 'alpha_family';
+
+/** The family's debug tools the QA and debug builds' modules config adds to every game's
+ * (configs/alpha_family/modules/AlphaGameModules_QA.json), which the browser game, a debug build, always has. */
+export const FAMILY_TOOL_MODULES = ['AlphaFamilyMathRngPreset', 'AlphaFamilyMathRngTool'];
+
 /** The name of a game's module of a kind (Fsm, Math, View, InfoView, TopperView), of the modules a game has. */
 export function GameModuleName(names: Iterable<string>, kind: 'Fsm' | 'Math' | 'View' | 'InfoView' | 'TopperView') {
   for (const name of names) {
     const descriptor = MODULES[name];
-    if (!descriptor?.plugin || !name.endsWith(kind)) continue;
+    if (!descriptor?.plugin || descriptor.plugin === FAMILY_TOOLS_PLUGIN || !name.endsWith(kind)) continue;
     if (kind === 'View' && /(Info|Topper)View$/.test(name)) continue;
     return name;
   }

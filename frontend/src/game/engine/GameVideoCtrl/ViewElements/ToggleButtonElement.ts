@@ -1,6 +1,7 @@
 // Egt::GameVideoCtrl::ToggleButtonElement (ViewElements/ToggleButtonElement.h/.cpp): a button that toggles on each
 // touch, through a pressed state of 250 ms: images (rssKeys) toggled off, pressed on, pressed off, toggled on, disabled.
 
+import { Clock } from '@game/engine/Game/Utils/Clock';
 import type { Point } from '@game/engine/Game/RuntimeExport/IResources';
 import { ButtonElement } from './ButtonElement';
 
@@ -33,7 +34,7 @@ export class ToggleButtonElement extends ButtonElement {
     if (this.hidden || !this.enabled || !this.Contains(point)) return false;
     this.RefreshState();
     this.PlayPressedSound();
-    this.m_pressedAt = performance.now();
+    this.m_pressedAt = Clock.now();
     return true;
   }
 

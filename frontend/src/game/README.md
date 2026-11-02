@@ -53,7 +53,11 @@ The folders mirror the C++ ones, and the classes keep their C++ names and method
 | `alpha_family/libs/AlphaFamilyStatesLibrary` | the states library (managers, Idle, Match, MainRound, TetraRound, MatchCappingApplied...) |
 | `alpha_family/libs/AlphaFamilyVideoCtrl` | BaseView, ButtonView, NumericBarView, MenuView |
 | `alpha_family/plugins/<plugin>/<Module>` | `alpha_family/plugins/<plugin>/src/Egt/<Module>`: a game's Math, Fsm, View, InfoView, TopperView |
+| `alpha_family/plugins/alpha_family/<Module>` | `alpha_family/plugins/alpha_family/src/Egt/<Module>`: the family's debug tools, the RNG Presets (`AlphaFamilyMathRngPreset`), the RNG Picker (`AlphaFamilyMathRngTool`) and the automation's stub views (`AlphaFamilyAutomationView`) |
+| `alpha_family/libs/AlphaFamilyMathToolUtils` | `alpha_family/libs/src/Egt/AlphaFamilyMathToolUtils` (ResultToRng, RulesHelper: the RNG numbers of a wanted result) |
 | `integration/AlphaFamilyGameflow` | `integration/libs/src/Egt/AlphaFamilyGameflow` |
+| `integration/RngPresetManager`, `integration/AutomationManager`, `integration/Runtime` | `integration/plugins/src/Egt/RngPresetManager`, `AutomationManager` (the RNG Queue, the Automation window) and `integration/libs/src/Egt/Integration/Runtime` (their interfaces, IGameflowIntegration, IPauseControl) |
+| `engine/DebugImguiOverlay`, `engine/ImGuiEx`, `debug/` | `Egt/DebugImguiOverlay`, `Egt/ImGuiEx`: the debug overlay's Tools menu; `debug/` are the tools' ImGui windows, in Vue |
 | `integration/BrowserKernel` | the kernel integrations (playground, hat...): wallet, limits, localization, hardware buttons |
 | `app/GameApp.ts`, `app/ModuleRegistry.ts` | the ModuleManager and the plugins it loads |
 | `authoring/`, `export/` | no counterpart: the math description and the C++ export (below) |
@@ -92,10 +96,30 @@ wheel, or a win.
 
 ## Playing and developing
 
+- **Tools** (the panel's button) is the C++ debug overlay's Tools menu, with the QA builds' tools
+  (`configs/alpha_family/modules/AlphaGameModules_QA.json`), which the browser game always has. Each tool's ImGui window
+  is a Vue window over the page (`debug/`), drawn from its module's state; the module keeps the C++ class's members and
+  methods, and its ImGui frame becomes view data and clicks (`RngToolReelRoundSubscreen.Draw(click)`):
+  - **RNG Queue** (`RngPresetManager`): the RNG sequences queued for the next rounds, each a round type's. The round of
+    the first one's type runs on its numbers (`OverrideEngine`) instead of the kernel's. Reorder, delete, copy them;
+    hover a row for its numbers or, with Tooltip Content › Preview, the symbols they stop on.
+  - **RNG Presets** (`AlphaFamilyMathRngPreset`): the game's `math/DevMathRngPreset.json` as menus; a preset queues
+    the numbers of its result grids (`ResultToRng`), a scenario all of its entries.
+  - **RNG Picker** (`AlphaFamilyMathRngTool`): a tab per round type; pick the reels' stops by searched symbols, a payline
+    of one symbol (Line Set, Shift-click), the transform step's replaced symbols and the hold and spin's drops, or a
+    wheel's sector, then **Add**. Tab Sync follows the round the game plays next.
+  - **Automation** (`AutomationManager`, Ctrl+A): every game played is recorded; generate games (seeded or not), replay
+    one or all, import and export them as CSV and as Truserv XMLs; set the game clock's speed and pause
+    (`engine/Game/Utils/Clock.ts`, which the views' time reads). While it plays, its stub views
+    (`AlphaFamilyAutomationView`) take the views' places in the runtime (`Runtime.Overwrite`): View Mode Instant skips
+    the animations and presses START, Auto Input only presses.
+  The browser's MonteCarloEngineHat is not the C++'s Mt19937, so a seed generates other games than C++'s; a game
+  replays the same in both, from its numbers.
 - Keys: Space/Enter START, A autoplay, ↑/↓ bet, M max bet, I info, C cashout. The panel under the screen has the same
   buttons, Exit (back to the asset library) and the credit insert; the credit is kept in the browser.
 - **Developer** shows the state machine's active states and transitions, the match's wallet, the rounds played, and
-  forces the next round (like the C++ RNG presets): a main win of 4× the bet or more enters the tetra round. **Maximum
+  forces the next round (a condition sampled until a round meets it, the browser game's; Tools › RNG Presets are the
+  C++'s): a main win of 4× the bet or more enters the tetra round. **Maximum
   award** lowers the match's capping to 3.00, so that a main win shows the capping splash.
 - A view's file (`v/1920x1080/<View>.json`, its ElementsList entry) can be edited while the game plays: within a
   second the view shows the change, as the C++ game's debug and QA builds do. Each elements list watches its file

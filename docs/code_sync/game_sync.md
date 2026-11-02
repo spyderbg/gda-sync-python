@@ -63,8 +63,9 @@ node frontend/src/game/export/import-cpp.mjs $GAMES/game
 ```
 
 The output lists each changed TypeScript file, its C++ files, the commit it was ported from (`since <commit>`) and the
-commits since then. Entries under `alpha_family/libs/` and `plugins/` are the shared libraries: sync them in the same
-session with [library_sync.md](library_sync.md), because the game runs on them. Say in the report that you did.
+commits since then. Entries under `alpha_family/libs/`, `alpha_family/plugins/alpha_family/` (the family's debug tools:
+the RNG Presets, the RNG Picker, the automation's stub views) and `plugins/` are the shared libraries: sync them in the
+same session with [library_sync.md](library_sync.md), because the game runs on them. Say in the report that you did.
 
 For each listed file, read the commits' messages and the whole diff:
 
@@ -257,6 +258,10 @@ the panel's buttons, then the rounds played and the page's errors. It exits with
 never comes back to Idle, or throws. The presets are the game's buttons in `GameView.vue` (`presets`, shown for the
 games whose math has their round). For Burning Crown, `--preset "Main: win ≥ 4× bet (enters the tetra round)" --until
 Tetra` covers the main round, the tetra round and the match end.
+
+`--rng-preset PATH` queues a preset of the game's `DevMathRngPreset.json` (Tools › RNG Presets) by its menus' path
+before the first START, such as `"Win/Reel Main/Seven/x5"`; it may be given more than once, and the RNG Queue is printed
+before and after the play. The rounds are printed when the game reaches `--until`, too.
 
 `--preset` may be given more than once: each is pressed once the one before it has played its round. `--press
 STATE=KEY` presses a key of the Play page instead of START, once each time the states come to STATE (g Gamble, r Red,

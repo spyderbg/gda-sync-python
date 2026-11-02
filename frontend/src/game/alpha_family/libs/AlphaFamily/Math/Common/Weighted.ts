@@ -65,3 +65,41 @@ export function SelectValueFromIndex<T>(container: Weighted<T>, index: number): 
   if (!item) throw new Error(`Weighted index ${index} is out of range`);
   return item.value;
 }
+
+/** The roll range [min, max) that selects a value (MinMaxWeightForValue): with an offset, of a selection without
+ * repetition; without, of one with. */
+export function MinMaxWeightForValue<T>(container: Weighted<T>, value: T, offset?: WeightedOffset<T>): [number, number] {
+  console.assert(container.repetition === !offset, 'MinMaxWeightForValue: an offset is for a selection without repetition');
+
+  let minWeight = 0;
+  let maxWeight = 0;
+
+  for (const e of container.range) {
+    const offsetWeight = offset?.get(e.value) ?? 0;
+    console.assert(offsetWeight >= 0 || -offsetWeight <= e.weight);
+    const weight = e.weight + offsetWeight;
+
+    maxWeight += weight;
+    if (e.value === value) {
+      break;
+    }
+    minWeight = maxWeight;
+  }
+  return [minWeight, maxWeight];
+}
+
+/** The roll range [min, max) that selects the value at an index (MinMaxWeightForIndex). */
+export function MinMaxWeightForIndex<T>(container: Weighted<T>, index: number): [number, number] {
+  console.assert(container.repetition === true);
+
+  console.assert(index >= 0 && index < container.range.length);
+
+  let minWeight = 0;
+  let maxWeight = 0;
+
+  for (let i = 0; i <= index; ++i) {
+    minWeight = maxWeight;
+    maxWeight += container.range[i].weight;
+  }
+  return [minWeight, maxWeight];
+}

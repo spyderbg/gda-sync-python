@@ -1,7 +1,10 @@
 // Checks of the alpha family's math ports (AlphaFamily/Math): the wheel's and hold and spin's rules, against what their
 // C++ computes (the wheel's sector wins of WheelRoundRules.cpp's worked example) and what their rules promise.
 
-import { HistoryEngine, MonteCarloEngineHat, RngOp } from '@game/engine/GameCore/Random/IRng';
+import { HistoryEngine, MementoEngine, MonteCarloEngineHat, RngOp } from '@game/engine/GameCore/Random/IRng';
+import { ResultToRng } from '../../../AlphaFamilyMathToolUtils/ResultToRng';
+import type { IMathRules } from '../../RuntimeExport/IMathRules';
+import { MinMaxWeightForIndex, MinMaxWeightForValue } from '../Common/Weighted';
 import { Currency, RoundType } from '../Common/Common.data';
 import { HoldAndSpinRoundInput } from '../HoldAndSpin/HoldAndSpinRoundInput.data';
 import { HoldAndSpinPhase } from '../HoldAndSpin/HoldAndSpinRoundPhase.data';
@@ -53,6 +56,30 @@ export function run() {
   const badInput = wheelInput.Clone();
   badInput.bet = 50;
   check(!(wheel.CalculateRound(badInput, new HistoryEngine(new MonteCarloEngineHat(1))) instanceof RoundResult), 'a bet below the wheel\'s minimum is refused');
+
+  // the RNG tools' engine (MementoEngine): an operation's forced numbers first, in order, then its engine's; all recorded
+  const memento = new MementoEngine(new MonteCarloEngineHat(7));
+  memento.PushOverride({ data: [{ op: RngOp.StopReels, range: 10, value: 3 }, { op: RngOp.StopWheel, range: 5, value: 2 }, { op: RngOp.StopReels, range: 10, value: 4 }] });
+  const forced = [memento.Generate(RngOp.StopWheel, 5), memento.Generate(RngOp.StopReels, 10), memento.Generate(RngOp.StopReels, 10)];
+  check(forced.join() === '2,3,4', `forced numbers by operation ${forced.join()}, expected 2,3,4`);
+  check(memento.Generate(RngOp.StopReels, 10) === new MonteCarloEngineHat(7).Generate(RngOp.StopReels, 10), 'an operation with no forced number left draws from the engine');
+  check(memento.GetHistory().data.map(number => number.value).slice(0, 3).join() === '2,3,4' && memento.GetHistory().data.length === 4, 'the memento engine records every number');
+
+  // the weights' roll ranges (WeightedValues.h's MinMaxWeightForIndex, MinMaxWeightForValue)
+  check(MinMaxWeightForIndex(wheelConfig.sectors, 2).join() === `${296923 + 6060},${296923 + 6060 + 687956}`, 'MinMaxWeightForIndex');
+  check(MinMaxWeightForValue(wheelConfig.sectors, wheelConfig.sectors.range[1].value).join() === `296923,${296923 + 6060}`, 'MinMaxWeightForValue');
+
+  // ResultToRng: a wheel's sequence for a sector stops the wheel on it
+  const wheelMath = { GetWheelRoundRules: () => wheel } as unknown as IMathRules;
+  for (const { value } of wheelConfig.sectors.range) {
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const rng = new MementoEngine(new MonteCarloEngineHat(attempt));
+      rng.PushOverride(ResultToRng.GenerateFromWheelSector(value.id, wheelMath, RoundType.Wheel));
+      const result = wheel.CalculateRound(wheelInput, rng);
+      const stopSector = result instanceof RoundResult ? (result.m_phases[0] as WheelRoundPhase).stopSector : -1;
+      check(stopSector === value.id, `ResultToRng's wheel sequence for ${value.name} stopped on ${stopSector}`);
+    }
+  }
 
   // hold and spin: coins (10) stay where they are; a free position drops a coin (9, replaced by a value 10 or 11) or a fake
   // symbol; a drop gives back the initial spins; one spin per round (EMode::OneSpin)

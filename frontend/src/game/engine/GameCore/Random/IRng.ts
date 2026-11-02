@@ -1,6 +1,7 @@
 // Egt::GameCore::IRng (IRng.h, IRng.data.h) and the engines the game uses: MonteCarloEngine (the kernel's random
 // numbers), MonteCarloEngineHat (a seeded, deterministic engine for visual diversity), HistoryEngine (records every
-// number for the round's replay) and ReplayEngine (plays a recorded sequence back).
+// number for the round's replay), ReplayEngine (plays a recorded sequence back), and the RNG tools' OverrideEngine
+// and MementoEngine (Random/Adaptor: numbers forced by operation, recorded).
 
 export enum RngOp {
   // Don't use Undefined in IRng::Generate calls
@@ -233,5 +234,89 @@ export class ReplayEngine implements IRng {
 
   GetHistory(): RngSequence {
     return { data: [] };
+  }
+}
+
+/** Egt::GameCore::RngOverrideData (Random/Engine/IRngEngine.data.h): the numbers to force, queued by their operation. */
+export class RngOverrideData {
+  readonly queues = new Map<RngOp, number[]>();
+
+  /** C++'s operator+=: another override's queues, or a sequence's numbers, each after its operation's queue. */
+  Append(rhs: RngOverrideData | RngSequence) {
+    if (rhs instanceof RngOverrideData) {
+      for (const [op, rhsQueue] of [...rhs.queues]) this.Queue(op).push(...rhsQueue);
+    } else {
+      for (const generate of rhs.data) this.Queue(generate.op).push(generate.value);
+    }
+    return this;
+  }
+
+  private Queue(op: RngOp) {
+    let queue = this.queues.get(op);
+    if (!queue) this.queues.set(op, (queue = []));
+    return queue;
+  }
+}
+
+/** Egt::GameCore::OverrideEngine (Random/Adaptor/OverrideEngine.h): an operation's forced number while it has one, its
+ * engine's otherwise. A forced number is returned as it is, whatever the range asked. */
+export class OverrideEngine<T extends IRng = IRng> implements IRng {
+  private m_override = new RngOverrideData();
+
+  constructor(readonly engine: T) {}
+
+  Generate(op: RngOp, range = 0) {
+    const rigged = this.PopRigged(op);
+    return rigged !== undefined ? rigged : this.engine.Generate(op, range);
+  }
+
+  GetHistory(): RngSequence {
+    return this.engine.GetHistory();
+  }
+
+  SetOverride(data: RngOverrideData) {
+    this.m_override = data;
+  }
+
+  GetOverride() {
+    return this.m_override;
+  }
+
+  PushOverride(data: RngOverrideData | RngSequence) {
+    this.m_override.Append(data);
+  }
+
+  ClearOverride() {
+    this.m_override.queues.clear();
+  }
+
+  private PopRigged(op: RngOp): number | undefined {
+    const numbers = this.m_override.queues.get(op);
+    if (!numbers?.length) return undefined;
+    return numbers.shift();
+  }
+}
+
+/** Egt::GameCore::MementoEngine<Engine> (Random/Adaptor/MementoEngine.h): HistoryEngine<OverrideEngine<Engine>>, the
+ * forced numbers and the engine's, recorded. */
+export class MementoEngine<T extends IRng = IRng> extends HistoryEngine<OverrideEngine<T>> {
+  constructor(engine: T) {
+    super(new OverrideEngine(engine));
+  }
+
+  SetOverride(data: RngOverrideData) {
+    this.engine.SetOverride(data);
+  }
+
+  GetOverride() {
+    return this.engine.GetOverride();
+  }
+
+  PushOverride(data: RngOverrideData | RngSequence) {
+    this.engine.PushOverride(data);
+  }
+
+  ClearOverride() {
+    this.engine.ClearOverride();
   }
 }

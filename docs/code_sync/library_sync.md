@@ -29,12 +29,17 @@ scratchpad. Commands run from the repository root.
 | `alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary` (GameManager, ViewManager, BetManager, Idle, Match and the round states) | `alpha_family/libs/AlphaFamilyStatesLibrary` | 32 |
 | `alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl` (BaseView, ButtonView, NumericBarView, MenuView) | `alpha_family/libs/AlphaFamilyVideoCtrl` | 5 |
 | `plugins/src/Egt/CappingSplashView`, a module of every alpha family game | `plugins/CappingSplashView` | 2 |
+| `alpha_family/libs/src/Egt/AlphaFamilyMathToolUtils` (ResultToRng, RulesHelper) | `alpha_family/libs/AlphaFamilyMathToolUtils` | 2 (2026-11-02) |
+| `alpha_family/plugins/alpha_family/src/Egt` (the debug tools: AlphaFamilyMathRngPreset, AlphaFamilyMathRngTool, AlphaFamilyAutomationView) | `alpha_family/plugins/alpha_family` | 68 (2026-11-02) |
 
 Not tracked, and out of scope unless the user asks:
 
 - `engine/`, which ports `game/libs/src/Egt/{Fsm,Game,GameVideoCtrl}`, the `core` and `game_core` submodules and the
   ResourceManager, VideoManager, AudioManager and FileWatch plugins;
-- `integration/`, the AlphaFamilyGameflow and the kernel integrations.
+- `integration/`, the AlphaFamilyGameflow, the kernel integrations, and the debug tools' integration modules
+  `RngPresetManager` (the RNG Queue) and `AutomationManager` (`integration/plugins/src/Egt/...`): check theirs with
+  `git -C $GAMES diff --stat <since> HEAD -- integration/plugins/src/Egt/RngPresetManager integration/plugins/src/Egt/AutomationManager`
+  when the family's tools change.
 
 Their C++ changes don't show up in `import-cpp.mjs`. Look at them only when a tracked change needs them, which the type
 check usually tells you.
@@ -51,7 +56,7 @@ in step 6, not only the game the user named.
 ```sh
 node frontend/src/game/export/import-cpp.mjs $GAMES/game --json 2>/dev/null | node -e '
 const report = JSON.parse(require("fs").readFileSync(0, "utf8"));
-for (const item of report.changed) if (/^(alpha_family\/libs|plugins)\//.test(item.ts))
+for (const item of report.changed) if (/^(alpha_family\/libs|alpha_family\/plugins\/alpha_family|plugins)\//.test(item.ts))
   console.log(`${item.ts}  since ${item.from.slice(0, 9)}${item.uncommitted ? "  UNCOMMITTED C++" : ""}\n  ${item.commits.join("\n  ")}`);'
 ```
 
@@ -61,7 +66,7 @@ before you sync such a file.
 Untracked library changes worth a look:
 
 ```sh
-git -C $GAMES diff --stat <oldest since> HEAD -- game/alpha_family/libs/src game/plugins/src/Egt/CappingSplashView
+git -C $GAMES diff --stat <oldest since> HEAD -- game/alpha_family/libs/src game/plugins/src/Egt/CappingSplashView game/alpha_family/plugins/alpha_family/src
 ```
 
 - **A new header that a tracked file now includes** (for example a new `I*View.bridge.h`). Port it when the ported
