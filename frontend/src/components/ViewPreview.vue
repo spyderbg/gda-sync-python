@@ -54,9 +54,19 @@ const CARD_WIDTH = 640;
 const failed = reactive(new Set<string>());
 const hidden = ref(false);
 const outlines = ref(false);
-/** The element picked in a list or on the screen, by its view and index. */
+/** The active element for dragging, and the elements selected for visibility changes. */
 const picked = ref<string | null>(null);
+const selected = ref(new Set<string>());
+const anchor = ref<string | null>(null);
+const viewer = ref<HTMLDivElement>();
 const keyOf = (layer: number, element: ViewElement) => `${layer}:${element.index}`;
+// Preview-only overrides; elements without an override follow Hidden elements.
+const visibility = ref<Record<string, boolean>>({});
+const visible = (layer: number, element: ViewElement) => visibility.value[keyOf(layer, element)]
+  ?? (hidden.value || !element.hidden || element.type === 'Dummy');
+function setVisible(layer: number, element: ViewElement, value: boolean) {
+  visibility.value = { ...visibility.value, [keyOf(layer, element)]: value };
+}
 // The elements moved and not saved yet, by their view and index, with where they are moved to; and the changes, the
 // latest last, each with where its element was before it.
 const moves = ref<Record<string, [number, number]>>({});
@@ -131,14 +141,21 @@ async function load(quiet = false) {
 }
 watch(() => [props.large, stack.value, props.revision], () => {
   picked.value = null;
+  selected.value = new Set();
+  anchor.value = null;
   moves.value = {};
   history.value = [];
+  visibility.value = {};
   if (props.large) void load();
 }, { immediate: true });
 // Another sample text gives the Text elements other sizes; the moved elements stay moved.
 watch(textParam, () => { if (props.large) void load(true); });
 
 const elementsOf = (index: number) => layouts.value[index]?.elements ?? [];
+const rendering = computed(() => layouts.value.map((layout, layer) => ({
+  hidden: hidden.value || (layout?.elements ?? []).some(element => element.hidden && element.type !== 'Dummy' && visible(layer, element)),
+  excluded: (layout?.elements ?? []).filter(element => !visible(layer, element)).map(element => element.index),
+})));
 
 const saving = ref(false);
 const movedCount = computed(() => Object.keys(moves.value).length);
@@ -166,7 +183,9 @@ function setPosition(layer: number, element: ViewElement, position: [number, num
 function beginChange(layer: number, element: ViewElement) {
   const key = keyOf(layer, element);
   history.value = [...history.value, { key, before: moves.value[key] }];
+  if (!selected.value.has(key)) selected.value = new Set([key]);
   picked.value = key;
+  anchor.value = key;
 }
 function undo() {
   const last = history.value[history.value.length - 1];
@@ -202,6 +221,19 @@ async function save() {
 }
 function onKeydown(event: KeyboardEvent) {
   const target = event.target as HTMLElement | null;
+  if (props.large && event.key === ' ' && !event.ctrlKey && !event.metaKey && !event.altKey && selected.value.size
+      && viewer.value?.contains(target) && !target?.closest('input, textarea, select, button, a, summary, [contenteditable]')) {
+    event.preventDefault();
+    if (event.repeat) return;
+    const next = { ...visibility.value };
+    for (const layer of stack.value.keys()) {
+      for (const element of elementsOf(layer)) {
+        if (selected.value.has(keyOf(layer, element))) next[keyOf(layer, element)] = !visible(layer, element);
+      }
+    }
+    visibility.value = next;
+    return;
+  }
   if (!props.large || !props.editable || !(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'z' || event.shiftKey) return;
   if (target?.closest('input, textarea')) return;
   event.preventDefault();
@@ -233,13 +265,14 @@ function pointerDown(event: PointerEvent, layer: number, element: ViewElement) {
   const start = screenPoint(event);
   let target = { layer, element };
   // The element picked in the list is dragged where it is under the pointer, though another is drawn over it.
-  if (picked.value && picked.value !== keyOf(layer, element)) {
+  if (!event.shiftKey && !event.ctrlKey && !event.metaKey && picked.value && picked.value !== keyOf(layer, element)) {
     const [pickedLayer, pickedIndex] = picked.value.split(':').map(Number);
     const candidate = elementsOf(pickedLayer)[pickedIndex];
-    if (candidate && hasArea(candidate) && inside([start.x, start.y], shifted(pickedLayer, candidate, candidate.corners))) target = { layer: pickedLayer, element: candidate };
+    if (candidate && visible(pickedLayer, candidate) && hasArea(candidate) && inside([start.x, start.y], shifted(pickedLayer, candidate, candidate.corners))) target = { layer: pickedLayer, element: candidate };
   }
   drag = { ...target, start, client: [event.clientX, event.clientY], origin: positionOf(target.layer, target.element), pointer: event.pointerId, moved: false };
   (event.currentTarget as Element).setPointerCapture(event.pointerId);
+  viewer.value?.focus({ preventScroll: true });
   event.preventDefault();
 }
 function pointerMove(event: PointerEvent) {
@@ -263,14 +296,12 @@ function pointerUp(event: PointerEvent) {
   if (!drag || event.pointerId !== drag.pointer) return;
   const ended = drag;
   drag = null;
-  if (!ended.moved) pick(ended.layer, ended.element);
+  if (!ended.moved) pick(ended.layer, ended.element, event);
 }
 function cancelDrag() { drag = null; }
-/** Whether an element can be dragged on the screen: one that is drawn there, the hidden ones only when they are. */
-const draggable = (element: ViewElement) => !(element.hidden && !hidden.value && element.type !== 'Dummy');
 /** How many Anims of the views shown play: those with an image sequence of more than one frame. */
 const animations = computed(() => shown.value.reduce((sum, { index }) => sum + elementsOf(index)
-  .filter(element => element.type === 'Anim' && element.drawn && (element.frames ?? 0) > 1 && (hidden.value || !element.hidden)).length, 0));
+  .filter(element => element.type === 'Anim' && element.drawn && (element.frames ?? 0) > 1 && visible(index, element)).length, 0));
 const totals = computed(() => ({
   elements: stack.value.reduce((sum, layer) => sum + layer.facts.elements, 0),
   hidden: stack.value.reduce((sum, layer) => sum + layer.facts.hidden, 0),
@@ -281,8 +312,8 @@ const points = (corners: [number, number][]) => corners.map(([x, y]) => `${x},${
 const hasArea = (element: ViewElement) => element.size[0] > 0 && element.size[1] > 0;
 /** Whether an element is outlined: a text's area always, every element with Elements, and the one picked. */
 function outlined(layer: number, element: ViewElement) {
-  if (keyOf(layer, element) === picked.value) return true;
-  if (element.hidden && !hidden.value && element.type !== 'Dummy') return false;
+  if (!visible(layer, element)) return false;
+  if (selected.value.has(keyOf(layer, element))) return true;
   return outlines.value || element.type === 'Text';
 }
 function kindOf(element: ViewElement) {
@@ -313,9 +344,35 @@ const titleOf = (layer: ViewLayer, element: ViewElement) => [many.value ? layer.
   .filter(Boolean).join(' · ');
 const labelAt = (layer: number, element: ViewElement) => shifted(layer, element, element.corners)[0];
 /** Whether an element's name is drawn: a text's unless text names are hidden, any with Elements, and the one picked. */
-const labelled = (layer: number, element: ViewElement) => keyOf(layer, element) === picked.value
+const labelled = (layer: number, element: ViewElement) => selected.value.has(keyOf(layer, element))
   || (element.type === 'Text' ? !hideTextNames.value : outlines.value);
-const pick = (layer: number, element: ViewElement) => { picked.value = keyOf(layer, element) === picked.value ? null : keyOf(layer, element); };
+function pick(layer: number, element: ViewElement, event?: MouseEvent) {
+  const key = keyOf(layer, element);
+  const additive = event?.ctrlKey || event?.metaKey;
+  if (event?.shiftKey && anchor.value) {
+    const keys = stack.value.flatMap((_view, index) => elementsOf(index).map(item => keyOf(index, item)));
+    const start = keys.indexOf(anchor.value), end = keys.indexOf(key);
+    const range = keys.slice(Math.min(start, end), Math.max(start, end) + 1);
+    selected.value = new Set(additive ? [...selected.value, ...range] : range);
+  } else if (additive) {
+    const next = new Set(selected.value);
+    if (next.has(key)) next.delete(key);
+    else next.add(key);
+    selected.value = next;
+    anchor.value = key;
+  } else {
+    selected.value = selected.value.size === 1 && selected.value.has(key) ? new Set() : new Set([key]);
+    anchor.value = key;
+  }
+  picked.value = selected.value.has(key) ? key : [...selected.value].pop() ?? null;
+  const row = (event?.currentTarget as Element | null)?.closest('tr');
+  if (row instanceof HTMLElement) row.focus({ preventScroll: true });
+  else viewer.value?.focus({ preventScroll: true });
+}
+function startRowSelection(event: MouseEvent) {
+  if ((event.shiftKey || event.ctrlKey || event.metaKey)
+      && !(event.target as Element).closest('input, textarea, select, button, a, label')) event.preventDefault();
+}
 // Labels are drawn at a size that stays readable when the screen is scaled down to fit.
 const labelSize = computed(() => Math.max(14, resolution.value.width / 90));
 </script>
@@ -329,7 +386,7 @@ const labelSize = computed(() => Math.max(14, resolution.value.width / 90));
       <span class="view-preview-caption">{{ facts.resolution.width }} × {{ facts.resolution.height }} · {{ number(facts.elements) }} element{{ plural(facts.elements) }}</span>
     </div>
   </div>
-  <div v-else class="view-viewer">
+  <div v-else ref="viewer" class="view-viewer" tabindex="-1">
     <div class="view-viewer-toolbar">
       <CheckBox :checked="outlines" label="Outline every element" @change="outlines = $event">Elements</CheckBox>
       <CheckBox v-if="totals.texts" :checked="hideTextNames" label="Hide the names of text elements" @change="hideTextNames = $event">Hide text names</CheckBox>
@@ -379,7 +436,7 @@ const labelSize = computed(() => Math.max(14, resolution.value.width / 90));
     <div class="view-stage" :style="{ aspectRatio: `${resolution.width} / ${resolution.height}`, maxWidth: `calc(58vh * ${resolution.width} / ${resolution.height})` }">
       <template v-for="{ index, layer } in shown" :key="layer.file">
         <ViewRender v-if="!failed.has(layer.file)" :style="placed(layer)" :file="layer.file" :name="layer.name" :revision="revision" :resolution="layer.facts.resolution"
-                    :hidden="hidden" :layout="layouts[index] ?? null" :playing="playing" :restart="restart" :moves="movesOf(index)" :text="textParam"
+                    :hidden="rendering[index]?.hidden ?? hidden" :excluded="rendering[index]?.excluded" :layout="layouts[index] ?? null" :playing="playing" :restart="restart" :moves="movesOf(index)" :text="textParam"
                     @error="failed.add(layer.file)" />
         <p v-else class="view-stage-state text-danger"><i aria-hidden="true" class="mdi mdi-alert-circle-outline" />{{ many ? `${layer.name} cannot be drawn` : 'The view cannot be drawn' }}</p>
       </template>
@@ -388,12 +445,12 @@ const labelSize = computed(() => Math.max(14, resolution.value.width / 90));
            @pointermove="pointerMove" @pointerup="pointerUp" @pointercancel="cancelDrag">
         <g v-for="{ index, layer } in shown" :key="layer.file" :data-view="layer.name">
           <!-- An editable preview keeps every element that is drawn there under the pointer, outlined or not, to drag it. -->
-          <g v-for="element in elementsOf(index)" v-show="outlined(index, element) || (editable && draggable(element))" :key="element.index"
-             :class="['view-element', kindOf(element), { 'is-picked': keyOf(index, element) === picked, 'is-quiet': !outlined(index, element), 'is-moved': !!moves[keyOf(index, element)] }]"
-             :data-element="element.id" @click="!editable && pick(index, element)" @pointerdown="pointerDown($event, index, element)">
+          <g v-for="element in elementsOf(index)" v-show="visible(index, element) && (outlined(index, element) || editable)" :key="element.index"
+             :class="['view-element', kindOf(element), { 'is-picked': selected.has(keyOf(index, element)), 'is-quiet': !outlined(index, element), 'is-moved': !!moves[keyOf(index, element)] }]"
+             :data-element="element.id" @click="!editable && pick(index, element, $event)" @pointerdown="pointerDown($event, index, element)">
             <title>{{ titleOf(layer, element) }}</title>
             <polygon v-if="hasArea(element)" :points="points(shifted(index, element, element.corners))" />
-            <polygon v-if="element.touchArea && (outlines || keyOf(index, element) === picked)" class="view-touch" :points="points(shifted(index, element, element.touchArea))" />
+            <polygon v-if="element.touchArea && (outlines || selected.has(keyOf(index, element)))" class="view-touch" :points="points(shifted(index, element, element.touchArea))" />
             <path v-if="!hasArea(element)" :d="`M${positionOf(index, element)[0] - 12},${positionOf(index, element)[1]}h24M${positionOf(index, element)[0]},${positionOf(index, element)[1] - 12}v24`" class="view-point" />
             <text v-if="labelled(index, element)" :x="labelAt(index, element)[0] + 4" :y="labelAt(index, element)[1] + labelSize + 2">{{ element.id || element.type }}</text>
           </g>
@@ -402,19 +459,20 @@ const labelSize = computed(() => Math.max(14, resolution.value.width / 90));
       <p v-else-if="state === 'loading'" class="view-stage-state text-muted"><i aria-hidden="true" class="mdi mdi-loading mdi-spin" />Loading the elements…</p>
     </div>
     <p v-for="message in errors" :key="message" class="text-danger view-viewer-error">{{ message }}</p>
+    <p v-if="state === 'ready'" class="view-viewer-note text-muted">Shift-click selects a range. Ctrl-click adds or removes an element. Space toggles visibility for the selection.</p>
     <template v-for="(layer, index) in stack" :key="layer.file">
       <details v-if="elementsOf(index).length" class="view-elements">
         <summary>{{ many ? `${layer.name}: ` : '' }}{{ number(elementsOf(index).length) }} element{{ plural(elementsOf(index).length) }}, drawn in this order</summary>
         <table class="table table-sm">
-          <thead><tr><th scope="col">#</th><th scope="col">Id</th><th scope="col">Type</th><th scope="col">Resource</th><th scope="col">Position</th><th scope="col">Draws</th></tr></thead>
+          <thead><tr><th scope="col">#</th><th scope="col">View</th><th scope="col">Id</th><th scope="col">Position</th><th scope="col">Resource</th><th scope="col">Draws</th><th scope="col">Type</th></tr></thead>
           <tbody>
             <tr v-for="element in elementsOf(index)" :key="element.index"
-                :class="{ 'is-picked': keyOf(index, element) === picked, 'is-missing': element.reason && !element.movie, 'is-moved': !!moves[keyOf(index, element)] }"
-                @click="pick(index, element)">
+                tabindex="0" :aria-selected="selected.has(keyOf(index, element))"
+                :class="{ 'is-picked': selected.has(keyOf(index, element)), 'is-missing': element.reason && !element.movie, 'is-moved': !!moves[keyOf(index, element)] }"
+                @mousedown="startRowSelection" @click="pick(index, element, $event)">
               <td><button type="button" class="details-icon view-element-open" :aria-label="`Open ${element.id || `element ${element.index + 1}`} in VS Code`" :title="`Open in VS Code: ${layer.name}, ${element.id || `element ${element.index + 1}`}`" @click.stop="openViewElement(layer.file, element.index)">{{ '{' + (element.index + 1) + '}' }}</button></td>
+              <td class="view-element-visibility" @click.stop><CheckBox :checked="visible(index, element)" :label="`Show ${element.id || `element ${element.index + 1}`}`" @change="setVisible(index, element, $event)" /></td>
               <td class="details-code">{{ element.id }}<small v-if="element.hidden && element.type !== 'Dummy'" class="text-muted"> hidden</small></td>
-              <td>{{ element.type }}</td>
-              <td class="details-code" :title="element.file">{{ element.keys.join(', ') || '—' }}</td>
               <td v-if="editable" class="view-element-position">
                 <NumberScrub axis="x" :value="positionOf(index, element)[0]" :label="`x of ${element.id || `element ${element.index + 1}`}`"
                              @begin="beginChange(index, element)" @change="setPosition(index, element, [$event, positionOf(index, element)[1]])" />,
@@ -422,7 +480,9 @@ const labelSize = computed(() => Math.max(14, resolution.value.width / 90));
                              @begin="beginChange(index, element)" @change="setPosition(index, element, [positionOf(index, element)[0], $event])" />
               </td>
               <td v-else class="text-muted">{{ Math.round(element.position[0]) }}, {{ Math.round(element.position[1]) }}</td>
-              <td>{{ describe(element) }}</td>
+              <td class="details-code" :title="element.file"><span v-for="(key, keyIndex) in element.keys" :key="keyIndex" class="view-element-resource">{{ key }}</span><span v-if="!element.keys.length">—</span></td>
+              <td class="view-element-description">{{ describe(element) }}</td>
+              <td>{{ element.type }}</td>
             </tr>
           </tbody>
         </table>
@@ -480,13 +540,15 @@ const labelSize = computed(() => Math.max(14, resolution.value.width / 90));
 .view-elements { margin-top: 10px; font-size: 12px; }
 .view-elements summary { color: #6c757d; cursor: pointer; }
 .view-elements table { margin: 6px 0 0; }
+.view-element-resource { display: block; }
 .view-elements tbody tr { cursor: pointer; }
 .view-element-open { width: auto; min-width: 28px; padding: 0 4px; font-family: monospace; font-size: 12px; }
+.view-element-visibility :deep(.form-check) { margin: 0; }
 .view-elements tr.is-picked td { background: #fde4ee; }
 .view-elements tr.is-moved td.view-element-position { color: #e65100; font-weight: 500; }
 .view-element-position { white-space: nowrap; }
 .view-viewer-edit { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .view-viewer-edit .btn { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; font-size: 12px; }
 .view-viewer-moved { color: #e65100; font-size: 12px; font-weight: 500; }
-.view-elements tr.is-missing td:last-child { color: #d2453c; }
+.view-elements tr.is-missing td.view-element-description { color: #d2453c; }
 </style>

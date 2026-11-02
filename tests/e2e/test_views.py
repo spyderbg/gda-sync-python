@@ -2,9 +2,11 @@
 
 import json
 import re
+from io import BytesIO
 from pathlib import Path
 
 import pytest
+from PIL import Image
 from playwright.sync_api import expect
 
 from egt_gda_sync.workspace.library import Library
@@ -105,7 +107,7 @@ def test_views_are_drawn_in_the_asset_library_and_on_the_sync_page(new_context, 
     assert opened == [{"file": f"{game_path}/v/1920x1080/MainView.json", "index": 5}]
     expect(dialog.locator(".view-elements tr.is-picked")).to_have_count(0)
     # A row is picked by its id, since its position is edited where it is clicked.
-    text_row_id = dialog.locator(".view-elements tbody tr").filter(has_text="text_win").locator("td").nth(1)
+    text_row_id = dialog.locator(".view-elements tbody tr").filter(has_text="text_win").locator("td.details-code").first
     text_row_id.click()
     expect(dialog.locator(".view-element.is-text text")).to_have_text("text_win")
     text_row_id.click()
@@ -135,6 +137,132 @@ def test_views_are_drawn_in_the_asset_library_and_on_the_sync_page(new_context, 
     expect(dialog.locator(".view-viewer")).to_have_count(2)
     expect(dialog.locator(".details-table")).to_contain_text("ButtonView")
     assert errors == []
+
+
+def test_element_visibility_controls_static_images_animations_and_hidden_elements(new_context, view_backend):
+    page = new_context().new_page()
+    errors = []
+    page.on('pageerror', lambda error: errors.append(str(error)))
+    page.goto(view_backend.url)
+    page.get_by_role('list', name='Workspaces').get_by_role('button', name='View game', exact=True).click()
+    page.get_by_role('navigation', name='Main navigation').get_by_role('button', name='Asset library', exact=True).click()
+    page.get_by_role('button', name='Rescan').first.click()
+    page.get_by_role('navigation', name='Main navigation').get_by_role('button', name='ElementsList', exact=True).click()
+    page.locator('.report-asset').filter(has_text='1920 × 1080 · 10 elements').locator('.asset-hit-target').click()
+    dialog = page.get_by_role('dialog')
+    dialog.get_by_text('10 elements, drawn in this order').click()
+    expect(dialog.locator('.view-elements thead th')).to_have_text(['#', 'View', 'Id', 'Position', 'Resource', 'Draws', 'Type'])
+    stage = dialog.locator('.view-stage-image')
+    poll(lambda: drawn(stage), True)
+    file = Path(view_backend.get('/api/library')['config']['destination']) / 'v/1920x1080/MainView.json'
+    original = file.read_bytes()
+
+    def pixel(x, y):
+        # Static elements live in the PNG segments, so check their actual pixels,
+        # rather than only checking that an outline disappeared.
+        result = Image.new('RGBA', (1, 1))
+        for url in stage.locator(':scope > image').evaluate_all('images => images.map(image => image.href.baseVal)'):
+            response = page.request.get(view_backend.url + url)
+            assert response.ok, response.text()
+            with Image.open(BytesIO(response.body())) as image:
+                result = Image.alpha_composite(result, image.convert('RGBA').crop((x, y, x + 1, y + 1)))
+        return result.getpixel((0, 0))
+
+    show_image = dialog.get_by_role('checkbox', name='Show image_red', exact=True)
+    expect(show_image).to_be_checked()
+    poll(lambda: pixel(100, 50), (255, 0, 0, 255))
+    show_image.uncheck()
+    expect(dialog.locator('.view-elements tr.is-picked')).to_have_count(0)
+    expect(dialog.locator('.view-element[data-element="image_red"]')).not_to_be_visible()
+    poll(lambda: pixel(100, 50), (0, 0, 0, 0))
+    show_anim = dialog.get_by_role('checkbox', name='Show anim_glow', exact=True)
+    show_anim.uncheck()
+    expect(stage.locator('.view-anim')).to_have_count(0)
+    expect(dialog.get_by_role('group', name='Animations')).to_have_count(0)
+    show_image.check()
+    poll(lambda: pixel(100, 50), (255, 0, 0, 255))
+    show_anim.check()
+    expect(stage.locator('.view-anim')).to_have_count(1)
+    poll(lambda: frames_shown(stage.locator('.view-anim')), ['0', '1', '2'])
+
+    show_hidden = dialog.get_by_role('checkbox', name='Show image_hidden', exact=True)
+    expect(show_hidden).not_to_be_checked()
+    show_hidden.check()
+    poll(lambda: pixel(705, 705), (255, 0, 0, 255))
+    expect(dialog.get_by_role('checkbox', name='Draw the hidden elements')).not_to_be_checked()
+    show_hidden.uncheck()
+    poll(lambda: pixel(705, 705), (0, 0, 0, 0))
+    dialog.get_by_role('checkbox', name='Draw the hidden elements').check()
+    poll(lambda: pixel(705, 705), (0, 0, 0, 0))
+    expect(show_hidden).not_to_be_checked()
+    assert file.read_bytes() == original
+    expect(dialog.get_by_role('group', name='Moved elements')).to_contain_text('Drag an element')
+    BUILD.mkdir(exist_ok=True)
+    dialog.screenshot(path=str(BUILD / 'view-element-visibility.png'))
+    assert errors == []
+
+
+def test_element_selection_with_shift_control_and_space_visibility(new_context, view_backend):
+    page = new_context().new_page()
+    page.goto(view_backend.url)
+    page.get_by_role('list', name='Workspaces').get_by_role('button', name='View game', exact=True).click()
+    navigation = page.get_by_role('navigation', name='Main navigation')
+    navigation.get_by_role('button', name='Asset library', exact=True).click()
+    page.get_by_role('button', name='Rescan').first.click()
+    navigation.get_by_role('button', name='ElementsList', exact=True).click()
+    page.locator('.report-asset').filter(has_text='1920 × 1080 · 10 elements').locator('.asset-hit-target').click()
+    dialog = page.get_by_role('dialog')
+    dialog.get_by_text('10 elements, drawn in this order').click()
+    rows = dialog.locator('.view-elements tbody tr')
+    names = ['image_red', 'image_turned', 'image_faded', 'image_hidden', 'anim_glow']
+    controls = [dialog.get_by_role('checkbox', name=f'Show {name}', exact=True) for name in names]
+
+    def cell(index):
+        return rows.nth(index).locator('td.details-code').first
+
+    cell(0).click()
+    expect(rows.nth(0)).to_have_attribute('aria-selected', 'true')
+    page.keyboard.press('Space')
+    expect(controls[0]).not_to_be_checked()
+    # Keep the hidden element selected, so another Space brings it back.
+    expect(rows.nth(0)).to_have_attribute('aria-selected', 'true')
+    page.keyboard.press('Space')
+    expect(controls[0]).to_be_checked()
+    cell(2).click(modifiers=['Control'])
+    expect(dialog.locator('.view-elements tr.is-picked')).to_have_count(2)
+    cell(0).click(modifiers=['Control'])
+    expect(rows.nth(0)).to_have_attribute('aria-selected', 'false')
+    expect(rows.nth(2)).to_have_attribute('aria-selected', 'true')
+    cell(0).click(modifiers=['Control'])
+    cell(4).click(modifiers=['Shift'])
+    expect(dialog.locator('.view-elements tr.is-picked')).to_have_count(5)
+    page.keyboard.press('Space')
+    for index, control in enumerate(controls):
+        expect(control).to_be_checked(checked=index == 3)
+    expect(dialog.locator('.view-elements tr.is-picked')).to_have_count(5)
+    page.keyboard.press('Space')
+    for index, control in enumerate(controls):
+        expect(control).to_be_checked(checked=index != 3)
+    cell(1).click(modifiers=['Control'])
+    expect(dialog.locator('.view-elements tr.is-picked')).to_have_count(4)
+    cell(5).click()
+    expect(dialog.locator('.view-elements tr.is-picked')).to_have_count(1)
+    expect(rows.nth(5)).to_have_attribute('aria-selected', 'true')
+
+    # Space in an input keeps its normal behavior, including a checkbox toggle.
+    text_visible = dialog.get_by_role('checkbox', name='Show text_win', exact=True)
+    text_visible.focus()
+    page.keyboard.press('Space')
+    expect(text_visible).not_to_be_checked()
+    page.keyboard.press('Space')
+    expect(text_visible).to_be_checked()
+    sample = dialog.get_by_role('textbox', name='Sample text of the text elements', exact=True)
+    sample.fill('Bell')
+    sample.press('End')
+    sample.press('Space')
+    expect(sample).to_have_value('Bell ')
+    expect(text_visible).to_be_checked()
+    expect(dialog.get_by_role('group', name='Moved elements')).to_contain_text('Drag an element')
 
 
 def test_selected_views_are_shown_together_in_one_dialog(new_context, view_backend):

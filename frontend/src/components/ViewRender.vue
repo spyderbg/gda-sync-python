@@ -26,14 +26,17 @@ const props = defineProps<{
   restart: number;
   /** How far each moved element is moved, by its index. */
   moves?: Record<number, [number, number]>;
+  /** Elements hidden in this preview; their pixels are omitted from the segments too. */
+  excluded?: number[];
   /** The sample text that Text elements draw; the backend's default one when it is not given. */
   text?: string;
 }>();
 const emit = defineEmits<{ error: [] }>();
+const excluded = computed(() => new Set(props.excluded ?? []));
 
 /** The Anims that play, in drawing order: those the backend cuts its segments at (animated in egt_gda_sync/views.py). */
 const anims = computed<ViewElement[]>(() => (props.layout?.elements ?? []).filter(element => element.type === 'Anim' && element.drawn
-  && (element.frames ?? 0) > 1 && !!element.sequence?.length && !!element.placement && (props.hidden || !element.hidden)));
+  && (element.frames ?? 0) > 1 && !!element.sequence?.length && !!element.placement && (props.hidden || !element.hidden) && !excluded.value.has(element.index)));
 const frameURL = (file: string) => reportPreviewURL(file, props.revision);
 const byIndex = computed(() => new Map((props.layout?.elements ?? []).map(element => [element.index, element])));
 const animAt = computed(() => new Map(anims.value.map((anim, position) => [anim.index, position])));
@@ -41,11 +44,16 @@ const animAt = computed(() => new Map(anims.value.map((anim, position) => [anim.
 /** The elements the page draws itself, in drawing order: the Anims that play and the moved elements that draw an image
  * or a text. */
 const live = computed(() => (props.layout?.elements ?? []).filter(element => (element.drawn || !!element.text) && element.type !== 'Dummy' && !!element.placement
-  && (props.hidden || !element.hidden) && (animAt.value.has(element.index) || !!props.moves?.[element.index])));
+  && (props.hidden || !element.hidden) && !excluded.value.has(element.index) && (animAt.value.has(element.index) || !!props.moves?.[element.index])));
 // The segments, cut at the elements drawn live: those shown, and the next ones while they load.
 interface Segments { key: string; indices: number[]; urls: string[] }
 const wanted = computed<Segments>(() => {
-  const indices = live.value.map(element => element.index);
+  // Cut at hidden elements as well as live ones, then leave their slots empty.
+  // Only drawable elements can split the backend's render into segments.
+  const liveIndices = new Set(live.value.map(element => element.index));
+  const indices = (props.layout?.elements ?? []).filter(element => (element.drawn || !!element.text)
+    && element.type !== 'Dummy' && (props.hidden || !element.hidden)
+    && (liveIndices.has(element.index) || excluded.value.has(element.index))).map(element => element.index);
   const key = `${viewRenderURL(props.file, props.revision, props.resolution.width, props.hidden, false, props.text)}&cuts=${indices.join(',')}`;
   return { key, indices, urls: indices.length ? Array.from({ length: indices.length + 1 }, (_value, segment) => `${key}&segment=${segment}`) : [] };
 });
@@ -207,7 +215,8 @@ function drawnText(element: ViewElement, text: NonNullable<ViewElement['text']>)
   };
 }
 // The elements drawn live between the segments shown, in drawing order, where they are now.
-const items = computed(() => (shown.value?.indices ?? []).map(index => byIndex.value.get(index)).map(element => (element ? drawn(element) : null)));
+const items = computed(() => (shown.value?.indices ?? []).map(index => byIndex.value.get(index))
+  .map(element => element && !excluded.value.has(element.index) && (props.hidden || !element.hidden) ? drawn(element) : null));
 const animCount = computed(() => items.value.filter(item => item?.anim).length);
 // Tint filters need ids of their own on the page.
 const uid = `view-render-${Math.random().toString(36).slice(2, 10)}`;
