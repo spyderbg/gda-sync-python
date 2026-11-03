@@ -7,6 +7,11 @@
 // Its ImGui windows, "RNG Queue" (Tools → RNG Queue) and, when math details are hidden, "RNG Picker##7" (raw stops to
 // add), are drawn by the Play page in Vue (debug/RngQueueWindow.vue) from this module's state: ImGuiDraw's rows are
 // GetRngQueueRows, its buttons the commands below.
+//
+// The browser game's queue is the game server's (integration/GameServer, browser only): the queue of every window of
+// the game's tools, the Play page's and the Game tools page's. The module shows the server's queue as the server last
+// told it, and makes each change to it there too; a round of the first sequence's type gets the sequence from the server,
+// which takes it out of the queue, before the round's random numbers come.
 
 import { IGameflowIntegration } from '@game/integration/Runtime/IGameflowIntegration';
 import { IRngPresetManager, IRngPresetManagerEvents } from '@game/integration/Runtime/IRngPresetManager';
@@ -19,6 +24,7 @@ import { MementoEngine, MonteCarloEngineHat, type RngNumber, RngOp, type RngSequ
 import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
 import { SBool } from '@game/engine/ImGuiEx/Extensions/Utils';
 import { BaseModule, type ModuleConfig } from '@game/engine/ModuleManager/BaseModule';
+import { type GameServer, IGameServer, type QueuedRngSequence, type RngQueueState } from '@game/integration/GameServer/GameServer';
 
 const kScenarioTagPrefix = '__SCENARIO__:';
 
@@ -125,6 +131,17 @@ interface RngQueueEntry {
   sequence: RngSequence;
   isScenario: boolean;
   scenarioGroupId: number;
+  /** Its id in the game server's queue (browser only): 0 until the server has it. */
+  id: number;
+}
+
+/** A sequence of the game server's queue, as the module keeps it (browser only). */
+function RngQueueEntryOf(queued: QueuedRngSequence): RngQueueEntry {
+  const parsedScenarioName = ParseScenarioTaggedName(queued.name);
+  return {
+    roundType: queued.roundType, name: parsedScenarioName.displayName, sequence: { data: queued.sequence.map(rng => ({ ...rng })) },
+    isScenario: parsedScenarioName.isScenario, scenarioGroupId: parsedScenarioName.groupId, id: queued.id,
+  };
 }
 
 /** A row of the RNG Queue's table: a queued sequence (its numbers as its children), or one of its numbers. */
@@ -154,10 +171,16 @@ export class RngPresetManager extends BaseModule implements IRngPreset, IRngPres
   private m_rngOverrides: RngQueueEntry[] = [];
   private m_engine: MementoEngine<MonteCarloEngineHat> | null = null;
 
+  /** The game server, whose queue this is (browser only; none: the queue is the module's, as in C++). */
+  private m_server: GameServer | null = null;
+  /** The server's queue the module shows (browser only). */
+  private m_serverQueue: RngQueueState | null = null;
+
   Init(runtime: Runtime, config: ModuleConfig) {
     super.Init(runtime, config);
 
     this.m_mathDetailsHidden = config.mathDetailsHidden === true;
+    this.m_server = this.RuntimeTryGet(IGameServer) ?? null;
 
     this.RuntimeAdd(IRngPreset, this);
     this.RuntimeAdd(IRngPreset.Events, this.m_rngPresetEvents);
@@ -178,6 +201,10 @@ export class RngPresetManager extends BaseModule implements IRngPreset, IRngPres
   PostInit() {
     if (!super.PostInit()) return false;
 
+    // The Game tools page has no gameflow: the game plays in another window, which takes its rounds' sequences from the
+    // server; the events this page gets of that game are for its tools to follow (browser only).
+    if (this.m_server && !this.RuntimeTryGetConst(IGameflowIntegration)) return true;
+
     const gameflowEvents = this.RuntimeGetConst(IGameflowIntegration.Events);
     gameflowEvents.roundStarting.RegisterInstant(this, roundType => this.OnGameflowRoundStarting(roundType));
     gameflowEvents.roundStarted.RegisterInstant(this, roundType => this.OnGameflowRoundStarted(roundType));
@@ -197,6 +224,8 @@ export class RngPresetManager extends BaseModule implements IRngPreset, IRngPres
     this.RuntimeRemove(IRngPresetManager.Events);
 
     this.m_rngOverrides = [];
+    this.m_server = null;
+    this.m_serverQueue = null;
 
     super.Deinit();
   }
@@ -204,9 +233,19 @@ export class RngPresetManager extends BaseModule implements IRngPreset, IRngPres
   Process() {
     super.Process();
 
+    this.ReadServerQueue();
+
     // C++ saves the windows' state at the end of its ImGuiDraw, every frame
     this.m_imguiWindowOpen.Save();
     this.m_imguiUnlockWindowOpen.Save();
+  }
+
+  /** The game server's queue, when it told a new one (browser only): what every window of the game's tools shows. */
+  private ReadServerQueue() {
+    const state = this.m_server?.GetQueue();
+    if (!state || state === this.m_serverQueue) return;
+    this.m_serverQueue = state;
+    this.m_rngOverrides = state.queue.map(RngQueueEntryOf);
   }
 
   private OnImGuiMainMenuBar(menuBar: MainMenuBar) {
@@ -388,8 +427,10 @@ export class RngPresetManager extends BaseModule implements IRngPreset, IRngPres
     const parsedScenarioName = ParseScenarioTaggedName(name);
     this.m_rngOverrides.push({
       roundType, name: parsedScenarioName.displayName, sequence: { data: [...newRngs.data] },
-      isScenario: parsedScenarioName.isScenario, scenarioGroupId: parsedScenarioName.groupId,
+      isScenario: parsedScenarioName.isScenario, scenarioGroupId: parsedScenarioName.groupId, id: 0,
     });
+    // the server's queue, under the name as it came (browser only)
+    this.m_server?.AddRngSequences([{ roundType, name, sequence: newRngs.data }]);
     return true;
   }
 
@@ -397,7 +438,9 @@ export class RngPresetManager extends BaseModule implements IRngPreset, IRngPres
     if (!this.m_rngOverrides.length) return { data: [] };
     if (this.m_rngOverrides[0].roundType !== roundType) return { data: [] };
 
-    return this.m_rngOverrides.shift()!.sequence;
+    const entry = this.m_rngOverrides.shift()!;
+    this.DeleteServerSequence(entry); // browser only
+    return entry.sequence;
   }
 
   AreMathDetailsHidden() {
@@ -409,12 +452,28 @@ export class RngPresetManager extends BaseModule implements IRngPreset, IRngPres
   }
 
   private OnGameflowRoundStarting(roundType: GameRoundType) {
+    if (this.m_server) {
+      // the game server deals the round the queue's first sequence, when it is of the round's type (browser only)
+      this.m_server.StartRound(roundType, sequence => this.OnServerRoundSequence(sequence));
+      return;
+    }
+
     if (!this.m_rngOverrides.length) return;
     if (this.m_rngOverrides[0].roundType !== roundType) return;
 
     console.assert(!this.m_engine, 'RngPresetManager: an override engine is active');
     this.m_engine = new MementoEngine(new MonteCarloEngineHat());
     this.m_engine.PushOverride(this.m_rngOverrides.shift()!.sequence);
+  }
+
+  /** The sequence the game server dealt the round starting, before its random numbers (browser only): the round plays
+   * it, as the C++ round plays the queue's first sequence. */
+  private OnServerRoundSequence(sequence: RngNumber[] | null) {
+    if (!sequence) return;
+
+    console.assert(!this.m_engine, 'RngPresetManager: an override engine is active');
+    this.m_engine = new MementoEngine(new MonteCarloEngineHat());
+    this.m_engine.PushOverride({ data: sequence });
   }
 
   private OnGameflowRoundStarted(_roundType: GameRoundType) {
@@ -428,21 +487,25 @@ export class RngPresetManager extends BaseModule implements IRngPreset, IRngPres
   DeleteAllOverrideRngs() {
     this.m_rngOverrides = [];
     this.m_engine = null;
+    this.m_server?.ClearRngSequences(); // browser only
   }
 
   DeleteOverrideRngsAt(position: number) {
-    this.m_rngOverrides.splice(position, 1);
+    const [entry] = this.m_rngOverrides.splice(position, 1);
+    this.DeleteServerSequence(entry); // browser only
   }
 
   MoveOverrideRngsUp(position: number) {
     if (position === 0) return;
     const queue = this.m_rngOverrides;
+    this.MoveServerSequence(queue[position], queue[position - 1]); // browser only
     [queue[position - 1], queue[position]] = [queue[position], queue[position - 1]];
   }
 
   MoveOverrideRngsDown(position: number) {
     if (position + 1 >= this.m_rngOverrides.length) return;
     const queue = this.m_rngOverrides;
+    this.MoveServerSequence(queue[position + 1], queue[position]); // browser only
     [queue[position], queue[position + 1]] = [queue[position + 1], queue[position]];
   }
 
@@ -451,8 +514,19 @@ export class RngPresetManager extends BaseModule implements IRngPreset, IRngPres
     if (fromIndex === toIndex) return;
     const n = this.m_rngOverrides.length;
     if (fromIndex >= n || toIndex >= n) return;
+    this.MoveServerSequence(this.m_rngOverrides[fromIndex], this.m_rngOverrides[toIndex]); // browser only
     const [entry] = this.m_rngOverrides.splice(fromIndex, 1);
     this.m_rngOverrides.splice(fromIndex < toIndex ? toIndex - 1 : toIndex, 0, entry);
+  }
+
+  /** The same change of the game server's queue, by the sequences' ids there (browser only). A sequence the server
+   * does not have yet changes here only: the server's queue, when it comes, shows where it is. */
+  private DeleteServerSequence(entry: RngQueueEntry | undefined) {
+    if (entry?.id) this.m_server?.DeleteRngSequence(entry.id);
+  }
+
+  private MoveServerSequence(entry: RngQueueEntry, before: RngQueueEntry) {
+    if (entry.id && before.id) this.m_server?.MoveRngSequence(entry.id, before.id);
   }
 
   GetRngsAsText() {

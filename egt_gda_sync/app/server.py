@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Annotated, Literal
 
 import anyio.to_thread
-from fastapi import FastAPI, Query, Request
+from fastapi import Depends, FastAPI, Query, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
@@ -25,6 +25,7 @@ from egt_gda_sync.app.errors import AppError
 from egt_gda_sync.assets.fonts import FONT_EXTENSIONS, facts_header
 from egt_gda_sync.assets.movies import is_movie
 from egt_gda_sync.game.project import MAX_EXPORT_BYTES, GameProject, agent_status, game_source_path
+from egt_gda_sync.game.rng_server import MAX_QUEUE, MAX_RANDOMS, MAX_SEQUENCE, UINT32, GameServer
 from egt_gda_sync.workspace.library import MAX_TEXT_BYTES, Library
 from egt_gda_sync.images.metadata.service import MAX_METADATA
 from egt_gda_sync.app.lifetime import PAGE_CLOSE_GRACE_SECONDS, PageLifetime
@@ -240,6 +241,56 @@ class GameImportGameBody(_Body):
 class GameTranslateBody(_Body):
     """TypeScript files of the browser game, by their paths in frontend/src/game."""
     files: Annotated[list[Text4K], Field(min_length=1, max_length=200)]
+
+
+RoundTypeNumber = Annotated[int, Field(strict=True, ge=0, le=1000)]
+
+
+class RngNumberBody(_Body):
+    """A number of an RNG sequence (GameCore::RngNumber): the operation that asks for it, its range and its value."""
+    op: Annotated[int, Field(strict=True, ge=0, le=65535)]
+    range: Annotated[int, Field(strict=True, ge=0, le=UINT32)]
+    value: Annotated[int, Field(strict=True, ge=0, lt=UINT32)]
+
+
+class RngSequenceBody(_Body):
+    """An RNG sequence to queue: its round type, its name (a scenario's is tagged) and its numbers."""
+    roundType: RoundTypeNumber
+    name: Annotated[str, Field(max_length=400)] = ""
+    sequence: Annotated[list[RngNumberBody], Field(max_length=MAX_SEQUENCE)]
+
+
+class RngSequencesBody(_Body):
+    sequences: Annotated[list[RngSequenceBody], Field(min_length=1, max_length=MAX_QUEUE)]
+
+
+class RngEntryBody(_Body):
+    """A queued RNG sequence, by its id."""
+    id: Annotated[int, Field(strict=True, ge=1)]
+
+
+class RngMoveBody(RngEntryBody):
+    """Where a queued sequence goes: before the sequence of this id, or to the end."""
+    before: Annotated[int, Field(strict=True, ge=1)] | None = None
+
+
+class RngRoundBody(_Body):
+    roundType: RoundTypeNumber
+
+
+class RngRandomsBody(_Body):
+    count: Annotated[int, Field(strict=True, ge=1, le=MAX_RANDOMS)]
+
+
+class GameEventBody(_Body):
+    """What the game did that its debug tools follow, and what they read of the game then."""
+    event: Literal["roundStarting", "roundEnded", "takeCoinsPressed", "cashoutPressed", "gamblePressed"]
+    roundType: RoundTypeNumber = 0
+    idle: bool
+    nextRoundType: RoundTypeNumber = 0
+    # the match's currencies available, as (currency, amount) pairs
+    currencies: Annotated[list[tuple[Annotated[int, Field(ge=0, le=1000)], Annotated[int, Field(ge=-(1 << 62), le=1 << 62)]]],
+                          Field(max_length=64)] = []
 
 
 class RemoveAssetBody(_Body):
@@ -728,6 +779,55 @@ def create_app(
     @app.post("/api/game/export")
     def game_export(body: GameExportBody) -> dict:
         return GameProject(library).export(body.name, body.files, body.copies)
+
+    # The game server (egt_gda_sync/game/rng_server.py): the random numbers a workspace's game plays its rounds with,
+    # its RNG Queue, which every window of the game's tools shares, and the game's events the tools follow.
+    game_server = GameServer()
+
+    def played_game(workspace: Annotated[str | None, Query(max_length=200)] = None) -> str:
+        """The workspace whose game a request is about: the page's, which plays the game of the workspace active when it
+        loaded; else the active one."""
+        if workspace is None:
+            return GameProject(library).workspace_id()
+        if workspace not in dict(library.workspace_entries()):
+            raise AppError(f"Workspace not found: {workspace}", 404)
+        return workspace
+
+    PlayedGame = Annotated[str, Depends(played_game)]
+
+    @app.get("/api/game/rng")
+    def game_rng_state(game: PlayedGame, revision: Annotated[int | None, Query(ge=0)] = None,
+                       after: Annotated[int | None, Query(ge=0)] = None) -> dict:
+        # the active workspace too: a page of another's game follows it
+        return {**game_server.state(game, revision, after), "active": GameProject(library).workspace_id()}
+
+    @app.post("/api/game/rng/queue")
+    def game_rng_add(body: RngSequencesBody, game: PlayedGame) -> dict:
+        return game_server.add(game, [sequence.model_dump() for sequence in body.sequences])
+
+    @app.post("/api/game/rng/queue/delete")
+    def game_rng_delete(body: RngEntryBody, game: PlayedGame) -> dict:
+        return game_server.delete(game, body.id)
+
+    @app.post("/api/game/rng/queue/move")
+    def game_rng_move(body: RngMoveBody, game: PlayedGame) -> dict:
+        return game_server.move(game, body.id, body.before)
+
+    @app.post("/api/game/rng/queue/clear")
+    def game_rng_clear(game: PlayedGame) -> dict:
+        return game_server.clear(game)
+
+    @app.post("/api/game/rng/round")
+    def game_rng_round(body: RngRoundBody, game: PlayedGame) -> dict:
+        return game_server.start_round(game, body.roundType)
+
+    @app.post("/api/game/rng/randoms")
+    def game_rng_randoms(body: RngRandomsBody) -> dict:
+        return {"randoms": game_server.randoms(body.count)}
+
+    @app.post("/api/game/rng/events")
+    def game_rng_event(body: GameEventBody, game: PlayedGame) -> dict:
+        return game_server.post_event(game, body.model_dump())
 
     @app.get("/{path:path}", include_in_schema=False)
     async def frontend_file(path: str) -> Response:

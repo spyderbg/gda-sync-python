@@ -2,6 +2,10 @@
 // configs), initializes
 // them in order, then runs them every frame: Process in order (the kernel answers, the views move, the state machine
 // reacts), then PostProcess (the video draws the frame).
+//
+// The game plays with the page's game server (integration/GameServer), which deals its rounds' random numbers and keeps
+// the RNG Queue. The Game tools page starts the game's debug tools only (StartTools), in a window of their own: they
+// change the same server's queue, and follow the game that plays in another window through the server.
 
 import { Runtime } from '@game/engine/GameCore/RuntimeAccess';
 import { IModuleManager, type ModuleLoadConfig } from '@game/engine/Game/RuntimeExport/IModuleManager';
@@ -15,6 +19,9 @@ import { AlphaFamilyGameflow } from '@game/integration/AlphaFamilyGameflow/Alpha
 import { BrowserKernel, type BrowserKernelConfig } from '@game/integration/BrowserKernel/BrowserKernel';
 import { RngPresetManager } from '@game/integration/RngPresetManager/RngPresetManager';
 import { AutomationManager } from '@game/integration/AutomationManager/AutomationManager';
+import { type GameServer, IGameServer } from '@game/integration/GameServer/GameServer';
+import { GameEventsRelay } from '@game/integration/GameServer/GameEventsRelay';
+import { RemoteGame } from '@game/integration/GameServer/RemoteGame';
 import type { GameAssetReport, GameProject, GameProjectModule } from './GameBackend';
 import { FAMILY_TOOL_MODULES, GameModuleName, MODULES } from './ModuleRegistry';
 
@@ -34,6 +41,15 @@ export interface GameStartOptions {
   project: GameProject;
   report: GameAssetReport | null;
   kernel?: BrowserKernelConfig;
+  /** The game server, which deals the rounds' random numbers and keeps the RNG Queue. */
+  server?: GameServer;
+}
+
+/** What the Game tools page starts: the game's debug tools, without the game. */
+export interface ToolsStartOptions {
+  project: GameProject;
+  report: GameAssetReport | null;
+  server: GameServer;
 }
 
 export class GameApp implements IModuleManager {
@@ -61,6 +77,7 @@ export class GameApp implements IModuleManager {
     const { project } = options;
     // the module manager, which loads a module while the game runs (the automation's view module)
     this.runtime.Add(IModuleManager, this);
+    this.AddServer(options.server);
     const capping = GameApp.Capping(project);
     this.Add('ResourceManager', new ResourceManager(project, options.report), {}, true);
     // a view reloads its elements list when its file changes (C++'s FileWatch, in debug and QA builds)
@@ -87,9 +104,46 @@ export class GameApp implements IModuleManager {
       else this.skipped.push(module.name);
     }
     // the family's debug tools, after the game's modules (they read its math rules)
+    this.AddFamilyTools();
+    // what the game does that the tools follow, for the tools' other windows (after the views, whose buttons it follows)
+    this.Add('GameEventsRelay', new GameEventsRelay(), {}, true);
+    await this.Run();
+  }
+
+  /** The game's debug tools only, without the game (the Game tools page): the RNG Queue, the RNG Presets and the RNG
+   * Picker, with what they need of the game, its resources and its math module. They change the game server's queue, which
+   * the game that plays in another window takes its rounds' sequences from, and follow that game through the server
+   * (RemoteGame). The automation plays the game, so it stays with the game. */
+  async StartTools(options: ToolsStartOptions) {
+    const { project } = options;
+    this.AddServer(options.server);
+    this.Add('ResourceManager', new ResourceManager(project, options.report), {}, true);
+    this.Add('DebugImguiOverlay', new DebugImguiOverlay(), {}, true);
+    this.Add('RemoteGame', new RemoteGame(), {}, true);
+    this.Add('RngPresetManager', new RngPresetManager(), {}, true);
+    const modules = GameApp.GameModules(project);
+    const math = modules.find(module => module.name === GameModuleName(modules.map(item => item.name), 'Math'));
+    if (!math) throw new Error('The browser game has no math module of this game');
+    this.Add(math.name, MODULES[math.name].create(), math.config ?? {}, false);
+    this.AddFamilyTools();
+    await this.Run();
+  }
+
+  private AddServer(server: GameServer | undefined) {
+    if (!server) return;
+    this.runtime.Add(IGameServer, server);
+    server.Start();
+  }
+
+  /** The family's debug tools, after the game's modules (they read its math rules). */
+  private AddFamilyTools() {
     for (const name of FAMILY_TOOL_MODULES) {
       if (!this.modules.some(entry => entry.name === name) && MODULES[name]) this.Add(name, MODULES[name].create(), {}, false);
     }
+  }
+
+  /** Initializes the modules in order, then runs them every frame. */
+  private async Run() {
     for (const entry of this.modules) {
       if (!(await entry.module.Init(this.runtime, entry.config))) throw new Error(`${entry.name}: Init failed`);
     }
@@ -194,5 +248,7 @@ export class GameApp implements IModuleManager {
     }
     this.modules.length = 0;
     this.runtime.Remove(IModuleManager);
+    this.runtime.TryGet(IGameServer)?.Stop();
+    this.runtime.Remove(IGameServer);
   }
 }

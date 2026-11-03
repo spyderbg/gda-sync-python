@@ -13,6 +13,7 @@ import { TextElement } from '@game/engine/GameVideoCtrl/ViewElements/TextElement
 import { PlaceholderFromTo } from '@game/engine/GameVideoCtrl/ViewElements/TweenyExtend/TweenyExtendElement';
 import { type ICreditBarView, ICreditBarView as ICreditBarViewToken, ICreditBarViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/BarsView.bridge';
 import { NumericBarView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/Components/NumericBarView';
+import { PanelElementsList } from '../PanelElementsList';
 
 const AnimDurationSeconds = 132; // 4s * 0.033f;
 const CreditBarViewId = 'CreditBarView';
@@ -34,6 +35,7 @@ enum EAnimationState {
 }
 
 export class CreditBarView extends NumericBarView<ICreditBarView, ICreditBarViewEvents> implements ICreditBarView {
+  protected readonly m_elementsList = new PanelElementsList();
   private m_animState = EAnimationState.Undefined;
   private m_actionMinimize = new tweeny.tween_action();
   private m_actionMaximize = new tweeny.tween_action();
@@ -105,6 +107,8 @@ export class CreditBarView extends NumericBarView<ICreditBarView, ICreditBarView
   }
 
   private InitAnimations() {
+    tweeny.stop(this.m_actionMinimize);
+    tweeny.stop(this.m_actionMaximize);
     const list = this.m_elementsList;
     const textAmount = list.Find(TextAmountId, TextElement);
     const amountTextMin = list.Find(TextAmountMinId, TextElement);

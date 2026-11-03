@@ -83,6 +83,10 @@ class GameProject:
         resources = Path(os.path.realpath(settings["resources_dir"]))
         return workspace_id, workspace, resources, resources / settings["game"]
 
+    def workspace_id(self) -> str:
+        """The active workspace's id: whose game the browser game plays."""
+        return self.library._active_workspace()[0]  # pylint: disable=protected-access
+
     def project(self) -> dict:
         """The workspace, its modules config and the entries of its descriptors."""
         workspace_id, workspace, resources, game = self._folders()

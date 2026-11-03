@@ -1,15 +1,15 @@
 // Egt::Game::AlphaFamily::SoundVolumeSwButtonView (BurningCrownTetraSpins10View/SwButtons/SoundVolumeSwButtonView.h/.cpp):
 // the sound button, one element for each volume preset, of which it shows the current one; a press shows the next
-// volume's button 200 ms later. It moves to its tetra place in the tetra round.
+// volume's button 200 ms later. Main and Tetra buttons come from separate JSON elements.
 
 import { IAudioApi } from '@game/engine/Game/RuntimeImport/IAudioApi';
 import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
 import * as tweeny from '@game/hat_libs/tweeny/tweeny';
-import { BaseElement } from '@game/engine/GameVideoCtrl/ViewElements/BaseElement';
 import { ButtonElement } from '@game/engine/GameVideoCtrl/ViewElements/ButtonElement';
 import { IButtonViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IControlView';
 import { ESoundSwButtonType, ISoundVolumeSwButtonView } from '@game/alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge';
 import { ButtonView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/Components/ButtonView';
+import { PanelElementsList } from '../PanelElementsList';
 
 const SoundVolumeSwButtonViewId = 'SoundVolumeSwButtonView';
 const ButtonVolumeMuteId = 'button_volume_mute';
@@ -17,8 +17,6 @@ const ButtonVolumeL0Id = 'button_volume_l0';
 const ButtonVolumeL1Id = 'button_volume_l1';
 const ButtonVolumeL2Id = 'button_volume_l2';
 const ButtonVolumeL3Id = 'button_volume_l3';
-const DummyNormalButtonId = 'dummy_normal_button';
-const DummyTetraButtonId = 'dummy_tetra_button';
 const ButtonVolumeIds = [ButtonVolumeMuteId, ButtonVolumeL0Id, ButtonVolumeL1Id, ButtonVolumeL2Id, ButtonVolumeL3Id];
 const PressDelay = 200;
 
@@ -28,6 +26,7 @@ enum ESoundVolumePresentingState {
 }
 
 export class SoundVolumeSwButtonView extends ButtonView implements ISoundVolumeSwButtonView {
+  protected readonly m_elementsList = new PanelElementsList();
   private m_presentingState = ESoundVolumePresentingState.Idle;
   private m_currentVolume = 0;
   private m_oldVolume = -1;
@@ -63,7 +62,7 @@ export class SoundVolumeSwButtonView extends ButtonView implements ISoundVolumeS
   SetButtonType(type: ESoundSwButtonType) {
     if (type === this.m_buttonType) return;
     this.m_buttonType = type;
-    this.AdjustPosition();
+    this.ReloadElementsList();
   }
 
   SimulateButtonPress() {
@@ -76,7 +75,6 @@ export class SoundVolumeSwButtonView extends ButtonView implements ISoundVolumeS
   private OnElementsListLoaded() {
     this.InitAnimations();
     this.AdjustButtons();
-    this.AdjustPosition();
   }
 
   private InitAnimations() {
@@ -114,24 +112,6 @@ export class SoundVolumeSwButtonView extends ButtonView implements ISoundVolumeS
       } else {
         button.SetEnabled(false);
         button.SetHidden(true);
-      }
-    }
-  }
-
-  private AdjustPosition() {
-    if (!this.m_elementsList.IsLoaded()) return;
-    switch (this.m_buttonType) {
-      case ESoundSwButtonType.Normal: {
-        const dummyNormal = this.m_elementsList.TryGet(DummyNormalButtonId, BaseElement);
-        if (!dummyNormal) return;
-        this.m_elementsList.SetPosition(dummyNormal.GetPosition(), ButtonVolumeIds);
-        break;
-      }
-      case ESoundSwButtonType.Tetra: {
-        const dummyTetra = this.m_elementsList.TryGet(DummyTetraButtonId, BaseElement);
-        if (!dummyTetra) return;
-        this.m_elementsList.SetPosition(dummyTetra.GetPosition(), ButtonVolumeIds);
-        break;
       }
     }
   }

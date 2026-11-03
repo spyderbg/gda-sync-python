@@ -1,7 +1,8 @@
 // The BrowserKernel module: the cabinet around the game, in the browser. It keeps the player's credit (in the
 // browser's storage), plays the kernel's part in matches, and provides the services a C++ integration provides: the
 // wallet, the limits, the localization, the hardware buttons (the keyboard and the page's panel), the recovery's state
-// change actions, responsible gaming, the application control and the game pause (IPauseControl).
+// change actions, responsible gaming, the application control and the game pause (IPauseControl). The random numbers
+// a round asks for come from the game server (integration/GameServer): the browser game is a server based game.
 
 import { EventQueue } from '@game/engine/Core/Event';
 import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
@@ -14,6 +15,7 @@ import { IWallet, IWalletEvents, TransactionType } from '@game/engine/Game/Runti
 import { BaseModule, type ModuleConfig } from '@game/engine/ModuleManager/BaseModule';
 import { Clock } from '@game/engine/Game/Utils/Clock';
 import { IPauseControl, type PauseReason } from '@game/integration/Runtime/IPauseControl';
+import { IGameServer } from '@game/integration/GameServer/GameServer';
 import { IKernelIntegration, IKernelIntegrationEvents, type IKernelApi } from './IKernelIntegration';
 
 const CREDIT_STORAGE_KEY = 'egt-game-credit';
@@ -254,7 +256,13 @@ export class BrowserKernel extends BaseModule implements IKernelApi, IKernelInte
     this.queue.AddCallback(() => this.kernelEvents.startRoundReply.Post());
   }
 
+  /** The round's random numbers, which the game server deals (without one, the browser's cryptographic generator). */
   RequestRandoms(count: number) {
+    const server = this.RuntimeTryGet(IGameServer);
+    if (server) {
+      server.Randoms(count, randoms => this.queue.AddCallback(() => this.kernelEvents.randomsReply.Post(randoms)));
+      return;
+    }
     this.queue.AddCallback(() => this.kernelEvents.randomsReply.Post([...crypto.getRandomValues(new Uint32Array(count))]));
   }
 

@@ -5,13 +5,15 @@ let topZ = 1050;
 
 <script setup lang="ts">
 // A debug tool's window, as ImGui draws one over the game (ImGui::Begin(title, &open)): a title bar to drag it by and a
-// close button, over the page. Its place is kept per title in the browser's local storage.
+// close button, over the page. Its place is kept per title, and per page (the game's, the Game tools page's), in the
+// browser's local storage.
 import { onBeforeUnmount, reactive, ref } from 'vue';
+import { GetSettingsScope } from '@game/engine/ImGuiEx/Extensions/Utils';
 
 const props = defineProps<{ title: string; width?: number; offset?: number }>();
 const emit = defineEmits<{ close: [] }>();
 
-const storageKey = `egt-imgui-window:${props.title}`;
+const storageKey = `egt-imgui-window:${GetSettingsScope() ? `${GetSettingsScope()}:` : ''}${props.title}`;
 const start = 80 + (props.offset ?? 0) * 32;
 const position = reactive({ x: start, y: start });
 try {

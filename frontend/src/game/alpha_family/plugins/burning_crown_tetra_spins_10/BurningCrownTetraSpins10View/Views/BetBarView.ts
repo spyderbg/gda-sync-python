@@ -8,11 +8,13 @@ import { TextElement } from '@game/engine/GameVideoCtrl/ViewElements/TextElement
 import { INumericBarViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IControlView';
 import { type IBetBarView, IBetBarView as IBetBarViewToken } from '@game/alpha_family/libs/AlphaFamily/Views/BarsView.bridge';
 import { NumericBarView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/Components/NumericBarView';
+import { PanelElementsList } from '../PanelElementsList';
 
 const BetBarViewId = 'BetBarView';
 const TextBetAmountId = 'text_bet_amount';
 
 export class BetBarView extends NumericBarView<IBetBarView, INumericBarViewEvents> implements IBetBarView {
+  protected readonly m_elementsList = new PanelElementsList();
   private m_currency: CurrencyType = 0;
 
   constructor() {

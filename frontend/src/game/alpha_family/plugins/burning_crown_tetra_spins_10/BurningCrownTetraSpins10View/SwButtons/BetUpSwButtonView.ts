@@ -4,11 +4,13 @@ import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
 import { IButtonViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IControlView';
 import { IBetUpSwButtonView } from '@game/alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge';
 import { ButtonView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/Components/ButtonView';
+import { PanelElementsList } from '../PanelElementsList';
 
 const BetUpSwButtonViewId = 'BetUpSwButtonView';
 const ButtonId = 'button_bet_up';
 
 export class BetUpSwButtonView extends ButtonView {
+  protected readonly m_elementsList = new PanelElementsList();
   constructor() {
     super(BetUpSwButtonViewId, IBetUpSwButtonView, new IButtonViewEvents());
   }

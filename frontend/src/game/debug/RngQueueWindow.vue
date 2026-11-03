@@ -135,7 +135,7 @@ function close() {
             </tr>
           </template>
         </template>
-        <tr v-if="!rows.length"><td :colspan="visible.filter(Boolean).length + 1" class="text-muted">The queue is empty: the next rounds use the kernel's numbers.</td></tr>
+        <tr v-if="!rows.length"><td :colspan="visible.filter(Boolean).length + 1" class="text-muted">The queue is empty: the next rounds play the game server's random numbers.</td></tr>
       </tbody>
     </table>
 

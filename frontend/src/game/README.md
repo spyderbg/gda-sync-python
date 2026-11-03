@@ -30,6 +30,7 @@ Every file operation goes through the backend (`egt_gda_sync/game/project.py`):
 | The assets the asset library lists | `GET /api/asset-report` | – |
 | The C++ plugin's sources, which an export copies | `GET /api/game/cpp?folder=` (the game folder beside the resources: `games/game`) | – |
 | An export | `POST /api/game/export` (written to the app data folder's `game-exports`) | – |
+| The rounds' random numbers, the RNG Queue, the game's events the tools follow (the game server, below) | `POST /api/game/rng/randoms`, `/api/game/rng/round`, `/api/game/rng/queue[/delete\|move\|clear]`, `/api/game/rng/events`; `GET /api/game/rng` | the kernel's `RequestRandoms`; RngPresetManager's queue |
 
 The game uses the same resources the asset library lists: a descriptor entry whose file the asset report does not list
 as available shows under **Developer → Resources**.
@@ -57,7 +58,8 @@ The folders mirror the C++ ones, and the classes keep their C++ names and method
 | `alpha_family/libs/AlphaFamilyMathToolUtils` | `alpha_family/libs/src/Egt/AlphaFamilyMathToolUtils` (ResultToRng, RulesHelper: the RNG numbers of a wanted result) |
 | `integration/AlphaFamilyGameflow` | `integration/libs/src/Egt/AlphaFamilyGameflow` |
 | `integration/RngPresetManager`, `integration/AutomationManager`, `integration/Runtime` | `integration/plugins/src/Egt/RngPresetManager`, `AutomationManager` (the RNG Queue, the Automation window) and `integration/libs/src/Egt/Integration/Runtime` (their interfaces, IGameflowIntegration, IPauseControl) |
-| `engine/DebugImguiOverlay`, `engine/ImGuiEx`, `debug/` | `Egt/DebugImguiOverlay`, `Egt/ImGuiEx`: the debug overlay's Tools menu; `debug/` are the tools' ImGui windows, in Vue |
+| `integration/GameServer` | no counterpart: the game server's client (`GameServer`), the Play page's `GameEventsRelay` and the Game tools page's `RemoteGame` (below) |
+| `engine/DebugImguiOverlay`, `engine/ImGuiEx`, `debug/` | `Egt/DebugImguiOverlay`, `Egt/ImGuiEx`: the debug overlay's Tools menu; `debug/` are the tools' ImGui windows, in Vue, over the game or on the Game tools page (`GameToolsPage.vue`) |
 | `integration/BrowserKernel` | the kernel integrations (playground, hat...): wallet, limits, localization, hardware buttons |
 | `app/GameApp.ts`, `app/ModuleRegistry.ts` | the ModuleManager and the plugins it loads |
 | `authoring/`, `export/` | no counterpart: the math description and the C++ export (below) |
@@ -101,8 +103,9 @@ wheel, or a win.
   is a Vue window over the page (`debug/`), drawn from its module's state; the module keeps the C++ class's members and
   methods, and its ImGui frame becomes view data and clicks (`RngToolReelRoundSubscreen.Draw(click)`):
   - **RNG Queue** (`RngPresetManager`): the RNG sequences queued for the next rounds, each a round type's. The round of
-    the first one's type runs on its numbers (`OverrideEngine`) instead of the kernel's. Reorder, delete, copy them;
-    hover a row for its numbers or, with Tooltip Content › Preview, the symbols they stop on.
+    the first one's type runs on its numbers (`OverrideEngine`) instead of the game server's random ones. The queue is
+    the game server's (below). Reorder, delete, copy them; hover a row for its numbers or, with Tooltip Content ›
+    Preview, the symbols they stop on.
   - **RNG Presets** (`AlphaFamilyMathRngPreset`): the game's `math/DevMathRngPreset.json` as menus; a preset queues
     the numbers of its result grids (`ResultToRng`), a scenario all of its entries.
   - **RNG Picker** (`AlphaFamilyMathRngTool`): a tab per round type; pick the reels' stops by searched symbols, a payline
@@ -115,6 +118,27 @@ wheel, or a win.
     the animations and presses START, Auto Input only presses.
   The browser's MonteCarloEngineHat is not the C++'s Mt19937, so a seed generates other games than C++'s; a game
   replays the same in both, from its numbers.
+
+  **The game server.** The browser game is a server based game: the backend's game server
+  (`egt_gda_sync/game/rng_server.py`) deals each round's random numbers, as a cabinet's kernel deals them to the C++
+  game (the BrowserKernel's `RequestRandoms` asks the server), and it keeps the RNG Queue, one per workspace, in memory
+  until the backend stops. When a round starts, `RngPresetManager` asks the server for the round's sequence: the server
+  takes the queue's first sequence out when it is of the round's type, and the round plays it as the C++ round plays the
+  queue's first. A page's requests go out and are answered in order, one at a time (`integration/GameServer`), so a
+  sequence queued before START is in the queue when the round asks, and a round's sequence comes before its random
+  numbers; a round whose request the server does not answer asks again every second, and the page says so. Every
+  window of the game's tools reads the server's queue a few times a second and changes it by its sequences' ids, so
+  each window shows and changes the same queue.
+
+  **Tools › Open in a new window** opens the Game tools page (`/game-tools`, `GameToolsPage.vue`) in a browser window
+  of its own, beside the game or on another screen, and closes the RNG tools' windows over the game. The page can also
+  be opened at its address in any window or tab. It plays nothing: it loads the game's resources and math module and
+  the RNG Queue, RNG Presets and RNG Picker (`GameApp.StartTools`), whose changes go to the server's queue, which the game
+  plays from. The Play page tells the server what the RNG Picker's Tab Sync follows (`GameEventsRelay`: a round
+  starting or ended and the round played next, the buttons that enter the wheel and the gamble). The tools page posts
+  it there (`RemoteGame`), so its Tab Sync shows the round the game plays next. The tools page takes no part in a round.
+  Its windows open, close and keep their places apart from the game's (`SetSettingsScope`), and the window opens where
+  and as large as it was when it last closed. The Automation plays the game, so it stays on the Play page.
 - Keys: Space/Enter START, A autoplay, ↑/↓ bet, M max bet, I info, C cashout. The panel under the screen has the same
   buttons, Exit (back to the asset library) and the credit insert; the credit is kept in the browser.
 - **Developer** shows the state machine's active states and transitions, the match's wallet, the rounds played, and

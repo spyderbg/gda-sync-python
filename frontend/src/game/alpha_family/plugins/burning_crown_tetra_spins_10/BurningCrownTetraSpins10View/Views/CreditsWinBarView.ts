@@ -12,6 +12,7 @@ import { INumericBarViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views
 import { EWinBarState, type ICreditsWinBarView, ICreditsWinBarView as ICreditsWinBarViewToken } from '@game/alpha_family/libs/AlphaFamily/Views/BarsView.bridge';
 import { AccumulationType, type AccumulationDescriptor } from '@game/alpha_family/libs/AlphaFamily/Views/Tools/AccumulationControl.data';
 import { NumericBarView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/Components/NumericBarView';
+import { PanelElementsList } from '../PanelElementsList';
 
 const CreditsWinBarViewId = 'CreditsWinBarView';
 const ImageWinLabelId = 'image_win_label';
@@ -19,6 +20,7 @@ const TextWinAmountId = 'text_win_amount';
 const AudioEventTakeWinId = 'SOUND_TAKE_WIN';
 
 export class CreditsWinBarView extends NumericBarView<ICreditsWinBarView, INumericBarViewEvents> implements ICreditsWinBarView {
+  protected readonly m_elementsList = new PanelElementsList();
   private m_labelState = EWinBarState.Win;
 
   constructor() {

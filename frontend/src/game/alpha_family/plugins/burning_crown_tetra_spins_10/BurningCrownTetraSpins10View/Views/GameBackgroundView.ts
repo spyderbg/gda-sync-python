@@ -54,7 +54,7 @@ export class GameBackgroundView extends BaseView implements IGameBackgroundView 
   Draw(drawList: DrawList) {
     // (C++ draws once into a dummy list to activate the lazy load: the browser's elements list loads in Init)
 
-    const isTetraView = this.m_backgroundType === EBackgroundType.Tetra;
+    const isTetraView = this.IsTetraLayout();
 
     this.m_elementsList.TryGet(ImageBackgroundId)?.SetHidden(isTetraView);
     this.m_elementsList.TryGet(ImageBackgroundFrameId)?.SetHidden(isTetraView);
@@ -73,6 +73,10 @@ export class GameBackgroundView extends BaseView implements IGameBackgroundView 
 
   IsOpaqueFullScreen() {
     return true;
+  }
+
+  IsTetraLayout() {
+    return this.m_backgroundType === EBackgroundType.Tetra;
   }
 
   // IGameBackgroundView

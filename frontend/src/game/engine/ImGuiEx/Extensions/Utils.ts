@@ -2,7 +2,19 @@
 // such as whether the window is open. C++ keeps them in imgui_params.ini; the browser keeps them in its local storage,
 // per browser, and a page that cannot use it (a private window) starts with the defaults.
 
-const StoragePrefix = 'egt-imgui:';
+let StoragePrefix = 'egt-imgui:';
+let SettingsScope = '';
+
+/** The settings of another page than the game's (browser only), such as the Game tools page's: its windows open and
+ * close apart from the game's, as each C++ process has its own imgui_params.ini. Set before the modules load them. */
+export function SetSettingsScope(scope: string) {
+  SettingsScope = scope;
+  StoragePrefix = scope ? `egt-imgui:${scope}:` : 'egt-imgui:';
+}
+
+export function GetSettingsScope() {
+  return SettingsScope;
+}
 
 function LoadValue(key: string): string | null {
   try {

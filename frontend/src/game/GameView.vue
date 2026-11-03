@@ -1,6 +1,8 @@
 <script setup lang="ts">
 // The Play page: the active workspace's game, played in the browser from the same resources the asset library lists
-// (its asset report) and the game's own descriptors, math and modules config, all read through the backend.
+// (its asset report) and the game's own descriptors, math and modules config, all read through the backend. The game is
+// a server based game: the backend's game server deals its rounds' random numbers and keeps the RNG Queue
+// (integration/GameServer), which the Game tools page, in another window, changes too.
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from 'vue';
 import PageHeader from '../components/PageHeader.vue';
 import { api, config, navigate, notify, openGameExport, openGameSource, session } from '../workspace';
@@ -22,13 +24,15 @@ import type { GameFsm } from '@game/engine/Game/Fsm/GameFsm';
 import type { InfoViewPages, ViewModule } from '@game/app/GameModules';
 import type { MathExportInput } from '@game/export/MathExporter';
 import { DebugImguiOverlay } from '@game/engine/DebugImguiOverlay/DebugImguiOverlay';
-import type { MainMenuItem } from '@game/engine/Game/RuntimeExport/IDebugOverlay';
 import { RngPresetManager } from '@game/integration/RngPresetManager/RngPresetManager';
 import RngQueueWindow from './debug/RngQueueWindow.vue';
 import RngQueueUnlockWindow from './debug/RngQueueUnlockWindow.vue';
 import RngPresetWindow from './debug/RngPresetWindow.vue';
 import RngPickerWindow from './debug/RngPickerWindow.vue';
 import AutomationWindow from './debug/AutomationWindow.vue';
+import ToolsMenu, { type PageMenuItem } from './debug/ToolsMenu.vue';
+import { OpenGameToolsWindow } from './debug/GameToolsWindow';
+import { GameServer } from '@game/integration/GameServer/GameServer';
 import { AutomationManager } from '@game/integration/AutomationManager/AutomationManager';
 import { AlphaFamilyMathRngTool } from '@game/alpha_family/plugins/alpha_family/AlphaFamilyMathRngTool/AlphaFamilyMathRngTool';
 import { AlphaFamilyMathRngPreset } from '@game/alpha_family/plugins/alpha_family/AlphaFamilyMathRngPreset/AlphaFamilyMathRngPreset';
@@ -49,8 +53,8 @@ const infoOpen = ref(false);
 const devOpen = ref(false);
 /** The debug tools' windows (C++'s ImGui windows over the game): redrawn on each page refresh and after their commands. */
 const toolsTick = ref(0);
-/** The Tools menu of the debug overlay's main menu bar, while it shows. */
-const toolsMenu = shallowRef<MainMenuItem[] | null>(null);
+/** Why the game server does not answer, while it does not: the game waits for its rounds' numbers. */
+const serverError = ref('');
 const exportResult = ref<{ folder: string; id: string; files: string[] } | null>(null);
 const exportReport = shallowRef<PluginExport['report'] | null>(null);
 
@@ -232,15 +236,29 @@ const toolWindows = computed(() => {
   };
 });
 
-function toggleToolsMenu() {
-  toolsMenu.value = toolsMenu.value ? null : app?.Get(DebugImguiOverlay)?.GetMainMenuBar().Menu('Tools') ?? [];
+/** The Tools menu's items, as the tools add them when the debug overlay draws its main menu bar. */
+function buildToolsMenu() {
+  return app?.Get(DebugImguiOverlay)?.GetMainMenuBar().Menu('Tools') ?? [];
 }
 
-function selectTool(item: MainMenuItem) {
-  item.select();
-  toolsMenu.value = null;
+/** Tools › Open in a new window: the Game tools page, whose tools change the game server's RNG Queue, which this game
+ * plays from, without covering the game. The RNG tools' windows over the game close (the automation plays the game, so
+ * it stays here). */
+function openToolsWindow() {
+  if (!OpenGameToolsWindow()) {
+    notify('The browser blocked the tools\' window: allow this page to open pop-up windows.', true);
+    return;
+  }
+  const rngQueue = app?.Get(RngPresetManager);
+  for (const flag of [rngQueue?.m_imguiWindowOpen, rngQueue?.m_imguiUnlockWindowOpen, app?.Get(AlphaFamilyMathRngPreset)?.m_imguiWindowOpen,
+    app?.Get(AlphaFamilyMathRngTool)?.m_imguiWindowOpen]) {
+    if (flag) flag.value = false;
+  }
   toolsTick.value++;
 }
+
+/** Under the Tools menu's items: where else the tools show. */
+const toolsPageItems: PageMenuItem[] = [{ label: 'Open in a new window', icon: 'mdi-open-in-new', select: openToolsWindow }];
 
 async function start() {
   if (app || !canvas.value || !project.value) return;
@@ -258,10 +276,15 @@ async function start() {
       refreshLive();
     }
   };
+  // the game server of the workspace's game, which deals the rounds' numbers and keeps the RNG Queue
+  const server = new GameServer((path, method, body) => api(path, method, body), project.value.workspace.id);
+  server.onError = message => {
+    serverError.value = message;
+  };
   try {
     await app.Start({
       canvas: canvas.value, infoCanvas: infoCanvas.value, topperCanvas: topperCanvas.value, project: project.value, report: report.value,
-      kernel: { minBet: 0, onExit: () => navigate('library') },
+      kernel: { minBet: 0, onExit: () => navigate('library') }, server,
     });
     state.value = 'running';
     refreshLive();
@@ -276,7 +299,7 @@ async function start() {
 function stop() {
   app?.Stop();
   app = null;
-  toolsMenu.value = null;
+  serverError.value = '';
   toolsTick.value++;
 }
 
@@ -531,18 +554,14 @@ onBeforeUnmount(() => {
           <button type="button" class="btn btn-outline-secondary btn-sm" title="Full screen" aria-label="Full screen" @click="fullscreen"><i class="mdi mdi-fullscreen" aria-hidden="true" /></button>
           <button type="button" class="btn btn-outline-secondary btn-sm" :aria-expanded="infoOpen" title="The cabinet's info screen, with the help pages" @click="infoOpen = !infoOpen"><i class="mdi mdi-monitor" aria-hidden="true" /> Info screen</button>
           <button type="button" class="btn btn-outline-secondary btn-sm" :aria-expanded="topperOpen" title="The cabinet's topper screen" @click="topperOpen = !topperOpen"><i class="mdi mdi-monitor-shimmer" aria-hidden="true" /> Topper</button>
-          <div class="game-tools">
-            <button type="button" class="btn btn-outline-secondary btn-sm" :aria-expanded="!!toolsMenu" aria-haspopup="menu" title="The debug tools (the C++ debug overlay's Tools menu)" @click="toggleToolsMenu"><i class="mdi mdi-tools" aria-hidden="true" /> Tools <i class="mdi mdi-menu-down" aria-hidden="true" /></button>
-            <div v-if="toolsMenu" class="game-tools-menu card shadow-sm" role="menu">
-              <button v-for="item in toolsMenu" :key="item.label" type="button" class="dropdown-item game-tools-item" role="menuitem" @click="selectTool(item)">
-                <span>{{ item.label }}</span><kbd v-if="item.shortcut">{{ item.shortcut }}</kbd>
-              </button>
-              <span v-if="!toolsMenu.length" class="dropdown-item-text text-muted">No tools</span>
-            </div>
-          </div>
+          <ToolsMenu :key="state" :build="buildToolsMenu" :page-items="toolsPageItems" opens="up" @selected="toolsTick++" />
           <button type="button" class="btn btn-outline-secondary btn-sm" :aria-expanded="devOpen" @click="devOpen = !devOpen"><i class="mdi mdi-code-tags" aria-hidden="true" /> Developer</button>
         </div>
       </div>
+    </div>
+
+    <div v-if="serverError" class="alert alert-warning mb-0" role="alert">
+      <i class="mdi mdi-lan-disconnect" aria-hidden="true" /> The game server does not answer, so the game waits for its rounds' numbers: {{ serverError }}
     </div>
 
     <RngQueueWindow v-if="toolWindows.rngQueue" :manager="toolWindows.rngQueue" :tick="toolsTick" @changed="toolsTick++" />
@@ -606,7 +625,7 @@ onBeforeUnmount(() => {
             <h6>Next round</h6>
             <div class="btn-group-vertical w-100 mb-2">
               <button v-for="preset in presets" :key="preset.name" type="button" :class="['btn', 'btn-sm', live.preset === preset.name ? 'btn-primary' : 'btn-outline-primary']" @click="setPreset(preset)">{{ preset.name }}</button>
-              <button type="button" class="btn btn-sm btn-outline-secondary" :disabled="!live.preset" @click="setPreset(null)">Random (the kernel's numbers)</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" :disabled="!live.preset" @click="setPreset(null)">Random (the game server's numbers)</button>
             </div>
             <h6>Maximum award</h6>
             <div class="btn-group btn-group-sm w-100 mb-2" role="group" aria-label="Maximum award">
@@ -730,29 +749,6 @@ onBeforeUnmount(() => {
 
 .game-panel-gap {
   flex: 1 1 auto;
-}
-
-.game-tools {
-  position: relative;
-}
-
-.game-tools-item {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-
-  kbd {
-    font-size: 0.7rem;
-  }
-}
-
-.game-tools-menu {
-  position: absolute;
-  z-index: 1040;
-  right: 0;
-  bottom: 100%;
-  min-width: 160px;
-  padding: 0.25rem 0;
 }
 
 .game-dev-states {
