@@ -13,7 +13,8 @@ import { TextElement } from '@game/engine/GameVideoCtrl/ViewElements/TextElement
 import { PlaceholderFromTo } from '@game/engine/GameVideoCtrl/ViewElements/TweenyExtend/TweenyExtendElement';
 import { type ICreditBarView, ICreditBarView as ICreditBarViewToken, ICreditBarViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/BarsView.bridge';
 import { NumericBarView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/Components/NumericBarView';
-import { PanelElementsList } from '../PanelElementsList';
+import { PanelLayout } from '../PanelLayout';
+import { GameBackgroundViewToken } from './GameBackgroundView';
 
 const AnimDurationSeconds = 132; // 4s * 0.033f;
 const CreditBarViewId = 'CreditBarView';
@@ -35,11 +36,11 @@ enum EAnimationState {
 }
 
 export class CreditBarView extends NumericBarView<ICreditBarView, ICreditBarViewEvents> implements ICreditBarView {
-  protected readonly m_elementsList = new PanelElementsList();
   private m_animState = EAnimationState.Undefined;
   private m_actionMinimize = new tweeny.tween_action();
   private m_actionMaximize = new tweeny.tween_action();
   private m_showingCredits = true;
+  private readonly m_panelLayout = new PanelLayout(this.m_elementsList);
 
   constructor() {
     super(CreditBarViewId, ICreditBarViewToken, new ICreditBarViewEvents());
@@ -67,6 +68,9 @@ export class CreditBarView extends NumericBarView<ICreditBarView, ICreditBarView
   Process() {
     if (!this.m_control.m_enabled) return;
     super.Process();
+    if (this.m_panelLayout.Update(this.RuntimeTryGetConst(GameBackgroundViewToken)) && this.m_elementsList.IsLoaded()) {
+      this.ApplyPanelLayout();
+    }
   }
 
   Minimize(instant: boolean) {
@@ -75,8 +79,8 @@ export class CreditBarView extends NumericBarView<ICreditBarView, ICreditBarView
     tweeny.stop_and_finish(this.m_actionMinimize);
     tweeny.stop_and_finish(this.m_actionMaximize);
     if (instant) {
-      this.m_elementsList.Find(TextAmountId, TextElement)?.SetFromDummy(this.m_elementsList.Find(TextAmountMinId, TextElement));
-      this.m_elementsList.Find(ImageLabelId, ImageElement)?.SetFromDummy(this.m_elementsList.Find(ImageLabelMinId, ImageElement));
+      this.m_elementsList.Find(this.m_panelLayout.ElementId(TextAmountId), TextElement)?.SetFromDummy(this.m_elementsList.Find(this.m_panelLayout.ElementId(TextAmountMinId), TextElement));
+      this.m_elementsList.Find(this.m_panelLayout.ElementId(ImageLabelId), ImageElement)?.SetFromDummy(this.m_elementsList.Find(this.m_panelLayout.ElementId(ImageLabelMinId), ImageElement));
       this.m_animState = EAnimationState.Minimized;
       this.m_events.minimized.Post();
     } else {
@@ -91,8 +95,8 @@ export class CreditBarView extends NumericBarView<ICreditBarView, ICreditBarView
     tweeny.stop_and_finish(this.m_actionMinimize);
     tweeny.stop_and_finish(this.m_actionMaximize);
     if (instant) {
-      this.m_elementsList.Find(TextAmountId, TextElement)?.SetFromDummy(this.m_elementsList.Find(TextAmountMaxId, TextElement));
-      this.m_elementsList.Find(ImageLabelId, ImageElement)?.SetFromDummy(this.m_elementsList.Find(ImageLabelMaxId, ImageElement));
+      this.m_elementsList.Find(this.m_panelLayout.ElementId(TextAmountId), TextElement)?.SetFromDummy(this.m_elementsList.Find(this.m_panelLayout.ElementId(TextAmountMaxId), TextElement));
+      this.m_elementsList.Find(this.m_panelLayout.ElementId(ImageLabelId), ImageElement)?.SetFromDummy(this.m_elementsList.Find(this.m_panelLayout.ElementId(ImageLabelMaxId), ImageElement));
       this.m_animState = EAnimationState.Maximized;
       this.m_events.maximized.Post();
     } else {
@@ -102,6 +106,11 @@ export class CreditBarView extends NumericBarView<ICreditBarView, ICreditBarView
   }
 
   private OnElementsListLoaded() {
+    this.ApplyPanelLayout();
+  }
+
+  private ApplyPanelLayout() {
+    this.m_panelLayout.Apply();
     this.InitAnimations();
     this.AdjustButtons();
   }
@@ -110,12 +119,12 @@ export class CreditBarView extends NumericBarView<ICreditBarView, ICreditBarView
     tweeny.stop(this.m_actionMinimize);
     tweeny.stop(this.m_actionMaximize);
     const list = this.m_elementsList;
-    const textAmount = list.Find(TextAmountId, TextElement);
-    const amountTextMin = list.Find(TextAmountMinId, TextElement);
-    const amountTextMax = list.Find(TextAmountMaxId, TextElement);
-    const labelImage = list.Find(ImageLabelId, ImageElement);
-    const labelImageMin = list.Find(ImageLabelMinId, ImageElement);
-    const labelImageMax = list.Find(ImageLabelMaxId, ImageElement);
+    const textAmount = list.Find(this.m_panelLayout.ElementId(TextAmountId), TextElement);
+    const amountTextMin = list.Find(this.m_panelLayout.ElementId(TextAmountMinId), TextElement);
+    const amountTextMax = list.Find(this.m_panelLayout.ElementId(TextAmountMaxId), TextElement);
+    const labelImage = list.Find(this.m_panelLayout.ElementId(ImageLabelId), ImageElement);
+    const labelImageMin = list.Find(this.m_panelLayout.ElementId(ImageLabelMinId), ImageElement);
+    const labelImageMax = list.Find(this.m_panelLayout.ElementId(ImageLabelMaxId), ImageElement);
     if (!textAmount || !amountTextMin || !amountTextMax || !labelImage || !labelImageMin || !labelImageMax) return;
 
     this.m_actionMinimize = tweeny.together(
@@ -152,24 +161,24 @@ export class CreditBarView extends NumericBarView<ICreditBarView, ICreditBarView
   }
 
   private AdjustTextAmount() {
-    const textAmount = this.m_elementsList.Find(TextAmountId, TextElement);
+    const textAmount = this.m_elementsList.Find(this.m_panelLayout.ElementId(TextAmountId), TextElement);
     if (!textAmount) return;
     textAmount.SetHidden(!this.m_showingCredits);
     textAmount.SetText(this.RuntimeGetConst(ILocalization).FormatCurrency(this.m_currentValue));
   }
 
   private AdjustButtons() {
-    const hideCreditButton = this.m_elementsList.TryGet(ButtonHideCreditsId, ButtonElement);
+    const hideCreditButton = this.m_elementsList.TryGet(this.m_panelLayout.ElementId(ButtonHideCreditsId), ButtonElement);
     hideCreditButton?.SetHidden(!this.m_showingCredits);
     hideCreditButton?.SetEnabled(this.m_showingCredits);
-    const showCreditButton = this.m_elementsList.TryGet(ButtonShowCreditsId, ButtonElement);
+    const showCreditButton = this.m_elementsList.TryGet(this.m_panelLayout.ElementId(ButtonShowCreditsId), ButtonElement);
     showCreditButton?.SetHidden(this.m_showingCredits);
     showCreditButton?.SetEnabled(!this.m_showingCredits);
   }
 
   HandleTouchDown(x: number, y: number) {
     if (!this.m_elementsList.IsLoaded()) return false;
-    const currentButton = this.m_elementsList.TryGet(this.m_showingCredits ? ButtonHideCreditsId : ButtonShowCreditsId, BaseElement);
+    const currentButton = this.m_elementsList.TryGet(this.m_panelLayout.ElementId(this.m_showingCredits ? ButtonHideCreditsId : ButtonShowCreditsId), BaseElement);
     if (!currentButton) return false;
     const captured = currentButton.HandleTouchDown({ x, y });
     if (captured) {

@@ -69,7 +69,7 @@ onBeforeUnmount(() => {
           <SettingsView v-else-if="ui.view === 'settings'" />
           <ImageStudioView v-else-if="ui.view === 'imageStudio'" />
           <KeepAlive>
-            <GameView v-if="ui.view === 'game'" />
+            <GameView v-if="ui.view === 'game' || ui.view === 'gameTools'" :tools-page="ui.view === 'gameTools'" />
           </KeepAlive>
         </div>
         <AppFooter />

@@ -4,7 +4,7 @@
 import { computed } from 'vue';
 import type { AlphaFamilyMathRngPreset } from '@game/alpha_family/plugins/alpha_family/AlphaFamilyMathRngPreset/AlphaFamilyMathRngPreset';
 import RngPresetMenu from './RngPresetMenu.vue';
-import ToolWindow from './ToolWindow.vue';
+import ToolPanel from './ToolPanel.vue';
 
 const props = defineProps<{ module: AlphaFamilyMathRngPreset; tick: number }>();
 const emit = defineEmits<{ changed: [] }>();
@@ -14,17 +14,13 @@ const roots = computed(() => {
   return props.module.m_data?.GetMenuRoots() ?? [];
 });
 
-function close() {
-  props.module.m_imguiWindowOpen.value = false;
-  emit('changed');
-}
 </script>
 
 <template>
-  <ToolWindow title="RNG Preset" :width="300" :offset="2" @close="close">
+  <ToolPanel title="RNG Preset">
     <nav aria-label="RNG presets">
       <RngPresetMenu v-for="(node, index) in roots" :key="index" :presets="module.m_data!" :node="node" :parent-path="[]" @changed="emit('changed')" />
     </nav>
     <p v-if="!roots.length" class="text-muted mb-0">The game has no RNG presets (DevMathRngPresetConfig).</p>
-  </ToolWindow>
+  </ToolPanel>
 </template>

@@ -8,7 +8,7 @@ import type { SubscreenClick } from '@game/alpha_family/plugins/alpha_family/Alp
 import type { RoundType } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
 import RngPickerSubscreen from './RngPickerSubscreen.vue';
 import RssImage from './RssImage.vue';
-import ToolWindow from './ToolWindow.vue';
+import ToolPanel from './ToolPanel.vue';
 
 const props = defineProps<{ module: AlphaFamilyMathRngTool; tick: number }>();
 const emit = defineEmits<{ changed: [] }>();
@@ -32,14 +32,10 @@ function selectTab(roundType: RoundType) {
   run(() => props.module.m_data?.SelectTab(roundType));
 }
 
-function close() {
-  props.module.m_imguiWindowOpen.value = false;
-  emit('changed');
-}
 </script>
 
 <template>
-  <ToolWindow title="RNG Picker" :offset="3" @close="close">
+  <ToolPanel title="RNG Picker">
     <template v-if="view">
       <ul class="nav nav-tabs rng-picker-tabs" role="tablist">
         <li v-for="tab in view.tabs" :key="tab.roundType" class="nav-item" role="presentation">
@@ -65,7 +61,7 @@ function close() {
         <button type="button" class="btn btn-primary rng-picker-add" @click="run(() => module.m_data?.Add())">Add</button>
       </div>
     </template>
-  </ToolWindow>
+  </ToolPanel>
 </template>
 
 <style scoped lang="scss">

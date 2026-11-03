@@ -2,7 +2,7 @@
 // The Play page: the active workspace's game, played in the browser from the same resources the asset library lists
 // (its asset report) and the game's own descriptors, math and modules config, all read through the backend. The game is
 // a server based game: the backend's game server deals its rounds' random numbers and keeps the RNG Queue
-// (integration/GameServer), which the Game tools page, in another window, changes too.
+// (integration/GameServer). Play and Tools share this instance so navigation keeps the game running.
 //
 // The page is kept while another page of the app shows (App.vue's KeepAlive), and its game plays on, as a game left
 // open does: back on Play, the game is where it is, with the resources changed meanwhile (its views, descriptors and
@@ -29,18 +29,11 @@ import type { GameFsm } from '@game/engine/Game/Fsm/GameFsm';
 import type { InfoViewPages, ViewModule } from '@game/app/GameModules';
 import type { MathExportInput } from '@game/export/MathExporter';
 import { DebugImguiOverlay } from '@game/engine/DebugImguiOverlay/DebugImguiOverlay';
-import { RngPresetManager } from '@game/integration/RngPresetManager/RngPresetManager';
-import RngQueueWindow from './debug/RngQueueWindow.vue';
-import RngQueueUnlockWindow from './debug/RngQueueUnlockWindow.vue';
-import RngPresetWindow from './debug/RngPresetWindow.vue';
-import RngPickerWindow from './debug/RngPickerWindow.vue';
-import AutomationWindow from './debug/AutomationWindow.vue';
-import ToolsMenu, { type PageMenuItem } from './debug/ToolsMenu.vue';
-import { OpenGameToolsWindow } from './debug/GameToolsWindow';
+import GameToolsPanel from './GameToolsPanel.vue';
 import { GameServer } from '@game/integration/GameServer/GameServer';
 import { AutomationManager } from '@game/integration/AutomationManager/AutomationManager';
-import { AlphaFamilyMathRngTool } from '@game/alpha_family/plugins/alpha_family/AlphaFamilyMathRngTool/AlphaFamilyMathRngTool';
-import { AlphaFamilyMathRngPreset } from '@game/alpha_family/plugins/alpha_family/AlphaFamilyMathRngPreset/AlphaFamilyMathRngPreset';
+
+const props = defineProps<{ toolsPage?: boolean }>();
 
 const report = shallowRef<GameAssetReport | null>(null);
 const reportError = ref('');
@@ -56,7 +49,7 @@ const topperOpen = ref(false);
 /** Whether the info screen shows; Info opens it. */
 const infoOpen = ref(false);
 const devOpen = ref(false);
-/** The debug tools' windows (C++'s ImGui windows over the game): redrawn on each page refresh and after their commands. */
+/** Refreshes the tools' panels after game frames and their commands. */
 const toolsTick = ref(0);
 /** Why the game server does not answer, while it does not: the game waits for its rounds' numbers. */
 const serverError = ref('');
@@ -231,46 +224,6 @@ function refreshLive() {
   toolsTick.value++;
 }
 
-/** The tools' open windows: each module keeps whether its window is open (C++'s ImGuiEx::SBool). */
-const toolWindows = computed(() => {
-  void toolsTick.value;
-  const rngQueue = app?.Get(RngPresetManager) ?? null;
-  const rngPreset = app?.Get(AlphaFamilyMathRngPreset) ?? null;
-  const rngPicker = app?.Get(AlphaFamilyMathRngTool) ?? null;
-  const automation = app?.Get(AutomationManager) ?? null;
-  return {
-    automation: automation?.m_imguiWindowOpen.value ? automation : null,
-    rngPicker: rngPicker?.m_imguiWindowOpen.value ? rngPicker : null,
-    rngPreset: rngPreset?.m_imguiWindowOpen.value ? rngPreset : null,
-    rngQueue: rngQueue?.m_imguiWindowOpen.value ? rngQueue : null,
-    rngQueueUnlock: rngQueue?.m_imguiUnlockWindowOpen.value ? rngQueue : null,
-  };
-});
-
-/** The Tools menu's items, as the tools add them when the debug overlay draws its main menu bar. */
-function buildToolsMenu() {
-  return app?.Get(DebugImguiOverlay)?.GetMainMenuBar().Menu('Tools') ?? [];
-}
-
-/** Tools › Open in a new window: the Game tools page, whose tools change the game server's RNG Queue, which this game
- * plays from, without covering the game. The RNG tools' windows over the game close (the automation plays the game, so
- * it stays here). */
-function openToolsWindow() {
-  if (!OpenGameToolsWindow()) {
-    notify('The browser blocked the tools\' window: allow this page to open pop-up windows.', true);
-    return;
-  }
-  const rngQueue = app?.Get(RngPresetManager);
-  for (const flag of [rngQueue?.m_imguiWindowOpen, rngQueue?.m_imguiUnlockWindowOpen, app?.Get(AlphaFamilyMathRngPreset)?.m_imguiWindowOpen,
-    app?.Get(AlphaFamilyMathRngTool)?.m_imguiWindowOpen]) {
-    if (flag) flag.value = false;
-  }
-  toolsTick.value++;
-}
-
-/** Under the Tools menu's items: where else the tools show. */
-const toolsPageItems: PageMenuItem[] = [{ label: 'Open in a new window', icon: 'mdi-open-in-new', select: openToolsWindow }];
-
 async function start() {
   if (app || !canvas.value || !project.value) return;
   state.value = 'starting';
@@ -381,8 +334,10 @@ function onKeydown(event: KeyboardEvent) {
     event.preventDefault();
     shortcut.action();
     toolsTick.value++;
+    if (app?.Get(AutomationManager)?.m_imguiWindowOpen.value) navigate('gameTools');
     return;
   }
+  if (props.toolsPage) return;
   if (document.querySelector('.modal.show')) return;
   const name = KEYS[event.key];
   if (!name) return;
@@ -543,12 +498,12 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <PageHeader :title="project ? `Play ${project.workspace.name}` : 'Play'">
+  <PageHeader :title="toolsPage ? 'Tools' : project ? `Play ${project.workspace.name}` : 'Play'">
     <template #links>
-      <li><span>The game in the browser, from the asset library's resources</span></li>
+      <li><span>{{ toolsPage ? 'RNG tools and automation for the current game' : "The game in the browser, from the asset library’s resources" }}</span></li>
     </template>
     <template #links-right>
-      <li v-if="state === 'running'"><span>Credit {{ formatCredit(live.credit) }}</span></li>
+      <li v-if="state === 'running' && !toolsPage"><span>Credit {{ formatCredit(live.credit) }}</span></li>
     </template>
   </PageHeader>
 
@@ -582,7 +537,12 @@ onBeforeUnmount(() => {
     <button type="button" class="btn btn-outline-danger btn-sm ml-2" @click="load">Restart</button>
   </div>
 
-  <div v-show="state === 'starting' || state === 'running'" class="game-page">
+  <div v-show="toolsPage">
+    <GameToolsPanel v-if="state === 'running' && app" :app="app" :tick="toolsTick" @changed="toolsTick++" />
+  </div>
+  <p v-if="toolsPage && state === 'starting'" class="text-muted"><i class="mdi mdi-loading mdi-spin" aria-hidden="true" /> Loading the game’s tools…</p>
+
+  <div v-show="!toolsPage && (state === 'starting' || state === 'running')" class="game-page">
     <div class="card game-card">
       <div class="card-body p-0">
         <div ref="stage" class="game-stage">
@@ -600,7 +560,6 @@ onBeforeUnmount(() => {
           <button type="button" class="btn btn-outline-secondary btn-sm" title="Full screen" aria-label="Full screen" @click="fullscreen"><i class="mdi mdi-fullscreen" aria-hidden="true" /></button>
           <button type="button" class="btn btn-outline-secondary btn-sm" :aria-expanded="infoOpen" title="The cabinet's info screen, with the help pages" @click="infoOpen = !infoOpen"><i class="mdi mdi-monitor" aria-hidden="true" /> Info screen</button>
           <button type="button" class="btn btn-outline-secondary btn-sm" :aria-expanded="topperOpen" title="The cabinet's topper screen" @click="topperOpen = !topperOpen"><i class="mdi mdi-monitor-shimmer" aria-hidden="true" /> Topper</button>
-          <ToolsMenu :key="state" :build="buildToolsMenu" :page-items="toolsPageItems" opens="up" @selected="toolsTick++" />
           <button type="button" class="btn btn-outline-secondary btn-sm" :aria-expanded="devOpen" @click="devOpen = !devOpen"><i class="mdi mdi-code-tags" aria-hidden="true" /> Developer</button>
         </div>
       </div>
@@ -609,12 +568,6 @@ onBeforeUnmount(() => {
     <div v-if="serverError" class="alert alert-warning mb-0" role="alert">
       <i class="mdi mdi-lan-disconnect" aria-hidden="true" /> The game server does not answer, so the game waits for its rounds' numbers: {{ serverError }}
     </div>
-
-    <RngQueueWindow v-if="toolWindows.rngQueue" :manager="toolWindows.rngQueue" :tick="toolsTick" @changed="toolsTick++" />
-    <AutomationWindow v-if="toolWindows.automation" :manager="toolWindows.automation" :tick="toolsTick" @changed="toolsTick++" />
-    <RngPickerWindow v-if="toolWindows.rngPicker" :module="toolWindows.rngPicker" :tick="toolsTick" @changed="toolsTick++" />
-    <RngPresetWindow v-if="toolWindows.rngPreset" :module="toolWindows.rngPreset" :tick="toolsTick" @changed="toolsTick++" />
-    <RngQueueUnlockWindow v-if="toolWindows.rngQueueUnlock" :manager="toolWindows.rngQueueUnlock" :tick="toolsTick" @changed="toolsTick++" />
 
     <div v-show="topperOpen" class="card game-card game-info-card">
       <div class="card-body p-0">

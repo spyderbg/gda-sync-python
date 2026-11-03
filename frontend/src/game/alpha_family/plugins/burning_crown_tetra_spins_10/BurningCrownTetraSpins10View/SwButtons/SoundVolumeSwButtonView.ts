@@ -5,11 +5,13 @@
 import { IAudioApi } from '@game/engine/Game/RuntimeImport/IAudioApi';
 import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
 import * as tweeny from '@game/hat_libs/tweeny/tweeny';
+import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
 import { ButtonElement } from '@game/engine/GameVideoCtrl/ViewElements/ButtonElement';
 import { IButtonViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IControlView';
 import { ESoundSwButtonType, ISoundVolumeSwButtonView } from '@game/alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge';
 import { ButtonView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/Components/ButtonView';
-import { PanelElementsList } from '../PanelElementsList';
+import { PanelLayout } from '../PanelLayout';
+import { GameBackgroundViewToken } from '../Views/GameBackgroundView';
 
 const SoundVolumeSwButtonViewId = 'SoundVolumeSwButtonView';
 const ButtonVolumeMuteId = 'button_volume_mute';
@@ -26,7 +28,7 @@ enum ESoundVolumePresentingState {
 }
 
 export class SoundVolumeSwButtonView extends ButtonView implements ISoundVolumeSwButtonView {
-  protected readonly m_elementsList = new PanelElementsList();
+  private readonly m_panelLayout = new PanelLayout(this.m_elementsList);
   private m_presentingState = ESoundVolumePresentingState.Idle;
   private m_currentVolume = 0;
   private m_oldVolume = -1;
@@ -50,6 +52,19 @@ export class SoundVolumeSwButtonView extends ButtonView implements ISoundVolumeS
 
   Process() {
     super.Process();
+    if (this.m_panelLayout.Update(this.RuntimeTryGetConst(GameBackgroundViewToken)) && this.m_elementsList.IsLoaded()) {
+      this.ApplyPanelLayout();
+    }
+  }
+
+  Draw(drawList: DrawList) {
+    if (this.IsHiddenByLayout()) return;
+    super.Draw(drawList);
+  }
+
+  HandleTouchDown(x: number, y: number) {
+    if (this.IsHiddenByLayout()) return false;
+    return super.HandleTouchDown(x, y);
   }
 
   SetCurrentVolume(volume: number) {
@@ -62,7 +77,6 @@ export class SoundVolumeSwButtonView extends ButtonView implements ISoundVolumeS
   SetButtonType(type: ESoundSwButtonType) {
     if (type === this.m_buttonType) return;
     this.m_buttonType = type;
-    this.ReloadElementsList();
   }
 
   SimulateButtonPress() {
@@ -74,7 +88,7 @@ export class SoundVolumeSwButtonView extends ButtonView implements ISoundVolumeS
 
   private OnElementsListLoaded() {
     this.InitAnimations();
-    this.AdjustButtons();
+    this.ApplyPanelLayout();
   }
 
   private InitAnimations() {
@@ -88,12 +102,17 @@ export class SoundVolumeSwButtonView extends ButtonView implements ISoundVolumeS
     });
   }
 
+  private ApplyPanelLayout() {
+    this.m_panelLayout.Apply();
+    this.AdjustButtons();
+  }
+
   private AdjustButtons() {
     if (this.m_presentingState !== ESoundVolumePresentingState.Idle) return;
     const presetCount = this.RuntimeGetConst(IAudioApi).GetVolumePresetCount();
     if (presetCount === 0) {
       for (const buttonId of ButtonVolumeIds) {
-        const button = this.m_elementsList.Get(buttonId, ButtonElement);
+        const button = this.m_elementsList.Get(this.m_panelLayout.ElementId(buttonId), ButtonElement);
         button.SetEnabled(false);
         button.SetHidden(true);
       }
@@ -103,7 +122,7 @@ export class SoundVolumeSwButtonView extends ButtonView implements ISoundVolumeS
     const maxButtonIndex = ButtonVolumeIds.length - 1;
     const buttonIndex = Math.min(Math.max(maxButtonIndex - maxPresetIndex + this.m_currentVolume, 0), maxButtonIndex);
     for (let idx = 0; idx <= maxButtonIndex; ++idx) {
-      const buttonId = ButtonVolumeIds[idx];
+      const buttonId = this.m_panelLayout.ElementId(ButtonVolumeIds[idx]);
       const button = this.m_elementsList.Get(buttonId, ButtonElement);
       if (idx === buttonIndex) {
         button.SetEnabled(true);
@@ -114,5 +133,10 @@ export class SoundVolumeSwButtonView extends ButtonView implements ISoundVolumeS
         button.SetHidden(true);
       }
     }
+  }
+
+  /** The layout's JSON hides the buttons (Tetra's): the view draws nothing and takes no touch. */
+  private IsHiddenByLayout() {
+    return this.m_elementsList.IsLoaded() && !this.m_panelLayout.IsShown(this.m_buttonId);
   }
 }

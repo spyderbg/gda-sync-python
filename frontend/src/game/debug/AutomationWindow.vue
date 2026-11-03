@@ -7,7 +7,7 @@ import { AutomationMode } from '@game/integration/Runtime/IAutomationManager';
 import {
   type AutomationManager, MaxGenerateCount, SeedMode, SeedModeLabels, StrategyLabels, ViewModeLabels,
 } from '@game/integration/AutomationManager/AutomationManager';
-import ToolWindow from './ToolWindow.vue';
+import ToolPanel from './ToolPanel.vue';
 
 const props = defineProps<{ manager: AutomationManager; tick: number }>();
 const emit = defineEmits<{ changed: [] }>();
@@ -68,7 +68,7 @@ function close() {
 </script>
 
 <template>
-  <ToolWindow title="Automation" :width="420" :offset="4" @close="close">
+  <ToolPanel title="Automation" closable @close="close">
     <div class="automation-section">Game Clock</div>
     <div class="automation-row">
       <button type="button" class="btn btn-outline-secondary btn-sm" :disabled="!state.pause" @click="run(() => manager.TogglePause())">{{ state.pause?.held ? 'Resume' : 'Pause' }}</button>
@@ -147,7 +147,7 @@ function close() {
         <span v-if="state.gameInProgress" class="text-muted">Note: requires idle!</span>
       </div>
     </fieldset>
-  </ToolWindow>
+  </ToolPanel>
 </template>
 
 <style scoped lang="scss">

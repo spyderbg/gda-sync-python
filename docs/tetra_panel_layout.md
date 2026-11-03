@@ -6,11 +6,17 @@ element with the same ID followed by `_tetra`. For example, `text_bet_amount`
 and `text_bet_amount_tetra` each declare their own position, scale, alignment,
 and resource keys. No layout offsets are calculated in the view code.
 
-The Burning Crown plugin's `PanelElementsList` selects the binding and draws
-only the matching pair for the background mode. Existing balance updates,
-credit privacy, win labels, and button events use that binding. A mode change
-reloads the bindings and credit animations. Unpaired elements stay shared for
-compatibility with existing workspace views.
+Each affected view keeps a `PanelLayout` (the Burning Crown plugin's
+`PanelLayout.ts`, ported to C++ as `PanelLayout.h/.cpp`) beside its ordinary
+elements list. It follows `GameBackgroundView`'s layout, which the views reach
+through its own runtime token. The view asks it for the element to bind
+(`ElementId`: the `_tetra` alternate in Tetra, where the JSON has one), and
+`Apply` hides the other layout's element of each pair. Existing balance
+updates, credit privacy, win labels, and button events use that binding. When
+the layout changes, each view applies it again in `Process`: it rebinds its
+buttons and rebuilds its credit animations. Unpaired elements stay shared for
+compatibility with existing workspace views. Nothing here needs the shared
+libraries changed: `ElementsList` and `BaseView` are used as they are.
 
 The affected views are Default/Truserv credit, bet, win, Home, Info, bet arrows,
 sound, and language. The sound and language Tetra copies have `hidden: true`

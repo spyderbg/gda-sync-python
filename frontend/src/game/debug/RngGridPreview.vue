@@ -58,6 +58,10 @@ const CellSize = 18;
   line-height: 18px;
   text-align: center;
   white-space: nowrap;
+
+  &:has(> .rng-grid-image[data-loaded='true']) {
+    color: transparent;
+  }
 }
 
 .rng-grid-sector {

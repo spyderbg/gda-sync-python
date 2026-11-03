@@ -4,11 +4,12 @@
 import { CountdownTimer } from '@game/engine/Game/Utils/CountdownTimer';
 import { IAudioApi } from '@game/engine/Game/RuntimeImport/IAudioApi';
 import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
-import { IExitGameSwButtonView, IExitGameSwButtonViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge';
-import { ButtonView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/Components/ButtonView';
-import { PanelElementsList } from '../PanelElementsList';
 import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
 import { ButtonElement } from '@game/engine/GameVideoCtrl/ViewElements/ButtonElement';
+import { IExitGameSwButtonView, IExitGameSwButtonViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge';
+import { ButtonView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/Components/ButtonView';
+import { PanelLayout } from '../PanelLayout';
+import { GameBackgroundViewToken } from '../Views/GameBackgroundView';
 
 const ExitGameSwButtonViewId = 'ExitGameSwButtonView';
 const ButtonExitGameId = 'button_exit_game';
@@ -22,9 +23,9 @@ enum EExitPresentingState {
 }
 
 export class ExitGameSwButtonView extends ButtonView<IExitGameSwButtonViewEvents> {
-  protected readonly m_elementsList = new PanelElementsList();
   protected m_presentingState = EExitPresentingState.Idle;
   protected m_exitTimer = new CountdownTimer();
+  private readonly m_panelLayout = new PanelLayout(this.m_elementsList);
 
   constructor() {
     super(ExitGameSwButtonViewId, IExitGameSwButtonView, new IExitGameSwButtonViewEvents());
@@ -32,7 +33,7 @@ export class ExitGameSwButtonView extends ButtonView<IExitGameSwButtonViewEvents
 
   Init(runtime: Runtime) {
     super.Init(runtime);
-    this.InitElementsList(ExitGameSwButtonViewId, () => this.SetButtonId(ButtonExitGameId));
+    this.InitElementsList(ExitGameSwButtonViewId, () => this.ApplyPanelLayout());
     return true;
   }
 
@@ -43,6 +44,9 @@ export class ExitGameSwButtonView extends ButtonView<IExitGameSwButtonViewEvents
 
   Process() {
     super.Process();
+    if (this.m_panelLayout.Update(this.RuntimeTryGetConst(GameBackgroundViewToken)) && this.m_elementsList.IsLoaded()) {
+      this.ApplyPanelLayout();
+    }
     if (this.m_presentingState === EExitPresentingState.InProgress && this.m_exitTimer.IsExpired()) {
       this.m_events.exitPresentingFinished.Post();
       this.m_presentingState = EExitPresentingState.Finished;
@@ -60,19 +64,30 @@ export class ExitGameSwButtonView extends ButtonView<IExitGameSwButtonViewEvents
   }
 
   ReloadElementsList() {
-    if (this.IsVisible() || !this.m_elementsList.IsTetraLayout()) { super.ReloadElementsList(); return; }
-    // Tetra draws Home even when the state hides its exit control.
+    if (this.IsVisible() || !this.m_panelLayout.IsTetra()) {
+      super.ReloadElementsList();
+      return;
+    }
+    // Tetra draws Home while the state hides it (Draw), so its elements reload while it is hidden too
     if (this.m_elementsList.UpdateFromResource()) return;
     this.DeinitElementsList();
-    this.InitElementsList(ExitGameSwButtonViewId, () => this.SetButtonId(ButtonExitGameId));
+    this.InitElementsList(ExitGameSwButtonViewId, () => this.ApplyPanelLayout());
   }
 
   Draw(drawList: DrawList) {
-    if (!this.m_elementsList.IsTetraLayout()) { super.Draw(drawList); return; }
-    // The reference keeps Home drawn; the state machine still prevents leaving
-    // the game while the Tetra match is open.
-    const button = this.m_elementsList.Get(ButtonExitGameId, ButtonElement);
-    button.SetHidden(false).SetEnabled(false);
+    if (!this.m_panelLayout.IsTetra() || !this.m_elementsList.IsLoaded()) {
+      super.Draw(drawList);
+      return;
+    }
+    // Tetra's artwork keeps Home drawn, though disabled: the state machine does not let the Tetra match exit
+    const button = this.m_elementsList.Get(this.m_panelLayout.ElementId(ButtonExitGameId), ButtonElement);
+    button.SetHidden(false);
+    button.SetEnabled(false);
     this.m_elementsList.Draw(drawList);
+  }
+
+  private ApplyPanelLayout() {
+    this.m_panelLayout.Apply();
+    this.SetButtonId(this.m_panelLayout.ElementId(ButtonExitGameId));
   }
 }

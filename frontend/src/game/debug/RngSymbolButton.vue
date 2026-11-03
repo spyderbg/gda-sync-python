@@ -37,6 +37,10 @@ const emit = defineEmits<{ press: [event: MouseEvent] }>();
     opacity: 0.6;
     cursor: default;
   }
+
+  &:has(> .rng-symbol-image[data-loaded='true']) .rng-symbol-text {
+    visibility: hidden;
+  }
 }
 
 .rng-symbol-text {

@@ -5,8 +5,10 @@ up to date with the game's C++ (`games/game/alpha_family/plugins/<plugin>/src/Eg
 any game that is already ported. The alpha_family libraries and `hat_libs`, which every game shares, have their own
 document, [library_sync.md](library_sync.md). Use it together with this one when the libraries changed too.
 
-The direction is C++ → TypeScript. The opposite direction, the export, is in `frontend/src/game/README.md` ("Adding a
-game or a feature", step 5).
+The direction is C++ → TypeScript. The opposite direction is [game_sync_to_cpp.md](game_sync_to_cpp.md)
+(`/game-sync-to-cpp <plugin>`). It ports a game's TypeScript changes into its C++ plugin in the games repository, and
+touches nothing outside it. The export to an export folder is in `frontend/src/game/README.md` ("Adding a game or a
+feature", step 5).
 
 In Claude Code, `/game-sync <plugin>` (`.claude/commands/game-sync.md`) works out the inputs below and follows this
 document.

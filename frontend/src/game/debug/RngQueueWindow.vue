@@ -7,7 +7,7 @@ import {
   type RngPresetManager, RngPresetManager as Manager, type RngQueueRow, RngQueueDataColumnCount, RngQueueTooltipContentCount,
 } from '@game/integration/RngPresetManager/RngPresetManager';
 import RngGridPreview from './RngGridPreview.vue';
-import ToolWindow from './ToolWindow.vue';
+import ToolPanel from './ToolPanel.vue';
 
 const props = defineProps<{ manager: RngPresetManager; tick: number }>();
 const emit = defineEmits<{ changed: [] }>();
@@ -66,14 +66,10 @@ function showTooltip(row: RngQueueRow, event: MouseEvent) {
   hover.value = { row, x: event.clientX + 14, y: event.clientY + 14 };
 }
 
-function close() {
-  props.manager.m_imguiWindowOpen.value = false;
-  emit('changed');
-}
 </script>
 
 <template>
-  <ToolWindow title="RNG Queue" :width="560" :offset="0" @close="close">
+  <ToolPanel title="RNG Queue">
     <div class="rng-queue-commands">
       <button type="button" class="btn btn-outline-secondary btn-sm" @click="run(() => manager.DeleteAllOverrideRngs())">Clear All</button>
       <button type="button" class="btn btn-outline-secondary btn-sm" @click="copyRngs">Copy Rngs</button>
@@ -143,7 +139,7 @@ function close() {
       <RngGridPreview v-if="'preview' in tooltip" :preview="tooltip.preview" />
       <span v-else>{{ tooltip.text }}</span>
     </div>
-  </ToolWindow>
+  </ToolPanel>
 </template>
 
 <style scoped lang="scss">

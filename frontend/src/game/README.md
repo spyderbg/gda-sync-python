@@ -58,8 +58,8 @@ The folders mirror the C++ ones, and the classes keep their C++ names and method
 | `alpha_family/libs/AlphaFamilyMathToolUtils` | `alpha_family/libs/src/Egt/AlphaFamilyMathToolUtils` (ResultToRng, RulesHelper: the RNG numbers of a wanted result) |
 | `integration/AlphaFamilyGameflow` | `integration/libs/src/Egt/AlphaFamilyGameflow` |
 | `integration/RngPresetManager`, `integration/AutomationManager`, `integration/Runtime` | `integration/plugins/src/Egt/RngPresetManager`, `AutomationManager` (the RNG Queue, the Automation window) and `integration/libs/src/Egt/Integration/Runtime` (their interfaces, IGameflowIntegration, IPauseControl) |
-| `integration/GameServer` | no counterpart: the game server's client (`GameServer`), the Play page's `GameEventsRelay` and the Game tools page's `RemoteGame` (below) |
-| `engine/DebugImguiOverlay`, `engine/ImGuiEx`, `debug/` | `Egt/DebugImguiOverlay`, `Egt/ImGuiEx`: the debug overlay's Tools menu; `debug/` are the tools' ImGui windows, in Vue, over the game or on the Game tools page (`GameToolsPage.vue`) |
+| `integration/GameServer` | no counterpart: the game server's client (`GameServer`) and the Play page's `GameEventsRelay` |
+| `engine/DebugImguiOverlay`, `engine/ImGuiEx`, `debug/` | `Egt/DebugImguiOverlay`, `Egt/ImGuiEx`: debug shortcuts and settings; `debug/` contains the Vue panels on the Tools page (`GameToolsPanel.vue`) |
 | `integration/BrowserKernel` | the kernel integrations (playground, hat...): wallet, limits, localization, hardware buttons |
 | `app/GameApp.ts`, `app/ModuleRegistry.ts` | the ModuleManager and the plugins it loads |
 | `authoring/`, `export/` | no counterpart: the math description and the C++ export (below) |
@@ -130,15 +130,11 @@ wheel, or a win.
   window of the game's tools reads the server's queue a few times a second and changes it by its sequences' ids, so
   each window shows and changes the same queue.
 
-  **Tools › Open in a new window** opens the Game tools page (`/game-tools`, `GameToolsPage.vue`) in a browser window
-  of its own, beside the game or on another screen, and closes the RNG tools' windows over the game. The page can also
-  be opened at its address in any window or tab. It plays nothing: it loads the game's resources and math module and
-  the RNG Queue, RNG Presets and RNG Picker (`GameApp.StartTools`), whose changes go to the server's queue, which the game
-  plays from. The Play page tells the server what the RNG Picker's Tab Sync follows (`GameEventsRelay`: a round
-  starting or ended and the round played next, the buttons that enter the wheel and the gamble). The tools page posts
-  it there (`RemoteGame`), so its Tab Sync shows the round the game plays next. The tools page takes no part in a round.
-  Its windows open, close and keep their places apart from the game's (`SetSettingsScope`), and the window opens where
-  and as large as it was when it last closed. The Automation plays the game, so it stays on the Play page.
+  **Game › Tools**, directly after Play in navigation, shows the RNG Queue, RNG Preset and RNG Picker as permanent
+  panels. Automation opens and closes on demand using its button or Ctrl+A. Play and Tools use the same `GameView`
+  instance and game runtime: switching pages keeps the game, queue and automation intact. Normal game shortcuts
+  are inactive on Tools, so Enter/Space and arrows can be used in the tools without operating the cabinet.
+  Existing `/game-tools` bookmarks open this navigation page. No tool opens a popup window.
 - The game goes on while another page of the app shows (App.vue keeps the Play page, `KeepAlive`), as a game left
   open does: its rounds, autoplay and sounds play on, and only its screen is not drawn. Back on **Play**, it is where it
   is, with the resources changed meanwhile, which reload as below. It starts anew after its Exit button, which ends it,

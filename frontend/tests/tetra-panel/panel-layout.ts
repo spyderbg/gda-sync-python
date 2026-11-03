@@ -11,7 +11,9 @@ import { EBackgroundType } from '@game/alpha_family/libs/AlphaFamily/Views/IOver
 import { EWinBarState } from '@game/alpha_family/libs/AlphaFamily/Views/BarsView.bridge';
 import { IInfoSwButtonView } from '@game/alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge';
 import type { BaseView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/BaseView';
-import { PanelElementsList } from '@game/alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/PanelElementsList';
+import { BaseElement } from '@game/engine/GameVideoCtrl/ViewElements/BaseElement';
+import { ElementsList } from '@game/engine/GameVideoCtrl/ViewElements/ElementsList';
+import { PanelLayout } from '@game/alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/PanelLayout';
 import { GameBackgroundView } from '@game/alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Views/GameBackgroundView';
 import { CreditBarView } from '@game/alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Views/CreditBarView';
 import { BetBarView } from '@game/alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Views/BetBarView';
@@ -54,9 +56,12 @@ export function run(layouts: Record<string, ElementsListData>) {
   const language = new LanguageSwButtonView();
   const views = [credit, bet, win, info, home, sound, language, new BetUpSwButtonView()];
   views.forEach(view => view.Init(runtime));
-  const list = (view: BaseView) => (view as unknown as { m_elementsList: PanelElementsList }).m_elementsList;
+  const list = (view: BaseView) => (view as unknown as { m_elementsList: ElementsList }).m_elementsList;
+  const layout = (view: BaseView) => (view as unknown as { m_panelLayout: PanelLayout }).m_panelLayout;
+  // The element a view binds for an id in its current layout.
+  const bound = <T extends BaseElement = BaseElement>(view: BaseView, id: string, Type?: new () => T) => list(view).Get(layout(view).ElementId(id), Type);
   const point = (view: BaseView, id: string) => {
-    const area = list(view).Get(id, ButtonElement).GetTouchArea();
+    const area = bound(view, id, ButtonElement).GetTouchArea();
     return { x: area.x + area.w / 2, y: area.y + area.h / 2 };
   };
   const click = (view: BaseView, p: Point) => {
@@ -92,7 +97,7 @@ export function run(layouts: Record<string, ElementsListData>) {
     for (const view of views) {
       const source = layouts[view.GetName()];
       for (const item of source.elements.filter(item => !item.id?.endsWith('_tetra'))) {
-        const active = list(view).Get(item.id!);
+        const active = bound(view, item.id!);
         equal(active.GetId(), item.id + suffix, 'bind the matching real element');
         const authored = source.elements.find(candidate => candidate.id === item.id + suffix)!;
         equal(active.GetPosition(), authored.position, 'use the JSON position without offsets');
@@ -101,10 +106,10 @@ export function run(layouts: Record<string, ElementsListData>) {
       const ids = draw(view);
       check(ids.every(id => id.endsWith('_tetra') === tetra), 'draw only the active layout');
     }
-    equal(list(credit).Get('text_amount', TextElement).GetText(), '12345', 'credit follows the active binding');
-    equal(list(bet).Get('text_bet_amount', TextElement).GetText(), '250', 'bet follows the active binding');
-    equal(list(win).Get('text_win_amount', TextElement).GetText(), '6789', 'win follows the active binding');
-    equal(list(win).Get('image_win_label', ImageElement).GetSelectedImage(), EWinBarState.WinnerPaid, 'win label state survives switching');
+    equal(bound(credit, 'text_amount', TextElement).GetText(), '12345', 'credit follows the active binding');
+    equal(bound(bet, 'text_bet_amount', TextElement).GetText(), '250', 'bet follows the active binding');
+    equal(bound(win, 'text_win_amount', TextElement).GetText(), '6789', 'win follows the active binding');
+    equal(bound(win, 'image_win_label', ImageElement).GetSelectedImage(), EWinBarState.WinnerPaid, 'win label state survives switching');
     if (tetra) check(!click(info, mainInfo), 'inactive main Info does not take input');
     const before = pressed;
     check(click(info, point(info, 'button_info')), 'active Info takes input');
@@ -124,7 +129,7 @@ export function run(layouts: Record<string, ElementsListData>) {
   background.SetBackgroundType(EBackgroundType.Tetra);
   views.forEach(view => view.Process());
   check(!tweeny.is_running(oldAnimation), 'switching releases the old layout animation');
-  equal(list(credit).Get('text_amount').GetPosition(), list(credit).Get('text_amount_min').GetPosition(), 'credit animation settles at the Tetra JSON position');
+  equal(bound(credit, 'text_amount').GetPosition(), bound(credit, 'text_amount_min').GetPosition(), 'credit animation settles at the Tetra JSON position');
   background.SetBackgroundType(EBackgroundType.Main);
   views.forEach(view => view.Process());
   credit.Maximize(true);
@@ -145,12 +150,12 @@ export function run(layouts: Record<string, ElementsListData>) {
   const homeAlternate = layouts.ExitGameSwButtonView.elements.find(item => item.id === 'button_exit_game_tetra')!;
   homeAlternate.position = { x: 329, y: 949 };
   home.ReloadElementsList();
-  equal(list(home).Get('button_exit_game').GetPosition(), homeAlternate.position, 'visible Tetra Home reloads JSON while the exit control is hidden');
+  equal(bound(home, 'button_exit_game').GetPosition(), homeAlternate.position, 'visible Tetra Home reloads JSON while the exit control is hidden');
 
   const alternate = layouts.InfoSwButtonView.elements.find(item => item.id === 'button_info_tetra')!;
   alternate.position = { x: 721, y: 843 };
   info.ReloadElementsList();
-  equal(list(info).Get('button_info').GetPosition(), alternate.position, 'a JSON edit directly changes Tetra placement');
+  equal(bound(info, 'button_info').GetPosition(), alternate.position, 'a JSON edit directly changes Tetra placement');
   check(click(info, point(info, 'button_info')), 'input follows the edited JSON position');
   background.SetBackgroundType(EBackgroundType.Main);
   home.SetVisible(true);
@@ -158,18 +163,22 @@ export function run(layouts: Record<string, ElementsListData>) {
   views.forEach(view => view.Process());
   equal(point(info, 'button_info'), mainInfo, 'Tetra edits leave main placement unchanged');
   check(draw(home).includes('button_exit_game'), 'main Home is restored');
-  check(list(home).Get('button_exit_game', ButtonElement).IsEnabled(), 'main Home is enabled again');
-  equal(list(credit).Get('text_amount').GetPosition(), mainCredit.GetElementData().position, 'credit tweens remain attached to the main layout');
+  check(bound(home, 'button_exit_game', ButtonElement).IsEnabled(), 'main Home is enabled again');
+  equal(bound(credit, 'text_amount').GetPosition(), mainCredit.GetElementData().position, 'credit tweens remain attached to the main layout');
 
   // Older resource sets with no paired elements keep the normal shared binding.
   layouts.Legacy = { name: 'Legacy', elements: [{ id: 'shared', type: 'Image', position: { x: 19, y: 23 } }] };
-  const legacy = new PanelElementsList();
-  legacy.Init(runtime, 'Legacy');
-  legacy.LoadFromResource();
+  const legacyList = new ElementsList();
+  legacyList.Init(runtime, 'Legacy');
+  legacyList.LoadFromResource();
+  const legacy = new PanelLayout(legacyList);
   background.SetBackgroundType(EBackgroundType.Tetra);
-  equal(legacy.Get('shared').GetPosition(), { x: 19, y: 23 }, 'unpaired legacy elements remain usable');
+  check(legacy.Update(background) && legacy.IsTetra(), 'the layout follows the background');
+  legacy.Apply();
+  equal(legacyList.Get(legacy.ElementId('shared')).GetPosition(), { x: 19, y: 23 }, 'unpaired legacy elements remain usable');
+  check(legacyList.Get('shared').IsVisible(), 'unpaired legacy elements stay shown in Tetra');
   views.forEach(view => view.Deinit());
-  legacy.Deinit();
+  legacyList.Deinit();
   background.Deinit();
   return checks;
 }
