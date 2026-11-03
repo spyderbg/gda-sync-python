@@ -3,7 +3,12 @@
 // (its asset report) and the game's own descriptors, math and modules config, all read through the backend. The game is
 // a server based game: the backend's game server deals its rounds' random numbers and keeps the RNG Queue
 // (integration/GameServer), which the Game tools page, in another window, changes too.
-import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from 'vue';
+//
+// The page is kept while another page of the app shows (App.vue's KeepAlive), and its game plays on, as a game left
+// open does: back on Play, the game is where it is, with the resources changed meanwhile (its views, descriptors and
+// IData reload as they change). It starts anew after the Exit button, which ends it, after another workspace becomes
+// the active one, and after it failed.
+import { computed, nextTick, onActivated, onBeforeUnmount, onDeactivated, onMounted, reactive, ref, shallowRef, watch } from 'vue';
 import PageHeader from '../components/PageHeader.vue';
 import { api, config, navigate, notify, openGameExport, openGameSource, session } from '../workspace';
 import { GameApp } from '@game/app/GameApp';
@@ -83,6 +88,12 @@ let importTimer: number | undefined;
 /** Whether the export translates all the game's views from TypeScript, not only those changed in the browser. */
 const exportAllViews = ref(false);
 let app: GameApp | null = null;
+/** Whether the page shows (it is kept while another page of the app shows). */
+let shown = false;
+/** Whether the game starts anew when the page shows: it has not started yet, or it ended while the page was away. */
+let needsLoad = true;
+/** Whether the game's Exit button left the game: it ends once the page has gone. */
+let exited = false;
 
 /** A transition as the developer panel shows it, like the C++ GameFsmViewer: the active leaf state before and after,
  * and the function that asked for it on its state. */
@@ -284,7 +295,7 @@ async function start() {
   try {
     await app.Start({
       canvas: canvas.value, infoCanvas: infoCanvas.value, topperCanvas: topperCanvas.value, project: project.value, report: report.value,
-      kernel: { minBet: 0, onExit: () => navigate('library') }, server,
+      kernel: { minBet: 0, onExit: exitGame }, server,
     });
     state.value = 'running';
     refreshLive();
@@ -300,10 +311,19 @@ function stop() {
   app?.Stop();
   app = null;
   serverError.value = '';
+  // what the page showed of the game that ended (the page is kept, so it is not made anew for the next game)
+  Object.assign(live, { states: [], transitions: [], match: null, preset: '', history: [], infoPage: '', images: '' });
   toolsTick.value++;
 }
 
+/** The game's Exit button (the application control's ExitGracefully): back to the asset library, which ends the game. */
+function exitGame() {
+  exited = true;
+  navigate('library');
+}
+
 async function load() {
+  needsLoad = false;
   stop();
   state.value = 'loading';
   error.value = '';
@@ -482,16 +502,42 @@ async function portExportChanges() {
 }
 
 watch(() => config.value?.defaultWorkspace, (workspace, previous) => {
-  if (previous !== undefined && workspace !== previous) void load();
+  if (previous === undefined || workspace === previous) return;
+  // another workspace's game: now, or when the page shows again
+  if (shown) {
+    void load();
+  } else {
+    stop();
+    needsLoad = true;
+  }
 });
 
-onMounted(() => {
+/** The page shows: the keys are the game's again, and a game that is not playing starts. */
+function show() {
+  if (shown) return;
+  shown = true;
   window.addEventListener('keydown', onKeydown);
-  void load();
-});
+  if (needsLoad || state.value === 'error' || state.value === 'unsupported') void load();
+}
+
+/** Another page shows: the game plays on, unless its Exit button ended it. */
+function hide() {
+  if (!shown) return;
+  shown = false;
+  window.removeEventListener('keydown', onKeydown);
+  if (exited) {
+    exited = false;
+    stop();
+    needsLoad = true;
+  }
+}
+
+onMounted(show);
+onActivated(show);
+onDeactivated(hide);
 onBeforeUnmount(() => window.clearTimeout(importTimer));
 onBeforeUnmount(() => {
-  window.removeEventListener('keydown', onKeydown);
+  hide();
   stop();
 });
 </script>

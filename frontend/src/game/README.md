@@ -139,6 +139,10 @@ wheel, or a win.
   it there (`RemoteGame`), so its Tab Sync shows the round the game plays next. The tools page takes no part in a round.
   Its windows open, close and keep their places apart from the game's (`SetSettingsScope`), and the window opens where
   and as large as it was when it last closed. The Automation plays the game, so it stays on the Play page.
+- The game goes on while another page of the app shows (App.vue keeps the Play page, `KeepAlive`), as a game left
+  open does: its rounds, autoplay and sounds play on, and only its screen is not drawn. Back on **Play**, it is where it
+  is, with the resources changed meanwhile, which reload as below. It starts anew after its Exit button, which ends it,
+  after another workspace becomes the active one, and after it failed.
 - Keys: Space/Enter START, A autoplay, ↑/↓ bet, M max bet, I info, C cashout. The panel under the screen has the same
   buttons, Exit (back to the asset library) and the credit insert; the credit is kept in the browser.
 - **Developer** shows the state machine's active states and transitions, the match's wallet, the rounds played, and

@@ -17,7 +17,8 @@ import SyncInProgressView from './views/SyncInProgressView.vue';
 import SyncView from './views/SyncView.vue';
 import { data, isLibraryView, load, loadError, stopped, ui, navigate } from './workspace';
 
-// The browser game (its engine, states and views) loads when its page first opens.
+// The browser game (its engine, states and views) loads when its page first opens, and goes on playing while another
+// page shows (KeepAlive): back on Play, it is where it was.
 const GameView = defineAsyncComponent(() => import('./game/GameView.vue'));
 
 useBackendLifetime(() => !stopped.value);
@@ -66,8 +67,10 @@ onBeforeUnmount(() => {
           <SyncHistoryView v-else-if="ui.view === 'history'" />
           <BackupsView v-else-if="ui.view === 'backups'" />
           <SettingsView v-else-if="ui.view === 'settings'" />
-          <GameView v-else-if="ui.view === 'game'" />
           <ImageStudioView v-else-if="ui.view === 'imageStudio'" />
+          <KeepAlive>
+            <GameView v-if="ui.view === 'game'" />
+          </KeepAlive>
         </div>
         <AppFooter />
       </div>

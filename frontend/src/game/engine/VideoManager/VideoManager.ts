@@ -164,7 +164,8 @@ export class VideoManager extends BaseModule implements IVideo, IVideoManager {
   /** Draws a frame: the game's main draw over black, then the layers over it, from the topmost opaque one. */
   PostProcess() {
     const ctx = this.ctx;
-    if (!ctx) return;
+    // the page does not show the game (another page of the app shows, and the game plays on): nothing to draw
+    if (!ctx || !this.canvas.isConnected) return;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalAlpha = 1;
     ctx.filter = 'none';
