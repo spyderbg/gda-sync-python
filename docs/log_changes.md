@@ -7,6 +7,32 @@ Versions follow the project's single-digit major.minor.build scheme.
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-11-04
+
+### Added
+
+- Added .idea ocnfigurations
+- Add full-page Image studio with remote models and metadata browser
+- Add retry and regeneration actions to Image studio queue
+- Add element visibility toggles and multi-select to view preview
+- Add browser game server, Game tools page and Tetra panel layouts
+
+### Changed
+
+- Retain each image generation result and add render scale shortcuts
+- Persist image job configurations and add queue cleanup
+- Port Burning Crown tetra views into the main background and knobs views
+- Port the RNG Presets, RNG Picker and Automation debug tools to the browser game
+- Move selected view elements with arrow keys
+- Keep the browser game playing while other pages show
+- Move game tools into a Tools page and port Tetra panel layouts
+- Sync rule: only interfaces go in the runtime
+- Drive view looks from a shared theme
+
+### Fixed
+
+- Fixed build issues
+
 ## [1.0.1] - 2026-10-29
 
 ### Added
@@ -111,5 +137,7 @@ Versions follow the project's single-digit major.minor.build scheme.
 - Fixed UI to ease the selection for multiple GDA image options
 - allow library-use text to wrap
 
-[Unreleased]: https://github.com/spyderbg/gda-sync-python/compare/releases%2Fv1.0.1...HEAD
 [1.0.1]: https://github.com/spyderbg/gda-sync-python/commits/releases%2Fv1.0.1
+
+[Unreleased]: https://github.com/spyderbg/gda-sync-python/compare/releases%2Fv2.0.0...HEAD
+[2.0.0]: https://github.com/spyderbg/gda-sync-python/compare/bcc8e72fbea42ef9f2734ac4f19449a58a181f26...releases%2Fv2.0.0
