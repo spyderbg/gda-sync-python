@@ -5,6 +5,7 @@ import { Event } from '@game/engine/Core/Event';
 import { Interface } from '@game/engine/GameCore/RuntimeAccess';
 import type { ERoundTags } from '../Math/Common/Common.data';
 import { type IControlView, IControlViewEvents } from './BaseInterfaces/IControlView';
+import type { IThemeView } from './BaseInterfaces/IThemeView';
 
 export interface ITetraRoundOverlayView extends IControlView {
   ShowIntro(): void;
@@ -34,25 +35,11 @@ export class IBigWinViewEvents extends IControlViewEvents {
 
 export const IBigWinView = Interface<IBigWinView, IBigWinViewEvents>('IBigWinView');
 
-export enum EKnobsType {
-  Normal,
-  Tetra,
-}
-
-export interface IKnobsView extends IControlView {
-  SetKnobsType(type: EKnobsType): void;
-}
+export interface IKnobsView extends IControlView, IThemeView {}
 
 export const IKnobsView = Interface<IKnobsView, IControlViewEvents>('IKnobsView');
 
-export enum EBackgroundType {
-  Main,
-  Tetra,
-}
-
-export interface IGameBackgroundView {
-  SetBackgroundType(type: EBackgroundType): void;
-}
+export interface IGameBackgroundView extends IThemeView {}
 
 export const IGameBackgroundView = Interface<IGameBackgroundView, IControlViewEvents>('IGameBackgroundView');
 

@@ -550,10 +550,10 @@
    "alpha_family/libs/src/Egt/AlphaFamily/States/IViewManager.h",
    "alpha_family/libs/src/Egt/AlphaFamily/States/IViewManager.cpp"
   ],
-  "sha256": "176048a4393b0b1cef840c7092a58a5b380c95de230ad4ce5b5a5f88e528fd8d",
-  "cppCommit": "f0c46d2a37422c811dea77221127db2101f537dd",
+  "sha256": "d42edd1fd0f8c79360ab1a4e64d193fc40b80bf8c533ca9567b94cec1b8f10ee",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/libs/src/Egt/AlphaFamily/States/IViewManager.h": "7cf71dbc162da9d0978d05a4f7b22e5237eb9957d3fa602d9ff6167900c1b5ca",
+   "alpha_family/libs/src/Egt/AlphaFamily/States/IViewManager.h": "551c388ddd76262f5aa057d5f8b2c7fcd81bf89590c8d1c6dd81d4f6658636b6",
    "alpha_family/libs/src/Egt/AlphaFamily/States/IViewManager.cpp": "b4c05194f182aad531a183f3d3c4674f29b0b55032ba1c0d8b8a8e07aa07d838"
   }
  },
@@ -791,9 +791,9 @@
    "alpha_family/libs/src/Egt/AlphaFamily/Views/BarsView.bridge.cpp"
   ],
   "sha256": "4fdc1b57d7f9bdf03d07c6f747b32fcdb58aec066a697f0662c7cf9e512180de",
-  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/libs/src/Egt/AlphaFamily/Views/BarsView.bridge.h": "7ff30fb33332d2599df0f6f7390dc7b24cbe4df0792da5ea113224350c2db12c",
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/BarsView.bridge.h": "65f4637b68a9b768634bd588e9642c15d8785ec894c5ce898c1188024a3912ef",
    "alpha_family/libs/src/Egt/AlphaFamily/Views/BarsView.bridge.cpp": "8c32c865067d8853e30fe96c0aca9ddff1d86f1c26ba6e5267817e902a62958b"
   }
  },
@@ -807,6 +807,18 @@
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamily/Views/BaseInterfaces/IControlView.h": "791c35aafce5215c639d7714159fb7a261e50000dea1eafc264fd8beece0fd06",
    "alpha_family/libs/src/Egt/AlphaFamily/Views/BaseInterfaces/IControlView.cpp": "2ea6a72a527d3b4fcdbdb71b4cf6176ccfd9ebbed9ce787e044e80f0895a7629"
+  }
+ },
+ "alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IThemeView.ts": {
+  "cpp": [
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/BaseInterfaces/IThemeView.h",
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/BaseInterfaces/IThemeView.cpp"
+  ],
+  "sha256": "2119dd798835f95211c6f2197534153ef1de30bf89cd336475b3d436f9f26811",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
+  "cppSha256": {
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/BaseInterfaces/IThemeView.h": "39f911db3c7aa2335f237a8a44c087608086621834f81eed0aa124fe692a9901",
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/BaseInterfaces/IThemeView.cpp": "c03a55ae6f1c18d5e7a1bb08f2e3f66421a8b3ff0c998cbbab908d88de1d5c01"
   }
  },
  "alpha_family/libs/AlphaFamily/Views/IBetMenuView.bridge.ts": {
@@ -1064,10 +1076,10 @@
    "alpha_family/libs/src/Egt/AlphaFamily/Views/SwButtonViews.bridge.h",
    "alpha_family/libs/src/Egt/AlphaFamily/Views/SwButtonViews.bridge.cpp"
   ],
-  "sha256": "62a8922bbbc1bc9f76f6499cc787dec4e8652f43764f3ebae91b6101e602d761",
-  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "sha256": "7d9a771a4e6324ff1536aac2fd714225d006ba277cb08e2a8f2c15788fad7014",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/libs/src/Egt/AlphaFamily/Views/SwButtonViews.bridge.h": "0bb0524a370b3f584c0ed3d36ce860a278f292cb101397775799cd3a7756e8cc",
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/SwButtonViews.bridge.h": "23543ed920f239d80e7c336a008a1313be9472b395fd3a030f26fbb0299d0686",
    "alpha_family/libs/src/Egt/AlphaFamily/Views/SwButtonViews.bridge.cpp": "02b42a9891c17dc909d5f18345f29355e2753a9c18614afd54968644f02fdc42"
   }
  },
@@ -1904,11 +1916,11 @@
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRound.h",
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRound.cpp"
   ],
-  "sha256": "69e28d06edadbd693d2cce8e007bbf431378fe60cacc715231d17f3d44f3128f",
-  "cppCommit": "9d7930a1cd2322b661f223fd2821c93554d5dea2",
+  "sha256": "b769c9a33d3ffb5174f4a30ae25fd290bd9379086ad6f1aacf3b1bc074fdb7fc",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRound.h": "fdde2973bdc7e5a6e4a2e04cf08f13cc91e1983f602ad26c51cc6d50879bfcf6",
-   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRound.cpp": "cfecfa43d4b2ff526bbf9ee5e5d5764ab3fdafd82ec5bb1c7408088a19c81aca"
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRound.cpp": "89807e966f0767f664688e6b846743bee449d4699c8eeda5fe283fcb9f8f9364"
   }
  },
  "alpha_family/libs/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRoundEnding.ts": {
@@ -1952,11 +1964,11 @@
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRoundOutro.h",
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRoundOutro.cpp"
   ],
-  "sha256": "8a597b8de328dc5e1596659b22e18421b7ba46be849db49e155ebc357066e7eb",
-  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "sha256": "0df783a245eaf495dbbe905227961b3f63a2b06194fc22d2f760c23c2bbb41d1",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRoundOutro.h": "45c29dfc50d1a39fd2ad81030b5546baa97e0b769f5a571110b4dce29305ed09",
-   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRoundOutro.cpp": "ab5b10388417df6607bec6b0ca3257dd4f7dcb5ac9381a1ec586a0a8be06dad4"
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRoundOutro.cpp": "c99779ecab170fffcf455a8b8d6e622ac62b55798ca83383ad5dfddce294766b"
   }
  },
  "alpha_family/libs/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRoundPresenting.ts": {
@@ -2106,11 +2118,11 @@
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/ViewManager.h",
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/ViewManager.cpp"
   ],
-  "sha256": "4785fa678b29e7e8e24731c1567807e4beda6fe37eee6068be9c2db15679f4d6",
-  "cppCommit": "0be2c0e3236b529c2f02da30807ff1af190f4895",
+  "sha256": "3a451d9268d21d44dd41f8d6a85de02e26328d7ae2db23551e2e10eb3b1f9490",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/ViewManager.h": "8cd33785a81296dd3edc6883579fa325640496c2e3afdf56ea0a47c6cbe56a2b",
-   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/ViewManager.cpp": "28db8cc29aa51ddea13a665fdf81e68aa6be18f1aa104c262ee36ae60e9f8546"
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/ViewManager.h": "9bd9224f3f126f6bff8a0ca06344638c0e5f88d8a0fa1e7d0b954b3e31a4bdb2",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/ViewManager.cpp": "2260e234194e73fa299dc602ff4293db5f8eabc889f4bbea4dc1681b4efd48e8"
   }
  },
  "alpha_family/libs/AlphaFamilyVideoCtrl/BaseView.ts": {
@@ -2118,11 +2130,11 @@
    "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/BaseView.h",
    "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/BaseView.cpp"
   ],
-  "sha256": "af4b69ae98e95f144e603c476dbd41e19728816b3b5445fe295bfe07316671c0",
-  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "sha256": "92d06e1186806413344b0205468a110c2e2c0288cd42e1cc8e9c315bd58e1fb4",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/BaseView.h": "ee77778cbf2f64fbe558e41530e0e58aeff69f0b7a087d02fb6d9d55900f9ff9",
-   "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/BaseView.cpp": "c17f1e5b76ad99874e9fc04717d076fbd686a6160d467c2edda685456dcb6e55"
+   "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/BaseView.h": "f183f225f6fe9ea26d67967e9a616be4b155249bfe8a6879dbb9b560d6db2c2c",
+   "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/BaseView.cpp": "cad21d1e215a588efb686b154db93e2d3fbb1717a9839d5fc6951133cf68ac12"
   }
  },
  "alpha_family/libs/AlphaFamilyVideoCtrl/Components/ButtonView.ts": {
@@ -2195,10 +2207,10 @@
   "cpp": [
    "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Components/IStubView.h"
   ],
-  "sha256": "d6ff179735cd72061f354c17c82be1f40bbad86aba16d92403a0dcf37f022662",
-  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "sha256": "c9e73bddee15df8e3ebc29de29c711ac684468c597091cd907b61c7df9b80c84",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Components/IStubView.h": "ad80dbe8ed9874841d60c1441f34198e4ff908a5653594b815ff87e4f1ae1e1b"
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Components/IStubView.h": "572c97d2a9d5f359366eeff9d5a62bd05a5f80c738ea42edfe677118fc006b56"
   }
  },
  "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Components/StubControl.ts": {
@@ -2525,20 +2537,20 @@
   "cpp": [
    "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubKnobsView.h"
   ],
-  "sha256": "9a145cd186088899b9bb2f814429b026f11174dd0a293c6d97cb77d573d6df52",
-  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "sha256": "e9ef149acc7c4f584d437562cab953f7fbb1b0ccc33cd74e9e2b5aba71643a1e",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubKnobsView.h": "fba8dee65641330fe69f218f65f4c99a111ec768362aa4620245dad60fbbb038"
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubKnobsView.h": "87fdc45ebb987775e2ebc56a891a1ee6e311fda7e532eec9a2d29308006d5698"
   }
  },
  "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubLanguageSwButtonView.ts": {
   "cpp": [
    "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubLanguageSwButtonView.h"
   ],
-  "sha256": "52da51b4bd023db727687127e62935ad0e3479380354f87d0a0b3c7592c9890d",
-  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "sha256": "0feb1e2582b4d8451c162c8bf1c487cfa49612e96317e8d87dfa46883a0cc919",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubLanguageSwButtonView.h": "8e9f59a102504d93153146b14b970963468a58352cd9a922e4ff6e298dcdd8fa"
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubLanguageSwButtonView.h": "0a174beb5bc601a644d5f8abff0d658356bed56cec98039814ce84180bb5b3a2"
   }
  },
  "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubLineDownSwButtonView.ts": {
@@ -2605,10 +2617,10 @@
   "cpp": [
    "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubSoundVolumeSwButtonView.h"
   ],
-  "sha256": "8d9e0641cf3cd9ccc0e1f1def26cc895cf6cc62fb3e520632bbdc6c202945691",
-  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "sha256": "a4abfbba0d9728c86e118b342e4763475c895c3767e8a40fcddafe56b1e12898",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubSoundVolumeSwButtonView.h": "7b2783d803ff9e3c7f0b9d61caa321b0b1e18cb01a1f77f199197038381c70b6"
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubSoundVolumeSwButtonView.h": "a53286b1e2819e77679a07d8374e7a6edf8c39272115359bd140ccf1e88b8660"
   }
  },
  "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubStartGameHwButton.ts": {
@@ -3034,11 +3046,11 @@
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/BetUpSwButtonView.h",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/BetUpSwButtonView.cpp"
   ],
-  "sha256": "a70314305659dbb161cc77a4f7c4f097203358c3b1da165fb809062ee3a3351a",
-  "cppCommit": "f0c46d2a37422c811dea77221127db2101f537dd",
+  "sha256": "fe64d93e0468f12772e99c0029dd1aad70b8d3f16b4a70315e31220ed2c5a864",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/BetUpSwButtonView.h": "f168f2c83d003f8ef2f170f9b1d8492fbebf0eb43175b727e1a122d5c081f6a3",
-   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/BetUpSwButtonView.cpp": "d5c9b67a031ddd2f62103f944d97d978d3dd789872e2b3c2f4cafa025e9376d2"
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/BetUpSwButtonView.h": "bc1b0516161ed0d6ad797adcae981be0893c9cf45ba89091510ddc0bb677aace",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/BetUpSwButtonView.cpp": "1fb81df8ce066c63f8afe929817dbbf5e0c55137889587a11ccbaebb4d2bd3b5"
   }
  },
  "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/SwButtons/ExitGameSwButtonView.ts": {
@@ -3046,11 +3058,11 @@
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/ExitGameSwButtonView.h",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/ExitGameSwButtonView.cpp"
   ],
-  "sha256": "568034d61a7c7acfd365a37e96280730a213383d47540810510632c4f922fbe4",
-  "cppCommit": "f0c46d2a37422c811dea77221127db2101f537dd",
+  "sha256": "49b488fcd364bff3204c6f3ee517436581872ea7e708f8c45a8d9c277ecc4af1",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/ExitGameSwButtonView.h": "b446250f4d7439f5cfc7ade4ba0757f84ffeb7ed3695eb99b44b1dbe4bfebe7e",
-   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/ExitGameSwButtonView.cpp": "b443b82f9fd8cff9369ddf902aff6068a4cde733d355f48e061f9e1673adaf8c"
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/ExitGameSwButtonView.h": "e523cfa911a8a0d2e8e84468f7af7c356bacfb80cf1f3fc84998ac21a0d95b4b",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/ExitGameSwButtonView.cpp": "8feb9200737a19168a50857def9f49f7eef27803917c42acb4dffa12f4118724"
   }
  },
  "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/SwButtons/ExitTetraSwButtonView.ts": {
@@ -3070,11 +3082,11 @@
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/InfoSwButtonView.h",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/InfoSwButtonView.cpp"
   ],
-  "sha256": "1bc266171cc0e4ea7f5be34f3fc73cba6b1c1fdcb44bba01b57f34dbc46cb94d",
-  "cppCommit": "f0c46d2a37422c811dea77221127db2101f537dd",
+  "sha256": "4028a749f05eace7a9d74de9e790db2297b11826375498c65911ef186ea947b3",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/InfoSwButtonView.h": "1e2a2dc990756091df53f2b94c8be04f51c11928f911753af87dbb82d4815e64",
-   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/InfoSwButtonView.cpp": "69055e58493c0bb76ea0da774c2923d4bc2a32d820f0f23f40daa56e7168e7ad"
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/InfoSwButtonView.h": "4f0154964f11b8bd73fe78f31b64ff1ad737da1bd373bc1fe9a0712df308bcec",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/InfoSwButtonView.cpp": "1c358e5ca8d28c08c933abb9cb8305cb5df27866a517da3ce5e28b24b467ed0e"
   }
  },
  "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/SwButtons/LanguageSwButtonView.ts": {
@@ -3082,11 +3094,11 @@
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/LanguageSwButtonView.h",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/LanguageSwButtonView.cpp"
   ],
-  "sha256": "9730de817db3798310eadcee71dcfe1c7df486802582d489e2ad8439bd19eb53",
-  "cppCommit": "f0c46d2a37422c811dea77221127db2101f537dd",
+  "sha256": "3fedae073d96a80c07312af64956339d43302e4818a4c042e699e593e8289742",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/LanguageSwButtonView.h": "0905bde80b4a45c60031b46c19d27a8da706431c24651e10fd27e81d9c96756c",
-   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/LanguageSwButtonView.cpp": "fde14b91b054a9468ee02e80956ce351ea102120fc60f0937ea4ef7f056cea45"
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/LanguageSwButtonView.h": "ac78b0f8aebeee347e18d8e1732da77aa2e176a86cc4249554c02d059d362943",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/LanguageSwButtonView.cpp": "c727278d9b6cd6c4ccdc65a232e751470eb97395feb6553b137d6f77d875f674"
   }
  },
  "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/SwButtons/LineDownSwButtonView.ts": {
@@ -3130,11 +3142,11 @@
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/SoundVolumeSwButtonView.h",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/SoundVolumeSwButtonView.cpp"
   ],
-  "sha256": "2d155d79f0e7ebb5daa8b4174593ca417a0ae3c28dc184f7877acc28e795471a",
-  "cppCommit": "f0c46d2a37422c811dea77221127db2101f537dd",
+  "sha256": "20151283a4cb95a0dcea9de2e32d1733c9914e1b6ea8507faade0f092f9b63c3",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/SoundVolumeSwButtonView.h": "0d788401f67a429a01875c762763b69a578bf9e49af063e8931a54f1e6f505f7",
-   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/SoundVolumeSwButtonView.cpp": "6ef2d5dd774dc536bb171612f7e6139af3339e3715910c3cb6de9c839ef35c83"
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/SoundVolumeSwButtonView.h": "a762769555c7b134cf4f6197a5fb7f3b84e4f8c5f892d4bbd46bf71b8326622e",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/SoundVolumeSwButtonView.cpp": "fd91f0ee2d2637241f63827f6887b04bc924cfac487261f55166fd23ecc65bf4"
   }
  },
  "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/SwButtons/StopSingleReelSwButtonView.ts": {
@@ -3147,6 +3159,18 @@
   "cppSha256": {
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/StopSingleReelSwButtonView.h": "05ccc121ad03f4698da15b9f26363571b0a8e7282ed3834a32f7a548ac7b2763",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/StopSingleReelSwButtonView.cpp": "a80b872e191e33837690b20cfa30c82930c0d39df61cf5dd4b2328bbc50c9573"
+  }
+ },
+ "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/ThemeLayout.ts": {
+  "cpp": [
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/ThemeLayout.h",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/ThemeLayout.cpp"
+  ],
+  "sha256": "dd4288ed203036e00497bda6a20a6d79727d62a13d3b33ea64e8d53e3b21d906",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
+  "cppSha256": {
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/ThemeLayout.h": "52cf42f22c8fe1e38165d52d5b79bbadc10bd9d5e49dd48ce07c022096e74575",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/ThemeLayout.cpp": "3e3f75e00bff5b28594d85426459eb9afc8876c345a73c51993898be0fa64121"
   }
  },
  "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Views/AutoPlayView.ts": {
@@ -3178,11 +3202,11 @@
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/BetBarView.h",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/BetBarView.cpp"
   ],
-  "sha256": "7b49db8e61ba13592e54fe5a99bea0d73620f246b938c51a76933d61b7d313de",
-  "cppCommit": "f0c46d2a37422c811dea77221127db2101f537dd",
+  "sha256": "0237f05919a2e08805f0f556ef3d3f03be3e742250e8a94bfbc1e11554d34986",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/BetBarView.h": "f9760616c225d6ec8e83b92645c944e5ac1c23e999e744b49981b8bcbc469389",
-   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/BetBarView.cpp": "c2dd656396275ba8f2a1e52d478f8f3085b03e103480ce0476422cc85a4c09c8"
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/BetBarView.h": "760efcd81ac28188986053f6e83cf845208f35cc59a49c0c8ec1221b0d0a14a9",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/BetBarView.cpp": "5d2ef446645802dc8643c71be590fdd4d66940ca652d86b449469421445a4e76"
   }
  },
  "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Views/BetMenuView.ts": {
@@ -3214,11 +3238,11 @@
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/CreditBarView.h",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/CreditBarView.cpp"
   ],
-  "sha256": "a11175be7caa7dd0224cd07ebea5c5a966d8385ae7a8c3dbd1e007092901fa37",
-  "cppCommit": "f0c46d2a37422c811dea77221127db2101f537dd",
+  "sha256": "c5e3a600fec2f701699819c64036f4bef8507f508a7143d0168a4fb167da8ca1",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/CreditBarView.h": "b939aff8314d5f762605653e32365aedf051903e72a309a14985620bd1e83fe0",
-   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/CreditBarView.cpp": "3a46b6878376625494f493f40b99261a4aefef89df9d9d751d9d5f34c53156ae"
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/CreditBarView.h": "84193aee5c60a09b09b97bc004e52b773b46f7339c79908cbf21a02f8605eae1",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/CreditBarView.cpp": "60fae68f766467df4be9998545030cd18a1fa36143b61d7e6d3593426e1f1616"
   }
  },
  "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Views/CreditsWinBarView.ts": {
@@ -3226,11 +3250,11 @@
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/CreditsWinBarView.h",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/CreditsWinBarView.cpp"
   ],
-  "sha256": "8d9bd9fa47f468afb1e357de3b6366413747d32a3790579f9100e40a6b47c891",
-  "cppCommit": "f0c46d2a37422c811dea77221127db2101f537dd",
+  "sha256": "647eed7aaf29c6f2c840c0b9e3caae51f88bbe0810cf9f542bcc9a6f4cb8aeb2",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/CreditsWinBarView.h": "fc5a6b4fc4e0be157932416ec61200a0e209a5a2ba42fa11dc6330269ec6217b",
-   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/CreditsWinBarView.cpp": "d1502cfd926165114549842da1377f949e9d933bbe28f7921008f9fb16c9568e"
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/CreditsWinBarView.h": "f8bd20978728991a315b4f800f942371ad727e329d0e7f0be575e8bfb573f19c",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/CreditsWinBarView.cpp": "89488caea7c4a7f782328197b5a9a211c966bef96101b5eeacd40e534573ac6c"
   }
  },
  "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Views/GameBackgroundView.ts": {
@@ -3238,11 +3262,11 @@
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/GameBackgroundView.h",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/GameBackgroundView.cpp"
   ],
-  "sha256": "4a7e6d95757388d5cbcd33edcb73296474fa730b246d311f63ec5db4a5573846",
-  "cppCommit": "f7bdb12425d34aeb6f9f658c5b040369d833a41d",
+  "sha256": "16a9572dcc6528ab8ed822ae6075116cee969cc403fd293751837092612bc50b",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/GameBackgroundView.h": "83a03184b558cb39c621b7f4a36c84a23cf633e41f5d3888f9dee8095f1504b8",
-   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/GameBackgroundView.cpp": "a69443278bb15810a356aca99e46bcef4c0f6555e81013f4fc4c48f77f0232a8"
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/GameBackgroundView.h": "57f69bb785e4d3a6704e008d112f674f5fd4882ff235da570ca40e9501bcecb3",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/GameBackgroundView.cpp": "37bc37bfc305a4d37b15ce1bdf0268034c1c7b40553258bb61b23725d48e42e1"
   }
  },
  "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Views/KnobsView.ts": {
@@ -3250,11 +3274,11 @@
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/KnobsView.h",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/KnobsView.cpp"
   ],
-  "sha256": "b92c01cc5dfbba8a85db36c4c6c486e23244db7736b52f2b98a2c777e9ec2cd6",
-  "cppCommit": "f7bdb12425d34aeb6f9f658c5b040369d833a41d",
+  "sha256": "0e4a201449273f8498245fd609d37ae26f24ce7cbd2309b95a1a08d847f236fe",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/KnobsView.h": "ec34ac97442ffb25e68b157876c8afc64059d89793017280118a6f3f5de03034",
-   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/KnobsView.cpp": "57e54c28615e073c704b928819c37a4b81e93378642da59a5203a85e863c99a4"
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/KnobsView.h": "ef8607ef711fd33b6501cdc25d644a07c7e7814bedde834e3cd2f1a9c7a2e88c",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/KnobsView.cpp": "8a21fa2a3c6229eda4d84e8a3a29e1e609ebfe51e9e9cd207d13d98798a82659"
   }
  },
  "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Views/LanguageMenuView.ts": {
@@ -3519,9 +3543,9 @@
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsInfoView/BurningHotCoinsInfoView.cpp"
   ],
   "sha256": "239bac7cf8aaefe76785bdfdfbebc5db1301a895d35719e46724d2468ee09ad6",
-  "cppCommit": "0be2c0e3236b529c2f02da30807ff1af190f4895",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsInfoView/BurningHotCoinsInfoView.h": "a6a93297275ea5ab532f7e6fdf91f8a86e6c68438c47f11d490f4dad31d1aa14",
+   "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsInfoView/BurningHotCoinsInfoView.h": "fa73f3269ccdc8567b529886a38886f94759210f970db838ee8b88f07636a98b",
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsInfoView/BurningHotCoinsInfoView.cpp": "ea0ace395bdcc33ec8d90339fe35ad44e023010d33446e48371a357eaf90a529"
   }
  },
@@ -3553,9 +3577,9 @@
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsMath/BurningHotCoinsMath.cpp"
   ],
   "sha256": "82a2694b1c6cc10a9019cd454d80856320ccbfa4f1046957af621c6a128c2736",
-  "cppCommit": "0be2c0e3236b529c2f02da30807ff1af190f4895",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsMath/BurningHotCoinsMath.h": "94a1a18679b9fb82bba736a2ff9cbba0575466a1fddde422174597e75b91ec70",
+   "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsMath/BurningHotCoinsMath.h": "a2109ef4c4c7bf054fe8c73970f4424f973c409649a09ddd25575cfd23f160cf",
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsMath/BurningHotCoinsMath.cpp": "8b00e7e8322fc42e67bd9608fb765626d5be4eeec9589f555eab0738267c7a98"
   }
  },
@@ -3575,9 +3599,9 @@
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsMath/MathRules.cpp"
   ],
   "sha256": "ee6e759ed3eac47043cc9d194bbd5a6427f74e6ec1d22b173330c32dcd154d57",
-  "cppCommit": "0be2c0e3236b529c2f02da30807ff1af190f4895",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsMath/MathRules.h": "02fb1a672250c2aae41467e277eb0aa6a2a161706fd014a17bd81e8c518c6fca",
+   "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsMath/MathRules.h": "176e7961dc9c008ea2e4128f1eab6c3b7e8b90c2589735c30bf6c69d6daf6b78",
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsMath/MathRules.cpp": "b3073a36678aa714cf493b6e9423463748e8546a0413b71a61486ed60511ad2f"
   }
  },
@@ -3587,9 +3611,9 @@
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsMath/MathTypes.cpp"
   ],
   "sha256": "feb7a42df942f229ba2a797a405f729f274e7de9d34889f87be471071688f117",
-  "cppCommit": "0be2c0e3236b529c2f02da30807ff1af190f4895",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsMath/MathTypes.h": "e76512187992ed1fd3a7f165999ae913d0fef71f6f7cda709a2ad0831860a3c5",
+   "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsMath/MathTypes.h": "26df0aa7ce44c79ae2109670a22e9d294d33431f0b4f65750badf8e1ab270c0c",
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsMath/MathTypes.cpp": "a23239df02116d91acb41a6705f91ca44f4777f5ff55e6d44a9d9b60abcb39d9"
   }
  },
@@ -3619,9 +3643,9 @@
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsTopperView/BurningHotCoinsTopperView.cpp"
   ],
   "sha256": "e820c1f2a53a8043fe995e105869e8205d31407ee3a8e17eaf807be12a904b4c",
-  "cppCommit": "0be2c0e3236b529c2f02da30807ff1af190f4895",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsTopperView/BurningHotCoinsTopperView.h": "a580daf08133d21339c7404e68ebdcf05ad360298bd2b6569f0deedefc78ffff",
+   "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsTopperView/BurningHotCoinsTopperView.h": "b57c11aa5d923b1021a33966f7adfa8e5ae4cc74158c0ea3f3a9540c5b24d7aa",
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsTopperView/BurningHotCoinsTopperView.cpp": "acaf5bda89dfbe497f7eceae93596a8b39f132feec8a2890fcec6379b3bfaf4c"
   }
  },
@@ -3643,9 +3667,9 @@
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/BurningHotCoinsView.cpp"
   ],
   "sha256": "b17f98a4dec1e8b16728e93fa75317d15609c87d14e0a6bc60d00db11108133a",
-  "cppCommit": "0be2c0e3236b529c2f02da30807ff1af190f4895",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/BurningHotCoinsView.h": "a4796a7953660912d4cff324735563fe5b6f2be0122bdfc68e994a466d281053",
+   "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/BurningHotCoinsView.h": "c03e7e03a35242ae4d228c9ab56c3909a2b936d26f526f1afcb4186455516081",
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/BurningHotCoinsView.cpp": "0555e6e11d4a4e3479792e24cb9dab8f996b964fb992b220292fd28213c8dcd7"
   }
  },
@@ -3726,11 +3750,11 @@
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/SwButtons/LanguageSwButtonView.h",
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/SwButtons/LanguageSwButtonView.cpp"
   ],
-  "sha256": "4b0b496cddb2d5cd7e434dae4065c51121a9042da3c6969695a37804428cee66",
-  "cppCommit": "0be2c0e3236b529c2f02da30807ff1af190f4895",
+  "sha256": "3804562b2af380fab4a361f57c9b9f61ee2fe61697f11b2815bfc8120ba63fa7",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/SwButtons/LanguageSwButtonView.h": "23369509cddb4749977928f7b0d819a18292f19b2b6b4ccb75718b716275c0fa",
-   "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/SwButtons/LanguageSwButtonView.cpp": "0f1d772994c457718bf0f595e02c89260c3d50202cf26ade7dffd3c8ecb2fb3f"
+   "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/SwButtons/LanguageSwButtonView.h": "c19c5ac3285aaad9ef6d9d6b68a3fabe6fbe999976407b5a9ac16f88db53570a",
+   "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/SwButtons/LanguageSwButtonView.cpp": "32ab0ac65f5808e65b8090313b0922f4fd261c9631c9ded7e32cd3f9044b9851"
   }
  },
  "alpha_family/plugins/burning_hot_coins/BurningHotCoinsView/SwButtons/LineDownSwButtonView.ts": {
@@ -3774,11 +3798,11 @@
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/SwButtons/SoundVolumeSwButtonView.h",
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/SwButtons/SoundVolumeSwButtonView.cpp"
   ],
-  "sha256": "c08934904fa7e50535fe654596ead62bc9fda0e900c1c39b78da41e0988623d2",
-  "cppCommit": "0be2c0e3236b529c2f02da30807ff1af190f4895",
+  "sha256": "469a874d8f9f02d7aeae46c405cbddd0fc47bd3192a8f00b60599efc0e8210a5",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/SwButtons/SoundVolumeSwButtonView.h": "78ede2a49ec5aae8aa3b49ddf4d56b27f357651c9f5a785fbc9a00be552ccb33",
-   "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/SwButtons/SoundVolumeSwButtonView.cpp": "664fa37aefa4d3346ac3ec5e8ba80c7c8f88fc082caafbbca4d3001c5b994ba2"
+   "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/SwButtons/SoundVolumeSwButtonView.h": "3caf05f98acb6fedb7321afd7bd3e5730c615590af11a702cdf1ceba5a6e645f",
+   "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/SwButtons/SoundVolumeSwButtonView.cpp": "60736d8f3486218b032ed461f613c8c9362066f910304246c34ce44ddfbb9239"
   }
  },
  "alpha_family/plugins/burning_hot_coins/BurningHotCoinsView/SwButtons/StopSingleReelSwButtonView.ts": {
@@ -3976,11 +4000,11 @@
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/GameBackgroundView.h",
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/GameBackgroundView.cpp"
   ],
-  "sha256": "f424b9670f9cf47a4fb82cfa786f49cd4866d2342458705c9a7f5a05a5def59d",
-  "cppCommit": "0be2c0e3236b529c2f02da30807ff1af190f4895",
+  "sha256": "f37ef892455aea6f7e42782b39cb5209866894872bd6debd192847bdf8ae7340",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/GameBackgroundView.h": "04b3c6a8b46a7b1bad80dbe72166484856a2d4054a6ed7f1928ee00e3f2927a2",
-   "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/GameBackgroundView.cpp": "1c58dca4799fb2f27a076da396a0efeb4004f83343eb19181fd303c5847264a9"
+   "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/GameBackgroundView.h": "a7834c18d3615d21ef2c26ad8631d2c05fd4ea0eb758ef651061f950e653b486",
+   "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/GameBackgroundView.cpp": "f8ed1ce39d185d00c1b38107e942e28d5e186faa9643043ce0df4f1b8dcbdfce"
   }
  },
  "alpha_family/plugins/burning_hot_coins/BurningHotCoinsView/Views/KnobsView.ts": {
@@ -3988,11 +4012,11 @@
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/KnobsView.h",
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/KnobsView.cpp"
   ],
-  "sha256": "436d0afbe5d9cb5602e2ceff799831a566e6f09effb12a23c42f634dd2364640",
-  "cppCommit": "0be2c0e3236b529c2f02da30807ff1af190f4895",
+  "sha256": "ec40674c5cf0c3ea351162eca9ed3c2947430aa6ca96f314ead9f30acd47c368",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/KnobsView.h": "9f1f380a7178a8d258110d0d611d326e7ff1c6dddbd0c106fa791878d53d57d4",
-   "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/KnobsView.cpp": "dd745173292f3806ab6a8120358d2aabf037507c62eb3b09133d7ed3d922e819"
+   "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/KnobsView.h": "69e2390738b011083048e7c0b697868e75cdcad94430f48acb88505b67697fe9",
+   "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/KnobsView.cpp": "957ebc05590bbac790998f021ebd16ea0c4570c341938e664cf8aad500efc3c9"
   }
  },
  "alpha_family/plugins/burning_hot_coins/BurningHotCoinsView/Views/LanguageMenuView.ts": {
@@ -4281,9 +4305,9 @@
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10InfoView/JokerReelsCoins10InfoView.cpp"
   ],
   "sha256": "9da2baffabeea8e0b5314d3c66b3ed92081c629634572e461115b99c1116cc34",
-  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10InfoView/JokerReelsCoins10InfoView.h": "06205fc8337aaea530658813bbb8a1ffa5949ae8510de3578c002a8b0ce4b9e7",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10InfoView/JokerReelsCoins10InfoView.h": "757327534fa1ecbbc06e08573692f1a9fb900dfe6c3213a36ee94b0be2207c51",
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10InfoView/JokerReelsCoins10InfoView.cpp": "03a5149f5af98690940b14bdde404473ba31a818cf2a403c63f9f8867c39ce06"
   }
  },
@@ -4293,9 +4317,9 @@
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10Math/JokerReelsCoins10Math.cpp"
   ],
   "sha256": "3e15461ad05239efc923a38b3f52b3ffb3d4fa70aaf46135f000f5167c32c940",
-  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10Math/JokerReelsCoins10Math.h": "bbfbbf6b4f612d10b8696592df76487aa0ea024c90bf8a1bf747b5f9f4af3669",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10Math/JokerReelsCoins10Math.h": "e9749904cafc420304556c71df9093c15485e93f8c3e9344e289206208ed2d57",
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10Math/JokerReelsCoins10Math.cpp": "5bc0b95fceb2c12f4ab420c50df66901b5062f1c4daafa685e6cb390fcbda754"
   }
  },
@@ -4315,9 +4339,9 @@
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10Math/MathRules.cpp"
   ],
   "sha256": "5dcb29c82a6e5afc83405957cb728b41948da6e99b1b1a362a110073cf7fe75e",
-  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10Math/MathRules.h": "6321d8a9f5e13cb217cb21f4f03869f78f4081439fcb37eaed8a5d71116f8965",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10Math/MathRules.h": "c5a4dca89ff6177837a1e57bb7701f84910ce1950a70b40bc9a5d999e620cdf4",
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10Math/MathRules.cpp": "04c8a88bd3987978574a1002e3b8ec7ffe98c718fdff0a4e842a98f08f7c7be3"
   }
  },
@@ -4327,9 +4351,9 @@
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10Math/MathTypes.cpp"
   ],
   "sha256": "108006610aff7c802bca3cd714dcbf489e0bd3882b5e6600404096b324f6b06e",
-  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10Math/MathTypes.h": "11ad4b64eba91c81534d37e475fe055c6244dc90a83807e8d74cf39776292e8c",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10Math/MathTypes.h": "4c6acd5235c03c3e1d2f9600d439c0f26799f4c307fd2fd588d6949921c2bd7f",
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10Math/MathTypes.cpp": "029bbb1fef107fdcd2923e0255cd31f0434efa4df1e4c53276cb30c92b5a584c"
   }
  },
@@ -4359,9 +4383,9 @@
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/JokerReelsCoins10View.cpp"
   ],
   "sha256": "b11ba8908e6c01c1748c82153a4fc2b2727b1fed73055028a32549a5a9879832",
-  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/JokerReelsCoins10View.h": "abd5061115ff6c403fe3c59b25ffa1c675806ec0d6ffabb969cae1de0c398481",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/JokerReelsCoins10View.h": "0d3a7d54b48b0324e45459c126f1a0b68b22e3247978222f67eda8f5e21b8e94",
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/JokerReelsCoins10View.cpp": "ec16662a30e24bffc9c5e890906d6cb17b5be7fbe09e7ebe3532a155252047af"
   }
  },
@@ -4442,11 +4466,11 @@
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/LanguageSwButtonView.h",
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/LanguageSwButtonView.cpp"
   ],
-  "sha256": "18345fba562f259d7a6fe9e80207945aa06f6f747bc23e48e96c53be07feb4c1",
-  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "sha256": "31e297da981ea473312755d3921b536b2c5159e78ccfa14c4478a3162d9644d1",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/LanguageSwButtonView.h": "23369509cddb4749977928f7b0d819a18292f19b2b6b4ccb75718b716275c0fa",
-   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/LanguageSwButtonView.cpp": "0f1d772994c457718bf0f595e02c89260c3d50202cf26ade7dffd3c8ecb2fb3f"
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/LanguageSwButtonView.h": "c19c5ac3285aaad9ef6d9d6b68a3fabe6fbe999976407b5a9ac16f88db53570a",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/LanguageSwButtonView.cpp": "32ab0ac65f5808e65b8090313b0922f4fd261c9631c9ded7e32cd3f9044b9851"
   }
  },
  "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/SwButtons/LineDownSwButtonView.ts": {
@@ -4490,11 +4514,11 @@
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/SoundVolumeSwButtonView.h",
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/SoundVolumeSwButtonView.cpp"
   ],
-  "sha256": "71f3ee3651572cae32c0e8119d962625e092b8f1c3972f853db091a489fd303c",
-  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "sha256": "c2e7a7beaccc72d137e0a251e67ea8161d58d96b82088ff82061c3ad2e83d471",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/SoundVolumeSwButtonView.h": "78ede2a49ec5aae8aa3b49ddf4d56b27f357651c9f5a785fbc9a00be552ccb33",
-   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/SoundVolumeSwButtonView.cpp": "664fa37aefa4d3346ac3ec5e8ba80c7c8f88fc082caafbbca4d3001c5b994ba2"
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/SoundVolumeSwButtonView.h": "3caf05f98acb6fedb7321afd7bd3e5730c615590af11a702cdf1ceba5a6e645f",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/SwButtons/SoundVolumeSwButtonView.cpp": "60736d8f3486218b032ed461f613c8c9362066f910304246c34ce44ddfbb9239"
   }
  },
  "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/SwButtons/StopSingleReelSwButtonView.ts": {
@@ -4692,11 +4716,11 @@
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/GameBackgroundView.h",
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/GameBackgroundView.cpp"
   ],
-  "sha256": "069dac72ce84ffa22c707bffaca3a16e509d19510703654e33570e626466b7e2",
-  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "sha256": "9acee594bbb5a54183e94fde24ee72445b1294408a6dfc6a8eb5da022be35d63",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/GameBackgroundView.h": "04b3c6a8b46a7b1bad80dbe72166484856a2d4054a6ed7f1928ee00e3f2927a2",
-   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/GameBackgroundView.cpp": "1c58dca4799fb2f27a076da396a0efeb4004f83343eb19181fd303c5847264a9"
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/GameBackgroundView.h": "a7834c18d3615d21ef2c26ad8631d2c05fd4ea0eb758ef651061f950e653b486",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/GameBackgroundView.cpp": "f8ed1ce39d185d00c1b38107e942e28d5e186faa9643043ce0df4f1b8dcbdfce"
   }
  },
  "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/Views/KnobsView.ts": {
@@ -4704,11 +4728,11 @@
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/KnobsView.h",
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/KnobsView.cpp"
   ],
-  "sha256": "4700dbe998c0d89da7968112827ae7fd7903aed8cf9388a91d819fd2e59b5daa",
-  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "sha256": "081a33ad9544599e07f56be5359cd8374f6308b9e0028b4da3e89dc170e93731",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/KnobsView.h": "9f1f380a7178a8d258110d0d611d326e7ff1c6dddbd0c106fa791878d53d57d4",
-   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/KnobsView.cpp": "dd745173292f3806ab6a8120358d2aabf037507c62eb3b09133d7ed3d922e819"
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/KnobsView.h": "69e2390738b011083048e7c0b697868e75cdcad94430f48acb88505b67697fe9",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/KnobsView.cpp": "957ebc05590bbac790998f021ebd16ea0c4570c341938e664cf8aad500efc3c9"
   }
  },
  "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/Views/LanguageMenuView.ts": {
@@ -4986,11 +5010,11 @@
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/HoldAndSpinRoundInfoView.h",
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/HoldAndSpinRoundInfoView.cpp"
   ],
-  "sha256": "5baf362978b29167113acf46657c9b2461870c800b2fab400737f0481ca4d29a",
-  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "sha256": "9d3aba12910379b3dee8f119ab95f1bbb0ae4f3eb26e1d33bb2b6965afd36723",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/HoldAndSpinRoundInfoView.h": "a2f77105a1daa8dc8acfc87469a8dd071c1c5cee7efa0b0110d7fe8dd0fb7c53",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/HoldAndSpinRoundInfoView.cpp": "56e48cfb408e1763660a46f1f369d77518787a827512b1bb24d89b237fd933ea"
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/HoldAndSpinRoundInfoView.cpp": "4e65bcc2b294930f3b6d66821245a57a26bcb897cedf737825071712195ddf69"
   }
  },
  "alpha_family/plugins/nordic_rush/NordicRushInfoView/InfoView.data.ts": {
@@ -5021,9 +5045,9 @@
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/NordicRushInfoView.cpp"
   ],
   "sha256": "062934c88e7fa525f62197e0ef9714887773ffdf28c045b51ddaf794372d7e24",
-  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/NordicRushInfoView.h": "4389103043c2d676b22819932806a2ad0ab14a14421115e3c4a98712c9d9c4b2",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/NordicRushInfoView.h": "7cd60b5ce03e2e302d867549a2c69c632f5a297d4ad4ea73b4fd9f46b0f44931",
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/NordicRushInfoView.cpp": "bbfc3c5f3c7261f01062443f7cbf25b90e8dfa18cb0b00bc9b01d65d026cc039"
   }
  },
@@ -5043,9 +5067,9 @@
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushMath/MathRules.cpp"
   ],
   "sha256": "263321c3183b01d6a315b06969743ce201541edafc467faeafdb7412cc782b88",
-  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushMath/MathRules.h": "a8420731428ece012b3ed9843f58248773001503f026c6baf2b9b8f607ae8998",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushMath/MathRules.h": "39ff34dfefa2454a78eddaed08acffe751efae5e380b6c7eea3e4cdbc4b8b47f",
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushMath/MathRules.cpp": "4491fff2d1822e7eca96b1ebc3ed79cdfdd86b32cbc7a44886dee37942f64fdd"
   }
  },
@@ -5055,9 +5079,9 @@
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushMath/MathTypes.cpp"
   ],
   "sha256": "11b8ae3d3fd83b0f4554fbb62d6a2c1fdb8512f4d819a95521bf1247c93b88c6",
-  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushMath/MathTypes.h": "1fe380ff1482db1ce64e63195abd5827360bd6cc719822eb5ffd7cac2c3bd68a",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushMath/MathTypes.h": "3d9179c8921700e8803bae86a663b4fbbab6294e0648796643f23151f0fa4f0a",
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushMath/MathTypes.cpp": "3ac13f145a0bc01a283240f34f8ceaa2b0f8feed5533b6996525993cf640b0db"
   }
  },
@@ -5067,9 +5091,9 @@
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushMath/NordicRushMath.cpp"
   ],
   "sha256": "746e34eb60b653a49d117aa3b008a2e78c0b14ba2aab43814d3fb35fc3a45252",
-  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushMath/NordicRushMath.h": "b352bb9286f56ab063b30f44ba4272c7dc16e6a6c0cd3435c334e3a66dce5505",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushMath/NordicRushMath.h": "aa5cd74cf6ba2695087186d1bf1fca16233d695a8eea1b87fe96e9c04b62acd3",
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushMath/NordicRushMath.cpp": "ef54d0475d448b67b3ac434037d8f263671e4b40777266df28c5f8ef6b6647c6"
   }
  },
@@ -5089,9 +5113,9 @@
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushTopperView/NordicRushTopperView.cpp"
   ],
   "sha256": "b1b19812ac55f43daf91246ece87061757c46a0506c63f6f44bff3519dfb1d63",
-  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushTopperView/NordicRushTopperView.h": "d0eaa387ad6aa517366e3696e3924d9b1d14246201d3c1de67e656c3cd1b53af",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushTopperView/NordicRushTopperView.h": "9b5c712c3750b0ac51a9b13a820230a859912fc658564bc5d35d2751a64fd59a",
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushTopperView/NordicRushTopperView.cpp": "9c2a3aee0e9beee0ea81437252dede0670db23a6caa4affc517d066471465a4a"
   }
  },
@@ -5113,9 +5137,9 @@
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/NordicRushView.cpp"
   ],
   "sha256": "e552dd1d15189e54ab6122f8a65b2131493bb87895bf284ea4321ba34ada3cb7",
-  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/NordicRushView.h": "edc4ade4ebaf396c1a8f25a657a98a4cca8d77e1aa7f7d90f6111e32f4202fd5",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/NordicRushView.h": "fa37817a469f1d06e68ca33c7c4eb3dbd6320bbf6af0c605f8e8ef1b4c9dfccc",
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/NordicRushView.cpp": "2591811a5a5edfde7992bedb150a18eefdec71a4960453fe5b7a1709ec1ab4e3"
   }
  },
@@ -5172,11 +5196,11 @@
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/LanguageSwButtonView.h",
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/LanguageSwButtonView.cpp"
   ],
-  "sha256": "b4c55868b2c1c355b9f8c981b09009c159be1867c1a73164feb79b36318c66d8",
-  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "sha256": "9a42d844df4f2ad2804fcf06bff2d6fba5d80237509e3e5315b38a7fe815da67",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/LanguageSwButtonView.h": "23369509cddb4749977928f7b0d819a18292f19b2b6b4ccb75718b716275c0fa",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/LanguageSwButtonView.cpp": "0f1d772994c457718bf0f595e02c89260c3d50202cf26ade7dffd3c8ecb2fb3f"
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/LanguageSwButtonView.h": "c19c5ac3285aaad9ef6d9d6b68a3fabe6fbe999976407b5a9ac16f88db53570a",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/LanguageSwButtonView.cpp": "32ab0ac65f5808e65b8090313b0922f4fd261c9631c9ded7e32cd3f9044b9851"
   }
  },
  "alpha_family/plugins/nordic_rush/NordicRushView/SwButtons/LineDownSwButtonView.ts": {
@@ -5220,11 +5244,11 @@
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/SoundVolumeSwButtonView.h",
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/SoundVolumeSwButtonView.cpp"
   ],
-  "sha256": "a078b4e740a729b135c860526572df89d5e66c8462c14e18878d05a9ff291286",
-  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "sha256": "a85cb0b1b1ab9815c832556ed844c5ab95b82686b06dfaa04fee102a64c8181d",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/SoundVolumeSwButtonView.h": "78ede2a49ec5aae8aa3b49ddf4d56b27f357651c9f5a785fbc9a00be552ccb33",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/SoundVolumeSwButtonView.cpp": "664fa37aefa4d3346ac3ec5e8ba80c7c8f88fc082caafbbca4d3001c5b994ba2"
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/SoundVolumeSwButtonView.h": "3caf05f98acb6fedb7321afd7bd3e5730c615590af11a702cdf1ceba5a6e645f",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/SoundVolumeSwButtonView.cpp": "60736d8f3486218b032ed461f613c8c9362066f910304246c34ce44ddfbb9239"
   }
  },
  "alpha_family/plugins/nordic_rush/NordicRushView/SwButtons/StopSingleReelSwButtonView.ts": {
@@ -5424,11 +5448,11 @@
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/GameBackgroundView.h",
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/GameBackgroundView.cpp"
   ],
-  "sha256": "a38ec8e2bc8ab1f36cdd391cee69a0d1fbcff4184cd77c23a5d6ce6126ccf2f5",
-  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "sha256": "ab02e8bfde8ab87af9c04ceee6211ac4c36e38199bbcf65daa25bfe3863f466e",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/GameBackgroundView.h": "e6cdcfa0d426d73747cc61eb3e643142e7f7a614d82a073a93707cec0a4802f3",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/GameBackgroundView.cpp": "b7601f4ce760eb0f0cedcdd09e132ce3e32c6da718502fb988152099984ebc38"
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/GameBackgroundView.h": "c2ff4c112ec4bbdc06089fad825f13267192401c9fd367234e3d711c11f54667",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/GameBackgroundView.cpp": "d8b244f5384cfbe9068e7c698801621104bfc5404477d028afbce8a30eba024f"
   }
  },
  "alpha_family/plugins/nordic_rush/NordicRushView/Views/HoldAndSpinBarView.ts": {
@@ -5460,11 +5484,11 @@
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/KnobsView.h",
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/KnobsView.cpp"
   ],
-  "sha256": "368f7f1aa738ae0ecb01a3ff05750c9f22a3bbef231ad03412bdda52ad96ad5a",
-  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "sha256": "69597ce1db356416fa63f4f4bad4c99ec4af163ee9c852a2fa2f1c6d2afd60dd",
+  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/KnobsView.h": "9f1f380a7178a8d258110d0d611d326e7ff1c6dddbd0c106fa791878d53d57d4",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/KnobsView.cpp": "dd745173292f3806ab6a8120358d2aabf037507c62eb3b09133d7ed3d922e819"
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/KnobsView.h": "69e2390738b011083048e7c0b697868e75cdcad94430f48acb88505b67697fe9",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/KnobsView.cpp": "957ebc05590bbac790998f021ebd16ea0c4570c341938e664cf8aad500efc3c9"
   }
  },
  "alpha_family/plugins/nordic_rush/NordicRushView/Views/LanguageMenuView.ts": {

@@ -2,14 +2,13 @@
 
 import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
 import { IControlViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IControlView';
-import { EKnobsType, IKnobsView } from '@game/alpha_family/libs/AlphaFamily/Views/IOverlayViews.bridge';
+import { IKnobsView } from '@game/alpha_family/libs/AlphaFamily/Views/IOverlayViews.bridge';
 import { BaseView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/BaseView';
 
 const KnobsViewId = 'KnobsView';
 
 export class KnobsView extends BaseView implements IKnobsView {
   protected readonly m_events = new IControlViewEvents();
-  private m_knobsType = EKnobsType.Normal;
 
   constructor() {
     super(KnobsViewId);
@@ -51,10 +50,5 @@ export class KnobsView extends BaseView implements IKnobsView {
 
   SetSkin(skin: string) {
     this.m_control.SetSkin(skin);
-  }
-
-  // IKnobsView
-  SetKnobsType(knobsType: EKnobsType) {
-    this.m_knobsType = knobsType;
   }
 }

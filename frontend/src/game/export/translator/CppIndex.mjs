@@ -167,7 +167,7 @@ export class CppIndex {
     return (this.declarations.get(name) ?? []).some(item => !item.nested);
   }
 
-  /** How code in namespace Egt::Game::AlphaFamily (using namespace States) names a declaration: IKnobsView::EKnobsType,
+  /** How code in namespace Egt::Game::AlphaFamily (using namespace States) names a declaration: IThemeView::ThemeType,
    * ViewTools::BarsSync, Currency. */
   Qualified(name, withStates = false, hint = null, owners = []) {
     const found = this.Pick(name, hint, owners);
@@ -186,11 +186,25 @@ export class CppIndex {
       const text = this.texts.get(file);
       const match = new RegExp(`\\b(?:class|struct)\\s+(?:EGT_\\w+\\s+)?${name}\\b\\s*(?:final\\s*)?(:[^{;]*)?\\{`).exec(text);
       if (!match) continue;
-      const bases = (match[1] ?? '').replace(/^:/, '').split(',').map(base => base.replace(/\b(public|protected|private|virtual)\b/g, '').trim())
-        .filter(Boolean).map(base => base.split('::').pop().replace(/<.*$/, ''));
-      return { body: braceBody(text, match.index + match[0].length - 1), bases, file };
+      const entries = (match[1] ?? '').replace(/^:/, '').split(',');
+      const baseName = base => base.replace(/\b(public|protected|private|virtual)\b/g, '').trim().split('::').pop().replace(/<.*$/, '');
+      const bases = entries.map(baseName).filter(Boolean);
+      const virtualBases = entries.filter(base => /\bvirtual\b/.test(base)).map(baseName);
+      return { body: braceBody(text, match.index + match[0].length - 1), bases, virtualBases, file };
     }
     return null;
+  }
+
+  /** The classes a class or one of its bases derives from virtually (`public virtual IThemeView`). */
+  VirtualBases(name, seen = new Set()) {
+    const found = new Set();
+    if (seen.has(name)) return found;
+    seen.add(name);
+    const cls = this.Class(name);
+    if (!cls) return found;
+    for (const base of cls.virtualBases) found.add(base);
+    for (const base of cls.bases) for (const item of this.VirtualBases(base, seen)) found.add(item);
+    return found;
   }
 
   /** The methods a class and its bases declare: name -> { ret, params, isConst, isVirtual }. */

@@ -2,6 +2,7 @@
 
 import { Event } from '@game/engine/Core/Event';
 import type { AccumulationDescriptor } from '../Tools/AccumulationControl.data';
+import type { IThemeView } from './IThemeView';
 
 export interface IControlView {
   SetEnabled(enabled: boolean): void;
@@ -35,7 +36,7 @@ export class IMenuViewEvents extends IControlViewEvents {
   readonly menuOpened = new Event();
 }
 
-export interface INumericBarView {
+export interface INumericBarView extends IThemeView {
   SetAccumulation(accumulation: AccumulationDescriptor): void;
   SetValue(value: number): void;
   SetValueNow(value: number): void;

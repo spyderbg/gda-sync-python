@@ -95,6 +95,11 @@ Then follow game_sync.md steps 2 to 5 (baseline, port, measure, manifest), with 
 - **Statics and nvrams** (`*.data.h` of a state, such as `ReelRoundStatics`, `TetraRoundStorage`). A field added in C++
   goes in the TypeScript class with the same default. Code that reads it from another state (for example
   `ConstStatic<ReelRoundStatics>().showFastLines` in `ReelRoundPresenting`) needs that class imported.
+- **Virtual bases.** Since 2026-11-04 (games `76c08fbd9`), `IThemeView` is a `virtual` base of `BaseView` and of the
+  view interfaces (`IGameBackgroundView`, `IKnobsView`, `ISwButtonBase`, `INumericBarView`), and `BaseView` implements
+  `SetTheme`. In TypeScript the interfaces extend `IThemeView` and `BaseView` implements it. The translator writes no
+  override in a view for a method of a virtual base that its C++ base shares with its interface
+  (`CppIndex.VirtualBases`), as C++ needs none.
 - **QA-only C++** (`EGT_DISTRIBUTION_TARGET_QA`, QaBridge, the drawn-elements observer) is not ported. Say so in the
   report.
 - **Moves between states and managers.** When a responsibility moves from a state to a manager (the tetra round's bet
@@ -231,3 +236,4 @@ when the user asks. A `hat_libs` sync has no manifest entry, so this record is t
 | `bb41b0f82` | 2026-09-17 | `574275b3f` (2026-10-28) | checked 2026-10-28 | Nordic Rush's sync: the pin has not moved |
 | `bb41b0f82` | 2026-09-17 | `d94055e30` (2026-10-29) | checked 2026-10-29 | Joker Reels Coins 10's import: the pin has not moved |
 | `def1924e4` | 2026-10-29 | `faa5f19a0` (2026-10-29) | checked 2026-11-02 | Burning Crown's sync: the pin moved 24 commits (dx11 renderer and textures, ktx2, localizer, debug, Dog); none in the ported paths |
+| `def1924e4` | 2026-10-29 | `faa5f19a0` (2026-10-29) | checked 2026-11-04 | Burning Crown's view theme sync (games `6253e35ff`): the pin has not moved |

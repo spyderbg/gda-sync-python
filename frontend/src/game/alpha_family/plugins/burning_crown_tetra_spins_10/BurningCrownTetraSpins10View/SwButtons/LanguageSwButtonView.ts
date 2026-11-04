@@ -3,18 +3,17 @@
 
 import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
 import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
+import * as tweeny from '@game/hat_libs/tweeny/tweeny';
 import { IButtonViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IControlView';
-import { ELanguageSwButtonType, ILanguageSwButtonView } from '@game/alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge';
+import { ILanguageSwButtonView } from '@game/alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge';
 import { ButtonView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/Components/ButtonView';
-import { PanelLayout } from '../PanelLayout';
-import { IGameBackgroundView } from '@game/alpha_family/libs/AlphaFamily/Views/IOverlayViews.bridge';
+import { ThemeLayout } from '../ThemeLayout';
 
 const LanguageSwButtonViewId = 'LanguageSwButtonView';
 const ButtonLanguageId = 'button_language';
 
 export class LanguageSwButtonView extends ButtonView implements ILanguageSwButtonView {
-  private readonly m_panelLayout = new PanelLayout(this.m_elementsList);
-  private m_buttonType = ELanguageSwButtonType.Normal;
+  private readonly m_themeLayout = new ThemeLayout(this.m_elementsList, tweeny.ref(this, 'm_theme'));
 
   constructor() {
     super(LanguageSwButtonViewId, ILanguageSwButtonView, new IButtonViewEvents());
@@ -22,7 +21,7 @@ export class LanguageSwButtonView extends ButtonView implements ILanguageSwButto
 
   Init(runtime: Runtime) {
     super.Init(runtime);
-    this.InitElementsList(LanguageSwButtonViewId, () => this.ApplyPanelLayout());
+    this.InitElementsList(LanguageSwButtonViewId);
     return true;
   }
 
@@ -31,35 +30,23 @@ export class LanguageSwButtonView extends ButtonView implements ILanguageSwButto
     super.Deinit();
   }
 
-  Process() {
-    super.Process();
-    if (this.m_panelLayout.Update(this.RuntimeTryGetConst(IGameBackgroundView)) && this.m_elementsList.IsLoaded()) {
-      this.ApplyPanelLayout();
-    }
-  }
-
   Draw(drawList: DrawList) {
-    if (this.IsHiddenByLayout()) return;
+    if (this.IsHiddenByTheme()) return;
     super.Draw(drawList);
   }
 
   HandleTouchDown(x: number, y: number) {
-    if (this.IsHiddenByLayout()) return false;
+    if (this.IsHiddenByTheme()) return false;
     return super.HandleTouchDown(x, y);
   }
 
-  SetButtonType(type: ELanguageSwButtonType) {
-    if (type === this.m_buttonType) return;
-    this.m_buttonType = type;
+  protected OnThemeChanged() {
+    this.m_themeLayout.Apply();
+    this.SetToggleButtonId(this.m_themeLayout.ElementId(ButtonLanguageId));
   }
 
-  private ApplyPanelLayout() {
-    this.m_panelLayout.Apply();
-    this.SetToggleButtonId(this.m_panelLayout.ElementId(ButtonLanguageId));
-  }
-
-  /** The layout's JSON hides the button (Tetra's): the view draws nothing and takes no touch. */
-  private IsHiddenByLayout() {
-    return this.m_elementsList.IsLoaded() && !this.m_panelLayout.IsShown(this.m_buttonId);
+  /** The theme's JSON hides the button (Tetra's): the view draws nothing and takes no touch. */
+  private IsHiddenByTheme() {
+    return this.m_elementsList.IsLoaded() && !this.m_themeLayout.IsShown(this.m_buttonId);
   }
 }

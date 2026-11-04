@@ -3,7 +3,7 @@
 
 import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
 import { IButtonViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IControlView';
-import { type ELanguageSwButtonType, ILanguageSwButtonView } from '@game/alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge';
+import { ILanguageSwButtonView } from '@game/alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge';
 import { ButtonView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/Components/ButtonView';
 
 const LanguageSwButtonViewId = 'LanguageSwButtonView';
@@ -29,6 +29,4 @@ export class LanguageSwButtonView extends ButtonView implements ILanguageSwButto
     this.DeinitElementsList();
     super.Deinit();
   }
-
-  SetButtonType(_type: ELanguageSwButtonType) {}
 }

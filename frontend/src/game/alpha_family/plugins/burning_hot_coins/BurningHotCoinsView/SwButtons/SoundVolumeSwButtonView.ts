@@ -7,7 +7,7 @@ import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
 import * as tweeny from '@game/hat_libs/tweeny/tweeny';
 import { ButtonElement } from '@game/engine/GameVideoCtrl/ViewElements/ButtonElement';
 import { IButtonViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IControlView';
-import { ESoundSwButtonType, ISoundVolumeSwButtonView } from '@game/alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge';
+import { ISoundVolumeSwButtonView } from '@game/alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge';
 import { ButtonView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/Components/ButtonView';
 
 const SoundVolumeSwButtonViewId = 'SoundVolumeSwButtonView';
@@ -55,8 +55,6 @@ export class SoundVolumeSwButtonView extends ButtonView implements ISoundVolumeS
     if (!this.m_elementsList.IsLoaded()) return;
     this.AdjustButtons();
   }
-
-  SetButtonType(_type: ESoundSwButtonType) {}
 
   SimulateButtonPress() {
     if (this.m_oldVolume === this.m_currentVolume) return;

@@ -43,7 +43,8 @@ import { IHoldAndSpinRoundOverlayView } from '@game/alpha_family/libs/AlphaFamil
 import { ECurrencyPrize, type FigureId, IInfoView, type PaytableCoefficients } from '@game/alpha_family/libs/AlphaFamily/Views/IInfoView.bridge';
 import { ILinesView } from '@game/alpha_family/libs/AlphaFamily/Views/ILinesView.bridge';
 import { ILanguageMenuView } from '@game/alpha_family/libs/AlphaFamily/Views/IMenuViews.bridge';
-import { IBigWinView, IKnobsView, ITetraRoundOverlayView, ITopperView } from '@game/alpha_family/libs/AlphaFamily/Views/IOverlayViews.bridge';
+import type { ThemeType } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IThemeView';
+import { IBigWinView, IGameBackgroundView, IKnobsView, ITetraRoundOverlayView, ITopperView } from '@game/alpha_family/libs/AlphaFamily/Views/IOverlayViews.bridge';
 import { IReelsView } from '@game/alpha_family/libs/AlphaFamily/Views/IReelsView.bridge';
 import { IStatusLineView } from '@game/alpha_family/libs/AlphaFamily/Views/IStatusLineView.bridge';
 import { ITetraRoundView } from '@game/alpha_family/libs/AlphaFamily/Views/ITetraRoundView.bridge';
@@ -87,6 +88,8 @@ export class ViewManager extends State implements IViewManager, IViewManagerEven
 
   readonly betMenuStateChanged = new Event();
   readonly languageMenuStateChanged = new Event();
+
+  ////////////////////////////////////////////////////////////////////////////////
 
   OnTransit(_isStartup: boolean, _isRecovery: boolean) {
     EgtATrace('OnTransit {} {}', _isStartup ? 'isStartup' : '', _isRecovery ? 'isRecovery' : '');
@@ -808,6 +811,51 @@ export class ViewManager extends State implements IViewManager, IViewManagerEven
     this.SetupFreeRoundView(roundResult.GetRoundType(), options);
     this.SetupHoldAndSpinRoundView(roundResult.GetRoundType(), options);
   }
+
+  SetTheme(theme: ThemeType) {
+    const knobsView = this.RuntimeTryGet(IKnobsView);
+    if (knobsView) {
+      knobsView.SetTheme(theme);
+    }
+    const backgroundView = this.RuntimeTryGet(IGameBackgroundView);
+    if (backgroundView) {
+      backgroundView.SetTheme(theme);
+    }
+    const soundVolumeView = this.RuntimeTryGet(ISoundVolumeSwButtonView);
+    if (soundVolumeView) {
+      soundVolumeView.SetTheme(theme);
+    }
+    const languageView = this.RuntimeTryGet(ILanguageSwButtonView);
+    if (languageView) {
+      languageView.SetTheme(theme);
+    }
+    const betUpView = this.RuntimeTryGet(IBetUpSwButtonView);
+    if (betUpView) {
+      betUpView.SetTheme(theme);
+    }
+    const infoView = this.RuntimeTryGet(IInfoSwButtonView);
+    if (infoView) {
+      infoView.SetTheme(theme);
+    }
+    const exitGameView = this.RuntimeTryGet(IExitGameSwButtonView);
+    if (exitGameView) {
+      exitGameView.SetTheme(theme);
+    }
+    const betView = this.RuntimeTryGet(IBetBarView);
+    if (betView) {
+      betView.SetTheme(theme);
+    }
+    const creditsWinView = this.RuntimeTryGet(ICreditsWinBarView);
+    if (creditsWinView) {
+      creditsWinView.SetTheme(theme);
+    }
+    const creditView = this.RuntimeTryGet(ICreditBarView);
+    if (creditView) {
+      creditView.SetTheme(theme);
+    }
+  }
+
+  ////////////////////////////////////////////////////////////////////////////////
 
   private SetupFreeRoundView(roundType: RoundType, options: SetupViewsOptions) {
     const gameflow = this.RuntimeGetConst(IGameflow);

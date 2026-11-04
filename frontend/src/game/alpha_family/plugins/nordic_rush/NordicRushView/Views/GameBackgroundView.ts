@@ -6,7 +6,7 @@ import { CountdownTimer } from '@game/engine/Game/Utils/CountdownTimer';
 import type { int } from '@game/engine/GameCore/Common/Types';
 import { AnimElement } from '@game/engine/GameVideoCtrl/ViewElements/AnimElement';
 import { IControlViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IControlView';
-import { EBackgroundType, IGameBackgroundView } from '@game/alpha_family/libs/AlphaFamily/Views/IOverlayViews.bridge';
+import { IGameBackgroundView } from '@game/alpha_family/libs/AlphaFamily/Views/IOverlayViews.bridge';
 import { BaseView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/BaseView';
 
 const GameBackgroundViewId = 'GameBackgroundView';
@@ -22,7 +22,6 @@ export class GameBackgroundView extends BaseView implements IGameBackgroundView 
 
   private m_idleTimerLeft = new CountdownTimer();
   private m_idleTimerRight = new CountdownTimer();
-  private m_backgroundType = EBackgroundType.Main;
 
   constructor() {
     super(GameBackgroundViewId);
@@ -76,10 +75,5 @@ export class GameBackgroundView extends BaseView implements IGameBackgroundView 
 
   IsOpaqueFullScreen() {
     return true;
-  }
-
-  // IGameBackgroundView
-  SetBackgroundType(type: EBackgroundType) {
-    this.m_backgroundType = type;
   }
 }

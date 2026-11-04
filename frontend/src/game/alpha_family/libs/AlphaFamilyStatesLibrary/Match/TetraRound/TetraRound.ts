@@ -16,13 +16,13 @@ import { IViewManager } from '@game/alpha_family/libs/AlphaFamily/States/IViewMa
 import { ITetraRound, type TetraViewOptions } from '@game/alpha_family/libs/AlphaFamily/States/Match/ITetraRound';
 import { IBetBarView, ITetraSpinBarView } from '@game/alpha_family/libs/AlphaFamily/Views/BarsView.bridge';
 import { IBetMenuView } from '@game/alpha_family/libs/AlphaFamily/Views/IBetMenuView.bridge';
+import { ThemeType } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IThemeView';
 import { ILinesView } from '@game/alpha_family/libs/AlphaFamily/Views/ILinesView.bridge';
-import { EBackgroundType, EKnobsType, IGameBackgroundView, IKnobsView } from '@game/alpha_family/libs/AlphaFamily/Views/IOverlayViews.bridge';
 import { IReelsView } from '@game/alpha_family/libs/AlphaFamily/Views/IReelsView.bridge';
 import { ITetraRoundView } from '@game/alpha_family/libs/AlphaFamily/Views/ITetraRoundView.bridge';
 import { IWinFiguresView } from '@game/alpha_family/libs/AlphaFamily/Views/IWinFiguresView.bridge';
 import {
-  ELanguageSwButtonType, ESoundSwButtonType, IExitGameSwButtonView, IExitTetraSwButtonView, IInfoSwButtonView, ILanguageSwButtonView, ISoundVolumeSwButtonView,
+  IExitGameSwButtonView, IExitTetraSwButtonView, IInfoSwButtonView, ILanguageSwButtonView, ISoundVolumeSwButtonView,
   IStopSingleReelSwButtonView,
 } from '@game/alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge';
 import { TetraRoundStatics, TetraRoundStorage } from './TetraRound.data';
@@ -154,10 +154,7 @@ export class TetraRoundState extends State implements ITetraRound {
     this.RuntimeGet(ITetraRoundView).SetVisible(true);
 
     // hide
-    this.RuntimeGet(IKnobsView).SetKnobsType(EKnobsType.Tetra);
-    this.RuntimeGet(IGameBackgroundView).SetBackgroundType(EBackgroundType.Tetra);
-    this.RuntimeGet(ISoundVolumeSwButtonView).SetButtonType(ESoundSwButtonType.Tetra);
-    this.RuntimeGet(ILanguageSwButtonView).SetButtonType(ELanguageSwButtonType.Tetra);
+    this.Parent(IViewManager).SetTheme(ThemeType.Tetra);
 
     this.RuntimeGet(IWinFiguresView).ClearFigures();
     this.RuntimeGet(ILinesView).ClearLines();

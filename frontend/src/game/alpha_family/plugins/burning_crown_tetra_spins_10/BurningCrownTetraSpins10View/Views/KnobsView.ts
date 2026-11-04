@@ -2,9 +2,9 @@
 // reels, one pair for the main reels and two for the tetra screens.
 
 import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
-import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
 import { IControlViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IControlView';
-import { EKnobsType, IKnobsView } from '@game/alpha_family/libs/AlphaFamily/Views/IOverlayViews.bridge';
+import { ThemeType } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IThemeView';
+import { IKnobsView } from '@game/alpha_family/libs/AlphaFamily/Views/IOverlayViews.bridge';
 import { BaseView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/BaseView';
 
 const KnobsViewId = 'KnobsView';
@@ -38,8 +38,6 @@ const ElementsTetraRoundIds = [
 export class KnobsView extends BaseView implements IKnobsView {
   protected readonly m_events = new IControlViewEvents();
 
-  private m_knobsType = EKnobsType.Normal;
-
   constructor() {
     super(KnobsViewId);
   }
@@ -65,14 +63,10 @@ export class KnobsView extends BaseView implements IKnobsView {
     super.Deinit();
   }
 
-  Draw(drawList: DrawList) {
-    // (C++ draws once into a dummy list to activate the lazy load: the browser's elements list loads in Init)
-
-    const isTetraView = this.m_knobsType === EKnobsType.Tetra;
+  protected OnThemeChanged() {
+    const isTetraView = this.m_theme === ThemeType.Tetra;
     this.m_elementsList.SetHidden(isTetraView, ElementsMainRoundIds);
     this.m_elementsList.SetHidden(!isTetraView, ElementsTetraRoundIds);
-
-    super.Draw(drawList);
   }
 
   // IControlView
@@ -90,10 +84,5 @@ export class KnobsView extends BaseView implements IKnobsView {
 
   SetSkin(skin: string) {
     this.m_control.SetSkin(skin);
-  }
-
-  // IKnobsView
-  SetKnobsType(knobsType: EKnobsType) {
-    this.m_knobsType = knobsType;
   }
 }

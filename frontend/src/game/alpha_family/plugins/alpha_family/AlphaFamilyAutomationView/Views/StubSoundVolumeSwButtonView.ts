@@ -1,6 +1,6 @@
 // Egt::Game::AlphaFamily::Stub::StubSoundVolumeSwButtonView (AlphaFamilyAutomationView/Views/StubSoundVolumeSwButtonView.h): the automation's ISoundVolumeSwButtonView.
 
-import { type ESoundSwButtonType, ISoundVolumeSwButtonView } from '@game/alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge';
+import { ISoundVolumeSwButtonView } from '@game/alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge';
 import { StubSwButton } from '../Components/StubSwButton';
 
 export class StubSoundVolumeSwButtonView extends StubSwButton<ISoundVolumeSwButtonView> implements ISoundVolumeSwButtonView {
@@ -9,6 +9,4 @@ export class StubSoundVolumeSwButtonView extends StubSwButton<ISoundVolumeSwButt
   }
 
   SetCurrentVolume(_volume: number) {}
-
-  SetButtonType(_type: ESoundSwButtonType) {}
 }

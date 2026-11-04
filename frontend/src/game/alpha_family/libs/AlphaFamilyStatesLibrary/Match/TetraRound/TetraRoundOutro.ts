@@ -10,12 +10,11 @@ import { IViewManager } from '@game/alpha_family/libs/AlphaFamily/States/IViewMa
 import { IMatch } from '@game/alpha_family/libs/AlphaFamily/States/Match/IMatch';
 import { ITetraRound, ITetraRoundOutro } from '@game/alpha_family/libs/AlphaFamily/States/Match/ITetraRound';
 import { ITetraSpinBarView } from '@game/alpha_family/libs/AlphaFamily/Views/BarsView.bridge';
-import { EBackgroundType, EKnobsType, IGameBackgroundView, IKnobsView, ITetraRoundOverlayView } from '@game/alpha_family/libs/AlphaFamily/Views/IOverlayViews.bridge';
+import { ThemeType } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IThemeView';
+import { ITetraRoundOverlayView } from '@game/alpha_family/libs/AlphaFamily/Views/IOverlayViews.bridge';
 import { IReelsView } from '@game/alpha_family/libs/AlphaFamily/Views/IReelsView.bridge';
 import { ITetraRoundView } from '@game/alpha_family/libs/AlphaFamily/Views/ITetraRoundView.bridge';
-import {
-  ELanguageSwButtonType, ESoundSwButtonType, IExitTetraSwButtonView, ILanguageSwButtonView, ISoundVolumeSwButtonView,
-} from '@game/alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge';
+import { IExitTetraSwButtonView } from '@game/alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge';
 
 export class TetraRoundOutroState extends State {
   static Interfaces = [ITetraRoundOutro];
@@ -47,10 +46,7 @@ export class TetraRoundOutroState extends State {
   private OnOutroMidway() {
     this.UpdateBet();
 
-    this.RuntimeGet(IKnobsView).SetKnobsType(EKnobsType.Normal);
-    this.RuntimeGet(IGameBackgroundView).SetBackgroundType(EBackgroundType.Main);
-    this.RuntimeGet(ISoundVolumeSwButtonView).SetButtonType(ESoundSwButtonType.Normal);
-    this.RuntimeGet(ILanguageSwButtonView).SetButtonType(ELanguageSwButtonType.Normal);
+    this.Parent(IViewManager).SetTheme(ThemeType.Main);
 
     this.RuntimeGet(ITetraRoundView).SetVisible(false);
 

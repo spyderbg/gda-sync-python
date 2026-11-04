@@ -2,9 +2,9 @@
 // or the tetra background, and the panel.
 
 import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
-import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
 import { IControlViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IControlView';
-import { EBackgroundType, IGameBackgroundView } from '@game/alpha_family/libs/AlphaFamily/Views/IOverlayViews.bridge';
+import { ThemeType } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IThemeView';
+import { IGameBackgroundView } from '@game/alpha_family/libs/AlphaFamily/Views/IOverlayViews.bridge';
 import { BaseView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/BaseView';
 
 const GameBackgroundViewId = 'GameBackgroundView';
@@ -23,8 +23,6 @@ const AnimPanelTetraBetBarId = 'anim_panel_tetra_bet_bar';
 
 export class GameBackgroundView extends BaseView implements IGameBackgroundView {
   protected readonly m_events = new IControlViewEvents();
-
-  private m_backgroundType = EBackgroundType.Main;
 
   constructor() {
     super(GameBackgroundViewId);
@@ -51,10 +49,8 @@ export class GameBackgroundView extends BaseView implements IGameBackgroundView 
     super.Deinit();
   }
 
-  Draw(drawList: DrawList) {
-    // (C++ draws once into a dummy list to activate the lazy load: the browser's elements list loads in Init)
-
-    const isTetraView = this.IsTetraLayout();
+  protected OnThemeChanged() {
+    const isTetraView = this.m_theme === ThemeType.Tetra;
 
     this.m_elementsList.TryGet(ImageBackgroundId)?.SetHidden(isTetraView);
     this.m_elementsList.TryGet(ImageBackgroundFrameId)?.SetHidden(isTetraView);
@@ -67,20 +63,9 @@ export class GameBackgroundView extends BaseView implements IGameBackgroundView 
     this.m_elementsList.TryGet(ImagePanelBackgroundFrameTetraId)?.SetHidden(!isTetraView);
 
     this.m_elementsList.TryGet(AnimPanelTetraBetBarId)?.SetHidden(!isTetraView);
-
-    super.Draw(drawList);
   }
 
   IsOpaqueFullScreen() {
     return true;
-  }
-
-  IsTetraLayout() {
-    return this.m_backgroundType === EBackgroundType.Tetra;
-  }
-
-  // IGameBackgroundView
-  SetBackgroundType(type: EBackgroundType) {
-    this.m_backgroundType = type;
   }
 }

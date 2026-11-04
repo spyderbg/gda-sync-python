@@ -12,8 +12,8 @@ import { INumericBarViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views
 import { EWinBarState, type ICreditsWinBarView, ICreditsWinBarView as ICreditsWinBarViewToken } from '@game/alpha_family/libs/AlphaFamily/Views/BarsView.bridge';
 import { AccumulationType, type AccumulationDescriptor } from '@game/alpha_family/libs/AlphaFamily/Views/Tools/AccumulationControl.data';
 import { NumericBarView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/Components/NumericBarView';
-import { PanelLayout } from '../PanelLayout';
-import { IGameBackgroundView } from '@game/alpha_family/libs/AlphaFamily/Views/IOverlayViews.bridge';
+import * as tweeny from '@game/hat_libs/tweeny/tweeny';
+import { ThemeLayout } from '../ThemeLayout';
 
 const CreditsWinBarViewId = 'CreditsWinBarView';
 const ImageWinLabelId = 'image_win_label';
@@ -22,7 +22,7 @@ const AudioEventTakeWinId = 'SOUND_TAKE_WIN';
 
 export class CreditsWinBarView extends NumericBarView<ICreditsWinBarView, INumericBarViewEvents> implements ICreditsWinBarView {
   private m_labelState = EWinBarState.Win;
-  private readonly m_panelLayout = new PanelLayout(this.m_elementsList);
+  private readonly m_themeLayout = new ThemeLayout(this.m_elementsList, tweeny.ref(this, 'm_theme'));
 
   constructor() {
     super(CreditsWinBarViewId, ICreditsWinBarViewToken, new INumericBarViewEvents());
@@ -30,7 +30,7 @@ export class CreditsWinBarView extends NumericBarView<ICreditsWinBarView, INumer
 
   Init(runtime: Runtime) {
     super.Init(runtime);
-    this.InitElementsList(CreditsWinBarViewId, () => this.ApplyPanelLayout());
+    this.InitElementsList(CreditsWinBarViewId);
     this.SetLabelState(EWinBarState.Win);
     return true;
   }
@@ -38,13 +38,6 @@ export class CreditsWinBarView extends NumericBarView<ICreditsWinBarView, INumer
   Deinit() {
     this.DeinitElementsList();
     super.Deinit();
-  }
-
-  Process() {
-    super.Process();
-    if (this.m_panelLayout.Update(this.RuntimeTryGetConst(IGameBackgroundView)) && this.m_elementsList.IsLoaded()) {
-      this.ApplyPanelLayout();
-    }
   }
 
   Draw(drawList: DrawList) {
@@ -73,16 +66,16 @@ export class CreditsWinBarView extends NumericBarView<ICreditsWinBarView, INumer
     if (playTakeWin) this.RuntimeGet(IAudioApi).Play(AudioEventTakeWinId);
   }
 
-  private ApplyPanelLayout() {
-    this.m_panelLayout.Apply();
+  protected OnThemeChanged() {
+    this.m_themeLayout.Apply();
     this.AdjustWinState();
   }
 
   private AdjustWinValueChanged() {
-    this.m_elementsList.TryGet(this.m_panelLayout.ElementId(TextWinAmountId), TextElement)?.SetText(this.RuntimeGetConst(ILocalization).FormatCurrency(this.m_currentValue));
+    this.m_elementsList.TryGet(this.m_themeLayout.ElementId(TextWinAmountId), TextElement)?.SetText(this.RuntimeGetConst(ILocalization).FormatCurrency(this.m_currentValue));
   }
 
   private AdjustWinState() {
-    this.m_elementsList.TryGet(this.m_panelLayout.ElementId(ImageWinLabelId), ImageElement)?.SetSelectedImage(this.m_labelState);
+    this.m_elementsList.TryGet(this.m_themeLayout.ElementId(ImageWinLabelId), ImageElement)?.SetSelectedImage(this.m_labelState);
   }
 }

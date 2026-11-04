@@ -7,13 +7,13 @@ import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
 import { TextElement } from '@game/engine/GameVideoCtrl/ViewElements/TextElement';
 import { ImageElement } from '@game/engine/GameVideoCtrl/ViewElements/ImageElement';
 import { ButtonElement } from '@game/engine/GameVideoCtrl/ViewElements/ButtonElement';
-import { EBackgroundType } from '@game/alpha_family/libs/AlphaFamily/Views/IOverlayViews.bridge';
+import { ThemeType } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IThemeView';
 import { EWinBarState } from '@game/alpha_family/libs/AlphaFamily/Views/BarsView.bridge';
 import { IInfoSwButtonView } from '@game/alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge';
 import type { BaseView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/BaseView';
 import { BaseElement } from '@game/engine/GameVideoCtrl/ViewElements/BaseElement';
 import { ElementsList } from '@game/engine/GameVideoCtrl/ViewElements/ElementsList';
-import { PanelLayout } from '@game/alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/PanelLayout';
+import { ThemeLayout } from '@game/alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/ThemeLayout';
 import { GameBackgroundView } from '@game/alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Views/GameBackgroundView';
 import { CreditBarView } from '@game/alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Views/CreditBarView';
 import { BetBarView } from '@game/alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Views/BetBarView';
@@ -57,8 +57,8 @@ export function run(layouts: Record<string, ElementsListData>) {
   const views = [credit, bet, win, info, home, sound, language, new BetUpSwButtonView()];
   views.forEach(view => view.Init(runtime));
   const list = (view: BaseView) => (view as unknown as { m_elementsList: ElementsList }).m_elementsList;
-  const layout = (view: BaseView) => (view as unknown as { m_panelLayout: PanelLayout }).m_panelLayout;
-  // The element a view binds for an id in its current layout.
+  const layout = (view: BaseView) => (view as unknown as { m_themeLayout: ThemeLayout }).m_themeLayout;
+  // The element a view binds for an id in its current theme.
   const bound = <T extends BaseElement = BaseElement>(view: BaseView, id: string, Type?: new () => T) => list(view).Get(layout(view).ElementId(id), Type);
   const point = (view: BaseView, id: string) => {
     const area = bound(view, id, ButtonElement).GetTouchArea();
@@ -71,9 +71,18 @@ export function run(layouts: Record<string, ElementsListData>) {
   };
   const drawn: string[] = [];
   // Observe the real lists' selected elements; rendering itself belongs to DrawList.
-  for (const view of views) for (const element of list(view).GetElements()) {
-    element.Draw = () => { if (element.IsVisible()) drawn.push(element.GetId()); };
-  }
+  const observe = (view: BaseView) => {
+    for (const element of list(view).GetElements()) {
+      element.Draw = () => { if (element.IsVisible()) drawn.push(element.GetId()); };
+    }
+  };
+  views.forEach(observe);
+  // As the view manager does (IViewManager.SetTheme): each view applies its theme at once.
+  const setTheme = (theme: ThemeType) => {
+    background.SetTheme(theme);
+    views.forEach(view => view.SetTheme(theme));
+    views.forEach(view => view.Process());
+  };
   const draw = (view: BaseView) => {
     drawn.length = 0;
     view.Draw({} as DrawList);
@@ -91,8 +100,7 @@ export function run(layouts: Record<string, ElementsListData>) {
   const mainCredit = list(credit).Get('text_amount');
 
   for (const tetra of [true, false, true, false]) {
-    background.SetBackgroundType(tetra ? EBackgroundType.Tetra : EBackgroundType.Main);
-    views.forEach(view => view.Process());
+    setTheme(tetra ? ThemeType.Tetra : ThemeType.Main);
     const suffix = tetra ? '_tetra' : '';
     for (const view of views) {
       const source = layouts[view.GetName()];
@@ -126,17 +134,14 @@ export function run(layouts: Record<string, ElementsListData>) {
   credit.Minimize(false);
   const oldAnimation = (credit as unknown as { m_actionMinimize: tweeny.tween_action }).m_actionMinimize;
   check(tweeny.is_running(oldAnimation), 'credit animation starts on the main element');
-  background.SetBackgroundType(EBackgroundType.Tetra);
-  views.forEach(view => view.Process());
+  setTheme(ThemeType.Tetra);
   check(!tweeny.is_running(oldAnimation), 'switching releases the old layout animation');
   equal(bound(credit, 'text_amount').GetPosition(), bound(credit, 'text_amount_min').GetPosition(), 'credit animation settles at the Tetra JSON position');
-  background.SetBackgroundType(EBackgroundType.Main);
-  views.forEach(view => view.Process());
+  setTheme(ThemeType.Main);
   credit.Maximize(true);
 
   check(click(credit, point(credit, 'button_hide_credits')), 'main credit can be hidden');
-  background.SetBackgroundType(EBackgroundType.Tetra);
-  views.forEach(view => view.Process());
+  setTheme(ThemeType.Tetra);
   check(!draw(credit).includes('text_amount_tetra'), 'credit privacy survives switching to Tetra');
   check(click(credit, point(credit, 'button_show_credits')), 'Tetra credit can be shown again');
   check(draw(credit).includes('text_amount_tetra'), 'Tetra amount visible after showing');
@@ -150,6 +155,7 @@ export function run(layouts: Record<string, ElementsListData>) {
   const homeAlternate = layouts.ExitGameSwButtonView.elements.find(item => item.id === 'button_exit_game_tetra')!;
   homeAlternate.position = { x: 329, y: 949 };
   home.ReloadElementsList();
+  observe(home);
   equal(bound(home, 'button_exit_game').GetPosition(), homeAlternate.position, 'visible Tetra Home reloads JSON while the exit control is hidden');
 
   const alternate = layouts.InfoSwButtonView.elements.find(item => item.id === 'button_info_tetra')!;
@@ -157,10 +163,9 @@ export function run(layouts: Record<string, ElementsListData>) {
   info.ReloadElementsList();
   equal(bound(info, 'button_info').GetPosition(), alternate.position, 'a JSON edit directly changes Tetra placement');
   check(click(info, point(info, 'button_info')), 'input follows the edited JSON position');
-  background.SetBackgroundType(EBackgroundType.Main);
   home.SetVisible(true);
   home.SetEnabled(true);
-  views.forEach(view => view.Process());
+  setTheme(ThemeType.Main);
   equal(point(info, 'button_info'), mainInfo, 'Tetra edits leave main placement unchanged');
   check(draw(home).includes('button_exit_game'), 'main Home is restored');
   check(bound(home, 'button_exit_game', ButtonElement).IsEnabled(), 'main Home is enabled again');
@@ -171,9 +176,9 @@ export function run(layouts: Record<string, ElementsListData>) {
   const legacyList = new ElementsList();
   legacyList.Init(runtime, 'Legacy');
   legacyList.LoadFromResource();
-  const legacy = new PanelLayout(legacyList);
-  background.SetBackgroundType(EBackgroundType.Tetra);
-  check(legacy.Update(background) && legacy.IsTetra(), 'the layout follows the background');
+  const theme = { value: ThemeType.Tetra };
+  const legacy = new ThemeLayout(legacyList, tweeny.ref(theme, 'value'));
+  check(legacy.IsTetra(), 'the layout follows the theme it refers to');
   legacy.Apply();
   equal(legacyList.Get(legacy.ElementId('shared')).GetPosition(), { x: 19, y: 23 }, 'unpaired legacy elements remain usable');
   check(legacyList.Get('shared').IsVisible(), 'unpaired legacy elements stay shown in Tetra');

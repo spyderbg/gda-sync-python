@@ -6,19 +6,23 @@ element with the same ID followed by `_tetra`. For example, `text_bet_amount`
 and `text_bet_amount_tetra` each declare their own position, scale, alignment,
 and resource keys. No layout offsets are calculated in the view code.
 
-Each affected view keeps a `PanelLayout` (the Burning Crown plugin's
-`PanelLayout.ts`, ported to C++ as `PanelLayout.h/.cpp`) beside its ordinary
-elements list. It follows `GameBackgroundView`'s layout: the view gets
-`IGameBackgroundView` from the runtime, and `PanelLayout` casts it to the
-plugin's `GameBackgroundView` (`dynamic_cast` in C++; the runtime holds
-interfaces only, and the interface has no getter). The view asks it for the element to bind
-(`ElementId`: the `_tetra` alternate in Tetra, where the JSON has one), and
-`Apply` hides the other layout's element of each pair. Existing balance
-updates, credit privacy, win labels, and button events use that binding. When
-the layout changes, each view applies it again in `Process`: it rebinds its
-buttons and rebuilds its credit animations. Unpaired elements stay shared for
-compatibility with existing workspace views. Nothing here needs the shared
-libraries changed: `ElementsList` and `BaseView` are used as they are.
+The layout follows the view theme, which the shared libraries have since games
+commit `76c08fbd9` (2026-11-04). `IThemeView` (`ThemeType`: `Main`, `Tetra` and
+the other rounds) is a base of the background, knobs, button and bar
+interfaces. The Tetra round's states set it on all of them with
+`IViewManager::SetTheme` (Tetra on entry, Main at the outro's midway).
+`BaseView` stores it in `m_theme` and calls `OnThemeChanged` when it changes
+and each time the view's elements list has loaded.
+
+Each affected view keeps a `ThemeLayout` (the Burning Crown plugin's
+`ThemeLayout.h/.cpp`, ported as `ThemeLayout.ts`) of its elements list and its
+theme. Its `OnThemeChanged` calls `Apply`, which hides the other theme's element
+of each pair, then binds what it shows. It asks `ElementId` for each element:
+the `_tetra` alternate in Tetra, where the JSON has one. Balance updates, credit
+privacy, win labels and button events use that binding. The credit bar
+rebuilds its animations there. The background and the knobs swap their own
+main and Tetra elements in their `OnThemeChanged`. Unpaired elements stay
+shared, so existing workspace views keep working.
 
 The affected views are Default/Truserv credit, bet, win, Home, Info, bet arrows,
 sound, and language. The sound and language Tetra copies have `hidden: true`
@@ -26,7 +30,8 @@ to match the Tetra reference; they neither draw nor receive pointer input.
 Home remains visible in Tetra but disabled while the Tetra match is open.
 The former sound/language position dummies have been replaced by real buttons.
 
-Run the mode-switch regression with `pytest tests/test_tetra_panel_layout.py`.
+Run the theme-switch regression with `pytest tests/test_tetra_panel_layout.py`.
+It sets the theme on the views as `IViewManager::SetTheme` does.
 To check a workspace's actual JSON instead of the bundled test fixtures, run
 `node tests/tetra-panel/run.mjs /absolute/path/to/workspace/v/1920x1080`
 from the frontend directory. Both credit integrations are exercised.

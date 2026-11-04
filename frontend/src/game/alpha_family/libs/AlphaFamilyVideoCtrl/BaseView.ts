@@ -9,13 +9,16 @@ import { RuntimeHolder, type Runtime } from '@game/engine/GameCore/RuntimeAccess
 import { Timers } from '@game/engine/GameCore/Tools/Timers';
 import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
 import { ElementsList } from '@game/engine/GameVideoCtrl/ViewElements/ElementsList';
+import { type IThemeView, ThemeType } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IThemeView';
 import { ControlView } from './Components/ControlView';
 
-export abstract class BaseView extends RuntimeHolder {
+export abstract class BaseView extends RuntimeHolder implements IThemeView {
+  protected m_theme = ThemeType.Main;
+
   protected m_elementsListId = '';
-  /** The view's callback for its loaded elements list, which runs again when the list reloads (C++ does not). */
-  private m_onElementsListLoaded: (() => void) | null = null;
   protected readonly m_elementsList = new ElementsList();
+  /** The view's callback for its loaded elements list, which runs again when the list reloads. */
+  protected m_elementsListLoadedCallback: (() => void) | null = null;
   protected readonly m_control = new ControlView();
   /** The view's delayed actions (tweeny in C++). */
   protected readonly m_timers = new Timers();
@@ -56,29 +59,37 @@ export abstract class BaseView extends RuntimeHolder {
     this.m_elementsList.Draw(drawList);
   }
 
+  /** The view's callback runs when its list has loaded, then OnThemeChanged. The browser's list loads here (C++'s on
+   * its first Draw). */
   InitElementsList(elementsListId: string, callback: (() => void) | null = null) {
     this.m_elementsListId = elementsListId;
-    this.m_elementsList.Init(this.GetRuntime(), elementsListId);
-    this.m_onElementsListLoaded = callback;
-    this.m_elementsList.SetOnElementsListLoadedCallback(callback);
+    this.m_elementsList.Init(this.GetRuntime(), this.m_elementsListId);
+    this.m_elementsListLoadedCallback = callback;
+    this.m_elementsList.SetOnElementsListLoadedCallback(() => {
+      if (this.m_elementsListLoadedCallback) {
+        this.m_elementsListLoadedCallback();
+      }
+      this.OnThemeChanged();
+    });
     this.m_elementsList.LoadFromResource();
   }
 
   /** Loads the elements list again, from its changed file. Elements that only changed (moved, recolored...) change in
    * place, so that the view keeps the elements it holds and creates (the browser game's; C++ makes them anew); else
-   * they are made anew. Either way the browser game runs the view's callback again (C++ does not), which places what
-   * the view derives from them, such as from dummies, and makes its tweens of them. */
+   * they are made anew. Either way the view's callback and OnThemeChanged run again, which place what the view derives
+   * from them, such as from dummies, and make its tweens of them. */
   ReloadElementsList() {
     if (!this.IsVisible()) return;
     if (this.m_elementsList.UpdateFromResource()) return;
+
+    const callback = this.m_elementsListLoadedCallback;
     this.m_elementsList.Deinit();
-    this.m_elementsList.Init(this.GetRuntime(), this.m_elementsListId);
-    this.m_elementsList.SetOnElementsListLoadedCallback(this.m_onElementsListLoaded);
-    this.m_elementsList.LoadFromResource();
+    this.InitElementsList(this.m_elementsListId, callback);
   }
 
   DeinitElementsList() {
     this.m_elementsList.Deinit();
+    this.m_elementsListLoadedCallback = null;
   }
 
   HandleFileChanged(filepath: string) {
@@ -115,6 +126,15 @@ export abstract class BaseView extends RuntimeHolder {
     return this.m_name;
   }
 
+  SetTheme(theme: ThemeType) {
+    if (this.m_theme === theme) return;
+    this.m_theme = theme;
+
+    if (this.m_elementsList.IsLoaded()) {
+      this.OnThemeChanged();
+    }
+  }
+
   IsEnabled() {
     return this.m_control.m_enabled;
   }
@@ -142,4 +162,6 @@ export abstract class BaseView extends RuntimeHolder {
   SetSkin(skin: string) {
     this.m_control.SetSkin(skin);
   }
+
+  protected OnThemeChanged() {}
 }

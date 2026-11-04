@@ -400,12 +400,12 @@ export class HoldAndSpinRoundInfoView extends BaseView implements IHoldAndSpinRo
     this.m_sentinel = make_sentinel();
     // grand
     const imageGrandPanel = this.m_elementsList.Find(ImageGrandPanelId, ImageElement);
-    const imageGrandPanelHelp = this.m_elementsList.Find(DummyHelpGrandPanelId, ImageElement);
-    const imageGrandPanelCollected = this.m_elementsList.Find(DummyCollectedGrandPanelId, ImageElement);
+    const imageGrandPanelHelp = this.m_elementsList.Find(DummyHelpGrandPanelId, BaseElement);
+    const imageGrandPanelCollected = this.m_elementsList.Find(DummyCollectedGrandPanelId, BaseElement);
 
     const imageGrandPrize = this.m_elementsList.Find(ImageGrandPrizeId, ImageElement);
-    const imageGrandPrizeHelp = this.m_elementsList.Find(DummyHelpGrandPrizeId, ImageElement);
-    const imageGrandPrizeCollected = this.m_elementsList.Find(DummyCollectedGrandPrizeId, ImageElement);
+    const imageGrandPrizeHelp = this.m_elementsList.Find(DummyHelpGrandPrizeId, BaseElement);
+    const imageGrandPrizeCollected = this.m_elementsList.Find(DummyCollectedGrandPrizeId, BaseElement);
 
     const textGrandValue = this.m_elementsList.Find(TextGrandValueId, TextElement);
     const textGrandValueHelp = this.m_elementsList.Find(DummyHelpGrandValueId, TextElement);
@@ -413,12 +413,12 @@ export class HoldAndSpinRoundInfoView extends BaseView implements IHoldAndSpinRo
 
     // major
     const imageMajorPanel = this.m_elementsList.Find(ImageMajorPanelId, ImageElement);
-    const imageMajorPanelHelp = this.m_elementsList.Find(DummyHelpMajorPanelId, ImageElement);
-    const imageMajorPanelCollected = this.m_elementsList.Find(DummyCollectedMajorPanelId, ImageElement);
+    const imageMajorPanelHelp = this.m_elementsList.Find(DummyHelpMajorPanelId, BaseElement);
+    const imageMajorPanelCollected = this.m_elementsList.Find(DummyCollectedMajorPanelId, BaseElement);
 
     const imageMajorPrize = this.m_elementsList.Find(ImageMajorPrizeId, ImageElement);
-    const imageMajorPrizeHelp = this.m_elementsList.Find(DummyHelpMajorPrizeId, ImageElement);
-    const imageMajorPrizeCollected = this.m_elementsList.Find(DummyCollectedMajorPrizeId, ImageElement);
+    const imageMajorPrizeHelp = this.m_elementsList.Find(DummyHelpMajorPrizeId, BaseElement);
+    const imageMajorPrizeCollected = this.m_elementsList.Find(DummyCollectedMajorPrizeId, BaseElement);
 
     const textMajorValue = this.m_elementsList.Find(TextMajorValueId, TextElement);
     const textMajorValueHelp = this.m_elementsList.Find(DummyHelpMajorValueId, TextElement);
@@ -426,12 +426,12 @@ export class HoldAndSpinRoundInfoView extends BaseView implements IHoldAndSpinRo
 
     // minor
     const imageMinorPanel = this.m_elementsList.Find(ImageMinorPanelId, ImageElement);
-    const imageMinorPanelHelp = this.m_elementsList.Find(DummyHelpMinorPanelId, ImageElement);
-    const imageMinorPanelCollected = this.m_elementsList.Find(DummyCollectedMinorPanelId, ImageElement);
+    const imageMinorPanelHelp = this.m_elementsList.Find(DummyHelpMinorPanelId, BaseElement);
+    const imageMinorPanelCollected = this.m_elementsList.Find(DummyCollectedMinorPanelId, BaseElement);
 
     const imageMinorPrize = this.m_elementsList.Find(ImageMinorPrizeId, ImageElement);
-    const imageMinorPrizeHelp = this.m_elementsList.Find(DummyHelpMinorPrizeId, ImageElement);
-    const imageMinorPrizeCollected = this.m_elementsList.Find(DummyCollectedMinorPrizeId, ImageElement);
+    const imageMinorPrizeHelp = this.m_elementsList.Find(DummyHelpMinorPrizeId, BaseElement);
+    const imageMinorPrizeCollected = this.m_elementsList.Find(DummyCollectedMinorPrizeId, BaseElement);
 
     const textMinorValue = this.m_elementsList.Find(TextMinorValueId, TextElement);
     const textMinorValueHelp = this.m_elementsList.Find(DummyHelpMinorValueId, TextElement);
@@ -439,12 +439,12 @@ export class HoldAndSpinRoundInfoView extends BaseView implements IHoldAndSpinRo
 
     // mini
     const imageMiniPanel = this.m_elementsList.Find(ImageMiniPanelId, ImageElement);
-    const imageMiniPanelHelp = this.m_elementsList.Find(DummyHelpMiniPanelId, ImageElement);
-    const imageMiniPanelCollected = this.m_elementsList.Find(DummyCollectedMiniPanelId, ImageElement);
+    const imageMiniPanelHelp = this.m_elementsList.Find(DummyHelpMiniPanelId, BaseElement);
+    const imageMiniPanelCollected = this.m_elementsList.Find(DummyCollectedMiniPanelId, BaseElement);
 
     const imageMiniPrize = this.m_elementsList.Find(ImageMiniPrizeId, ImageElement);
-    const imageMiniPrizeHelp = this.m_elementsList.Find(DummyHelpMiniPrizeId, ImageElement);
-    const imageMiniPrizeCollected = this.m_elementsList.Find(DummyCollectedMiniPrizeId, ImageElement);
+    const imageMiniPrizeHelp = this.m_elementsList.Find(DummyHelpMiniPrizeId, BaseElement);
+    const imageMiniPrizeCollected = this.m_elementsList.Find(DummyCollectedMiniPrizeId, BaseElement);
 
     const textMiniValue = this.m_elementsList.Find(TextMiniValueId, TextElement);
     const textMiniValueHelp = this.m_elementsList.Find(DummyHelpMiniValueId, TextElement);

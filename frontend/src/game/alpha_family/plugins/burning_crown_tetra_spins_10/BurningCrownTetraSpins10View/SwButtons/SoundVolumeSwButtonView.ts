@@ -8,10 +8,9 @@ import * as tweeny from '@game/hat_libs/tweeny/tweeny';
 import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
 import { ButtonElement } from '@game/engine/GameVideoCtrl/ViewElements/ButtonElement';
 import { IButtonViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IControlView';
-import { ESoundSwButtonType, ISoundVolumeSwButtonView } from '@game/alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge';
+import { ISoundVolumeSwButtonView } from '@game/alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge';
 import { ButtonView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/Components/ButtonView';
-import { PanelLayout } from '../PanelLayout';
-import { IGameBackgroundView } from '@game/alpha_family/libs/AlphaFamily/Views/IOverlayViews.bridge';
+import { ThemeLayout } from '../ThemeLayout';
 
 const SoundVolumeSwButtonViewId = 'SoundVolumeSwButtonView';
 const ButtonVolumeMuteId = 'button_volume_mute';
@@ -28,12 +27,11 @@ enum ESoundVolumePresentingState {
 }
 
 export class SoundVolumeSwButtonView extends ButtonView implements ISoundVolumeSwButtonView {
-  private readonly m_panelLayout = new PanelLayout(this.m_elementsList);
   private m_presentingState = ESoundVolumePresentingState.Idle;
   private m_currentVolume = 0;
   private m_oldVolume = -1;
   private m_actionPress = new tweeny.tween_action();
-  private m_buttonType = ESoundSwButtonType.Normal;
+  private readonly m_themeLayout = new ThemeLayout(this.m_elementsList, tweeny.ref(this, 'm_theme'));
 
   constructor() {
     super(SoundVolumeSwButtonViewId, ISoundVolumeSwButtonView, new IButtonViewEvents());
@@ -50,20 +48,13 @@ export class SoundVolumeSwButtonView extends ButtonView implements ISoundVolumeS
     super.Deinit();
   }
 
-  Process() {
-    super.Process();
-    if (this.m_panelLayout.Update(this.RuntimeTryGetConst(IGameBackgroundView)) && this.m_elementsList.IsLoaded()) {
-      this.ApplyPanelLayout();
-    }
-  }
-
   Draw(drawList: DrawList) {
-    if (this.IsHiddenByLayout()) return;
+    if (this.IsHiddenByTheme()) return;
     super.Draw(drawList);
   }
 
   HandleTouchDown(x: number, y: number) {
-    if (this.IsHiddenByLayout()) return false;
+    if (this.IsHiddenByTheme()) return false;
     return super.HandleTouchDown(x, y);
   }
 
@@ -72,11 +63,6 @@ export class SoundVolumeSwButtonView extends ButtonView implements ISoundVolumeS
     this.m_currentVolume = volume;
     if (!this.m_elementsList.IsLoaded()) return;
     this.AdjustButtons();
-  }
-
-  SetButtonType(type: ESoundSwButtonType) {
-    if (type === this.m_buttonType) return;
-    this.m_buttonType = type;
   }
 
   SimulateButtonPress() {
@@ -88,7 +74,6 @@ export class SoundVolumeSwButtonView extends ButtonView implements ISoundVolumeS
 
   private OnElementsListLoaded() {
     this.InitAnimations();
-    this.ApplyPanelLayout();
   }
 
   private InitAnimations() {
@@ -102,8 +87,8 @@ export class SoundVolumeSwButtonView extends ButtonView implements ISoundVolumeS
     });
   }
 
-  private ApplyPanelLayout() {
-    this.m_panelLayout.Apply();
+  protected OnThemeChanged() {
+    this.m_themeLayout.Apply();
     this.AdjustButtons();
   }
 
@@ -112,7 +97,7 @@ export class SoundVolumeSwButtonView extends ButtonView implements ISoundVolumeS
     const presetCount = this.RuntimeGetConst(IAudioApi).GetVolumePresetCount();
     if (presetCount === 0) {
       for (const buttonId of ButtonVolumeIds) {
-        const button = this.m_elementsList.Get(this.m_panelLayout.ElementId(buttonId), ButtonElement);
+        const button = this.m_elementsList.Get(this.m_themeLayout.ElementId(buttonId), ButtonElement);
         button.SetEnabled(false);
         button.SetHidden(true);
       }
@@ -122,7 +107,7 @@ export class SoundVolumeSwButtonView extends ButtonView implements ISoundVolumeS
     const maxButtonIndex = ButtonVolumeIds.length - 1;
     const buttonIndex = Math.min(Math.max(maxButtonIndex - maxPresetIndex + this.m_currentVolume, 0), maxButtonIndex);
     for (let idx = 0; idx <= maxButtonIndex; ++idx) {
-      const buttonId = this.m_panelLayout.ElementId(ButtonVolumeIds[idx]);
+      const buttonId = this.m_themeLayout.ElementId(ButtonVolumeIds[idx]);
       const button = this.m_elementsList.Get(buttonId, ButtonElement);
       if (idx === buttonIndex) {
         button.SetEnabled(true);
@@ -135,8 +120,8 @@ export class SoundVolumeSwButtonView extends ButtonView implements ISoundVolumeS
     }
   }
 
-  /** The layout's JSON hides the buttons (Tetra's): the view draws nothing and takes no touch. */
-  private IsHiddenByLayout() {
-    return this.m_elementsList.IsLoaded() && !this.m_panelLayout.IsShown(this.m_buttonId);
+  /** The theme's JSON hides the buttons (Tetra's): the view draws nothing and takes no touch. */
+  private IsHiddenByTheme() {
+    return this.m_elementsList.IsLoaded() && !this.m_themeLayout.IsShown(this.m_buttonId);
   }
 }

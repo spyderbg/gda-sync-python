@@ -274,8 +274,13 @@ export class Translator {
       const declared = new Set(members.filter(member => member.name).map(member => member.name.getText()));
       const baseMethods = this.index.Methods(this.baseCpp);
       const templateMethods = view.templateArg ? this.index.Methods(view.templateArg) : new Map();
+      // nor a method of a virtual base the C++ base shares with an interface (BaseView's and IGameBackgroundView's
+      // IThemeView): the C++ base's override is the final one
+      const sharedVirtualBases = [...this.index.VirtualBases(this.baseCpp)]
+        .filter(name => view.scopes.some(scope => scope !== this.baseCpp && this.index.VirtualBases(scope).has(name)));
+      const sharedVirtualMethods = new Set(sharedVirtualBases.flatMap(name => [...this.index.Methods(name).keys()]));
       for (const [method, signature] of view.methods) {
-        if (declared.has(method) || !signature.isPure || templateMethods.has(method)) continue;
+        if (declared.has(method) || !signature.isPure || templateMethods.has(method) || sharedVirtualMethods.has(method)) continue;
         const own = baseMethods.get(method);
         if (!own || own.isPure) continue;
         const list = cppParams(signature.params).map((param, i) => ({ type: this.QualifyCppType(param.type), name: param.name ?? `arg${i}` }));

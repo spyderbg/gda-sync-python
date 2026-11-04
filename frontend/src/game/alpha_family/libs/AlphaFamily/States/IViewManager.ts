@@ -4,6 +4,7 @@ import { Event } from '@game/engine/Core/Event';
 import { Interface } from '@game/engine/GameCore/RuntimeAccess';
 import type { EStatusLine, RoundType } from '../Math/Common/Common.data';
 import type { RoundResult } from '../Math/RoundResult.data';
+import type { ThemeType } from '../Views/BaseInterfaces/IThemeView';
 
 export class ViewManagerStatics {
   betMenuVisible = false;
@@ -43,6 +44,8 @@ export interface IViewManager {
   SetupViews(roundResultOrType: RoundResult | RoundType, options: SetupViewsOptions): void;
   SetupViewsLastResult(options: SetupViewsOptions): void;
   SetupSpecialRoundView(roundResult: RoundResult, options: SetupViewsOptions): void;
+
+  SetTheme(theme: ThemeType): void;
 }
 
 export interface IViewManagerEvents {
