@@ -63,6 +63,33 @@ The C++ is the games repository's code. Its `AGENTS.md` and `.claude/rules/` app
 - **Riglane specs** (`.riglane/specs/`). If the Riglane tools (`spec_search`) are available, check the specs of the
   area you touch. Otherwise, say in the report that you did not.
 
+## Only interfaces go in the runtime
+
+The user's rule (2026-11-03): the C++ this sync writes never adds, removes or gets a class that is not an interface
+through the runtime. Not `RuntimeAdd<GameBackgroundView>(this)`, `RuntimeRemove<GameBackgroundView>()`,
+`RuntimeTryGetConst<GameBackgroundView>()` or `RuntimeGet<CoinsBarView>()`. The runtime holds interfaces only: an `I*`
+class with its `RuntimeCategory` (`RuntimeAdd<IGameBackgroundView>(this)`) and its `Events`
+(`RuntimeAdd<IGameBackgroundView::Events>(&m_events)`).
+
+In the TypeScript, the same pattern is a class's own runtime token: a `@cppName` constant such as
+`export const GameBackgroundViewToken = new RuntimeToken<GameBackgroundView>('GameBackgroundView')`, with
+`RuntimeAdd(GameBackgroundViewToken, this)` or `RuntimeTryGetConst(GameBackgroundViewToken)`. Find it with
+`grep -rn "new RuntimeToken<" frontend/src/game/alpha_family/plugins/<plugin> --include='*.ts'`. A change that adds or
+uses one is not ported as it is: see "Stop and ask". Other games' existing C++ that does it (Burning Hot Coins'
+`CoinsBarView`, `CreditsWinBarView`) is not this sync's to change.
+
+Interfaces stay as they are, by the user's rule: never change an interface, and never add a getter to one. A view that
+needs another view's state gets that view's interface from the runtime and casts it to the plugin's class:
+
+| C++ | TypeScript |
+| --- | --- |
+| `dynamic_cast<const GameBackgroundView*>(RuntimeTryGetConst<IGameBackgroundView>())` | `const background = this.RuntimeTryGetConst(IGameBackgroundView);` then `background instanceof GameBackgroundView` |
+
+The cast gives `nullptr` (`false` in TypeScript) when the runtime holds another implementation, such as the
+automation's stub views, so handle that case. RTTI is on in the games' build: no compile command has `-fno-rtti`, and
+the engine uses `dynamic_cast` (`GameVideoCtrl/ViewElements/AnimElement.cpp`). The interface must be polymorphic (a
+virtual destructor), and the class must be the plugin's own, built into the same library as the code that casts.
+
 ## Step 0: Preconditions
 
 1. **The game is ported.** `frontend/src/game/alpha_family/plugins/<plugin>` and `$CPP` both exist. A game whose C++
@@ -168,6 +195,7 @@ lists their commits. List all of them in the report as not synced. When the game
 | `MathRules.description.ts` | `MathRules.cpp` is generated (`export/MathExporter.ts`). Write what the generator writes for the changed rule, and check it against an export (step 5). |
 | A new state, view, visual or software button class (`NOT PORTED`) | A new `.h` and `.cpp` at the mirrored path in `$CPP` (step 4, "New classes"). |
 | A new class of another kind, such as a helper or a subclass of an engine class | Port it if the plugin can express it with the C++ libraries as they are. Otherwise, stop and ask. |
+| A class's own runtime token, added or used (`RuntimeAdd(XToken, this)`, `RuntimeTryGetConst(XToken)`) | Not ported: only interfaces go in the runtime. Stop and ask. |
 | `DELETED` | Delete its `.h` and `.cpp` once nothing in the plugin includes them (`grep -rn '<Name>.h' $CPP`), and remove it from `CreateViews()`. |
 | New element ids, images or IData keys | Nothing in the code. Check that the resources have them (`grep -n '<id>' $GAMES/resources/<plugin>/v/1920x1080/<View>.json`). If not, tell the user: the resources are outside this sync. |
 | The modules config (a module or its config added) | Outside this sync. Tell the user what the export would write. |
@@ -181,6 +209,7 @@ Stop, change nothing for that feature, and tell the user what the C++ would need
 - relies on something TypeScript allows and C++ does not, such as a subclass that overrides a member the C++ declares
   by value, or a non-virtual C++ method (look it up: `file:line`);
 - needs the shared TypeScript changes of step 1;
+- puts a class that is not an interface in the runtime, or gets one from it ("Only interfaces go in the runtime");
 - changes the game's math (`MathRules.description.ts`, the `SimulatorConfig`). Math is certified behaviour: ask the
   user before you port it, even when it lies inside the plugin.
 
@@ -190,8 +219,10 @@ Example, 2026-11-03: Burning Crown's Tetra panel layouts (`7c44392`) added `Pane
 and `ElementsList::TryGet` is a non-virtual template (`libs/src/Egt/GameVideoCtrl/ViewElements/ElementsList.h:150`).
 The design cannot be ported without changing the libraries, so the whole feature (the eight views and
 `GameBackgroundView.IsTetraLayout`) is the user's decision. The user chose to rework the TypeScript first: `PanelLayout`,
-a plugin class that each view holds beside its own list, ported as it is. When a design cannot be ported, reworking
-the TypeScript into a form the plugin can express, then syncing again, keeps both sides in step.
+a plugin class that each view holds beside its own list. Its first version reached the background through the view's
+own runtime token, which "Only interfaces go in the runtime" then forbade. The second gets `IGameBackgroundView` and
+casts it to the plugin's `GameBackgroundView`, and that one ports. When a design cannot be ported, reworking the
+TypeScript into a form the plugin can express, then syncing again, keeps both sides in step.
 
 ## Step 3: Translate both versions
 
@@ -339,10 +370,20 @@ with what values, not to replace the file. Never copy the export over the plugin
    catch (e) { console.log("DOES NOT COMPILE", file); console.log(String(e.stderr).split("\n").filter(l => /error:/.test(l)).slice(0, 3).join("\n")); process.exitCode = 1; }' \
      $GAMES/build/user-dbg-clang/compile_commands.json $CPP/<Module>/<neighbour>.cpp $CPP/<Module>/<new>.cpp
    ```
-3. **A real build, only if the user agrees.** It writes into their build folder. Each module is a target
+3. **Only interfaces in the runtime.** In the files this sync changed or added, no runtime call names a class that is
+   not an interface. This must print nothing:
+
+   ```sh
+   cd $GAMES && { git diff --name-only -- game/alpha_family/plugins/<plugin>; git ls-files --others --exclude-standard -- game/alpha_family/plugins/<plugin>; } \
+     | xargs grep -nP 'Runtime(Add|Remove|Get|TryGet|GetConst|TryGetConst)<(?!(\w+::)*I[A-Z])'
+   ```
+
+   The pattern takes an interface to be a name of `I` and a capital letter, qualified or not (`IVideo`,
+   `Game::ILocalization`, `IGameBackgroundView::Events`). It flags `InfoSwButtonView` and `GameBackgroundView`.
+4. **A real build, only if the user agrees.** It writes into their build folder. Each module is a target
    `Egt<Module>Static`, such as `ninja -C $GAMES/build/user-dbg-clang EgtBurningCrownTetraSpins10ViewStatic`. Build the
    modules you touched. After a new file, run `cmake --preset user-dbg-clang` first, from `$GAMES`.
-4. **Behaviour.** This sync cannot play the C++ game, and the browser game plays the TypeScript, which did not change.
+5. **Behaviour.** This sync cannot play the C++ game, and the browser game plays the TypeScript, which did not change.
    Say what the user should look at in the C++ game, such as the round, the screen or the button the change touches.
    In the games repository, `/egt-qa-play` drives a built game.
 

@@ -1,7 +1,7 @@
 // Egt::Game::AlphaFamily::GameBackgroundView (BurningCrownTetraSpins10View/Views/GameBackgroundView.h/.cpp): the main
 // or the tetra background, and the panel.
 
-import { type Runtime, RuntimeToken } from '@game/engine/GameCore/RuntimeAccess';
+import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
 import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
 import { IControlViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IControlView';
 import { EBackgroundType, IGameBackgroundView } from '@game/alpha_family/libs/AlphaFamily/Views/IOverlayViews.bridge';
@@ -34,7 +34,6 @@ export class GameBackgroundView extends BaseView implements IGameBackgroundView 
   Init(runtime: Runtime) {
     super.Init(runtime);
 
-    this.RuntimeAdd(GameBackgroundViewToken, this);
     this.RuntimeAdd(IGameBackgroundView, this);
     this.RuntimeAdd(IGameBackgroundView.Events, this.m_events);
 
@@ -46,7 +45,6 @@ export class GameBackgroundView extends BaseView implements IGameBackgroundView 
   Deinit() {
     this.DeinitElementsList();
 
-    this.RuntimeRemove(GameBackgroundViewToken);
     this.RuntimeRemove(IGameBackgroundView);
     this.RuntimeRemove(IGameBackgroundView.Events);
 
@@ -86,7 +84,3 @@ export class GameBackgroundView extends BaseView implements IGameBackgroundView 
     this.m_backgroundType = type;
   }
 }
-
-/** The view itself, whose layout the panel's views follow (C++'s RuntimeAdd<GameBackgroundView>(this)).
- * @cppName GameBackgroundView */
-export const GameBackgroundViewToken = new RuntimeToken<GameBackgroundView>('GameBackgroundView');

@@ -5,7 +5,7 @@ import { IButtonViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/Bas
 import { IInfoSwButtonView } from '@game/alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge';
 import { ButtonView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/Components/ButtonView';
 import { PanelLayout } from '../PanelLayout';
-import { GameBackgroundViewToken } from '../Views/GameBackgroundView';
+import { IGameBackgroundView } from '@game/alpha_family/libs/AlphaFamily/Views/IOverlayViews.bridge';
 
 const InfoSwButtonViewId = 'InfoSwButtonView';
 const ButtonId = 'button_info';
@@ -30,7 +30,7 @@ export class InfoSwButtonView extends ButtonView {
 
   Process() {
     super.Process();
-    if (this.m_panelLayout.Update(this.RuntimeTryGetConst(GameBackgroundViewToken)) && this.m_elementsList.IsLoaded()) {
+    if (this.m_panelLayout.Update(this.RuntimeTryGetConst(IGameBackgroundView)) && this.m_elementsList.IsLoaded()) {
       this.ApplyPanelLayout();
     }
   }

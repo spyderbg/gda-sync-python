@@ -9,7 +9,7 @@ import { ButtonElement } from '@game/engine/GameVideoCtrl/ViewElements/ButtonEle
 import { IExitGameSwButtonView, IExitGameSwButtonViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge';
 import { ButtonView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/Components/ButtonView';
 import { PanelLayout } from '../PanelLayout';
-import { GameBackgroundViewToken } from '../Views/GameBackgroundView';
+import { IGameBackgroundView } from '@game/alpha_family/libs/AlphaFamily/Views/IOverlayViews.bridge';
 
 const ExitGameSwButtonViewId = 'ExitGameSwButtonView';
 const ButtonExitGameId = 'button_exit_game';
@@ -44,7 +44,7 @@ export class ExitGameSwButtonView extends ButtonView<IExitGameSwButtonViewEvents
 
   Process() {
     super.Process();
-    if (this.m_panelLayout.Update(this.RuntimeTryGetConst(GameBackgroundViewToken)) && this.m_elementsList.IsLoaded()) {
+    if (this.m_panelLayout.Update(this.RuntimeTryGetConst(IGameBackgroundView)) && this.m_elementsList.IsLoaded()) {
       this.ApplyPanelLayout();
     }
     if (this.m_presentingState === EExitPresentingState.InProgress && this.m_exitTimer.IsExpired()) {

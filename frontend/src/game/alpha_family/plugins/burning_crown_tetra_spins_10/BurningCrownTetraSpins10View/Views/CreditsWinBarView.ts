@@ -13,7 +13,7 @@ import { EWinBarState, type ICreditsWinBarView, ICreditsWinBarView as ICreditsWi
 import { AccumulationType, type AccumulationDescriptor } from '@game/alpha_family/libs/AlphaFamily/Views/Tools/AccumulationControl.data';
 import { NumericBarView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/Components/NumericBarView';
 import { PanelLayout } from '../PanelLayout';
-import { GameBackgroundViewToken } from './GameBackgroundView';
+import { IGameBackgroundView } from '@game/alpha_family/libs/AlphaFamily/Views/IOverlayViews.bridge';
 
 const CreditsWinBarViewId = 'CreditsWinBarView';
 const ImageWinLabelId = 'image_win_label';
@@ -42,7 +42,7 @@ export class CreditsWinBarView extends NumericBarView<ICreditsWinBarView, INumer
 
   Process() {
     super.Process();
-    if (this.m_panelLayout.Update(this.RuntimeTryGetConst(GameBackgroundViewToken)) && this.m_elementsList.IsLoaded()) {
+    if (this.m_panelLayout.Update(this.RuntimeTryGetConst(IGameBackgroundView)) && this.m_elementsList.IsLoaded()) {
       this.ApplyPanelLayout();
     }
   }

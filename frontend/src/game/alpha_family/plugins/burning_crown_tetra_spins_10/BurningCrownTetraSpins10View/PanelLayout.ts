@@ -4,7 +4,8 @@
 // PanelLayout of its elements list, follows the game background's layout with it, and binds the elements it shows.
 
 import type { ElementsList } from '@game/engine/GameVideoCtrl/ViewElements/ElementsList';
-import type { GameBackgroundView } from './Views/GameBackgroundView';
+import type { IGameBackgroundView } from '@game/alpha_family/libs/AlphaFamily/Views/IOverlayViews.bridge';
+import { GameBackgroundView } from './Views/GameBackgroundView';
 
 const TetraSuffix = '_tetra';
 
@@ -13,9 +14,10 @@ export class PanelLayout {
 
   constructor(private readonly m_elementsList: ElementsList) {}
 
-  /** Follows the background's layout, the main one while there is no background; whether the layout changed. */
-  Update(background: GameBackgroundView | undefined) {
-    const isTetra = background !== undefined && background.IsTetraLayout();
+  /** Follows the layout of the game's background, the plugin's GameBackgroundView (C++: dynamic_cast of the
+   * interface); the main layout while the runtime has no background or another one. Whether the layout changed. */
+  Update(background: IGameBackgroundView | undefined) {
+    const isTetra = background instanceof GameBackgroundView && background.IsTetraLayout();
     if (isTetra === this.m_isTetra) return false;
 
     this.m_isTetra = isTetra;

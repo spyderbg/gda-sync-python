@@ -14,7 +14,7 @@ import { PlaceholderFromTo } from '@game/engine/GameVideoCtrl/ViewElements/Tween
 import { type ICreditBarView, ICreditBarView as ICreditBarViewToken, ICreditBarViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/BarsView.bridge';
 import { NumericBarView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/Components/NumericBarView';
 import { PanelLayout } from '../PanelLayout';
-import { GameBackgroundViewToken } from './GameBackgroundView';
+import { IGameBackgroundView } from '@game/alpha_family/libs/AlphaFamily/Views/IOverlayViews.bridge';
 
 const AnimDurationSeconds = 132; // 4s * 0.033f;
 const CreditBarViewId = 'CreditBarView';
@@ -68,7 +68,7 @@ export class CreditBarView extends NumericBarView<ICreditBarView, ICreditBarView
   Process() {
     if (!this.m_control.m_enabled) return;
     super.Process();
-    if (this.m_panelLayout.Update(this.RuntimeTryGetConst(GameBackgroundViewToken)) && this.m_elementsList.IsLoaded()) {
+    if (this.m_panelLayout.Update(this.RuntimeTryGetConst(IGameBackgroundView)) && this.m_elementsList.IsLoaded()) {
       this.ApplyPanelLayout();
     }
   }

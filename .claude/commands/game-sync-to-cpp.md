@@ -23,8 +23,15 @@ Sync the browser game's TypeScript of the game `$ARGUMENTS` into the game's C++,
    plugin is not ported: report what it needs.
 4. Follow the games repository's rules (`$GAMES/AGENTS.md`, `$GAMES/.claude/rules/`): provenance (`file:line`) for
    every foreign name, Edit and Write only for C++ sources, comments only where the code cannot speak.
-5. Stop and ask the user wherever the document says to: a live Game Creator run, a dirty plugin folder in the games
+5. **Only interfaces go in the runtime.** Never write `RuntimeAdd`, `RuntimeRemove`, `RuntimeGet`, `RuntimeTryGet`,
+   `RuntimeGetConst` or `RuntimeTryGetConst` of a class that is not an interface, such as
+   `RuntimeRemove<GameBackgroundView>()` or `RuntimeTryGetConst<GameBackgroundView>()`. A TypeScript change that does it
+   (a class's own `RuntimeToken`) is not ported as it is. Step 6's check must print nothing. Never change an interface
+   or add a getter to one. To reach another view's own class, get its interface from the runtime and `dynamic_cast` it
+   (`instanceof` in TypeScript), as the document's section says.
+6. Stop and ask the user wherever the document says to: a live Game Creator run, a dirty plugin folder in the games
    repository, C++ that changed since its port (run `/game-sync <plugin>` first), uncommitted TypeScript, a change that
-   needs the libraries or the engine, a change to the math, or a real build.
-6. Commit only when the user asks, in either repository, and never push. Report as step 7 says. Tell the user that the
+   needs the libraries or the engine, a class that is not an interface in the runtime, a change to the math, or a real
+   build.
+7. Commit only when the user asks, in either repository, and never push. Report as step 7 says. Tell the user that the
    manifest is recorded after the C++ commit, and is committed with the TypeScript as it is.

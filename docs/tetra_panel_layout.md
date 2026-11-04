@@ -8,8 +8,10 @@ and resource keys. No layout offsets are calculated in the view code.
 
 Each affected view keeps a `PanelLayout` (the Burning Crown plugin's
 `PanelLayout.ts`, ported to C++ as `PanelLayout.h/.cpp`) beside its ordinary
-elements list. It follows `GameBackgroundView`'s layout, which the views reach
-through its own runtime token. The view asks it for the element to bind
+elements list. It follows `GameBackgroundView`'s layout: the view gets
+`IGameBackgroundView` from the runtime, and `PanelLayout` casts it to the
+plugin's `GameBackgroundView` (`dynamic_cast` in C++; the runtime holds
+interfaces only, and the interface has no getter). The view asks it for the element to bind
 (`ElementId`: the `_tetra` alternate in Tetra, where the JSON has one), and
 `Apply` hides the other layout's element of each pair. Existing balance
 updates, credit privacy, win labels, and button events use that binding. When
