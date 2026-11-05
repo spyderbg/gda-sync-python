@@ -4,7 +4,6 @@
 // C++ takes the interface as a template parameter; here, its token.
 
 import type { InterfaceToken, Runtime } from '@game/engine/GameCore/RuntimeAccess';
-import type { ThemeType } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IThemeView';
 import type { IStubView } from './IStubView';
 
 export abstract class StubView<Interface, Events> implements IStubView {
@@ -28,7 +27,4 @@ export abstract class StubView<Interface, Events> implements IStubView {
     this.m_interface = null;
     this.m_events = null;
   }
-
-  /** IStubView's: a stub has no look to change. */
-  SetTheme(_theme: ThemeType) {}
 }

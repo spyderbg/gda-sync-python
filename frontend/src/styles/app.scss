@@ -801,6 +801,38 @@ button.nav-link {
 }
 
 /* Settings */
+.settings-label-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: .5rem;
+
+  label {
+    margin-bottom: 0;
+  }
+}
+
+.settings-label-copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: $text-muted;
+  font-size: 16px;
+  cursor: pointer;
+
+  &:hover,
+  &:focus {
+    background: #ebedf2;
+    color: $primary;
+  }
+}
+
 .settings-folder-label {
   width: 100%;
 

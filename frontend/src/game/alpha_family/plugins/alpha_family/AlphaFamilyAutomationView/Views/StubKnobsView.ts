@@ -1,6 +1,7 @@
 // Egt::Game::AlphaFamily::Stub::StubKnobsView (AlphaFamilyAutomationView/Views/StubKnobsView.h): the automation's IKnobsView.
 
 import type { IControlViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IControlView';
+import type { ThemeType } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IThemeView';
 import { IKnobsView } from '@game/alpha_family/libs/AlphaFamily/Views/IOverlayViews.bridge';
 import { StubControl } from '../Components/StubControl';
 
@@ -8,4 +9,9 @@ export class StubKnobsView extends StubControl<IKnobsView, IControlViewEvents> i
   constructor() {
     super(IKnobsView);
   }
+
+  ////////////////////////////////////////////////////////////////////////////////
+  /// IThemeView
+  ////////////////////////////////////////////////////////////////////////////////
+  SetTheme(_theme: ThemeType) {}
 }

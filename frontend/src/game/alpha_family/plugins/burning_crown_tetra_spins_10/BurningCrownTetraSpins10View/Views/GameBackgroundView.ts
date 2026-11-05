@@ -68,4 +68,9 @@ export class GameBackgroundView extends BaseView implements IGameBackgroundView 
   IsOpaqueFullScreen() {
     return true;
   }
+
+  // IThemeView
+  SetTheme(theme: ThemeType) {
+    super.SetTheme(theme);
+  }
 }

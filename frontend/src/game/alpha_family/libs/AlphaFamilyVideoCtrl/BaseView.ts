@@ -9,10 +9,10 @@ import { RuntimeHolder, type Runtime } from '@game/engine/GameCore/RuntimeAccess
 import { Timers } from '@game/engine/GameCore/Tools/Timers';
 import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
 import { ElementsList } from '@game/engine/GameVideoCtrl/ViewElements/ElementsList';
-import { type IThemeView, ThemeType } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IThemeView';
+import { ThemeType } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IThemeView';
 import { ControlView } from './Components/ControlView';
 
-export abstract class BaseView extends RuntimeHolder implements IThemeView {
+export abstract class BaseView extends RuntimeHolder {
   protected m_theme = ThemeType.Main;
 
   protected m_elementsListId = '';
@@ -126,15 +126,6 @@ export abstract class BaseView extends RuntimeHolder implements IThemeView {
     return this.m_name;
   }
 
-  SetTheme(theme: ThemeType) {
-    if (this.m_theme === theme) return;
-    this.m_theme = theme;
-
-    if (this.m_elementsList.IsLoaded()) {
-      this.OnThemeChanged();
-    }
-  }
-
   IsEnabled() {
     return this.m_control.m_enabled;
   }
@@ -161,6 +152,16 @@ export abstract class BaseView extends RuntimeHolder implements IThemeView {
 
   SetSkin(skin: string) {
     this.m_control.SetSkin(skin);
+  }
+
+  /** IThemeView's SetTheme, for the views whose interface is an IThemeView: each overrides it and calls this. */
+  protected SetTheme(theme: ThemeType) {
+    if (this.m_theme === theme) return;
+    this.m_theme = theme;
+
+    if (this.m_elementsList.IsLoaded()) {
+      this.OnThemeChanged();
+    }
   }
 
   protected OnThemeChanged() {}

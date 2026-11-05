@@ -6,6 +6,7 @@ import { CountdownTimer } from '@game/engine/Game/Utils/CountdownTimer';
 import type { int } from '@game/engine/GameCore/Common/Types';
 import { AnimElement } from '@game/engine/GameVideoCtrl/ViewElements/AnimElement';
 import { IControlViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IControlView';
+import type { ThemeType } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IThemeView';
 import { IGameBackgroundView } from '@game/alpha_family/libs/AlphaFamily/Views/IOverlayViews.bridge';
 import { BaseView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/BaseView';
 
@@ -75,5 +76,10 @@ export class GameBackgroundView extends BaseView implements IGameBackgroundView 
 
   IsOpaqueFullScreen() {
     return true;
+  }
+
+  // IThemeView
+  SetTheme(theme: ThemeType) {
+    super.SetTheme(theme);
   }
 }

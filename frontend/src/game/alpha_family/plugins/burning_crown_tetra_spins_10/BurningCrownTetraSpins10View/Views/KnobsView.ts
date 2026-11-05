@@ -85,4 +85,9 @@ export class KnobsView extends BaseView implements IKnobsView {
   SetSkin(skin: string) {
     this.m_control.SetSkin(skin);
   }
+
+  // IThemeView
+  SetTheme(theme: ThemeType) {
+    super.SetTheme(theme);
+  }
 }

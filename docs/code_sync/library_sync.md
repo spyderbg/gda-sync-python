@@ -95,11 +95,16 @@ Then follow game_sync.md steps 2 to 5 (baseline, port, measure, manifest), with 
 - **Statics and nvrams** (`*.data.h` of a state, such as `ReelRoundStatics`, `TetraRoundStorage`). A field added in C++
   goes in the TypeScript class with the same default. Code that reads it from another state (for example
   `ConstStatic<ReelRoundStatics>().showFastLines` in `ReelRoundPresenting`) needs that class imported.
-- **Virtual bases.** Since 2026-11-04 (games `76c08fbd9`), `IThemeView` is a `virtual` base of `BaseView` and of the
-  view interfaces (`IGameBackgroundView`, `IKnobsView`, `ISwButtonBase`, `INumericBarView`), and `BaseView` implements
-  `SetTheme`. In TypeScript the interfaces extend `IThemeView` and `BaseView` implements it. The translator writes no
-  override in a view for a method of a virtual base that its C++ base shares with its interface
-  (`CppIndex.VirtualBases`), as C++ needs none.
+- **The theme's overrides.** `IThemeView` is a base of the view interfaces (`IGameBackgroundView`, `IKnobsView`,
+  `ISwButtonBase`, `INumericBarView`). From games `76c08fbd9` (2026-11-04) it was a `virtual` base, of `BaseView` too,
+  which implemented `SetTheme`. Since games `eb1fd4f35` (2026-11-05) it is a plain base, and `BaseView` is not an
+  `IThemeView`: its `SetTheme` is protected, and every view whose interface is one overrides it and calls it
+  (`ButtonView`, `NumericBarView`, and each game's `GameBackgroundView` and `KnobsView`). A new view of such an
+  interface needs the same override. The TypeScript does the same: `BaseView.SetTheme` is protected, so the type check
+  finds a view that lacks it. The translator writes no override in a view for a method of a virtual base that its C++
+  base shares with its interface (`CppIndex.VirtualBases`); since `eb1fd4f35` no view has one. Since games `47bc8436e`
+  (2026-11-05), the automation's `IStubView` is not an `IThemeView`: the stubs of the interfaces that are,
+  `StubNumericBarView`, `StubSwButton` and `StubKnobsView`, have an empty `SetTheme` each, and `StubView` has none.
 - **QA-only C++** (`EGT_DISTRIBUTION_TARGET_QA`, QaBridge, the drawn-elements observer) is not ported. Say so in the
   report.
 - **Moves between states and managers.** When a responsibility moves from a state to a manager (the tetra round's bet
@@ -237,3 +242,5 @@ when the user asks. A `hat_libs` sync has no manifest entry, so this record is t
 | `bb41b0f82` | 2026-09-17 | `d94055e30` (2026-10-29) | checked 2026-10-29 | Joker Reels Coins 10's import: the pin has not moved |
 | `def1924e4` | 2026-10-29 | `faa5f19a0` (2026-10-29) | checked 2026-11-02 | Burning Crown's sync: the pin moved 24 commits (dx11 renderer and textures, ktx2, localizer, debug, Dog); none in the ported paths |
 | `def1924e4` | 2026-10-29 | `faa5f19a0` (2026-10-29) | checked 2026-11-04 | Burning Crown's view theme sync (games `6253e35ff`): the pin has not moved |
+| `def1924e4` | 2026-10-29 | `faa5f19a0` (2026-10-29) | checked 2026-11-05 | Zodiac Wheel Coins' import and the stubs' theme sync (games `47bc8436e`): the pin has not moved |
+| `def1924e4` | 2026-10-29 | `faa5f19a0` (2026-10-29) | checked 2026-11-05 | The views' theme overrides sync (games `eb1fd4f35`): the pin has not moved |

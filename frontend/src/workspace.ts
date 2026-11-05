@@ -408,10 +408,10 @@ export async function openViewElement(file: string, index: number) {
   } catch (e) { notify((e as Error).message, true); }
 }
 
-export async function copy(text: string) {
+export async function copy(text: string, message = 'Path copied to clipboard.') {
   try {
     await navigator.clipboard.writeText(text);
-    notify('Path copied to clipboard.');
+    notify(message);
   } catch { notify('Clipboard access is unavailable in this browser.', true); }
 }
 

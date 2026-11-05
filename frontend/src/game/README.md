@@ -13,7 +13,9 @@ imported from C++ (below, **Import: a new game from C++**), such as **Nordic Rus
 rounds, hold and spin (with its info screen), the coins round and its free spins, and the coins wheel; and **Joker Reels
 Coins 10** (2026-10-29), Burning Hot Coins' rounds with its own reels: its symbols centred in their cells, a joker over a
 winning stack of wilds, which fades in over the single wilds, and the scatter's and the wild's reel stop sounds. It has
-no topper module (C++ has none), so its Topper screen stays empty.
+no topper module (C++ has none), so its Topper screen stays empty; and **Zodiac Wheel Coins** (2026-11-05), Burning Hot
+Coins' rounds and files, with its own resources and a few differences of its C++: its math rules check that the math
+file agrees with itself and with the setup's capping, and its lines view plays the collect sound after every win.
 
 ## What it loads, and from where
 

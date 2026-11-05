@@ -8,6 +8,7 @@ import { busy, config, copy, data, navigate, openFolder, saveSettings, session, 
 // The folders as workspace.json writes them, which can use its global paths such as {games_root_path}.
 const stored = (folder: FolderKey) => config.value.templates?.[folder] ?? config.value[folder];
 const form = reactive({ name: config.value.name, source: stored('source'), destination: stored('destination') });
+const projectCodeName = computed(() => config.value.defaultWorkspace ?? '');
 const hasChanges = computed(() => form.name !== config.value.name
   || form.source !== stored('source')
   || form.destination !== stored('destination'));
@@ -59,8 +60,18 @@ async function save() {
           <p class="card-description mt-2">Connect your GDA assets to their home in the game.</p>
           <form class="forms-sample" @submit.prevent="save">
             <div class="form-group">
-              <label for="project-name">Project name</label>
+              <div class="settings-label-row">
+                <label for="project-name">Project name</label>
+                <button type="button" class="settings-label-copy" aria-label="Copy project name" title="Copy project name" @click="copy(form.name, 'Project name copied to clipboard.')"><i aria-hidden="true" class="mdi mdi-content-copy" /></button>
+              </div>
               <input id="project-name" v-model="form.name" class="form-control" required maxlength="80" placeholder="Your project name">
+            </div>
+            <div class="form-group">
+              <div class="settings-label-row">
+                <label for="project-code-name">Project Code Name</label>
+                <button type="button" class="settings-label-copy" aria-label="Copy project code name" title="Copy project code name" @click="copy(projectCodeName, 'Project code name copied to clipboard.')"><i aria-hidden="true" class="mdi mdi-content-copy" /></button>
+              </div>
+              <input id="project-code-name" :value="projectCodeName" class="form-control" readonly>
             </div>
             <div class="form-group">
               <label for="source-folder" class="settings-folder-label">

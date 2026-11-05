@@ -13,8 +13,9 @@ Sync the C++ of the game `$ARGUMENTS` into the browser game's TypeScript.
      those folders and ask which one to sync. A plugin that exists only in
      `$GAMES/game/alpha_family/plugins/` is not ported on this branch (game_sync.md step 0).
    - `GAMES` is `games_root_path` in `config/workspace.json`.
-   - The workspace is the entry of `config/workspace.json` whose `id` is `<plugin>` or starts with it
-     (`zodiac_wheel_coins` → `zodiac_wheel_coins_italy`). Ask the user if none or several match.
+   - The workspace is the entry of `config/workspace.json` whose `id` is `<plugin>` or starts with it. Ask the user if
+     none or several match. The Play page needs the id to be the plugin's name (game_sync.md, "A workspace whose id is
+     not its game's folder").
    - `<Game>` is the prefix of the module folders in `frontend/src/game/alpha_family/plugins/<plugin>/`
      (`<Game>Fsm`, `<Game>View` and so on).
    - The playthrough presets are the `presets` in `frontend/src/game/GameView.vue`. Pick the ones that reach the rounds

@@ -7,6 +7,7 @@ import { BaseElement } from '@game/engine/GameVideoCtrl/ViewElements/BaseElement
 import { ButtonElement } from '@game/engine/GameVideoCtrl/ViewElements/ButtonElement';
 import { ToggleButtonElement } from '@game/engine/GameVideoCtrl/ViewElements/ToggleButtonElement';
 import { IButtonViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IControlView';
+import type { ThemeType } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IThemeView';
 import type { ISwButtonBase, SwButtonToken } from '@game/alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge';
 import { BaseView } from '../BaseView';
 
@@ -45,6 +46,12 @@ export class ButtonView<E extends IButtonViewEvents = IButtonViewEvents> extends
     if (!this.m_elementsList.IsLoaded()) return false;
     if (!this.m_buttonId) return false;
     return this.m_elementsList.Get(this.m_buttonId, BaseElement).HandleTouchUp({ x, y });
+  }
+
+  // IThemeView
+
+  SetTheme(theme: ThemeType) {
+    super.SetTheme(theme);
   }
 
   // IControlView

@@ -44,10 +44,10 @@ All commands run from the repository root (`/media/plamen/data/Python/gda-sync`)
 
 ## Step 0: Preconditions
 
-1. **The game is ported on this branch.** Run `ls frontend/src/game/alpha_family/plugins`. As of 2026-10-29, `dev` has
+1. **The game is ported on this branch.** Run `ls frontend/src/game/alpha_family/plugins`. As of 2026-11-05, `dev` has
    `burning_crown_tetra_spins_10`, `burning_hot_coins` (all its rounds: main, coins, wheel, gamble), `nordic_rush`
-   (all its rounds: main, free, hold and spin, coins, coins free, wheel) and `joker_reels_coins_10` (Burning Hot Coins'
-   rounds), with the tools to import a new game
+   (all its rounds: main, free, hold and spin, coins, coins free, wheel), `joker_reels_coins_10` and
+   `zodiac_wheel_coins` (Burning Hot Coins' rounds), with the tools to import a new game
    (`export/import-game.mjs`, the module registry that finds a game's modules by glob), every round's states but the
    extra rounds', and the full `ViewManager`. A game that is not ported is an import, not a sync: stop and tell the
    user.
@@ -157,7 +157,11 @@ Most of the states library is a statement-for-statement port. Some files are old
   fire) are statement-for-statement ports;
 - Joker Reels Coins 10's files copied from Burning Hot Coins' (42 of its 62, with the same C++), the compact ones among
   them. Its `WinFiguresVisual` (the jokers over stacked wilds) is a statement-for-statement port, and so is its
-  `ReelsView.ChooseStopSound`, which Burning Hot Coins' compact `ReelsView` reduces to the default stop sound.
+  `ReelsView.ChooseStopSound`, which Burning Hot Coins' compact `ReelsView` reduces to the default stop sound;
+- Zodiac Wheel Coins' files copied from Burning Hot Coins' (all 64 it ports, 49 of them with the same C++), the compact
+  ones among them. The other 15 have Zodiac's own C++ differences ported into the copy: renamed constants, a
+  `CoinsBarView` and `CreditsWinBarView` that do not add themselves to the runtime, a `LinesView` that always plays the
+  collect sound, and `MathRules`' checks of the delivered math.
 
 In such a file, port the change's behaviour in the file's own idiom, and don't re-port the rest of the file unless the
 user asks. In particular, keep `TryGet(…)?.` in views: `Get` throws on every frame when a view file lacks the element,
@@ -218,7 +222,10 @@ These increases are known and acceptable:
 
 - clang-format wraps a line the C++ author left longer than the column limit (`MatchEnding.cpp`, 2026-10-28);
 - an older view's `TryGet(…)?.` calls translate to `if (auto&& p_ = …TryGet…)` blocks, so a few more elements add a few
-  more lines (`GameBackgroundView.cpp`, 2026-10-28).
+  more lines (`GameBackgroundView.cpp`, 2026-10-28);
+- C++ that TypeScript cannot say: an empty statement, such as a `;` after an `if`'s block (Zodiac Wheel Coins'
+  `WheelRoundView.cpp`), which the translator drops, and a string literal passed as a `std::string`, which it writes
+  `std::string("…")` (Zodiac Wheel Coins' `SoundMenuView.cpp`), 2026-11-05.
 
 For anything else, rewrite the TypeScript closer to the C++.
 
@@ -228,8 +235,21 @@ Then check that the translation compiles. This takes about 30 seconds, and never
 node frontend/src/game/export/translator/compare.mjs $GAMES/game --compile $GAMES/build/user-dbg-clang/compile_commands.json | tail -1
 ```
 
-Expect `0 of N translated .cpp files do not compile`. It was 66 files on 2026-10-28. On 2026-10-29 it is 2 of 238:
+Expect `0 of N translated .cpp files do not compile`. It was 66 files on 2026-10-28. On 2026-11-05 it is 2 of 276:
 Nordic Rush's `InfoView.cpp` and `ReelVisual.cpp` ("Two games' files of the same name", below).
+
+A game the games build does not compile has no compile commands, and each of its files reports `no compile command`.
+On 2026-11-05 `user-dbg-clang` has none for Zodiac Wheel Coins. Its files compile with Burning Hot Coins' commands, its
+paths and names changed, in a copy of `compile_commands.json` in the scratchpad (never the build folder's):
+
+```sh
+node -e '
+const fs = require("fs"), cc = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+const rename = e => JSON.parse(JSON.stringify(e).replaceAll("burning_hot_coins", "zodiac_wheel_coins").replaceAll("BurningHotCoins", "ZodiacWheelCoins"));
+fs.writeFileSync(process.argv[2], JSON.stringify([...cc, ...cc.filter(e => e.file.includes("burning_hot_coins")).map(rename)]));' \
+  $GAMES/build/user-dbg-clang/compile_commands.json <scratch>/compile_commands.json
+node frontend/src/game/export/translator/compare.mjs $GAMES/game --compile <scratch>/compile_commands.json | tail -1
+```
 
 ## Step 5: Move the manifest
 
@@ -241,6 +261,9 @@ node frontend/src/game/export/import-cpp.mjs $GAMES/game
 ```
 
 The second command must say `The TypeScript ports the C++ as it is now: nothing to import.`
+
+The paths are relative to `frontend/src/game`, as `import-cpp.mjs` prints them (`alpha_family/libs/...`). A path from
+the repository root matches no entry, and port-manifest says `0 of them now ported from <commit>`.
 
 Always pass `--only`. Without it, port-manifest also refreshes every entry whose TypeScript changed, and that marks the
 browser-made changes nobody has exported yet as ported, so the next export would not translate them.
@@ -288,7 +311,10 @@ Read the output against the C++ changes. For example:
 Known noise:
 
 - a `404` for `/api/rss-sync/report`: the isolated data folder has no sync report;
-- the tetra screen's screenshot is black in headless Chromium, before and after a sync.
+- the tetra screen's screenshot is black in headless Chromium, before and after a sync;
+- a `--press` that comes before the state has turned its button on (`CoinsRoundInput | … Take win=off`, then
+  `pressed t`): the press is lost, the game waits, and the check exits with 1. Run it again (Joker Reels Coins 10's
+  wheel, 2026-11-05).
 
 When a screenshot or a state looks wrong, run the same check on the code before the sync before you blame the change:
 save `git diff`, `git stash`, build, play, `git stash pop`, build. Visual changes, such as new images or element ids,
@@ -333,3 +359,13 @@ and 7 all the same: it does not play the game or judge an idiom.
   `ViewManager.SetupBets` on 2026-10-27), play a round of every type to see that each round's bets are right.
 - **Synced files with no TypeScript change.** Files that needed no change still need `--only` in step 5, or
   `import-cpp.mjs` keeps listing them.
+- **A workspace whose id is not its game's folder.** The app reads a game's modules config from
+  `configs/<workspace id>/modules`, and the export writes it there, so a workspace's id must be its game's folder name in
+  `resources/`, `configs/` and `game/alpha_family/plugins/`. Otherwise the Play page says the browser game has none of
+  its modules, and `play_check.py` times out waiting for the game screen. Zodiac Wheel Coins' workspace was
+  `zodiac_wheel_coins_italy` until 2026-11-05.
+- **An import's cycles.** `import-game.mjs --copies` copies a file only once what it includes is there, and type-checks
+  the batch with every other file of the game. A file ported by hand that imports a copy not made yet fails that check
+  for the whole batch, so move it aside while the copies are made. A copy that includes a file ported by hand, which
+  includes the copy back (`<Game>Math` and `MathRules`), is never copied: copy it as the tool does (the ported game's
+  TypeScript with the names changed), type-check, and record it with `port-manifest.mjs --only`.

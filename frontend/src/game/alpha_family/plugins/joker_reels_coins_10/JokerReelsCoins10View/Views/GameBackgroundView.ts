@@ -3,6 +3,7 @@
 
 import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
 import { IControlViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IControlView';
+import type { ThemeType } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IThemeView';
 import { IGameBackgroundView } from '@game/alpha_family/libs/AlphaFamily/Views/IOverlayViews.bridge';
 import { BaseView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/BaseView';
 
@@ -38,5 +39,10 @@ export class GameBackgroundView extends BaseView implements IGameBackgroundView 
 
   IsOpaqueFullScreen() {
     return true;
+  }
+
+  // IThemeView
+  SetTheme(theme: ThemeType) {
+    super.SetTheme(theme);
   }
 }

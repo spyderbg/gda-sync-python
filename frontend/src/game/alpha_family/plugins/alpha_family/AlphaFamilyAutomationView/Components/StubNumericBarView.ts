@@ -3,10 +3,16 @@
 
 import type { AccumulationDescriptor } from '@game/alpha_family/libs/AlphaFamily/Views/Tools/AccumulationControl.data';
 import type { INumericBarViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IControlView';
+import type { ThemeType } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IThemeView';
 import { StubControl } from './StubControl';
 
 export abstract class StubNumericBarView<Interface, Events extends INumericBarViewEvents = INumericBarViewEvents> extends StubControl<Interface, Events> {
   protected m_value = 0;
+
+  ////////////////////////////////////////////////////////////////////////////////
+  /// IThemeView
+  ////////////////////////////////////////////////////////////////////////////////
+  SetTheme(_theme: ThemeType) {}
 
   ////////////////////////////////////////////////////////////////////////////////
   /// INumericBarView

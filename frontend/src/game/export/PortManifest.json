@@ -1077,9 +1077,9 @@
    "alpha_family/libs/src/Egt/AlphaFamily/Views/SwButtonViews.bridge.cpp"
   ],
   "sha256": "7d9a771a4e6324ff1536aac2fd714225d006ba277cb08e2a8f2c15788fad7014",
-  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
+  "cppCommit": "eb1fd4f35f38500dadc7293d356050918b0b7af4",
   "cppSha256": {
-   "alpha_family/libs/src/Egt/AlphaFamily/Views/SwButtonViews.bridge.h": "23543ed920f239d80e7c336a008a1313be9472b395fd3a030f26fbb0299d0686",
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/SwButtonViews.bridge.h": "1676524df3b4f5e95ac80013eb7efeba4fbcd39027d39c6e9e144017615932f1",
    "alpha_family/libs/src/Egt/AlphaFamily/Views/SwButtonViews.bridge.cpp": "02b42a9891c17dc909d5f18345f29355e2753a9c18614afd54968644f02fdc42"
   }
  },
@@ -2130,21 +2130,21 @@
    "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/BaseView.h",
    "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/BaseView.cpp"
   ],
-  "sha256": "92d06e1186806413344b0205468a110c2e2c0288cd42e1cc8e9c315bd58e1fb4",
-  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
+  "sha256": "3b6b64ee9f459dbffc6b96ec616416ae7b4ac0a6dc9e1335f959b956a6aae49a",
+  "cppCommit": "eb1fd4f35f38500dadc7293d356050918b0b7af4",
   "cppSha256": {
-   "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/BaseView.h": "f183f225f6fe9ea26d67967e9a616be4b155249bfe8a6879dbb9b560d6db2c2c",
-   "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/BaseView.cpp": "cad21d1e215a588efb686b154db93e2d3fbb1717a9839d5fc6951133cf68ac12"
+   "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/BaseView.h": "a418f4610320a874e740af0c55ab21d8b063ddfa56dd35b32c24ea977bd50c79",
+   "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/BaseView.cpp": "d85410301b1b8c295030df5802dbf6b188067b9659afd9f9fae28b2516cd01df"
   }
  },
  "alpha_family/libs/AlphaFamilyVideoCtrl/Components/ButtonView.ts": {
   "cpp": [
    "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/Components/ButtonView.h"
   ],
-  "sha256": "03eb3570fbc7443d25a500a0152a71e34f7a0e1f28354fc964114ddbe90db2c4",
-  "cppCommit": "f0c46d2a37422c811dea77221127db2101f537dd",
+  "sha256": "c2a8cebd45e7746603c8b888b2e2d31fdb4e6263f0da2783405a7f94db8b1286",
+  "cppCommit": "eb1fd4f35f38500dadc7293d356050918b0b7af4",
   "cppSha256": {
-   "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/Components/ButtonView.h": "bb7c88e55eed1f4c9ee5f9fea5a78c4d31872f35ea84af06a1281b41a3788126"
+   "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/Components/ButtonView.h": "fc4b54ae88f8a5125f31531ffb46f6b862d5db8c9eab971ca9903434c540e7c6"
   }
  },
  "alpha_family/libs/AlphaFamilyVideoCtrl/Components/ControlView.ts": {
@@ -2175,10 +2175,10 @@
   "cpp": [
    "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/Components/NumericBarView.h"
   ],
-  "sha256": "752f6a44909765b38c0da418ccdc4a2a2129343f1dfe36f0e6da1c548b6d0e80",
-  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "sha256": "6bb0f8dd6d05bc3985c6aa1edae30a98e5938908312fbc260075aad2982a4cff",
+  "cppCommit": "eb1fd4f35f38500dadc7293d356050918b0b7af4",
   "cppSha256": {
-   "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/Components/NumericBarView.h": "0ce38d646461d0cdbb78770b558a664336f8f5319d4ab74e61bc4bacdfcab3ae"
+   "alpha_family/libs/src/Egt/AlphaFamilyVideoCtrl/Components/NumericBarView.h": "520d82601858988cab1ed677d3783e9773975784e5779f56f45fd98595b197fd"
   }
  },
  "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/AlphaFamilyAutomationView.data.ts": {
@@ -2207,10 +2207,10 @@
   "cpp": [
    "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Components/IStubView.h"
   ],
-  "sha256": "c9e73bddee15df8e3ebc29de29c711ac684468c597091cd907b61c7df9b80c84",
-  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
+  "sha256": "d6ff179735cd72061f354c17c82be1f40bbad86aba16d92403a0dcf37f022662",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
   "cppSha256": {
-   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Components/IStubView.h": "572c97d2a9d5f359366eeff9d5a62bd05a5f80c738ea42edfe677118fc006b56"
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Components/IStubView.h": "ad80dbe8ed9874841d60c1441f34198e4ff908a5653594b815ff87e4f1ae1e1b"
   }
  },
  "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Components/StubControl.ts": {
@@ -2237,20 +2237,20 @@
   "cpp": [
    "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Components/StubNumericBarView.h"
   ],
-  "sha256": "eb53ba0f8bf5154f585c41b20d28b5a1c7eb37d93f507b976173fa5d3205c562",
-  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "sha256": "cbe95e6232d0caf25f4e0d67e3d15cd4a932baea3dc143189e75deca6b7ac35b",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
   "cppSha256": {
-   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Components/StubNumericBarView.h": "53abf34368918a12f7ced47510df92a9faf99615f24e2e230637273dca96a24e"
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Components/StubNumericBarView.h": "bd59553092785970d973a4e44cbc99e11c2039c77e21970f05c457f0619cf480"
   }
  },
  "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Components/StubSwButton.ts": {
   "cpp": [
    "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Components/StubSwButton.h"
   ],
-  "sha256": "775f479d091b2815ee7857978cfe0daafeb1c9e512f81f1c73a9cf8960a4b06f",
-  "cppCommit": "0b8cdbba67b7073e5a1b393bcabcc7b94b2608b2",
+  "sha256": "c6d610a1b52b2002d53580e2a5ee467e0c35ed91dc2f72867375cd80d50ed25d",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
   "cppSha256": {
-   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Components/StubSwButton.h": "c5d76002aa7c0aa43b5fc66e360fe140411babb9a60b2aaec182836b21f17319"
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Components/StubSwButton.h": "1496720097a74c58626428f2351016ebbab7d28a3af3990be859fcabb2e467f7"
   }
  },
  "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Components/StubView.ts": {
@@ -2537,10 +2537,10 @@
   "cpp": [
    "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubKnobsView.h"
   ],
-  "sha256": "e9ef149acc7c4f584d437562cab953f7fbb1b0ccc33cd74e9e2b5aba71643a1e",
-  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
+  "sha256": "6907c3db75daf678744edae66705861f86f61184b1733b1c30e6cf5fff359c75",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
   "cppSha256": {
-   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubKnobsView.h": "87fdc45ebb987775e2ebc56a891a1ee6e311fda7e532eec9a2d29308006d5698"
+   "alpha_family/plugins/alpha_family/src/Egt/AlphaFamilyAutomationView/Views/StubKnobsView.h": "b59329c03a183bc6a1fefcd1c6a360c343f4a82d8ce110f41591c6ba27bcb79a"
   }
  },
  "alpha_family/plugins/alpha_family/AlphaFamilyAutomationView/Views/StubLanguageSwButtonView.ts": {
@@ -3262,11 +3262,11 @@
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/GameBackgroundView.h",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/GameBackgroundView.cpp"
   ],
-  "sha256": "16a9572dcc6528ab8ed822ae6075116cee969cc403fd293751837092612bc50b",
-  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
+  "sha256": "00a846d82e8d230d06bd7d2b13821be369b117602fe9e3c83b4390155f9fb43f",
+  "cppCommit": "eb1fd4f35f38500dadc7293d356050918b0b7af4",
   "cppSha256": {
-   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/GameBackgroundView.h": "57f69bb785e4d3a6704e008d112f674f5fd4882ff235da570ca40e9501bcecb3",
-   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/GameBackgroundView.cpp": "37bc37bfc305a4d37b15ce1bdf0268034c1c7b40553258bb61b23725d48e42e1"
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/GameBackgroundView.h": "4153b346ea46b61f590dafc234eca86fc7e3fc9cdd3131670edd4087c98ce6a9",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/GameBackgroundView.cpp": "3b025a98b63f5aebc72a7360a17480fb6c3fd911a6845fb60b10eb3e02dc0ca3"
   }
  },
  "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Views/KnobsView.ts": {
@@ -3274,11 +3274,11 @@
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/KnobsView.h",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/KnobsView.cpp"
   ],
-  "sha256": "0e4a201449273f8498245fd609d37ae26f24ce7cbd2309b95a1a08d847f236fe",
-  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
+  "sha256": "9c78bcace7572018596605a667ea8ab876f0ecc56d476a17969229643540d4c9",
+  "cppCommit": "eb1fd4f35f38500dadc7293d356050918b0b7af4",
   "cppSha256": {
-   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/KnobsView.h": "ef8607ef711fd33b6501cdc25d644a07c7e7814bedde834e3cd2f1a9c7a2e88c",
-   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/KnobsView.cpp": "8a21fa2a3c6229eda4d84e8a3a29e1e609ebfe51e9e9cd207d13d98798a82659"
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/KnobsView.h": "ffe6cad3f93d9dac863b468c7baf5263720b971d200328da3783d6e5ec0e8c90",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/KnobsView.cpp": "f9b587c5d3a85fe16ef0ff074a37f89d10c03ba8215ff1cb5720d43fb1a36fff"
   }
  },
  "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Views/LanguageMenuView.ts": {
@@ -4000,11 +4000,11 @@
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/GameBackgroundView.h",
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/GameBackgroundView.cpp"
   ],
-  "sha256": "f37ef892455aea6f7e42782b39cb5209866894872bd6debd192847bdf8ae7340",
-  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
+  "sha256": "09ff217731dcc45c0302b38a97f165a7789a63850a6efe562d9a6a1450344677",
+  "cppCommit": "eb1fd4f35f38500dadc7293d356050918b0b7af4",
   "cppSha256": {
-   "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/GameBackgroundView.h": "a7834c18d3615d21ef2c26ad8631d2c05fd4ea0eb758ef651061f950e653b486",
-   "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/GameBackgroundView.cpp": "f8ed1ce39d185d00c1b38107e942e28d5e186faa9643043ce0df4f1b8dcbdfce"
+   "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/GameBackgroundView.h": "37e60e9995ea486118c29baab33c0a21762a44c2c510a4bb83ef12809ce6340f",
+   "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/GameBackgroundView.cpp": "f5ae4a142501c8a22be56f79a2eabc1b698e9307ed3028e559677d19d355341c"
   }
  },
  "alpha_family/plugins/burning_hot_coins/BurningHotCoinsView/Views/KnobsView.ts": {
@@ -4012,11 +4012,11 @@
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/KnobsView.h",
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/KnobsView.cpp"
   ],
-  "sha256": "ec40674c5cf0c3ea351162eca9ed3c2947430aa6ca96f314ead9f30acd47c368",
-  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
+  "sha256": "04190b3f6626572984b9e20b9b33a9df7b2c2bb0ba367ec9646dc7f4095c0d7a",
+  "cppCommit": "eb1fd4f35f38500dadc7293d356050918b0b7af4",
   "cppSha256": {
-   "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/KnobsView.h": "69e2390738b011083048e7c0b697868e75cdcad94430f48acb88505b67697fe9",
-   "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/KnobsView.cpp": "957ebc05590bbac790998f021ebd16ea0c4570c341938e664cf8aad500efc3c9"
+   "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/KnobsView.h": "f0ae7ee9d5e1f70eb91e7862b1ca8376c8809964090de30e698466b7b20e19f0",
+   "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/KnobsView.cpp": "1dbb2cb3087bf3080aa48d4929a6d8ee122cd5ad2d652f6caa6be85695d04417"
   }
  },
  "alpha_family/plugins/burning_hot_coins/BurningHotCoinsView/Views/LanguageMenuView.ts": {
@@ -4716,11 +4716,11 @@
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/GameBackgroundView.h",
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/GameBackgroundView.cpp"
   ],
-  "sha256": "9acee594bbb5a54183e94fde24ee72445b1294408a6dfc6a8eb5da022be35d63",
-  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
+  "sha256": "4f77c58bca421e8a8d5d6762e7fb0642f0b3b4c83d45d88862a6c64e1254dd4c",
+  "cppCommit": "eb1fd4f35f38500dadc7293d356050918b0b7af4",
   "cppSha256": {
-   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/GameBackgroundView.h": "a7834c18d3615d21ef2c26ad8631d2c05fd4ea0eb758ef651061f950e653b486",
-   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/GameBackgroundView.cpp": "f8ed1ce39d185d00c1b38107e942e28d5e186faa9643043ce0df4f1b8dcbdfce"
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/GameBackgroundView.h": "37e60e9995ea486118c29baab33c0a21762a44c2c510a4bb83ef12809ce6340f",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/GameBackgroundView.cpp": "f5ae4a142501c8a22be56f79a2eabc1b698e9307ed3028e559677d19d355341c"
   }
  },
  "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/Views/KnobsView.ts": {
@@ -4728,11 +4728,11 @@
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/KnobsView.h",
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/KnobsView.cpp"
   ],
-  "sha256": "081a33ad9544599e07f56be5359cd8374f6308b9e0028b4da3e89dc170e93731",
-  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
+  "sha256": "a50afad9619035489de57c126071e523ea1ad0be8562cc31f60b3d2367c8d64b",
+  "cppCommit": "eb1fd4f35f38500dadc7293d356050918b0b7af4",
   "cppSha256": {
-   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/KnobsView.h": "69e2390738b011083048e7c0b697868e75cdcad94430f48acb88505b67697fe9",
-   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/KnobsView.cpp": "957ebc05590bbac790998f021ebd16ea0c4570c341938e664cf8aad500efc3c9"
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/KnobsView.h": "f0ae7ee9d5e1f70eb91e7862b1ca8376c8809964090de30e698466b7b20e19f0",
+   "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/KnobsView.cpp": "1dbb2cb3087bf3080aa48d4929a6d8ee122cd5ad2d652f6caa6be85695d04417"
   }
  },
  "alpha_family/plugins/joker_reels_coins_10/JokerReelsCoins10View/Views/LanguageMenuView.ts": {
@@ -5448,11 +5448,11 @@
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/GameBackgroundView.h",
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/GameBackgroundView.cpp"
   ],
-  "sha256": "ab02e8bfde8ab87af9c04ceee6211ac4c36e38199bbcf65daa25bfe3863f466e",
-  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
+  "sha256": "ccff1b3fb0a648983d54b53e2a4da5e26b6bd11de64478eafbf68d9175ccfdd3",
+  "cppCommit": "eb1fd4f35f38500dadc7293d356050918b0b7af4",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/GameBackgroundView.h": "c2ff4c112ec4bbdc06089fad825f13267192401c9fd367234e3d711c11f54667",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/GameBackgroundView.cpp": "d8b244f5384cfbe9068e7c698801621104bfc5404477d028afbce8a30eba024f"
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/GameBackgroundView.h": "1a936e1d3f2aee040d485db3575520fb5702342cbd736e89a334e32338d1c607",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/GameBackgroundView.cpp": "1aad5bf79ff13a1c0c7eae117983ee68f415eae8521e56a7d7a0097cc0747120"
   }
  },
  "alpha_family/plugins/nordic_rush/NordicRushView/Views/HoldAndSpinBarView.ts": {
@@ -5484,11 +5484,11 @@
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/KnobsView.h",
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/KnobsView.cpp"
   ],
-  "sha256": "69597ce1db356416fa63f4f4bad4c99ec4af163ee9c852a2fa2f1c6d2afd60dd",
-  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
+  "sha256": "acb2c900409b53015fdc8406d5772dcc0b8414c4a555c99438817ff9d8a70f7f",
+  "cppCommit": "eb1fd4f35f38500dadc7293d356050918b0b7af4",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/KnobsView.h": "69e2390738b011083048e7c0b697868e75cdcad94430f48acb88505b67697fe9",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/KnobsView.cpp": "957ebc05590bbac790998f021ebd16ea0c4570c341938e664cf8aad500efc3c9"
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/KnobsView.h": "f0ae7ee9d5e1f70eb91e7862b1ca8376c8809964090de30e698466b7b20e19f0",
+   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/KnobsView.cpp": "1dbb2cb3087bf3080aa48d4929a6d8ee122cd5ad2d652f6caa6be85695d04417"
   }
  },
  "alpha_family/plugins/nordic_rush/NordicRushView/Views/LanguageMenuView.ts": {
@@ -5747,6 +5747,746 @@
   "cppSha256": {
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/WinFiguresVisual.h": "c378e0c77c669ad0deb90d0b184a93b8e7d2211fe8d678127dee58fe440402c2",
    "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/WinFiguresVisual.cpp": "e63ff9b199561be7cc4ebf269ecb9eb25c5a689dc1aab88d5f6b5995ee739d59"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsFsm/ZodiacWheelCoinsFsm.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsFsm/ZodiacWheelCoinsFsm.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsFsm/ZodiacWheelCoinsFsm.cpp"
+  ],
+  "sha256": "d73058434b9623b0aa76743e3004861cc85977ea00d1ff5523313f1aace53632",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsFsm/ZodiacWheelCoinsFsm.h": "242ef2aab0142c2ed8bdc28da0911b5215e860aea22869bc6de4691642d089db",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsFsm/ZodiacWheelCoinsFsm.cpp": "2ab66c3d4a4b577484384f2ab0f8049f73ff7cdc211f6d6b253ee1ebf78d19de"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsInfoView/InfoView.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsInfoView/InfoView.data.h"
+  ],
+  "sha256": "e7fab3cb46d45e4e2cdbf8408aef373930c8d970afdbbd3e963f59f87929bf51",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsInfoView/InfoView.data.h": "050a157ba383e093bc9e469e39861be1c1da71cf6bf91c0597a912ec67620223"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsInfoView/InfoView.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsInfoView/InfoView.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsInfoView/InfoView.cpp"
+  ],
+  "sha256": "6dbd30bb7334b195d0f4b28ad80ae6e7dc4618fec86ce254143de0c030bc16fc",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsInfoView/InfoView.h": "6baebf8867614d0a1debd876c5f491199c71dafe84741b09550794f27e0e9263",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsInfoView/InfoView.cpp": "b8268625f34f612dd0e37c118d90f4a58843f7cd19dfa0d4fe352956a3204c77"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsInfoView/ZodiacWheelCoinsInfoView.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsInfoView/ZodiacWheelCoinsInfoView.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsInfoView/ZodiacWheelCoinsInfoView.cpp"
+  ],
+  "sha256": "fca3f012740abdb22a9bab0cf5d8cbfbb3d1f9efeb9e335e708da0b1c36e1539",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsInfoView/ZodiacWheelCoinsInfoView.h": "b9ef48cd309d1080a3ccf717479e7230c18a6d617dee46cbeadd2a4844b47a44",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsInfoView/ZodiacWheelCoinsInfoView.cpp": "932d5984d69027da99cc2e29a72bea408bc58dd8877c89e4c25e2d79b063f480"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsMath/MathRules.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsMath/MathRules.data.h"
+  ],
+  "sha256": "a306f3aba498f021ca1dba54839cfee017460e5c5a31e9a2ba6611c1a9762bc4",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsMath/MathRules.data.h": "4e871556bded23be43fc3314d9787a7c2e8f0c0a223eb95b08bd4defbacf3ea6"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsMath/MathRules.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsMath/MathRules.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsMath/MathRules.cpp"
+  ],
+  "sha256": "7e06e29effbefba7029e413610daac2ab3ece061dce8ccf033b4afed2852fce8",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsMath/MathRules.h": "4989b3cc03b0d1225b9046fb40ac6a0b2c4f6fa82f6990a8ed6505b28a18a2e5",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsMath/MathRules.cpp": "1b72597df69fa506c99f5cfe910e79eebdfd5bb3b783bd82e34626088a0cd330"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsMath/MathTypes.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsMath/MathTypes.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsMath/MathTypes.cpp"
+  ],
+  "sha256": "4c55f02358bfb4b7eeacc81070fa573165adb9a162836c3695ec422d28aef1b4",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsMath/MathTypes.h": "dca6fe3e32c777e43263db9a632a852da29ca24f60988127f15bd02662ef5a19",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsMath/MathTypes.cpp": "10575b7d54245038c6a229437b86a9a3e51eacd4e682ce6556bc416ddcb85c33"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsMath/SimulatorConfig/BasicCoins.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsMath/SimulatorConfig/BasicCoins.data.h"
+  ],
+  "sha256": "abc92a4a33ad7eac07b120d1c8da2250e64336cf1581f0e6c3f761ef00c82984",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsMath/SimulatorConfig/BasicCoins.data.h": "81d71a1bd7440651e2c831d5d168e3749dc3a3b5e5bff58614d357748711684f"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsMath/SimulatorConfig/MathDefs.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsMath/SimulatorConfig/MathDefs.data.h"
+  ],
+  "sha256": "2751fde22ee30daf32db408b542f276b7cf09467a6399b9fbb72442a6c12cde3",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsMath/SimulatorConfig/MathDefs.data.h": "dbbeefa6ffc8a00a254c82d9a2d5f187cf4c6e8a8c5949405fd3962756e22a6d"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsMath/ZodiacWheelCoinsMath.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsMath/ZodiacWheelCoinsMath.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsMath/ZodiacWheelCoinsMath.cpp"
+  ],
+  "sha256": "15af13e530ff5d0a52d5dde22a98dd668beaaf4f3089a66346553e76c1f736d1",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsMath/ZodiacWheelCoinsMath.h": "3a67cbe6cc78fdbdff09257ae26b772be99515ae204dc6a63fa0355c80013409",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsMath/ZodiacWheelCoinsMath.cpp": "3d4638743c2758f497361d903015e90d754063b9997a53535e32f1c04fdf928c"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsTopperView/TopperView.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsTopperView/TopperView.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsTopperView/TopperView.cpp"
+  ],
+  "sha256": "5e6cdea5a3d370f732c2f35d0b2a4280fc54c7af107de11c6e06b121194c9c03",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsTopperView/TopperView.h": "9ababf67ca7c2eb52694d6bf3c8190b7feb24e7d1b5557e31c1a1443d84180ef",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsTopperView/TopperView.cpp": "36c535c98b1b033d6cc7335453ed3e7b8b1da403b2cd7d301ebe711799700da7"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsTopperView/ZodiacWheelCoinsTopperView.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsTopperView/ZodiacWheelCoinsTopperView.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsTopperView/ZodiacWheelCoinsTopperView.cpp"
+  ],
+  "sha256": "fd0042d59c2b2d57f0135eccc7574fa694cb7045c03787cb25d3949704e2f64e",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsTopperView/ZodiacWheelCoinsTopperView.h": "7a91d21a179a9eed06b37666f9919b1a8a6b9b8e64a8fed3f5a936a2705e8145",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsTopperView/ZodiacWheelCoinsTopperView.cpp": "6d6a2c34504ab411d332fcaabe06d0b24a7fd5c06410c6e959fda759b2bbf400"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/SwButtons/BetDownSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/BetDownSwButtonView.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/BetDownSwButtonView.cpp"
+  ],
+  "sha256": "dd39d277ee4b18d3277cc7604311df17a671d34b4b7c187a99eb8bb52bb09541",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/BetDownSwButtonView.h": "c6de9941a6db1d9f99f9d947c774a46612b632b425331dc90a61cd098014a075",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/BetDownSwButtonView.cpp": "376a1cc1aa3a0bf058e96838109ff64f9cd1220164bdb5dd6e66312e5615c7a2"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/SwButtons/BetUpSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/BetUpSwButtonView.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/BetUpSwButtonView.cpp"
+  ],
+  "sha256": "02c315fcfbc6bfa69d4c79fd1ac64e44d50f12812cf04eee94560f3e2bd8e8dd",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/BetUpSwButtonView.h": "f168f2c83d003f8ef2f170f9b1d8492fbebf0eb43175b727e1a122d5c081f6a3",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/BetUpSwButtonView.cpp": "d5c9b67a031ddd2f62103f944d97d978d3dd789872e2b3c2f4cafa025e9376d2"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/SwButtons/ExitGameSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/ExitGameSwButtonView.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/ExitGameSwButtonView.cpp"
+  ],
+  "sha256": "3cc3380d9628926b6d06b24ed92883d9f18f7ae954fba04e546ae60065f9c292",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/ExitGameSwButtonView.h": "610d6957fd6e7b531d419d63bdec98ca4dc9e403ad6a754ad938b57495bceca3",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/ExitGameSwButtonView.cpp": "bbea18ed857bb4ab209209d447925736b5955f3010bf38127d4aec5b6fcd53d5"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/SwButtons/GambleBlackSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/GambleBlackSwButtonView.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/GambleBlackSwButtonView.cpp"
+  ],
+  "sha256": "ecca8d959734d56906e823e47642033e4a2227903a5853e9e2c705858afc21c8",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/GambleBlackSwButtonView.h": "c11112b58c1a96d8a1e42555a107dbf9383f7ebcc426ba2be38d5a747ecc752e",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/GambleBlackSwButtonView.cpp": "b40e02a99e704bc240bdac5a1ac961861206ab633958a2eec0a8e93dd5491f17"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/SwButtons/GambleRedSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/GambleRedSwButtonView.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/GambleRedSwButtonView.cpp"
+  ],
+  "sha256": "e31c0844c566f75d22c18cca0cb56d4f3618498a2d8fc50052c2d2491b420d9f",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/GambleRedSwButtonView.h": "91cbd8a4d1f83f88b7ac04b2d463b900cadfee6de08edbe9cbb7f93ff6cf4758",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/GambleRedSwButtonView.cpp": "9273ca8d4616777736d1f8e664665df749c78643052403ec8b8d40596296ab9a"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/SwButtons/InfoSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/InfoSwButtonView.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/InfoSwButtonView.cpp"
+  ],
+  "sha256": "f11af55e3a75c9ad2042c7e6e58e8f107382b1de53d0a4f4e3318d1f289a5a7c",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/InfoSwButtonView.h": "1e2a2dc990756091df53f2b94c8be04f51c11928f911753af87dbb82d4815e64",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/InfoSwButtonView.cpp": "69055e58493c0bb76ea0da774c2923d4bc2a32d820f0f23f40daa56e7168e7ad"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/SwButtons/LanguageSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/LanguageSwButtonView.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/LanguageSwButtonView.cpp"
+  ],
+  "sha256": "4b8f3d0b12c5335b5950d664a622e1a34622ebad88bf8b9346f778f5087a7b37",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/LanguageSwButtonView.h": "c19c5ac3285aaad9ef6d9d6b68a3fabe6fbe999976407b5a9ac16f88db53570a",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/LanguageSwButtonView.cpp": "32ab0ac65f5808e65b8090313b0922f4fd261c9631c9ded7e32cd3f9044b9851"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/SwButtons/LineDownSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/LineDownSwButtonView.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/LineDownSwButtonView.cpp"
+  ],
+  "sha256": "b56061684805dd5b5bf673bf5e73ca6291a6c61883c1d8820019e4d0952d701f",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/LineDownSwButtonView.h": "ed36c2dc248887532c0ee6a1dc30f5796152b8d8a66426bb6016757ffbc77c2e",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/LineDownSwButtonView.cpp": "fbd3bd28c127e42ad8a0dd283d96bf192a6de7e00077804a92d8608fb91805d2"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/SwButtons/LineUpSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/LineUpSwButtonView.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/LineUpSwButtonView.cpp"
+  ],
+  "sha256": "ce360b9acf98a692a869f49b259d9146ea9673dc4078f65757fce79707995594",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/LineUpSwButtonView.h": "c9c6bf945c0668da53fc580255679d34d5326e111681482b316ebf9f398aafda",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/LineUpSwButtonView.cpp": "1baf5fda12427eda42bbf4c806a816e566c7cf8fe7897d6b08d01293991346fa"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/SwButtons/ResponsibleSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/ResponsibleSwButtonView.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/ResponsibleSwButtonView.cpp"
+  ],
+  "sha256": "db0a433f8dc338bcaea2193b6022cfc3e652b3dae5945c3326f1ad848edae861",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/ResponsibleSwButtonView.h": "819fea3716e98c70c109d3413131c1f5e9d7dca802a826d09b1b022001bd45b9",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/ResponsibleSwButtonView.cpp": "5c2e47c62676b434602e6307855274b16dca82ef3c6e494c20cae66c4246059b"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/SwButtons/SoundVolumeSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/SoundVolumeSwButtonView.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/SoundVolumeSwButtonView.cpp"
+  ],
+  "sha256": "6a127f0f78a6bab616ca4da645c14f1221f1f16a20d7339beed717528d3d9482",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/SoundVolumeSwButtonView.h": "3caf05f98acb6fedb7321afd7bd3e5730c615590af11a702cdf1ceba5a6e645f",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/SoundVolumeSwButtonView.cpp": "8f119783f3b3dcf0bc9fcf3e3587eb1d8d198c8c501a85018ade7495f850a50c"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/SwButtons/StopSingleReelSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/StopSingleReelSwButtonView.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/StopSingleReelSwButtonView.cpp"
+  ],
+  "sha256": "92b5e5e60f8ab022fe0926e8231b905c3da3714e28fecb9bda09828c303e6ad9",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/StopSingleReelSwButtonView.h": "05ccc121ad03f4698da15b9f26363571b0a8e7282ed3834a32f7a548ac7b2763",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/StopSingleReelSwButtonView.cpp": "15f64543e87f42db9617eb745bba196bbdc55033aec3fd1cf1f2150959d85b55"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/SwButtons/TakeCoinsSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/TakeCoinsSwButtonView.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/TakeCoinsSwButtonView.cpp"
+  ],
+  "sha256": "2dbf2e79e5bd60c2512f476b1238691ab38fccf06191e07bb3641773d84b0539",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/TakeCoinsSwButtonView.h": "0dd64a6aa6a53463dca325983beabe71dc42990dc0c3c5b6a38ae54861759457",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/TakeCoinsSwButtonView.cpp": "5e2575ff308992c6cef7ad23cca06a779e8f542df72a7bd6d4bc6b7a05a94019"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/SwButtons/WheelCancelSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/WheelCancelSwButtonView.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/WheelCancelSwButtonView.cpp"
+  ],
+  "sha256": "9613ab59f0e4e2f5186883f08772ee6ddb1773275235efa962655d81cd46d165",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/WheelCancelSwButtonView.h": "c9c1758f13bfd98ea71d0083945dbbfd0d11dc84b940eaa158b2be927f3f3180",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/WheelCancelSwButtonView.cpp": "ef810a8bf7b585a5bb74f4e844fb8a5bdfe9e35c6332f5fc8900a1f605489de0"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/SwButtons/WheelStartSwButtonView.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/WheelStartSwButtonView.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/WheelStartSwButtonView.cpp"
+  ],
+  "sha256": "1495456eaf55319ad49348302e9818113b921424985abb2972a13761a8ab56a9",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/WheelStartSwButtonView.h": "71476a72932d72849aa5b5fe966741125d84370fc8499fa8d1b54f8bbecff579",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/SwButtons/WheelStartSwButtonView.cpp": "bef2dceb81b8ce24b4ca981bf1dffb0600486d66c0b075dee68552dde89a8565"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/Views/AutoPlayView.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/AutoPlayView.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/AutoPlayView.cpp"
+  ],
+  "sha256": "30309aef760add4da2782f38aa732f8f39c5c8810043e5b128ca9939c43c3fe9",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/AutoPlayView.h": "068149360635f708b521445b1db188ff1bf08e8588bad218f5179a1e7229ae9d",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/AutoPlayView.cpp": "118dc1430c4a04e4946e79c3d35ef7fa69b64e83e620f12e19c22be2f5ec3643"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/Views/BaseReelsView.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/BaseReelsView.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/BaseReelsView.cpp"
+  ],
+  "sha256": "75c89e450a121a13d8b160e99c8aa6da358557e8077d2098cafa90622cf41265",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/BaseReelsView.h": "f7e3586973ceb9a80462a0d3e2a6ab45649f0f15c1bc08cdb7cb97ff256c22a4",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/BaseReelsView.cpp": "cca3fc2cca8fa8169b63f9bac6e15e97445a971d71c8e77c1b1cb058071a7a6a"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/Views/BetBarView.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/BetBarView.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/BetBarView.cpp"
+  ],
+  "sha256": "6ac297f19049b848b7d414b249a26664459b6498498c2dbd594c68f3244ba174",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/BetBarView.h": "f9760616c225d6ec8e83b92645c944e5ac1c23e999e744b49981b8bcbc469389",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/BetBarView.cpp": "c2dd656396275ba8f2a1e52d478f8f3085b03e103480ce0476422cc85a4c09c8"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/Views/BetMenuView.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/BetMenuView.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/BetMenuView.cpp"
+  ],
+  "sha256": "d9ef2c9aa1aaafb095cc199e8c9f72c8081a28fcfa02219731b40d4d898f7936",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/BetMenuView.h": "2a8c2f24bb2765df41425662286bcfc41b0687e9fb95e6d7063b0e1359f419dd",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/BetMenuView.cpp": "90d18fe7ec6c2f6f9642bf977d5b6f7400c42bf8484823cfb12c9057f5b8550f"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/Views/BigWinView.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/BigWinView.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/BigWinView.cpp"
+  ],
+  "sha256": "b06708861df30c0276dc77437bb5497b660c20a8d5d64a009db6ee6c71c981f7",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/BigWinView.h": "9f9bf6105664848b5192b1a5b6bef38dd0d784db2af237dc3325c5b55cbe6e40",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/BigWinView.cpp": "3d74da7f76c5455a30884aaad75914c2da57ee0894973cd22a3a05979f834033"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/Views/CoinsBarView.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/CoinsBarView.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/CoinsBarView.cpp"
+  ],
+  "sha256": "3724369507f8930c92d6e3f9f49594785ce46333d9687fb8c26e1fe2c099bb8f",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/CoinsBarView.h": "9d20fb49164c171bd3fe69499173c58c133074fa1c8f87afbb78c72888af3560",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/CoinsBarView.cpp": "4b34350eaa69861946880055a8a81114f789fc19c5248a6bf7f3b71bdc6e5c4a"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/Views/CoinsRoundOverlayView.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/CoinsRoundOverlayView.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/CoinsRoundOverlayView.cpp"
+  ],
+  "sha256": "6fc77b6434e1b683f33bea61e5f0805e07794995da040fa2277d7b5dea40f6cd",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/CoinsRoundOverlayView.h": "5080e0d0d3949424c94760586148f17ab0238deab4d7aaed35e324a88866de4d",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/CoinsRoundOverlayView.cpp": "fbf94d74dab1bf49ba2bfb63aac692f98793288d2b14e389349faad3eb9d0fa7"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/Views/CreditBarView.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/CreditBarView.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/CreditBarView.cpp"
+  ],
+  "sha256": "780dbe73e9bee633aacfde7e64bf6082f1e7c01337b3a1f3ef1506da7e80d6ec",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/CreditBarView.h": "b939aff8314d5f762605653e32365aedf051903e72a309a14985620bd1e83fe0",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/CreditBarView.cpp": "8a4d7d54de1ffdcf5f48213c44055bec8066e9d00fb934ba01200666757fee97"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/Views/CreditsWinBarView.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/CreditsWinBarView.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/CreditsWinBarView.cpp"
+  ],
+  "sha256": "1176e2504af87d6c0dbf7591c86b0569c06165d2d9a43e84d0d4de85b2260f9e",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/CreditsWinBarView.h": "ec1a8386bf620afd03d82f331ce49fa41bbe07e62d2af5f2bb48b25eaf6d3cb4",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/CreditsWinBarView.cpp": "d1502cfd926165114549842da1377f949e9d933bbe28f7921008f9fb16c9568e"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/Views/GambleRoundOverlayView.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/GambleRoundOverlayView.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/GambleRoundOverlayView.cpp"
+  ],
+  "sha256": "345e0149da88bbc340e66695de171bd62ff2b8b93ef337e65f902c3d22ffa663",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/GambleRoundOverlayView.h": "79ad3212d0b98b683f385959b31b8fbce788e7095b01d2c48997bd30255e72ca",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/GambleRoundOverlayView.cpp": "1c999a3bea285e12143af66afa32a310952e2a760aea21980fe863c2a7e5f4d3"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/Views/GambleRoundView.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/GambleRoundView.data.h"
+  ],
+  "sha256": "7d751d2d3f2df90e46f5bf85a6d3b5392a719787b27692169c9fba3e18f88473",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/GambleRoundView.data.h": "9a749e0bbbb19a913454b8944c4189dbd26331ac73ac774f33ea0a02e97d4dd2"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/Views/GambleRoundView.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/GambleRoundView.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/GambleRoundView.cpp"
+  ],
+  "sha256": "dccfbcca3f237b3c505f088d0bd0f44b0b814e5a88319d6bb7cc01ba2f82d992",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/GambleRoundView.h": "1e8c86e61cccdebeec98056a7b86144fbb0f4786ed403a89c35a594f7c58d565",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/GambleRoundView.cpp": "b01bd1943af31e05723813baaeecf8dbe6a7000bfd8a5b1951cc6dc598a5f626"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/Views/GameBackgroundView.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/GameBackgroundView.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/GameBackgroundView.cpp"
+  ],
+  "sha256": "27be1d28d22d0984821d8a915b10cc47d930fd1515aee4878558c6e5c9fede9f",
+  "cppCommit": "eb1fd4f35f38500dadc7293d356050918b0b7af4",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/GameBackgroundView.h": "37e60e9995ea486118c29baab33c0a21762a44c2c510a4bb83ef12809ce6340f",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/GameBackgroundView.cpp": "f5ae4a142501c8a22be56f79a2eabc1b698e9307ed3028e559677d19d355341c"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/Views/KnobsView.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/KnobsView.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/KnobsView.cpp"
+  ],
+  "sha256": "dff8d63e1a377c88313338797b02599a2847469dc34f4b47bfd1ae32371d2fbd",
+  "cppCommit": "eb1fd4f35f38500dadc7293d356050918b0b7af4",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/KnobsView.h": "f0ae7ee9d5e1f70eb91e7862b1ca8376c8809964090de30e698466b7b20e19f0",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/KnobsView.cpp": "1dbb2cb3087bf3080aa48d4929a6d8ee122cd5ad2d652f6caa6be85695d04417"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/Views/LanguageMenuView.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/LanguageMenuView.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/LanguageMenuView.cpp"
+  ],
+  "sha256": "3b372f8aa8afa086967a4d65ed57b26f2240ca15f0a361f3dc6daaa50aca728a",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/LanguageMenuView.h": "20b3ecdb1fb1ebb87e260d4ff17894dbf1d5b8e149fde5c52645d054f3270c40",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/LanguageMenuView.cpp": "8f75b1a5e934329a1b0aa81c0d53c749be32648e99fd29079f4a24acff02d80a"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/Views/LinesView.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/LinesView.data.h"
+  ],
+  "sha256": "5ba4e6d7f2ad3b46353ae5cf41574c08b3a675244c3fdd6d52191d956b1c34ef",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/LinesView.data.h": "ee704cc8438e64e15c86968e3cd22659f4f645d4f692979ad1f5881ea684ace2"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/Views/LinesView.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/LinesView.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/LinesView.cpp"
+  ],
+  "sha256": "34f97f8614d072c80cd670e8a05f6489a7625586d923737396fec061e729ee03",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/LinesView.h": "79839b46e07200ad9f048bc5dfecefeb3c9a1ac56271f99164d68d9f69714986",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/LinesView.cpp": "3b0a60acdf0fd33ee8c1219d3c0daf4bb92d7fb3e64583e6c92568954099b1a0"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/Views/ReelSubScreen.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/ReelSubScreen.data.h"
+  ],
+  "sha256": "ebcb598e40d23aed67190eb376509638374af54007708df41ce93227b527a6ab",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/ReelSubScreen.data.h": "60b687633a9db66347203356a01851b28fc40629b0a02d3695f097693e7fc48f"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/Views/ReelsView.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/ReelsView.data.h"
+  ],
+  "sha256": "ea94cfb54a9a76634932922b438f9e6950bd24b2551ad55e6b934b17ac1197cf",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/ReelsView.data.h": "f44a9ab89dbaf534410fbeeedf546d6cff11a8ccff0f334ea9a628afe0ad23e0"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/Views/ReelsView.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/ReelsView.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/ReelsView.cpp"
+  ],
+  "sha256": "c423f8d54b582aca2e1d772a0aa5c0c21e19bd7127ce043656543fbd3af2bf1b",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/ReelsView.h": "9e61458a8700c00d34bd05c12b439b5520343e40e1ac89d3d9a5b62ec09ca3d8",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/ReelsView.cpp": "fa4437c0ae3bbc7cbbf44ba7cfc6955578648781eaf781f0f5687e8ebbd643ed"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/Views/SoundMenuView.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/SoundMenuView.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/SoundMenuView.cpp"
+  ],
+  "sha256": "0c380e3a57066555f0608fe6d0603e345a2d7768628e15b5f6ebf404819265b9",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/SoundMenuView.h": "d93aed09a9d31ef532cc0fd6bce024c2b25d1388d17852762579cfafda80c858",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/SoundMenuView.cpp": "713b4ed2006545642dc1cd99580449e7d39018b0061b46ca27fc14529c1e5723"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/Views/StatusLineView.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/StatusLineView.data.h"
+  ],
+  "sha256": "d73e545b0750696e6e6e523f4dddd19643763b204f2b4dd0d1040ff15303e28c",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/StatusLineView.data.h": "7275d628634047ecbc93e963a5a4a2b1c549f2cf8ee0d615b335c58cca1dbe2d"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/Views/StatusLineView.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/StatusLineView.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/StatusLineView.cpp"
+  ],
+  "sha256": "a2c9506e5d4c1cf61bfc1017671a4a842ac89e4ac98e625535cfff51a3da517f",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/StatusLineView.h": "89645fbdacd5810eee348a4a4f447774720633d7f5ec178f3c478ca4b81459f2",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/StatusLineView.cpp": "5cf26772cc38e7f8afb7e95135e42fbb062a480960cf7df5c505db94028b517b"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/Views/WheelRoundOverlayView.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/WheelRoundOverlayView.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/WheelRoundOverlayView.cpp"
+  ],
+  "sha256": "fb1bf418e871f3bcb27cf944ed1e1055846c0f50c3dc923561eb51eae1ca7465",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/WheelRoundOverlayView.h": "69188f62306e0ff3842cccd618ab9421c5af4c957bd69171eb27c06a415b9d6d",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/WheelRoundOverlayView.cpp": "cd635f4f34326c0d75346c2ca72397b3e1c7910180569b58dc4cb5fefd0ec709"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/Views/WheelRoundView.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/WheelRoundView.data.h"
+  ],
+  "sha256": "748ab82d8abc04bc9f12b3e1193d299d1c69a7c5d0d3f6207f331879de453307",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/WheelRoundView.data.h": "97429909134621748c09dc493d41ed1c791ddfb2f6bd5dedaeb998add5da2045"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/Views/WheelRoundView.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/WheelRoundView.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/WheelRoundView.cpp"
+  ],
+  "sha256": "ba433478131947e32b6da732cb0faf47b9f85774727b270a6bc15d6989f5aea8",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/WheelRoundView.h": "92752b1a1a628ffee7ea6fba265852d45febe7a8a577b41f62fe8295be617b67",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/WheelRoundView.cpp": "89fc755f856110d80ab2310c40227df467a62ad6259728c6e150c511c489a831"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/Views/WinFiguresView.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/WinFiguresView.data.h"
+  ],
+  "sha256": "6ce4a834e316305c65cdb01d05e9481906e0b5bd3780e171f9d99dd5fdf044b7",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/WinFiguresView.data.h": "29e7ab8ac188fc9ba9d317d0c05c30ce76a7e2a1752e702e688439eab0285474"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/Views/WinFiguresView.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/WinFiguresView.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/WinFiguresView.cpp"
+  ],
+  "sha256": "06845fc7ce98d0ccd2c0f8b0fb57b11b0fd00708766c8f0597d83f71d48b2e20",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/WinFiguresView.h": "169d2c086972b2a02d3b304812d56c51eed3dd014a0fcb23bf1a80439dfbdc77",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/WinFiguresView.cpp": "fd6b591ff0dff4d74ef7e84592d78cf452b4ca30f4734c0e9f79a5568f1a3fa9"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/Visuals/BaseVisual.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Visuals/BaseVisual.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Visuals/BaseVisual.cpp"
+  ],
+  "sha256": "c4e3752a5a3a85cbf892ab2fe419c97aee584eb484ef68431f59330297d1ae6e",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Visuals/BaseVisual.h": "d327da7d28bf460656fd99c63538d792eec545ec67c9779aa964f4e17264b112",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Visuals/BaseVisual.cpp": "6c72f0ff52a87cc93b4e810102b0155058633053189f1e05bf86cd5ead882264"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/Visuals/LinesVisual.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Visuals/LinesVisual.data.h"
+  ],
+  "sha256": "29a89db280d1e0206ecacaf8a5dc169e0e8f3bbcf543e9f5d0248301f6ffa721",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Visuals/LinesVisual.data.h": "13c2d9b522ed2aea0d66ed0c90112cad2cca353942b24538ca70b05cda104d2c"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/Visuals/LinesVisual.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Visuals/LinesVisual.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Visuals/LinesVisual.cpp"
+  ],
+  "sha256": "aa789fbfae535824ec864c1f4e7ef5bfb54c4a112a072ee032685d5240239945",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Visuals/LinesVisual.h": "630bec818cf11765e8d9c678dc4bdcb225d3bff221af88510ac933fec439113a",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Visuals/LinesVisual.cpp": "22f2b4b14e102682cbe598c973ec73e6c88141a346c0cb368c94acabab013d64"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/Visuals/ReelVisual.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Visuals/ReelVisual.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Visuals/ReelVisual.cpp"
+  ],
+  "sha256": "0d7158519e2c5ada7a1c9c2d386c65e94d98a7665c2ad40955848aa27ca3f6be",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Visuals/ReelVisual.h": "9dc49f86fd90e23c9621f32c9486e3a31ba8ba71272bb50c85886cfe1daed499",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Visuals/ReelVisual.cpp": "c37dbc8e405595e18f3d07edfc884bf03928fcf354a41620d64c9206899e06cf"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/Visuals/StatusLineVisual.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Visuals/StatusLineVisual.data.h"
+  ],
+  "sha256": "57b520971af7bbdf4564e58c7ff5cb47821a12fc1da6917b78ccf3a58cb3add7",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Visuals/StatusLineVisual.data.h": "1f465c42640d9706a8d6da1237d3062a464cfd1eba65668673f24244e1e43441"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/Visuals/StatusLineVisual.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Visuals/StatusLineVisual.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Visuals/StatusLineVisual.cpp"
+  ],
+  "sha256": "6ffc33336bb422988eabca78c8c496ac1c9139e853702b185e3948b20410c191",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Visuals/StatusLineVisual.h": "4ed72857c305df1e960a47c878ee17d3fe3d7a8c9667741b7cb5dc834f5aba4a",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Visuals/StatusLineVisual.cpp": "3040acbf1b18871cc5253c8c27e7f2bdffad5d144b963af450ce90c14457a41f"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/Visuals/WinFiguresVisual.data.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Visuals/WinFiguresVisual.data.h"
+  ],
+  "sha256": "7149703543b88b031f3e0e6d67e59f715ccb33d9b1e90894477fa143b0ff074c",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Visuals/WinFiguresVisual.data.h": "c8cc4e3a052bd7820aa8cb1ed5b5e34ea8631d6f5d15559e4cb02ce9ee723e49"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/Visuals/WinFiguresVisual.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Visuals/WinFiguresVisual.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Visuals/WinFiguresVisual.cpp"
+  ],
+  "sha256": "d4359a9bc2b0c1e139a81a304e629d3611f73d056c856a77a39d2009b00bbccf",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Visuals/WinFiguresVisual.h": "bdc5aa9528337a4cc3aec386b0dfd5d40a929fcc3877ec41c75e14a58d6019f3",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Visuals/WinFiguresVisual.cpp": "4c791e2c5bad5ac063fe5fc6a8d1c718fd613ba833af357cb7329c30cbc75e84"
+  }
+ },
+ "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsView/ZodiacWheelCoinsView.ts": {
+  "cpp": [
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/ZodiacWheelCoinsView.h",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/ZodiacWheelCoinsView.cpp"
+  ],
+  "sha256": "58b2676fb34d70e09cee39c9be15a61c85a7f28be0a5174ed80fd9932122df1e",
+  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "cppSha256": {
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/ZodiacWheelCoinsView.h": "7d7e533d9d30fafed577c0580e8ca57f53345b180c3d11faaa858f6ef344b523",
+   "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/ZodiacWheelCoinsView.cpp": "e8d5352467f3e21931ddb25680ae34eabccead9c3c65579c28f87a68b92085c5"
   }
  },
  "plugins/CappingSplashView/CappingSplashView.data.ts": {

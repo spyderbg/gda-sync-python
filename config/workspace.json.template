@@ -43,10 +43,10 @@
       "gda_path": "{gda_root_path}/20_super_hot_coins_italy/20_super_hot_coins_italy/DEV"
     },
     {
-      "id": "zodiac_wheel_coins_italy",
+      "id": "zodiac_wheel_coins",
       "demo": false,
       "game_name": "Zodiac Wheel Coins Italy",
-      "game_path": "{games_root_path}/resources/zodiac_wheel_coins_italy",
+      "game_path": "{games_root_path}/resources/zodiac_wheel_coins",
       "gda_path": "{gda_root_path}/zodiac_wheel_coins_italy/zodiac_wheel_coins_italy/DEV"
     }
   ]

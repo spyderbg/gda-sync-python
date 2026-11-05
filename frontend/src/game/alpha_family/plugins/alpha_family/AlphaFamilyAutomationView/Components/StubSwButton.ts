@@ -2,11 +2,17 @@
 // a software button, which is pressed only while enabled.
 
 import type { IButtonViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IControlView';
+import type { ThemeType } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IThemeView';
 import type { ISwButtonBase } from '@game/alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge';
 import { StubControl } from './StubControl';
 
 export abstract class StubSwButton<Interface extends ISwButtonBase = ISwButtonBase, Events extends IButtonViewEvents = IButtonViewEvents>
   extends StubControl<Interface, Events> implements ISwButtonBase {
+  ////////////////////////////////////////////////////////////////////////////////
+  /// IThemeView
+  ////////////////////////////////////////////////////////////////////////////////
+  SetTheme(_theme: ThemeType) {}
+
   ////////////////////////////////////////////////////////////////////////////////
   /// ISwButton
   ////////////////////////////////////////////////////////////////////////////////

@@ -6,6 +6,7 @@ import type { Runtime, InterfaceToken } from '@game/engine/GameCore/RuntimeAcces
 import { Accumulation } from '@game/alpha_family/libs/AlphaFamily/Views/Tools/AccumulationControl';
 import { type AccumulationDescriptor, AccumulationType } from '@game/alpha_family/libs/AlphaFamily/Views/Tools/AccumulationControl.data';
 import type { INumericBarView, INumericBarViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IControlView';
+import type { ThemeType } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IThemeView';
 import { BaseView } from '../BaseView';
 
 export abstract class NumericBarView<T, E extends INumericBarViewEvents> extends BaseView implements INumericBarView {
@@ -29,6 +30,11 @@ export abstract class NumericBarView<T, E extends INumericBarViewEvents> extends
     this.RuntimeRemove(this.m_token);
     this.RuntimeRemove(this.m_token.Events);
     super.Deinit();
+  }
+
+  // IThemeView
+  SetTheme(theme: ThemeType) {
+    super.SetTheme(theme);
   }
 
   SetVisible(visible: boolean) {
