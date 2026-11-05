@@ -321,9 +321,14 @@ in a git worktree of the app's sources, may only edit `frontend/src/game` and ru
 what it does is checked deterministically: the TypeScript type-checks and its translation is no farther from the new C++
 than before. Only what passes is copied into the sources (never over a file changed there meanwhile), and its manifest
 entry then ports the new C++; an agent that finds the change ported already says so (`ALREADY PORTED`), and the entry is
-moved on. The Developer panel has the same (**Import from C++**: Check the C++, Port with Claude Code; the backend's
-`/api/game/import` and `/api/game/agent/status`). Review and commit what it ported: the export finds the TypeScript as it
-was ported in the git history.
+moved on. The Developer panel has the same for one file (**Import from C++**: Check the C++, then a file's Port file; the
+backend's `/api/game/import` and `/api/game/agent/status`). Its **Port with Claude Code** runs the whole procedure
+instead, `/game-sync <workspace id>` (below), in a headless Claude Code session (`claude -p`, auto mode) in the app's
+sources: it syncs the shared libraries and the game, checks and plays them, and its last message, the report, shows on
+the panel (`/api/game/sync`). It cannot ask: where the procedure says to ask, it stops and ends with the question. Its
+scratch folder is the app data folder's `game-syncs/<plugin>-<time>`. The backend finds `claude` on its PATH, or where
+Claude Code's installers put it (`~/.local/bin`, `~/.claude/local`, nvm's folders): an app started from an IDE lacks the
+shell's PATH. Review and commit what it ported: the export finds the TypeScript as it was ported in the git history.
 
 The whole procedure, step by step, as Claude Code follows it: [`docs/code_sync/game_sync.md`](../../../docs/code_sync/game_sync.md)
 for a game's plugin (in Claude Code, `/game-sync <plugin>` runs it), and

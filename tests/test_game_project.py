@@ -210,6 +210,83 @@ def test_the_cpp_changes_are_reported_and_ported_in_the_background(client, tmp_p
     assert status["log"] == ["porting alpha_family/libs/AlphaFamilyVideoCtrl/Components/NumericBarView.ts with Claude Code..."]
 
 
+def test_claude_is_found_where_its_installers_put_it_when_the_path_lacks_it(tmp_path, monkeypatch):
+    from egt_gda_sync.game import project
+    real_which = shutil.which
+    monkeypatch.setattr(project.shutil, "which", lambda name: None if name == "claude" else real_which(name))
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("PATH", "/usr/bin")
+    assert project.find_claude() is None
+    # nvm's newest Node.js that has it (an app started from an IDE lacks the shell's nvm folder)
+    for version in ("v9.11.2", "v24.14.0", "v22.12.0"):
+        claude = tmp_path / ".nvm" / "versions" / "node" / version / "bin" / "claude"
+        claude.parent.mkdir(parents=True)
+        claude.write_text("#!/bin/sh\n")
+        claude.chmod(0o755)
+    newest = str(tmp_path / ".nvm" / "versions" / "node" / "v24.14.0" / "bin" / "claude")
+    assert project.find_claude() == newest
+    # the agents' scripts run it by name
+    assert project._agent_env()["PATH"].split(":") == [str(Path(newest).parent), "/usr/bin"]  # pylint: disable=protected-access
+
+
+FAKE_CLAUDE = """#!{python}
+import json, sys
+prompt = sys.stdin.read()
+open({record!r}, "w").write(json.dumps({{"argv": sys.argv[1:], "prompt": prompt}}))
+for event in [
+    {{"type": "system", "subtype": "init", "model": "test-model"}},
+    {{"type": "assistant", "message": {{"content": [{{"type": "text", "text": "Reading the procedure.\\nMore."}},
+        {{"type": "tool_use", "name": "Bash", "input": {{"command": "node x", "description": "List the C++ changes"}}}}]}}}},
+    {{"type": "user", "message": {{"content": [{{"type": "tool_result", "is_error": True, "content": "Permission denied"}}]}}}},
+    {{"type": "result", "subtype": "success", "is_error": False, "result": "Synced example.", "total_cost_usd": 0.25, "num_turns": 3}},
+]:
+    print(json.dumps(event), flush=True)
+"""
+
+
+def test_the_game_sync_runs_the_game_sync_command_for_the_workspaces_game_headless(client, tmp_path, monkeypatch):
+    import sys
+    from egt_gda_sync.game import project
+    real_which = shutil.which
+    monkeypatch.setattr(project.shutil, "which", lambda name: None if name == "claude" else real_which(name))
+    monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    assert client.post("/api/game/sync").status_code == 501
+    record = tmp_path / "claude.json"
+    claude = tmp_path / "bin" / "claude"
+    claude.parent.mkdir()
+    claude.write_text(FAKE_CLAUDE.format(python=sys.executable, record=str(record)))
+    claude.chmod(0o755)
+    monkeypatch.setattr(project.shutil, "which", lambda name: str(claude) if name == "claude" else real_which(name))
+    # the workspace's game must be ported: its plugin, by the workspace's id
+    sources = tmp_path / "sources"
+    monkeypatch.setattr(project, "GAME_SOURCES", sources)
+    assert client.post("/api/game/sync").status_code == 404
+    (sources / "alpha_family" / "plugins" / "example").mkdir(parents=True)
+
+    started = client.post("/api/game/sync").json()
+    assert started["kind"] == "game-sync" and started["files"] == ["example"]
+    for _ in range(200):
+        status = client.get("/api/game/agent/status").json()
+        if not status["running"]:
+            break
+        time.sleep(0.05)
+    assert status["error"] is None
+    assert status["result"] == {"report": "Synced example.", "cost": 0.25, "turns": 3}
+    assert status["log"] == ["Claude Code started (test-model)", "Reading the procedure.", "Bash: List the C++ changes",
+                             "  refused or failed: Permission denied"]
+    run = json.loads(record.read_text())
+    # the command's prompt for the game, without its front matter, and what a headless session does differently
+    assert run["prompt"].startswith("Sync the C++ of the game `example`") and "$ARGUMENTS" not in run["prompt"]
+    scratch = next((client.home / "game-syncs").iterdir())
+    assert scratch.name.startswith("example-") and f"`{scratch}`" in run["prompt"] and "## Headless" in run["prompt"]
+    games = tmp_path  # the C++ game sources are its game folder
+    assert run["argv"][:6] == ["-p", "--output-format", "stream-json", "--verbose", "--permission-mode", "auto"]
+    assert run["argv"][run["argv"].index("--add-dir") + 1] == str(scratch)
+    tools = run["argv"][run["argv"].index("--allowedTools") + 1:]
+    assert f"Bash(git -C {games} log:*)" in tools and "Bash(.venv/bin/python -I docs/code_sync/play_check.py:*)" in tools
+    assert not any("commit" in tool or "push" in tool for tool in tools)
+
+
 @pytest.mark.skipif(not shutil.which("node"), reason="the export agent runs on Node.js")
 def test_an_exports_changes_the_translator_left_are_ported_by_an_agent_in_the_background(client, tmp_path, monkeypatch):
     from egt_gda_sync.game import project

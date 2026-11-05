@@ -64,8 +64,11 @@ interface ImportReport { changed: ImportChange[]; ported: ImportOutcome[]; upToD
 /** A Claude Code agent's run: porting the C++ changes into the TypeScript (import), or an export's TypeScript changes
  * the translator could not translate into its C++ (export). */
 interface ImportStatus {
-  running: boolean; kind: 'import' | 'export' | 'import-game' | null; log: string[]; result: (ImportReport & Partial<GameImportReport>) | null; error: string | null;
+  running: boolean; kind: 'import' | 'export' | 'import-game' | 'game-sync' | null; log: string[];
+  result: (ImportReport & Partial<GameImportReport> & Partial<GameSyncReport>) | null; error: string | null;
 }
+/** What a /game-sync session (Port with Claude Code) reported: its last message, and what it cost. */
+interface GameSyncReport { report: string; cost: number | null; turns: number | null }
 /** A C++ game of the family to import (export/import-game.mjs): its files' plan, and what an import did. */
 interface GameImportUnit { ts: string; cpp: string[]; mode: 'done' | 'copy' | 'diff' | 'port'; changed: number | null; template: string | null }
 interface GameImportReport {
@@ -398,6 +401,12 @@ async function followAgent() {
   }
   const result = importStatus.value.result;
   const what = importStatus.value.kind === 'export' ? 'into the export\'s C++' : 'from the C++';
+  if (importStatus.value.kind === 'game-sync') {
+    if (result) notify('The game sync has finished: its report is in the Developer panel');
+    else if (importStatus.value.error) notify(importStatus.value.error, true);
+    void checkCppChanges();
+    return;
+  }
   if (result && importStatus.value.kind === 'import-game') {
     notify(`Imported ${result.gameName}: ${result.copied?.length ?? 0} files copied, ${result.ported.length} ported${result.failed.length ? `, ${result.failed.length} not` : ''}; ${result.left?.length ?? 0} left`, !!result.failed.length);
   } else if (result) notify(`Ported ${what}: ${result.ported.length} files${result.failed.length ? `, ${result.failed.length} not` : ''}`, !!result.failed.length);
@@ -438,7 +447,18 @@ const gameImportCounts = computed(() => {
     port: units.filter(unit => unit.mode === 'diff' || unit.mode === 'port').length, total: units.length };
 });
 
-/** Has a Claude Code agent port the C++ changes into the TypeScript (all, or one file's). */
+/** Runs /game-sync for the workspace's game in a headless Claude Code session, as in a terminal: it syncs the shared
+ * libraries and the game, checks and plays them, and reports, without committing. */
+async function syncGame() {
+  try {
+    importStatus.value = await api<ImportStatus>('game/sync', 'POST');
+    void followAgent();
+  } catch (failure) {
+    notify(`The game sync failed: ${(failure as Error).message}`, true);
+  }
+}
+
+/** Has a Claude Code agent port one file's C++ changes into the TypeScript, in a copy of it. */
 async function portCppChanges(ts?: string) {
   try {
     importStatus.value = await api<ImportStatus>('game/import', 'POST', { files: ts ? [ts] : [] });
@@ -660,11 +680,11 @@ onBeforeUnmount(() => {
           <div class="game-code-heading">
             <div>
               <h5 id="game-import-title">Import from C++</h5>
-              <p class="small text-muted mb-0">Compare the C++ sources with their TypeScript ports, then import the changes for all files or one file at a time. Each import keeps the changes that type-check and match the updated C++.</p>
+              <p class="small text-muted mb-0">Compare the C++ sources with their TypeScript ports. Port with Claude Code runs <code>/game-sync {{ project?.workspace.id }}</code> as in a terminal: it syncs the shared libraries and this game, checks and plays them, and reports, without committing. Port file has an agent port one file in a copy of the TypeScript, and keeps what type-checks and matches the updated C++.</p>
             </div>
             <div class="game-code-actions">
               <button type="button" class="btn btn-outline-primary btn-sm" :disabled="importChecking || importStatus?.running" @click="checkCppChanges"><i class="mdi mdi-source-branch-sync" aria-hidden="true" /> {{ importChecking ? 'Checking…' : 'Check the C++' }}</button>
-              <button type="button" class="btn btn-primary btn-sm" :disabled="!importReport?.changed.length || importChecking || importStatus?.running" @click="portCppChanges()"><i class="mdi mdi-robot-outline" aria-hidden="true" /> Port with Claude Code</button>
+              <button type="button" class="btn btn-primary btn-sm" :disabled="!importReport?.changed.length || importChecking || importStatus?.running" :title="`Runs /game-sync ${project?.workspace.id ?? ''} with Claude Code`" @click="syncGame"><i class="mdi mdi-robot-outline" aria-hidden="true" /> Port with Claude Code</button>
             </div>
           </div>
           <p v-if="!importReport" class="game-code-empty text-muted small">Check the C++ to see which files have changes to import.</p>
@@ -722,6 +742,10 @@ onBeforeUnmount(() => {
         <section v-if="importStatus" class="game-code-status" aria-label="Code transfer status">
           <p v-if="importStatus.running" class="small mb-0" role="status"><i class="mdi mdi-loading mdi-spin" aria-hidden="true" /> {{ importStatus.log[importStatus.log.length - 1] ?? 'Starting Claude Code…' }}</p>
           <p v-else-if="importStatus.error" class="alert alert-danger mb-0" role="alert">{{ importStatus.error }}</p>
+          <div v-else-if="importStatus.kind === 'game-sync' && importStatus.result" class="game-sync-report small">
+            <p class="text-muted mb-2">The game sync's report<template v-if="importStatus.result.cost != null"> ({{ importStatus.result.turns }} turns, ${{ importStatus.result.cost.toFixed(2) }})</template>. Review its changes with <code>git diff</code>, and commit them before the next export.</p>
+            <div class="game-sync-report-text">{{ importStatus.result.report }}</div>
+          </div>
           <ul v-else-if="importStatus.result" class="game-code-results small">
             <li v-for="item in importStatus.result.ported" :key="`ported:${item.ts}`" :title="item.account"><span class="badge badge-success">Ported</span><div><code>{{ item.ts }}</code><span>{{ importStatus.kind === 'export' ? "Updated the export's C++" : `${item.files?.length ?? 0} files changed` }}</span></div></li>
             <li v-for="item in importStatus.result.upToDate ?? []" :key="`up:${item.ts}`" :title="item.account"><span class="badge badge-light">Up to date</span><div><code>{{ item.ts }}</code><span>Ports the change already</span></div></li>
@@ -971,6 +995,13 @@ onBeforeUnmount(() => {
   margin-top: 1.5rem;
   padding-top: 1.5rem;
   border-top: 1px solid #ebedf2;
+}
+
+.game-sync-report-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 32rem;
+  overflow-y: auto;
 }
 
 .game-code-results {

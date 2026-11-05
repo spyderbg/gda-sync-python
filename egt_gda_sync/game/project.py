@@ -66,6 +66,26 @@ GAME_IMPORTER = GAME_SOURCES / "export" / "import-game.mjs"
 PLUGIN_NAME = re.compile(r"^[a-z0-9_]{1,64}$")
 IMPORT_REPORT_TIMEOUT = 300
 AGENT_LOG_LINES = 400
+CLAUDE_MISSING = "Porting with an agent needs Claude Code (the claude command), on the app's PATH or where its installer puts it"
+# The /game-sync command (.claude/commands/game-sync.md), which the Play page's Port with Claude Code runs for the
+# workspace's game in a headless Claude Code session (claude -p) in the app's sources, as a terminal session would, in
+# auto mode. Its scratch folders are in the app data folder's game-syncs.
+APP_SOURCES = GAME_SOURCES.parents[2]
+GAME_SYNC_COMMAND = APP_SOURCES / ".claude" / "commands" / "game-sync.md"
+GAME_SYNCS_FOLDER = "game-syncs"
+GAME_SYNC_HEADLESS = """
+
+## Headless
+
+The Play page's Port with Claude Code button started you (`claude -p`), and no one can answer a question while you work:
+
+- Where the documents say to stop and ask the user, stop there, change nothing more, and end your report with the
+  question.
+- Write the games repository's path in full in commands (`{games}`), not as a shell variable: the sync's commands
+  are allowed by their text, and the others are decided without asking.
+- Your scratch folder is `{scratch}`.
+- Do not commit. Your last message is the report the page shows.
+"""
 _agent_lock = threading.Lock()
 _agent_job: dict = {"running": False, "kind": None, "log": [], "result": None, "error": None, "files": []}
 
@@ -267,12 +287,33 @@ class GameProject:
         """Starts a Claude Code agent porting the C++ changes of these ported files (all with C++ changes, when none) into
         their TypeScript, in the background; agent_status follows it."""
         node, root = self._importer()
-        if not shutil.which("claude"):
-            raise AppError("Porting with an agent needs Claude Code (the claude command)", 501)
+        if not find_claude():
+            raise AppError(CLAUDE_MISSING, 501)
         for file in files:
             if not TS_PATH.match(file) or ".." in file:
                 raise AppError(f"Not a TypeScript file of the browser game: {file}", 403)
         return _start_agent("import", [node, str(IMPORTER), str(root), "--agent", "--json", *files], files)
+
+    def start_game_sync(self) -> dict:
+        """Starts the /game-sync command for the workspace's game (the plugin its id names) in a headless Claude Code
+        session in the app's sources, in the background, as a terminal session runs it: it syncs the shared libraries
+        and the game, checks and plays them, and reports, without committing; agent_status follows it."""
+        _node, root = self._importer()
+        claude = find_claude()
+        if not claude:
+            raise AppError(CLAUDE_MISSING, 501)
+        plugin = self.workspace_id()
+        if not PLUGIN_NAME.match(plugin) or not (GAME_SOURCES / "alpha_family" / "plugins" / plugin).is_dir():
+            raise AppError(f"The browser game has no {plugin}: import the game first", 404)
+        if not GAME_SYNC_COMMAND.is_file():
+            raise AppError("The game sync needs the app's sources (.claude/commands/game-sync.md)", 501)
+        games = root.parent
+        scratch = Path(self.library.home) / GAME_SYNCS_FOLDER / f"{plugin}-{int(time.time())}"
+        scratch.mkdir(parents=True, exist_ok=True)
+        prompt = game_sync_prompt(plugin, games, scratch)
+        command = [claude, "-p", "--output-format", "stream-json", "--verbose", "--permission-mode", "auto",
+                   "--add-dir", str(scratch), "--allowedTools", *game_sync_tools(games)]
+        return _start_agent("game-sync", command, [plugin], run=lambda: _run_claude(command, prompt))
 
     def game_imports(self) -> dict:
         """The C++ games of the family (games/game/alpha_family/plugins/<plugin>/src/Egt) and how much of each the browser
@@ -309,8 +350,8 @@ class GameProject:
         """Starts importing a C++ game of the family in the background (import-game.mjs): the copies, and with Claude Code
         the files to port (these, when some are named); agent_status follows it."""
         node, root = self._game_importer(plugin)
-        if not copies_only and not shutil.which("claude"):
-            raise AppError("Porting with an agent needs Claude Code (the claude command)", 501)
+        if not copies_only and not find_claude():
+            raise AppError(CLAUDE_MISSING, 501)
         for file in files:
             if not TS_PATH.match(file) or ".." in file:
                 raise AppError(f"Not a TypeScript file of the browser game: {file}", 403)
@@ -329,8 +370,8 @@ class GameProject:
         """Starts a Claude Code agent porting into an export's C++ the TypeScript changes the translator could not
         translate (its export.json's changed), in the background; agent_status follows it."""
         node, root = self._importer()
-        if not shutil.which("claude"):
-            raise AppError("Porting with an agent needs Claude Code (the claude command)", 501)
+        if not find_claude():
+            raise AppError(CLAUDE_MISSING, 501)
         folder = Path(self.export_path(export_id))
         if not (folder / "export.json").is_file():
             raise AppError("The export has no export.json: export again", 404)
@@ -392,18 +433,129 @@ def agent_status() -> dict:
         return {key: (list(value) if isinstance(value, list) else value) for key, value in _agent_job.items()}
 
 
-def _start_agent(kind: str, command: list[str], files: list[str]) -> dict:
+def find_claude() -> str | None:
+    """The claude command: on the PATH, else where Claude Code's installers put it. An app started from an IDE or a
+    desktop launcher may lack the shell's PATH, such as the nvm folder a shell's profile adds."""
+    found = shutil.which("claude")
+    if found:
+        return found
+    home = Path.home()
+    nvm = sorted(home.glob(".nvm/versions/node/*/bin/claude"), key=lambda path: _version(path.parents[1].name), reverse=True)
+    for path in (home / ".local" / "bin" / "claude", home / ".claude" / "local" / "claude", *nvm, home / ".npm-global" / "bin" / "claude"):
+        if path.is_file() and os.access(path, os.X_OK):
+            return str(path)
+    return None
+
+
+def _version(name: str) -> tuple[int, ...]:
+    return tuple(int(part) for part in re.findall(r"\d+", name))
+
+
+def _agent_env() -> dict[str, str]:
+    """An agent's environment: the app's, with the claude command's folder on the PATH, as the import scripts run it by
+    name."""
+    env = dict(os.environ)
+    claude = find_claude()
+    path = env.get("PATH", "")
+    if claude and str(Path(claude).parent) not in path.split(os.pathsep):
+        env["PATH"] = os.pathsep.join(item for item in (str(Path(claude).parent), path) if item)
+    return env
+
+
+def game_sync_prompt(plugin: str, games: Path, scratch: Path) -> str:
+    """The /game-sync command's prompt for a game, as Claude Code expands it (without its front matter), and what a
+    headless session does differently."""
+    text = re.sub(r"\A---\n.*?\n---\n", "", GAME_SYNC_COMMAND.read_text(encoding="utf-8"), flags=re.S)
+    return text.replace("$ARGUMENTS", plugin).strip() + GAME_SYNC_HEADLESS.format(games=games, scratch=scratch)
+
+
+def game_sync_tools(games: Path) -> list[str]:
+    """The commands of a game sync (game_sync.md, library_sync.md), allowed by their text: git's reading commands in the
+    app's sources, the games repository and hat_libs, the export's tools, the type check, the tests, the build and the
+    playthrough."""
+    reads = ("status", "log", "diff", "show", "ls-tree", "ls-files", "rev-parse", "merge-base", "branch --show-current", "submodule status")
+    commands = [f"{git} {read}" for git in ("git", f"git -C {games}", f"git -C {games}/hat_libs") for read in reads]
+    commands += ["node frontend/src/game/export/import-cpp.mjs", "node frontend/src/game/export/port-manifest.mjs",
+                 "node frontend/src/game/export/translator/compare.mjs", "cd frontend && npm run typecheck", "npm run typecheck",
+                 "cd frontend && node src/game/hat_libs/tweeny/tests/run.mjs", ".venv/bin/python -m pytest",
+                 ".venv/bin/python scripts/build.py", ".venv/bin/python -I docs/code_sync/play_check.py",
+                 "ls", "grep", "head", "tail", "wc", "sort", "diff"]
+    return ["Read", "Grep", "Glob", *(f"Bash({command}:*)" for command in commands)]
+
+
+def _start_agent(kind: str, command: list[str], files: list[str], run=None) -> dict:
     with _agent_lock:
         if _agent_job["running"]:
             raise AppError("An agent is running", 409)
         _agent_job.update(running=True, kind=kind, log=[], result=None, error=None, files=list(files))
-    threading.Thread(target=_run_agent, args=(command,), daemon=True).start()
+    threading.Thread(target=run or (lambda: _run_agent(command)), daemon=True).start()
     return agent_status()
+
+
+def _run_claude(command: list[str], prompt: str) -> None:
+    """A headless Claude Code session (claude -p, stream-json): each of its steps in the log as it comes, and its last
+    message, the report, as the result."""
+    final = None
+    try:
+        with subprocess.Popen(command, cwd=APP_SOURCES, env=_agent_env(), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT, text=True) as process:
+            process.stdin.write(prompt)
+            process.stdin.close()
+            for line in process.stdout:
+                try:
+                    event = json.loads(line)
+                except ValueError:
+                    event = None
+                if isinstance(event, dict) and event.get("type") == "result":
+                    final = event
+                    continue
+                entries = _session_log(event) if isinstance(event, dict) else [line.rstrip("\n")]
+                with _agent_lock:
+                    _agent_job["log"].extend(entry for entry in entries if entry)
+                    del _agent_job["log"][:-AGENT_LOG_LINES]
+        with _agent_lock:
+            if final and not final.get("is_error") and not process.returncode:
+                _agent_job["result"] = {"report": final.get("result") or "", "cost": final.get("total_cost_usd"),
+                                        "turns": final.get("num_turns")}
+            else:
+                reason = (final or {}).get("result") or " ".join(_agent_job["log"][-3:])
+                _agent_job["error"] = f"Claude Code failed ({process.returncode}): {reason}"
+    except OSError as error:
+        with _agent_lock:
+            _agent_job["error"] = f"Claude Code did not run: {error}"
+    finally:
+        with _agent_lock:
+            _agent_job["running"] = False
+
+
+def _session_log(event: dict) -> list[str]:
+    """A session's event as log lines: its start, what it says, the tools it calls (a command by its description), and
+    the calls refused or failed."""
+    if event.get("type") == "system" and event.get("subtype") == "init":
+        return [f"Claude Code started ({event.get('model') or 'its default model'})"]
+    lines = []
+    message = event.get("message") if isinstance(event.get("message"), dict) else {}
+    for block in message.get("content") or []:
+        if not isinstance(block, dict):
+            continue
+        if block.get("type") == "text" and event.get("type") == "assistant" and str(block.get("text", "")).strip():
+            lines.append(str(block["text"]).strip().splitlines()[0][:300])
+        elif block.get("type") == "tool_use":
+            given = block.get("input") if isinstance(block.get("input"), dict) else {}
+            detail = str(given.get("description") or given.get("command") or given.get("file_path") or given.get("pattern") or "").strip()
+            lines.append(f"{block.get('name')}: {detail.splitlines()[0][:200]}" if detail else str(block.get("name")))
+        elif block.get("type") == "tool_result" and block.get("is_error"):
+            content = block.get("content")
+            text = content if isinstance(content, str) else " ".join(
+                str(item.get("text", "")) for item in content or [] if isinstance(item, dict))
+            lines.append(f"  refused or failed: {text.strip().splitlines()[0][:200]}" if text.strip() else "  failed")
+    return lines
 
 
 def _run_agent(command: list[str]) -> None:
     try:
-        process = subprocess.Popen(command, cwd=IMPORTER.parents[3], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        process = subprocess.Popen(command, cwd=IMPORTER.parents[3], env=_agent_env(), stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                   text=True)
         for line in process.stderr:
             with _agent_lock:
                 _agent_job["log"].append(line.rstrip("\n"))

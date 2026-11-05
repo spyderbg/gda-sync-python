@@ -335,10 +335,16 @@ from the session's system reminder. Example subject: `Import the C++ game source
 
 ## The automated route
 
-`node frontend/src/game/export/import-cpp.mjs $GAMES/game --agent` (or **Developer → Import from C++ → Port with
-Claude Code** on the Play page) runs `claude -p` for each changed file in a git worktree. It keeps only what
-type-checks and translates no farther from the C++. Use it when many files changed. Review its result with steps 4, 6
-and 7 all the same: it does not play the game or judge an idiom.
+`node frontend/src/game/export/import-cpp.mjs $GAMES/game --agent` (or a file's **Port file** in **Developer → Import
+from C++** on the Play page) runs `claude -p` for each changed file in a git worktree. It keeps only what type-checks and
+translates no farther from the C++. Review its result with steps 4, 6 and 7 all the same: it does not play the game or
+judge an idiom.
+
+**Developer → Import from C++ → Port with Claude Code** runs this document instead: `/game-sync <workspace id>` in a
+headless Claude Code session (`claude -p`, auto mode) in the app's sources, with the sync's commands allowed by their text
+(`game_sync_tools` in `egt_gda_sync/game/project.py`). It works in the sources as a terminal session does, and its report
+shows on the panel. It cannot ask the user: where this document says to ask, it stops and ends its report with the
+question. Its scratch folder is the app data folder's `game-syncs/<plugin>-<time>`.
 
 ## Pitfalls seen in syncs
 
