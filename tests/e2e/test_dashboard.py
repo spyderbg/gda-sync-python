@@ -123,16 +123,17 @@ def test_workspace_card_filter_and_mobile_selection(new_context, dashboard_backe
     expect(cards.locator('.workspace-card')).to_have_count(10)
     query = page.get_by_role('searchbox', name='Filter workspaces', exact=True)
     query.fill('SECOND')
-    expect(cards.get_by_role('button')).to_have_count(1)
+    expect(cards.locator('.workspace-card')).to_have_count(1)
     expect(cards.get_by_role('button', name='Second', exact=True)).to_be_visible()
     query.fill('workspace-9')
-    expect(cards.get_by_role('button')).to_have_count(1)
+    expect(cards.locator('.workspace-card')).to_have_count(1)
     expect(cards.get_by_role('button', name='Workspace-9', exact=True)).to_be_visible()
     query.fill('no-such-workspace')
     expect(cards.get_by_role('button')).to_have_count(0)
     expect(page.get_by_role('status').filter(has_text='No matching workspace')).to_be_visible()
     query.fill('second')
     page.set_viewport_size({'width': 390, 'height': 844})
+    expect(page.locator('.main-panel')).to_have_css('width', '390px')
     assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
     BUILD.mkdir(exist_ok=True)
     page.screenshot(path=str(BUILD / 'dashboard-workspace-cards-mobile.png'))
@@ -142,7 +143,7 @@ def test_workspace_card_filter_and_mobile_selection(new_context, dashboard_backe
     assert json.loads(config_path.read_text())['defaultWorkspace'] == 'second'
     page.get_by_role('link', name='Toggle navigation', exact=True).click()
     page.get_by_role('link', name='EGT GDA Sync', exact=True).click()
-    expect(cards.get_by_role('button')).to_have_count(10)
+    expect(cards.locator('.workspace-card')).to_have_count(10)
     expect(page.get_by_role('link', name='Toggle navigation', exact=True)).to_have_attribute('aria-expanded', 'false')
 
 
@@ -165,6 +166,50 @@ def test_workspace_selection_survives_statistics_and_switch_failures(new_context
     second.click()
     expect(page.get_by_role('region', name='Workspace summary')).to_contain_text('/second/game')
     assert json.loads(config_path.read_text())['defaultWorkspace'] == 'second'
+
+
+@pytest.mark.parametrize('workspace', ['first', 'second'])
+def test_workspace_rescan_opens_and_scans_the_selected_library(new_context, dashboard_backend, workspace):
+    backend, config_path = dashboard_backend
+    page = new_context().new_page()
+    if workspace == 'second':
+        page.set_viewport_size({'width': 390, 'height': 844})
+    operations = []
+    page.on('request', lambda request: operations.append((request.method, request.url.rsplit('/', 1)[-1]))
+            if (request.method, request.url.rsplit('/', 1)[-1]) in [('PUT', 'workspace'), ('POST', 'asset-report')] else None)
+    page.goto(backend.url)
+    cards = page.get_by_role('list', name='Workspaces', exact=True)
+    card = cards.locator('.workspace-card').filter(has=page.get_by_role('button', name=workspace.title(), exact=True))
+    # Opening and rescanning are separate native buttons, with no nested interactive controls.
+    expect(card.get_by_role('button')).to_have_count(2)
+    expect(card.locator('button button')).to_have_count(0)
+    card.get_by_role('button', name='Rescan workspace', exact=True).click()
+    expect(page.get_by_role('region', name='Workspace summary')).to_contain_text(f'/{workspace}/game')
+    expect(page.get_by_role('status').filter(has_text='Asset report generated')).to_be_visible()
+    expect(page.get_by_role('heading', name='No asset report yet', exact=True)).to_have_count(0)
+    # Asset reports ignore .txt files; only Second's ready.csv is an asset.
+    expect(page.locator('.asset-card')).to_have_count(0 if workspace == 'first' else 1)
+    assert operations == ([('PUT', 'workspace')] if workspace == 'second' else []) + [('POST', 'asset-report')]
+    assert json.loads(config_path.read_text())['defaultWorkspace'] == workspace
+
+
+def test_workspace_rescan_does_not_scan_after_a_failed_switch(new_context, dashboard_backend):
+    backend, config_path = dashboard_backend
+    page = new_context().new_page()
+    scans = []
+    page.on('request', lambda request: scans.append(request.url)
+            if request.url.endswith('/api/asset-report') and request.method == 'POST' else None)
+    page.route('**/api/workspace', lambda route: route.fulfill(status=503, json={'error': 'Workspace temporarily unavailable'}))
+    page.goto(backend.url)
+    cards = page.get_by_role('list', name='Workspaces', exact=True)
+    card = cards.locator('.workspace-card').filter(has=page.get_by_role('button', name='Second', exact=True))
+    rescan = card.get_by_role('button', name='Rescan workspace', exact=True)
+    rescan.click()
+    expect(page.get_by_role('status').filter(has_text='Workspace temporarily unavailable')).to_be_visible()
+    expect(rescan).to_be_enabled()
+    expect(cards.get_by_role('button', name='First', exact=True)).to_have_attribute('aria-current', 'true')
+    assert scans == []
+    assert json.loads(config_path.read_text())['defaultWorkspace'] == 'first'
 
 
 def test_dashboard_retries_failed_combined_statistics_without_showing_zero_totals(new_context, dashboard_backend):

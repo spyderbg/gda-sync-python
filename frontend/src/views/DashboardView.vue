@@ -13,7 +13,7 @@ import {
   type Period, type StorageMetric,
 } from '../insights';
 import type { AssetStatus, DashboardAsset, DashboardResponse } from '../types';
-import { busy, config, data, inspect, navigate, selectWorkspace, workspaces } from '../workspace';
+import { busy, config, data, generateAssetReport, inspect, navigate, selectWorkspace, workspaces } from '../workspace';
 
 const workspaceFilter = ref('');
 const openingWorkspace = ref('');
@@ -27,12 +27,15 @@ const shownWorkspaces = computed(() => {
   return !filterableWorkspaces.value || !needle ? configuredWorkspaces.value
     : configuredWorkspaces.value.filter(workspace => `${workspace.name}\n${workspace.id}`.toLowerCase().includes(needle));
 });
-async function openWorkspace(id: string) {
+async function openWorkspace(id: string, rescan = false) {
   if (busy.value || openingWorkspace.value) return;
   openingWorkspace.value = id;
   try {
     if (id !== activeWorkspace.value) await selectWorkspace(id);
-    if (id === activeWorkspace.value) navigate('library');
+    if (id === activeWorkspace.value) {
+      navigate('library');
+      if (rescan) await generateAssetReport();
+    }
   } finally { openingWorkspace.value = ''; }
 }
 
@@ -153,7 +156,7 @@ const avatarColors = ['bg-warning', 'bg-success', 'bg-info', 'bg-primary'];
     </div>
     <ul id="dashboard-workspaces" class="dashboard-workspace-grid" aria-labelledby="dashboard-workspaces-title">
       <li v-for="workspace in shownWorkspaces" :key="workspace.id">
-        <WorkspaceCard :workspace="workspace" :current="workspace.id === activeWorkspace" :disabled="!!busy || !!openingWorkspace" :opening="workspace.id === openingWorkspace" @select="openWorkspace(workspace.id)" />
+        <WorkspaceCard :workspace="workspace" :current="workspace.id === activeWorkspace" :disabled="!!busy || !!openingWorkspace" :opening="workspace.id === openingWorkspace" @select="openWorkspace(workspace.id)" @rescan="openWorkspace(workspace.id, true)" />
       </li>
     </ul>
     <p v-if="!shownWorkspaces.length" class="text-muted" role="status">No matching workspace</p>
