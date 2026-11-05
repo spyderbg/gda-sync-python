@@ -7,6 +7,12 @@ Versions follow the project's single-digit major.minor.build scheme.
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-11-05
+
+### Changed
+
+- Port Zodiac Wheel Coins and make views override SetTheme
+
 ## [2.0.0] - 2026-11-04
 
 ### Added
@@ -139,5 +145,7 @@ Versions follow the project's single-digit major.minor.build scheme.
 
 [1.0.1]: https://github.com/spyderbg/gda-sync-python/commits/releases%2Fv1.0.1
 
-[Unreleased]: https://github.com/spyderbg/gda-sync-python/compare/releases%2Fv2.0.0...HEAD
 [2.0.0]: https://github.com/spyderbg/gda-sync-python/compare/bcc8e72fbea42ef9f2734ac4f19449a58a181f26...releases%2Fv2.0.0
+
+[Unreleased]: https://github.com/spyderbg/gda-sync-python/compare/releases%2Fv2.0.1...HEAD
+[2.0.1]: https://github.com/spyderbg/gda-sync-python/compare/37fde72c2901ec00705046600289159176ef672a...releases%2Fv2.0.1
