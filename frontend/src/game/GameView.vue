@@ -48,6 +48,7 @@ const topperCanvas = ref<HTMLCanvasElement | null>(null);
 const topperOpen = ref(false);
 /** Whether the info screen shows; Info opens it. */
 const infoOpen = ref(false);
+const statsOpen = ref(false);
 const devOpen = ref(false);
 /** Refreshes the tools' panels after game frames and their commands. */
 const toolsTick = ref(0);
@@ -88,7 +89,7 @@ let needsLoad = true;
 /** Whether the game's Exit button left the game: it ends once the page has gone. */
 let exited = false;
 
-/** A transition as the developer panel shows it, like the C++ GameFsmViewer: the active leaf state before and after,
+/** A transition as Game stats shows it, like the C++ GameFsmViewer: the active leaf state before and after,
  * and the function that asked for it on its state. */
 interface TransitionRow {
   from: string;
@@ -103,7 +104,7 @@ const gameStates = computed(() => live.states.slice(live.states.indexOf('ViewMan
 
 /** Opens in VS Code the TypeScript line that asked for a transition. */
 async function openTransitSource(source: TransitSource) {
-  // loaded when first used: only the developer panel's links need it
+  // loaded when first used: only Game stats' links need it
   const { OriginalPosition } = await import('@game/app/SourceLocation');
   const position = await OriginalPosition(source.file, source.line, source.column);
   if (position) await openGameSource(position.file, position.line);
@@ -151,6 +152,7 @@ const gameflow = () => app?.Get(AlphaFamilyGameflow) ?? null;
 
 /** The cabinet's panel; a button that `requires` a round type shows for the games whose math has it. */
 const PANEL: { name: HwButtonName; label: string; key: string; icon: string; requires?: RoundType }[] = [
+  { name: 'Start', label: 'Start', key: 'Space', icon: 'mdi-play' },
   { name: 'Exit', label: 'Exit', key: 'the panel only', icon: 'mdi-exit-to-app' },
   { name: 'Info', label: 'Info', key: 'I', icon: 'mdi-information-outline' },
   { name: 'Cashout', label: 'Collect', key: 'C', icon: 'mdi-cash-multiple' },
@@ -162,7 +164,6 @@ const PANEL: { name: HwButtonName; label: string; key: string; icon: string; req
   { name: 'IncreaseBet', label: 'Bet +', key: '↑', icon: 'mdi-plus' },
   { name: 'MaxBet', label: 'Max bet', key: 'M', icon: 'mdi-arrow-collapse-up' },
   { name: 'AutoPlay', label: 'Autoplay', key: 'A', icon: 'mdi-autorenew' },
-  { name: 'Start', label: 'Start', key: 'Space', icon: 'mdi-play' },
 ];
 const KEYS: Record<string, HwButtonName> = {
   ' ': 'Start', Enter: 'Start', a: 'AutoPlay', A: 'AutoPlay', ArrowUp: 'IncreaseBet', ArrowDown: 'DecreaseBet', m: 'MaxBet', M: 'MaxBet',
@@ -170,8 +171,10 @@ const KEYS: Record<string, HwButtonName> = {
   b: 'GambleBlack', B: 'GambleBlack',
 };
 const panel = computed(() => PANEL.filter(button => button.requires === undefined || live.roundTypes.includes(button.requires)));
+const sessionButtons = computed(() => panel.value.filter(button => button.name === 'Start' || button.name === 'Exit'));
+const cabinetButtons = computed(() => panel.value.filter(button => button.name !== 'Start' && button.name !== 'Exit'));
 
-/** The Developer panel's rounds, of the round types the game's math has (and those a preset `requires`). */
+/** Game stats' rounds, of the round types the game's math has (and those a preset `requires`). */
 const presets = computed<RoundPreset[]>(() => {
   type Result = Parameters<RoundPreset['condition']>[0];
   const bet = (result: Result) => result.GetBet();
@@ -550,17 +553,27 @@ onBeforeUnmount(() => {
           <div v-if="state === 'starting'" class="game-overlay"><i class="mdi mdi-loading mdi-spin" aria-hidden="true" /> Loading the game's data…</div>
         </div>
         <div class="game-panel">
-          <button v-for="button in panel" :key="button.name" type="button" :class="['btn', button.name === 'Start' ? 'btn-success' : 'btn-outline-secondary', 'btn-sm']"
-            :disabled="!live.buttons[button.name]?.enabled" :title="`${button.label} (${button.key})`" @click="press(button.name)">
-            <i :class="['mdi', button.icon]" aria-hidden="true" /> {{ button.label }}
-          </button>
-          <span class="game-panel-gap" />
-          <button type="button" class="btn btn-outline-primary btn-sm" title="Insert credit" @click="cashIn(1000)">+10.00</button>
-          <button type="button" class="btn btn-outline-primary btn-sm" title="Insert credit" @click="cashIn(10000)">+100.00</button>
-          <button type="button" class="btn btn-outline-secondary btn-sm" title="Full screen" aria-label="Full screen" @click="fullscreen"><i class="mdi mdi-fullscreen" aria-hidden="true" /></button>
-          <button type="button" class="btn btn-outline-secondary btn-sm" :aria-expanded="infoOpen" title="The cabinet's info screen, with the help pages" @click="infoOpen = !infoOpen"><i class="mdi mdi-monitor" aria-hidden="true" /> Info screen</button>
-          <button type="button" class="btn btn-outline-secondary btn-sm" :aria-expanded="topperOpen" title="The cabinet's topper screen" @click="topperOpen = !topperOpen"><i class="mdi mdi-monitor-shimmer" aria-hidden="true" /> Topper</button>
-          <button type="button" class="btn btn-outline-secondary btn-sm" :aria-expanded="devOpen" @click="devOpen = !devOpen"><i class="mdi mdi-code-tags" aria-hidden="true" /> Developer</button>
+          <div class="game-panel-row" role="group" aria-label="Game session controls">
+            <button v-for="button in sessionButtons" :key="button.name" type="button" :class="['btn', button.name === 'Start' ? 'btn-success' : 'btn-outline-secondary', 'btn-sm']"
+              :disabled="!live.buttons[button.name]?.enabled" :title="`${button.label} (${button.key})`" @click="press(button.name)">
+              <i :class="['mdi', button.icon]" aria-hidden="true" /> {{ button.label }}
+            </button>
+            <button type="button" class="btn btn-outline-primary btn-sm" title="Insert credit" @click="cashIn(1000)">+10.00</button>
+            <button type="button" class="btn btn-outline-primary btn-sm" title="Insert credit" @click="cashIn(10000)">+100.00</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" title="Full screen" aria-label="Full screen" @click="fullscreen"><i class="mdi mdi-fullscreen" aria-hidden="true" /></button>
+          </div>
+          <div class="game-panel-row" role="group" aria-label="Game cabinet buttons">
+            <button v-for="button in cabinetButtons" :key="button.name" type="button" class="btn btn-outline-secondary btn-sm"
+              :disabled="!live.buttons[button.name]?.enabled" :title="`${button.label} (${button.key})`" @click="press(button.name)">
+              <i :class="['mdi', button.icon]" aria-hidden="true" /> {{ button.label }}
+            </button>
+          </div>
+          <div class="game-panel-row game-panel-sections" role="group" aria-label="Game sections">
+            <button type="button" class="btn btn-sm" :class="infoOpen ? 'btn-primary' : 'btn-outline-secondary'" :aria-expanded="infoOpen" title="The cabinet's info screen, with the help pages" @click="infoOpen = !infoOpen"><i class="mdi mdi-monitor" aria-hidden="true" /> Info screen</button>
+            <button type="button" class="btn btn-sm" :class="topperOpen ? 'btn-primary' : 'btn-outline-secondary'" :aria-expanded="topperOpen" title="The cabinet's topper screen" @click="topperOpen = !topperOpen"><i class="mdi mdi-monitor-shimmer" aria-hidden="true" /> Topper screen</button>
+            <button type="button" class="btn btn-sm" :class="statsOpen ? 'btn-primary' : 'btn-outline-secondary'" :aria-expanded="statsOpen" aria-controls="game-stats" @click="statsOpen = !statsOpen"><i class="mdi mdi-chart-box-outline" aria-hidden="true" /> Game stats</button>
+            <button type="button" class="btn btn-sm" :class="devOpen ? 'btn-primary' : 'btn-outline-secondary'" :aria-expanded="devOpen" aria-controls="game-developer" @click="devOpen = !devOpen"><i class="mdi mdi-code-tags" aria-hidden="true" /> Developer</button>
+          </div>
         </div>
       </div>
     </div>
@@ -586,8 +599,9 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <div v-if="devOpen" class="card game-dev">
+    <section v-if="statsOpen" id="game-stats" class="card game-dev" aria-labelledby="game-stats-title">
       <div class="card-body">
+        <h4 id="game-stats-title" class="card-title">Game stats</h4>
         <div class="row">
           <div class="col-lg-5">
             <h6>State machine</h6>
@@ -631,55 +645,91 @@ onBeforeUnmount(() => {
               <button type="button" :class="['btn', live.capping === live.setupCapping ? 'btn-primary' : 'btn-outline-primary']" @click="setCapping(live.setupCapping)">The setup's ({{ formatCredit(live.setupCapping) }})</button>
               <button type="button" :class="['btn', live.capping === TEST_CAPPING ? 'btn-primary' : 'btn-outline-primary']" @click="setCapping(TEST_CAPPING)">{{ formatCredit(TEST_CAPPING) }}, to test it</button>
             </div>
-            <h6>Export</h6>
-            <p class="small mb-2">Writes the game's whole C++ plugin to the app data folder: its state machine, math module (rules from the math description), view module and modules config generated, its other sources copied from the C++ game, and the C++ the translator writes from the TypeScript of the states and views changed or made in the browser.</p>
-            <div class="form-check mb-2">
-              <input id="game-export-all-views" v-model="exportAllViews" class="form-check-input" type="checkbox">
-              <label class="form-check-label small" for="game-export-all-views">Translate all the game's views from TypeScript (else only those changed in the browser)</label>
-            </div>
-            <button type="button" class="btn btn-sm btn-outline-primary" @click="exportCpp"><i class="mdi mdi-export" aria-hidden="true" /> Export to C++</button>
-            <div v-if="exportResult" class="game-export-folder small mt-2">
-              <span>Exported {{ exportResult.files.length }} files to <code>{{ exportResult.folder }}</code></span>
-              <button type="button" class="details-icon" aria-label="Open the export's folder" title="Open the export's folder" @click="openGameExport(exportResult.id)"><i aria-hidden="true" class="mdi mdi-folder-open-outline" /></button>
-            </div>
-            <template v-if="exportReport">
-              <p class="small mb-0">{{ exportReport.generated.length }} generated, {{ exportReport.copied.length }} copied,
-                {{ exportReport.updated.length }} updated, {{ exportReport.translated.length }} translated, {{ exportReport.skeletons.length }} new view skeletons</p>
-              <p class="small mb-0"><strong :class="{ 'text-danger': exportReport.changed.length }">{{ exportReport.changed.length }} to update by hand</strong>
-                (see <button v-if="exportResult" type="button" class="game-dev-link" title="Open the export's README in VS Code" @click="openGameExport(exportResult.id, 'README.md')">its README</button><template v-else>its README</template>)</p>
-              <button v-if="exportResult && exportReport.changed.length" type="button" class="btn btn-sm btn-outline-primary mt-1" :disabled="importStatus?.running" title="A Claude Code agent ports them into the export's C++; the export keeps what compiles" @click="portExportChanges"><i class="mdi mdi-robot-outline" aria-hidden="true" /> Port them with Claude Code</button>
-            </template>
-            <h6 class="mt-3">Import from C++</h6>
-            <p class="small mb-2">The C++ that changed since the TypeScript ported it (the games repository's commits). A Claude Code agent ports each change into a copy of the TypeScript; the import keeps what type-checks and translates no farther from the new C++, and leaves the sources as they are for the rest.</p>
-            <div class="btn-group btn-group-sm mb-2">
-              <button type="button" class="btn btn-outline-primary" :disabled="importChecking || importStatus?.running" @click="checkCppChanges"><i class="mdi mdi-source-branch-sync" aria-hidden="true" /> Check the C++</button>
-              <button type="button" class="btn btn-outline-primary" :disabled="!importReport?.changed.length || importStatus?.running" @click="portCppChanges()"><i class="mdi mdi-robot-outline" aria-hidden="true" /> Port with Claude Code</button>
-            </div>
-            <template v-if="importReport">
-              <p v-if="!importReport.changed.length" class="small text-muted mb-1">The TypeScript ports the C++ as it is.</p>
-              <ul v-else class="game-dev-list small">
-                <li v-for="change in importReport.changed" :key="change.ts">
-                  <code>{{ change.ts.split('/').pop() }}</code><span v-if="change.uncommitted" class="text-muted"> (uncommitted C++)</span>
-                  <button type="button" class="game-dev-link" :disabled="importStatus?.running" title="Port this file's C++ changes with Claude Code" @click="portCppChanges(change.ts)">port</button>
-                  <ul class="game-import-commits"><li v-for="commit in change.commits" :key="commit">{{ commit }}</li></ul>
-                </li>
-              </ul>
-            </template>
-            <template v-if="importStatus">
-              <p v-if="importStatus.running" class="small mb-1"><i class="mdi mdi-loading mdi-spin" aria-hidden="true" /> {{ importStatus.log[importStatus.log.length - 1] ?? 'Starting Claude Code...' }}</p>
-              <template v-else-if="importStatus.result">
-                <p v-for="item in importStatus.result.ported" :key="`ported:${item.ts}`" class="small mb-1" :title="item.account">Ported <code>{{ item.ts.split('/').pop() }}</code>{{ importStatus.kind === 'export' ? ' into the export\'s C++' : `: ${item.files?.length ?? 0} files changed` }}</p>
-                <p v-for="item in importStatus.result.upToDate ?? []" :key="`up:${item.ts}`" class="small text-muted mb-1" :title="item.account"><code>{{ item.ts.split('/').pop() }}</code> ports the change already</p>
-                <p v-for="item in importStatus.result.failed" :key="`failed:${item.ts}`" class="small text-danger mb-1" :title="item.account">Not ported <code>{{ item.ts.split('/').pop() }}</code>: {{ item.reason?.split('\n')[0] }}</p>
-              </template>
-            </template>
           </div>
         </div>
         <h6 class="mt-3">Resources <small class="text-muted">images loaded {{ live.images }}<span v-if="!report">, no asset report ({{ reportError || 'none yet' }}): every declared file is used</span></small></h6>
         <p v-if="!problems.length" class="text-muted small mb-0">Every resource the game used so far is in the asset report.</p>
         <ul v-else class="game-dev-list small"><li v-for="(problem, index) in problems" :key="index"><strong>{{ problem.kind }}</strong> {{ problem.id }}: {{ problem.message }}</li></ul>
       </div>
-    </div>
+    </section>
+
+    <section v-if="devOpen" id="game-developer" class="card game-dev game-developer" aria-labelledby="game-developer-title">
+      <div class="card-body">
+        <h4 id="game-developer-title" class="card-title">Developer</h4>
+        <section aria-labelledby="game-import-title">
+          <div class="game-code-heading">
+            <div>
+              <h5 id="game-import-title">Import from C++</h5>
+              <p class="small text-muted mb-0">Compare the C++ sources with their TypeScript ports, then import the changes for all files or one file at a time. Each import keeps the changes that type-check and match the updated C++.</p>
+            </div>
+            <div class="game-code-actions">
+              <button type="button" class="btn btn-outline-primary btn-sm" :disabled="importChecking || importStatus?.running" @click="checkCppChanges"><i class="mdi mdi-source-branch-sync" aria-hidden="true" /> {{ importChecking ? 'Checking…' : 'Check the C++' }}</button>
+              <button type="button" class="btn btn-primary btn-sm" :disabled="!importReport?.changed.length || importChecking || importStatus?.running" @click="portCppChanges()"><i class="mdi mdi-robot-outline" aria-hidden="true" /> Port with Claude Code</button>
+            </div>
+          </div>
+          <p v-if="!importReport" class="game-code-empty text-muted small">Check the C++ to see which files have changes to import.</p>
+          <template v-else>
+            <p v-if="!importReport.changed.length" class="game-code-empty text-muted small">The TypeScript ports the C++ as it is. No changes to import.</p>
+            <template v-else>
+              <p class="game-import-summary small"><strong>{{ importReport.changed.length }} {{ importReport.changed.length === 1 ? 'file' : 'files' }} to import</strong></p>
+              <div class="table-responsive game-import-files">
+                <table class="table game-import-table">
+                  <caption class="sr-only">C++ changes to import into TypeScript</caption>
+                  <colgroup><col class="game-import-target"><col class="game-import-sources"><col class="game-import-changes"><col class="game-import-action"></colgroup>
+                  <thead><tr><th scope="col">TypeScript file</th><th scope="col">C++ sources</th><th scope="col">Changes</th><th scope="col">Action</th></tr></thead>
+                  <tbody>
+                    <tr v-for="change in importReport.changed" :key="change.ts">
+                      <td><strong>{{ change.ts.split('/').pop() }}</strong><code class="game-code-path">{{ change.ts }}</code></td>
+                      <td><ul class="game-code-files"><li v-for="file in change.cpp" :key="file"><code>{{ file }}</code></li></ul></td>
+                      <td>
+                        <span v-if="change.uncommitted" class="badge badge-warning mb-2">Uncommitted C++</span>
+                        <details v-if="change.commits.length" class="game-import-history">
+                          <summary>{{ change.commits.length }} {{ change.commits.length === 1 ? 'commit' : 'commits' }}</summary>
+                          <ul class="game-import-commits"><li v-for="commit in change.commits" :key="commit">{{ commit }}</li></ul>
+                        </details>
+                        <span v-else-if="!change.uncommitted" class="text-muted">Source changes</span>
+                      </td>
+                      <td><button type="button" class="btn btn-outline-primary btn-sm" :disabled="importChecking || importStatus?.running" :aria-label="`Port ${change.ts}`" @click="portCppChanges(change.ts)">Port file</button></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </template>
+          </template>
+        </section>
+
+        <section class="game-code-export" aria-labelledby="game-export-title">
+          <h5 id="game-export-title">Export to C++</h5>
+          <p class="small mb-2">Writes the game's whole C++ plugin to the app data folder: its state machine, math module (rules from the math description), view module and modules config generated, its other sources copied from the C++ game, and the C++ the translator writes from the TypeScript of the states and views changed or made in the browser.</p>
+          <div class="form-check mb-2">
+            <input id="game-export-all-views" v-model="exportAllViews" class="form-check-input" type="checkbox">
+            <label class="form-check-label small" for="game-export-all-views">Translate all the game's views from TypeScript (else only those changed in the browser)</label>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-primary" @click="exportCpp"><i class="mdi mdi-export" aria-hidden="true" /> Export to C++</button>
+          <div v-if="exportResult" class="game-export-folder small mt-2">
+            <span>Exported {{ exportResult.files.length }} files to <code>{{ exportResult.folder }}</code></span>
+            <button type="button" class="details-icon" aria-label="Open the export's folder" title="Open the export's folder" @click="openGameExport(exportResult.id)"><i aria-hidden="true" class="mdi mdi-folder-open-outline" /></button>
+          </div>
+          <template v-if="exportReport">
+            <p class="small mb-0">{{ exportReport.generated.length }} generated, {{ exportReport.copied.length }} copied,
+              {{ exportReport.updated.length }} updated, {{ exportReport.translated.length }} translated, {{ exportReport.skeletons.length }} new view skeletons</p>
+            <p class="small mb-0"><strong :class="{ 'text-danger': exportReport.changed.length }">{{ exportReport.changed.length }} to update by hand</strong>
+              (see <button v-if="exportResult" type="button" class="game-dev-link" title="Open the export's README in VS Code" @click="openGameExport(exportResult.id, 'README.md')">its README</button><template v-else>its README</template>)</p>
+            <button v-if="exportResult && exportReport.changed.length" type="button" class="btn btn-sm btn-outline-primary mt-1" :disabled="importStatus?.running" title="A Claude Code agent ports them into the export's C++; the export keeps what compiles" @click="portExportChanges"><i class="mdi mdi-robot-outline" aria-hidden="true" /> Port them with Claude Code</button>
+          </template>
+        </section>
+
+        <section v-if="importStatus" class="game-code-status" aria-label="Code transfer status">
+          <p v-if="importStatus.running" class="small mb-0" role="status"><i class="mdi mdi-loading mdi-spin" aria-hidden="true" /> {{ importStatus.log[importStatus.log.length - 1] ?? 'Starting Claude Code…' }}</p>
+          <p v-else-if="importStatus.error" class="alert alert-danger mb-0" role="alert">{{ importStatus.error }}</p>
+          <ul v-else-if="importStatus.result" class="game-code-results small">
+            <li v-for="item in importStatus.result.ported" :key="`ported:${item.ts}`" :title="item.account"><span class="badge badge-success">Ported</span><div><code>{{ item.ts }}</code><span>{{ importStatus.kind === 'export' ? "Updated the export's C++" : `${item.files?.length ?? 0} files changed` }}</span></div></li>
+            <li v-for="item in importStatus.result.upToDate ?? []" :key="`up:${item.ts}`" :title="item.account"><span class="badge badge-light">Up to date</span><div><code>{{ item.ts }}</code><span>Ports the change already</span></div></li>
+            <li v-for="item in importStatus.result.failed" :key="`failed:${item.ts}`" :title="item.account"><span class="badge badge-danger">Not ported</span><div><code>{{ item.ts }}</code><span>{{ item.reason?.split('\n')[0] }}</span></div></li>
+          </ul>
+        </section>
+      </div>
+    </section>
   </div>
 </template>
 
@@ -742,12 +792,23 @@ onBeforeUnmount(() => {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
   padding: 0.75rem 1rem;
 }
 
-.game-panel-gap {
-  flex: 1 1 auto;
+.game-panel-row {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 100%;
+}
+
+.game-panel-sections {
+  flex-basis: 100%;
+  padding-top: 0.75rem;
+  border-top: 1px solid #ebedf2;
 }
 
 .game-dev-states {
@@ -805,8 +866,138 @@ onBeforeUnmount(() => {
 }
 
 .game-import-commits {
+  margin: 0.5rem 0 0;
   padding-left: 1rem;
   color: #6c757d;
+}
+
+.game-code-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 1rem;
+
+  > div:first-child {
+    flex: 1 1 420px;
+  }
+}
+
+.game-code-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.game-code-empty {
+  margin: 1rem 0 0;
+  padding: 1rem;
+  border: 1px dashed #dce1ea;
+  border-radius: 6px;
+}
+
+.game-import-summary {
+  margin: 1rem 0 0.5rem;
+}
+
+.game-import-files {
+  max-height: 480px;
+  border: 1px solid #ebedf2;
+  border-radius: 6px;
+}
+
+.game-import-table {
+  table-layout: fixed;
+  min-width: 720px;
+  margin: 0;
+
+  .game-import-target { width: 30%; }
+  .game-import-sources { width: 32%; }
+  .game-import-changes { width: 24%; }
+  .game-import-action { width: 14%; }
+
+  th, td {
+    height: auto;
+    padding: 0.85rem;
+    vertical-align: top;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    font-size: 0.8rem;
+    line-height: 1.5;
+  }
+
+  th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    border-top: 0;
+    background: #f8f9fc;
+  }
+
+  code {
+    display: block;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    color: #6c757d;
+    font-size: 0.75rem;
+  }
+
+  .btn {
+    white-space: nowrap;
+  }
+}
+
+.game-code-path {
+  display: block;
+  margin-top: 0.35rem;
+  color: #6c757d;
+}
+
+.game-code-files {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.5rem;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.game-import-history summary {
+  cursor: pointer;
+  color: #2277cf;
+}
+
+.game-code-export,
+.game-code-status {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #ebedf2;
+}
+
+.game-code-results {
+  display: grid;
+  gap: 0.75rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+
+  li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  li > div {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  code, li > div > span {
+    display: block;
+  }
+
+  code {
+    overflow-wrap: anywhere;
+  }
 }
 
 .game-export-folder {

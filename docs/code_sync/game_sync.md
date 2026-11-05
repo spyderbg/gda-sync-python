@@ -274,7 +274,7 @@ browser-made changes nobody has exported yet as ported, so the next export would
 .venv/bin/python -m pytest tests/test_game_project.py tests/test_tweeny_port.py -q
 .venv/bin/python scripts/build.py          # the app serves egt_gda_sync/static (git-ignored)
 .venv/bin/python -I docs/code_sync/play_check.py --workspace <workspace> \
-    --preset "<a Developer → Next round button>" --until <state text> --out <scratch>/play
+    --preset "<a Game stats → Next round button>" --until <state text> --out <scratch>/play
 ```
 
 `play_check.py` starts the app in an isolated data folder, with the workspace's newest asset report. It forces the round

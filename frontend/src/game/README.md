@@ -35,7 +35,7 @@ Every file operation goes through the backend (`egt_gda_sync/game/project.py`):
 | The rounds' random numbers, the RNG Queue, the game's events the tools follow (the game server, below) | `POST /api/game/rng/randoms`, `/api/game/rng/round`, `/api/game/rng/queue[/delete\|move\|clear]`, `/api/game/rng/events`; `GET /api/game/rng` | the kernel's `RequestRandoms`; RngPresetManager's queue |
 
 The game uses the same resources the asset library lists: a descriptor entry whose file the asset report does not list
-as available shows under **Developer → Resources**.
+as available shows under **Game stats → Resources**.
 
 ## Structure
 
@@ -93,7 +93,7 @@ math their rules (`Math/HoldAndSpin`, `Math/Wheel`: the gamble's rules are a whe
 and the gameflow their inputs, the coins' capping and the forced wheel. Not ported: the extra and extra free rounds,
 which no ported game has.
 
-The **Developer** panel's presets and the panel's buttons follow the game's math: a preset or a button of a round type
+The **Game stats** panel's presets and the panel's buttons follow the game's math: a preset or a button of a round type
 (Coins, Gamble, Tetra...) shows for the games whose `IMathRules` has it. The gamble's buttons are **Gamble** (G),
 **Red** (R) and **Black** (B); **Take win** (T) is the cabinet's COLLECT, which takes the coins round's coins to the
 wheel, or a win.
@@ -143,10 +143,12 @@ wheel, or a win.
   after another workspace becomes the active one, and after it failed.
 - Keys: Space/Enter START, A autoplay, ↑/↓ bet, M max bet, I info, C cashout. The panel under the screen has the same
   buttons, Exit (back to the asset library) and the credit insert; the credit is kept in the browser.
-- **Developer** shows the state machine's active states and transitions, the match's wallet, the rounds played, and
+- **Game stats** shows the state machine's active states and transitions, the match's wallet, the rounds played, and
   forces the next round (a condition sampled until a round meets it, the browser game's; Tools › RNG Presets are the
   C++'s): a main win of 4× the bet or more enters the tetra round. **Maximum
-  award** lowers the match's capping to 3.00, so that a main win shows the capping splash.
+  award** lowers the match's capping to 3.00, so that a main win shows the capping splash. Resource diagnostics also
+  appear here. **Developer** contains C++ import and export, with a table of changed TypeScript files, their C++
+  sources and commits, and actions to port one file or all changes.
 - A view's file (`v/1920x1080/<View>.json`, its ElementsList entry) can be edited while the game plays: within a
   second the view shows the change, as the C++ game's debug and QA builds do. Each elements list watches its file
   (IFileWatch, the FileWatch module, which polls the files' stamps), the view module passes the change to its views
@@ -327,7 +329,7 @@ The whole procedure, step by step, as Claude Code follows it: [`docs/code_sync/g
 for a game's plugin (in Claude Code, `/game-sync <plugin>` runs it), and
 [`docs/code_sync/library_sync.md`](../../../docs/code_sync/library_sync.md) for the alpha_family libraries and
 `hat_libs` (which the manifest does not track: its sync record is at the end of that document). `docs/code_sync/play_check.py`
-plays the round a Developer preset forces, to check a sync.
+plays the round a Game stats preset forces, to check a sync.
 
 The export's agent is the other way (`node export/export-agent.mjs <export folder> <games/game>`, or **Port them with
 Claude Code** after an export): the TypeScript changes the translator could not translate (the export's `export.json`) are

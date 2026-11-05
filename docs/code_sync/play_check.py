@@ -1,4 +1,4 @@
-"""Plays the browser game after a C++ sync: the round a Developer preset forces, through the state it should reach, and
+"""Plays the browser game after a C++ sync: the round a Game stats preset forces, through the state it should reach, and
 back to Idle, printing each change of the game's states with the panel's buttons, the rounds played and the page's
 errors. See game_sync.md and library_sync.md.
 
@@ -71,7 +71,7 @@ def isolated_home(out: Path, workspace: str) -> tuple[Path, str]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--workspace", required=True, help="the workspace's id or game name (config/workspace.json)")
-    parser.add_argument("--preset", action="append", default=[], help="a Developer panel's Next round button: the first is pressed before the first START, each other once the one before it has played")
+    parser.add_argument("--preset", action="append", default=[], help="a Game stats panel's Next round button: the first is pressed before the first START, each other once the one before it has played")
     parser.add_argument("--press", action="append", default=[], metavar="STATE=KEY", help="press KEY instead of START once each time the states come to STATE")
     parser.add_argument("--rng-preset", action="append", default=[], metavar="PATH", help="an RNG preset (Tools → RNG Presets) to queue before the first START, by its menus' path")
     parser.add_argument("--until", required=True, help="text of the game's states to reach, such as Tetra or FreeRound")
@@ -100,7 +100,7 @@ def main() -> int:
             page.get_by_role("button", name="Play", exact=True).click()
             screen = page.get_by_label("Game screen")
             screen.wait_for(timeout=60_000)
-            page.get_by_role("button", name="Developer").click()
+            page.get_by_role("button", name="Game stats", exact=True).click()
             page.get_by_role("button", name="+100.00").click()
             states = page.locator(".game-dev-states dd").nth(1)
             panel = {label: page.get_by_role("button", name=label, exact=True) for label in PANEL}
