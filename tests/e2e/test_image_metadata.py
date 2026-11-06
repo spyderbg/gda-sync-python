@@ -69,7 +69,7 @@ def test_create_metadata_edit_render_size_and_generate_image(new_context, metada
     page = new_context().new_page()
     dialog = open_studio(page, backend)
     dialog.get_by_role('button', name='New image metadata', exact=True).click()
-    dialog.get_by_text('Metadata file and provenance', exact=True).click()
+    dialog.get_by_role('button', name='Show metadata file', exact=True).click()
     folder_button = dialog.get_by_role('button', name='Open metadata folder', exact=True)
     code_button = dialog.get_by_role('button', name='Open metadata file in VS Code', exact=True)
     expect(folder_button).to_be_disabled()
@@ -105,7 +105,7 @@ def test_create_metadata_edit_render_size_and_generate_image(new_context, metada
         ('open-folder', {'file': str(game / 'art/new-bell.png.json'), 'isFolder': False}),
         ('open-declaration', {'descriptor': str(game / 'art/new-bell.png.json'), 'line': 1}),
     ]
-    expect(dialog.locator('.studio-provenance pre')).to_have_css('max-height', '480px')
+    expect(dialog.locator('.studio-provenance pre')).to_have_css('overflow-y', 'visible')
     value = json.loads((game / 'art/new-bell.png.json').read_text())
     assert value['generation'] == {'width': 64, 'height': 96, 'prompt': 'A polished emerald bell, centered.'}
     assert value['image']['width'] == 14 and value['image']['height'] == 21
@@ -139,12 +139,22 @@ def test_copy_generation_prompt_uses_current_text_or_description_and_scene(new_c
     page = context.new_page()
     studio = open_studio(page, backend)
     studio.get_by_role('button', name='New image metadata', exact=True).click()
+    copy_description = studio.get_by_role('button', name='Copy description', exact=True)
+    expect(copy_description).to_be_disabled()
     copy = studio.get_by_role('button', name='Copy generation prompt', exact=True)
     show_inspector(studio)
     expect(copy).to_be_disabled()
     show_inspector(studio, 'Describe')
     studio.get_by_label('Description', exact=True).fill('A golden bell.')
     studio.get_by_label('Scene', exact=True).fill('On a wooden table.')
+    copy_description.click()
+    assert page.evaluate('navigator.clipboard.readText()') == 'A golden bell.'
+    description = '  An edited golden bell.\nKeep these unsaved details.  '
+    studio.get_by_label('Description', exact=True).fill(description)
+    copy_description.click()
+    assert page.evaluate('navigator.clipboard.readText()') == description
+    expect(studio.get_by_label('Description', exact=True)).to_have_value(description)
+    studio.get_by_label('Description', exact=True).fill('A golden bell.')
     show_inspector(studio)
     copy.click()
     assert page.evaluate('navigator.clipboard.readText()') == 'A golden bell.\nOn a wooden table.'
@@ -547,14 +557,149 @@ def test_studio_navigation_and_unsaved_changes(new_context, metadata_backend):
     expect(game_links).to_have_text(['Play', 'Tools', 'Image studio'])
     expect(navigation.get_by_role('button', name='Image studio', exact=True)).to_have_attribute('aria-current', 'page')
     studio.get_by_label('Description', exact=True).fill('Unsaved description')
-    page.once('dialog', lambda dialog: dialog.dismiss())
-    navigation.get_by_role('button', name='Asset library', exact=True).click()
-    expect(studio).to_be_visible()
-    expect(studio.get_by_label('Description', exact=True)).to_have_value('Unsaved description')
-    page.once('dialog', lambda dialog: dialog.accept())
     navigation.get_by_role('button', name='Asset library', exact=True).click()
     expect(studio).to_have_count(0)
     expect(page.locator('.studio-launch')).to_have_count(0)
+    navigation.get_by_role('button', name='Image studio', exact=True).click()
+    expect(studio.get_by_label('Description', exact=True)).to_have_value('Unsaved description')
+    page.once('dialog', lambda dialog: dialog.dismiss())
+    studio.get_by_role('button', name='New image metadata', exact=True).click()
+    expect(studio.get_by_label('Description', exact=True)).to_have_value('Unsaved description')
+    page.once('dialog', lambda dialog: dialog.accept())
+    studio.get_by_role('button', name='New image metadata', exact=True).click()
+    expect(studio.get_by_label('Description', exact=True)).to_have_value('')
+
+
+def test_studio_cached_edits_are_guarded_and_cleared_when_changing_workspace(new_context, tmp_path):
+    home, gda = tmp_path / 'app', tmp_path / 'gda'
+    gda.mkdir()
+    entries = []
+    for identifier, name, image in (('game', 'Metadata', 'bell.png'), ('other', 'Other workspace', 'other.png')):
+        game = tmp_path / 'resources' / identifier
+        png(game / image)
+        write(game / 'RssImagesData.json', {'images': [{'id': identifier.upper(), 'path': image}]})
+        entries.append({'id': identifier, 'game_name': name, 'game_path': str(game), 'gda_path': str(gda)})
+    write(home / 'workspace.json', {'workspaces': entries, 'defaultWorkspace': 'game'})
+    backend = Backend(home)
+    try:
+        page = new_context().new_page()
+        studio = open_studio(page, backend)
+        studio.get_by_label('Description', exact=True).fill('Unsaved edit in the original workspace.')
+        page.locator('.brand-logo').click()
+        page.once('dialog', lambda dialog: dialog.dismiss())
+        page.get_by_role('list', name='Workspaces').get_by_role('button', name='Other workspace', exact=True).click()
+        page.get_by_role('button', name='Image studio', exact=True).click()
+        expect(studio.get_by_label('Description', exact=True)).to_have_value('Unsaved edit in the original workspace.')
+        page.locator('.brand-logo').click()
+        page.once('dialog', lambda dialog: dialog.accept())
+        page.get_by_role('list', name='Workspaces').get_by_role('button', name='Other workspace', exact=True).click()
+        expect(page.get_by_role('region', name='Workspace summary')).to_be_visible()
+        page.get_by_role('region', name='Workspace summary').get_by_role('button', name='Rescan', exact=True).click()
+        page.get_by_role('button', name='Image studio', exact=True).click()
+        expect(studio.get_by_role('button', name='Open other.png', exact=True)).to_be_visible()
+        expect(studio.get_by_role('button', name='Open bell.png', exact=True)).to_have_count(0)
+        expect(studio.get_by_label('Description', exact=True)).to_have_value('')
+        page.locator('.brand-logo').click()
+        page.get_by_role('list', name='Workspaces').get_by_role('button', name='Metadata', exact=True).click()
+        page.get_by_role('button', name='Image studio', exact=True).click()
+        expect(studio.get_by_role('button', name='Open bell.png', exact=True)).to_be_visible()
+        expect(studio.get_by_label('Description', exact=True)).to_have_value('')
+    finally:
+        backend.stop()
+
+
+def test_studio_keeps_image_filters_edits_and_view_when_returning_from_all_pages(new_context, metadata_backend):
+    backend, game = metadata_backend
+    seed_metadata_browser(game)
+    (game / 'readme.txt').write_text('Include the Other files screen in navigation coverage.')
+    write(game / 'RssRawData.json', {'rawFiles': [{'path': 'readme.txt'}]})
+    value = metadata('gold.png')
+    value['analysis']['tags'] = [f'Tag {i}' for i in range(100)]
+    write(game / 'art/icons/gold.png.json', value)
+    page = new_context().new_page()
+    studio = open_studio(page, backend)
+    choose_folder(studio, 'art/icons')
+    studio.get_by_role('button', name='Open art/icons/gold.png', exact=True).click()
+    studio.get_by_label('Description', exact=True).fill('Keep this unsaved description across screens.')
+    studio.get_by_label('Find image', exact=True).fill('gold')
+    studio.get_by_label('Filter by image type', exact=True).select_option('image')
+    studio.get_by_label('Filter by asset status', exact=True).select_option('available')
+    studio.get_by_role('button', name='Grid view', exact=True).click()
+    studio.get_by_role('button', name='Show metadata file', exact=True).click()
+    file_view = studio.get_by_role('region', name='Metadata file', exact=True)
+    file_view.evaluate('e => e.scrollTop = 200')
+    scroll_top = file_view.evaluate('e => e.scrollTop')
+    assert scroll_top > 0
+    navigation = page.get_by_role('navigation', name='Main navigation')
+    dialogs, reloads = [], []
+
+    def record_dialog(dialog):
+        dialogs.append(dialog.message)
+        dialog.dismiss()
+
+    page.on('dialog', record_dialog)
+    page.on('request', lambda request: reloads.append(request.url) if request.url.split('?')[0].endswith(('/image-studio/catalog', '/image-studio/metadata')) else None)
+    for screen in ('Asset library', 'Images', 'ImagesSeq', 'Movies', 'Audio', 'Fonts', 'RTFs', 'ElementsList',
+                   'Other files', 'Play', 'Tools', 'Sync', 'Sync in progress', 'Sync history', 'Backups',
+                   'Workspace settings', 'Dashboard'):
+        if screen == 'Workspace settings':
+            page.get_by_role('banner').get_by_role('button', name=screen, exact=True).click()
+        elif screen == 'Dashboard':
+            page.locator('.brand-logo').click()
+        else:
+            navigation.get_by_role('button', name=screen, exact=True).click()
+        expect(studio).to_have_count(0)
+        navigation.get_by_role('button', name='Image studio', exact=True).click()
+        expect(studio).to_be_visible()
+        expect(studio.get_by_label('Description', exact=True)).to_have_value('Keep this unsaved description across screens.')
+        expect(studio.get_by_label('Find image', exact=True)).to_have_value('gold')
+        expect(studio.get_by_label('Filter by image type', exact=True)).to_have_value('image')
+        expect(studio.get_by_label('Filter by asset status', exact=True)).to_have_value('available')
+        expect(studio.get_by_role('button', name='Grid view', exact=True)).to_have_attribute('aria-pressed', 'true')
+        expect(studio.get_by_role('button', name='Open art/icons/gold.png', exact=True)).to_have_attribute('aria-pressed', 'true')
+        expect(studio.get_by_role('navigation', name='Folder path').locator('[aria-current="location"]')).to_have_text('icons')
+        expect(file_view).to_be_visible()
+        assert file_view.evaluate('e => e.scrollTop') == scroll_top
+        assert not dialogs and not reloads
+
+
+def test_studio_keeps_model_tab_and_unsaved_settings_when_returning_from_tools(new_context, metadata_backend):
+    backend, _game = metadata_backend
+    page = new_context().new_page()
+    studio = open_studio(page, backend)
+    studio.get_by_role('tab', name='Remote models', exact=True).click()
+    studio.get_by_label('Remote vision model', exact=True).fill('unsaved-remote-model')
+    navigation = page.get_by_role('navigation', name='Main navigation')
+    navigation.get_by_role('button', name='Tools', exact=True).click()
+    expect(studio).to_have_count(0)
+    navigation.get_by_role('button', name='Image studio', exact=True).click()
+    expect(studio.get_by_role('tab', name='Remote models', exact=True)).to_have_attribute('aria-selected', 'true')
+    expect(studio.get_by_label('Remote vision model', exact=True)).to_have_value('unsaved-remote-model')
+    expect(studio.get_by_role('button', name='Save model settings', exact=True)).to_be_enabled()
+
+
+def test_studio_keeps_animation_frame_and_mobile_scroll_when_returning_from_tools(new_context, metadata_backend):
+    backend, game = metadata_backend
+    seed_metadata_browser(game)
+    page = new_context().new_page()
+    studio = open_studio(page, backend)
+    studio.get_by_role('button', name='Open SPIN', exact=True).click()
+    frame = studio.get_by_label('Animation frame', exact=True)
+    frame.select_option('1')
+    page.set_viewport_size({'width': 390, 'height': 1052})
+    expect(page.locator('.main-panel')).to_have_css('width', '390px')
+    page.evaluate('window.scrollTo(0, 500)')
+    page.wait_for_function('window.scrollY === 500')
+    navigation = page.get_by_role('navigation', name='Main navigation')
+    page.get_by_role('link', name='Toggle navigation', exact=True).click()
+    navigation.get_by_role('button', name='Tools', exact=True).click()
+    expect(studio).to_have_count(0)
+    page.get_by_role('link', name='Toggle navigation', exact=True).click()
+    navigation.get_by_role('button', name='Image studio', exact=True).click()
+    expect(studio).to_be_visible()
+    expect(frame).to_have_value('1')
+    expect(studio.get_by_role('button', name='Play animation', exact=True)).to_be_visible()
+    page.wait_for_function('window.scrollY === 500')
 
 
 def test_remote_models_save_and_reopen(new_context, metadata_backend, comfy_server):
@@ -642,7 +787,7 @@ def test_metadata_filters_folder_tree_and_unsaved_editor(new_context, metadata_b
     choose_folder(studio, 'art/icons')
     expect(studio.locator('.studio-file')).to_have_count(2)
     expect(studio.get_by_role('button', name='Open art/icons/gold.png', exact=True)).to_be_visible()
-    studio.get_by_role('button', name='Clear filters', exact=True).click()
+    studio.get_by_role('navigation', name='Folder path').get_by_role('button', name='Game folder', exact=True).click()
     tree = show_folders(studio)
     # The selector contains only folders and retains the full hierarchy across image filters.
     expect(tree.get_by_role('button', name=re.compile('^Open '))).to_have_count(0)
@@ -658,17 +803,17 @@ def test_metadata_filters_folder_tree_and_unsaved_editor(new_context, metadata_b
     studio.get_by_label('Find image', exact=True).fill('silver')
     expect(studio.locator('.studio-file')).to_have_count(1)
     expect(studio.get_by_role('button', name='Open art/icons/silver.png', exact=True)).to_be_visible()
-    studio.get_by_role('button', name='Clear filters', exact=True).click()
+    studio.get_by_role('button', name='Clear image search', exact=True).click()
     studio.get_by_label('Filter by image type', exact=True).select_option('sequence')
     expect(studio.locator('.studio-file')).to_have_count(1)
     expect(studio.get_by_role('button', name='Open SPIN', exact=True)).to_be_visible()
-    studio.get_by_role('button', name='Clear filters', exact=True).click()
+    studio.get_by_label('Filter by image type', exact=True).select_option('all')
     studio.get_by_label('Filter by asset status', exact=True).select_option('missing')
     expect(studio.locator('.studio-file')).to_have_count(1)
     studio.get_by_role('button', name='Open art/missing.png', exact=True).click()
     show_batch(studio)
     expect(studio.get_by_role('button', name='Analyze batch 0', exact=True)).to_be_disabled()
-    studio.get_by_role('button', name='Clear filters', exact=True).click()
+    studio.get_by_label('Filter by asset status', exact=True).select_option('all')
     studio.get_by_role('button', name='Open art/icons/gold.png', exact=True).click()
     studio.get_by_label('Description', exact=True).fill('Keep this unsaved gold description.')
     studio.get_by_label('Find image', exact=True).fill('silver')
@@ -684,6 +829,231 @@ def test_metadata_filters_folder_tree_and_unsaved_editor(new_context, metadata_b
         assert studio.locator('.studio-folder-popover').evaluate('element => element.getBoundingClientRect().right <= innerWidth')
         page.screenshot(path=str(BUILD / f'image-studio-folder-tree-{width}.png'), full_page=True)
         studio.locator('.studio-folder-picker > summary').press('Escape')
+
+
+def test_studio_text_fields_fit_saved_edits_and_resized_content_without_inner_scrollers(new_context, metadata_backend):
+    backend, game = metadata_backend
+    value = metadata('bell.png')
+    long_text = '\n'.join(f'Line {i}: A detailed description of the symbols, reels, lighting, and background.' for i in range(12))
+    value['analysis'].update(description=long_text, scene=long_text, text=long_text,
+        objects=[f'A detailed object number {i}' for i in range(15)], tags=[f'Detailed tag {i}' for i in range(15)])
+    value['generation']['prompt'] = long_text
+    write(game / 'bell.png.json', value)
+    page = new_context().new_page()
+    studio = open_studio(page, backend)
+    inspector = studio.locator('.studio-inspector')
+
+    def expect_full_text():
+        page.wait_for_function('''() => [...document.querySelectorAll('.studio-inspector textarea')]
+            .filter(field => field.clientWidth > 0)
+            .every(field => field.scrollHeight <= field.clientHeight + 1 && field.scrollWidth <= field.clientWidth + 1)''')
+        assert inspector.locator('textarea').evaluate_all('fields => fields.filter(field => field.clientWidth > 0).every(field => getComputedStyle(field).overflowY === "hidden")')
+
+    expect(studio.get_by_label('Description', exact=True)).to_have_value(long_text)
+    expect_full_text()
+    panel = studio.bounding_box()
+    assert studio.get_by_label('Description', exact=True).bounding_box()['height'] > 48
+    studio.get_by_text('More metadata', exact=True).click()
+    expect(studio.get_by_label('Objects', exact=True)).to_be_visible()
+    expect_full_text()
+    assert inspector.evaluate('element => element.scrollHeight > element.clientHeight')
+    assert studio.bounding_box() == panel
+    show_inspector(studio)
+    expect(studio.get_by_label('Generation prompt', exact=True)).to_have_value(long_text)
+    expect_full_text()
+    long_height = studio.get_by_label('Generation prompt', exact=True).bounding_box()['height']
+    studio.get_by_label('Generation prompt', exact=True).fill('Short prompt')
+    expect_full_text()
+    assert studio.get_by_label('Generation prompt', exact=True).bounding_box()['height'] < long_height
+    studio.get_by_label('Generation prompt', exact=True).fill(long_text + '\nPasted prompt details.')
+    expect_full_text()
+    show_inspector(studio, 'Describe')
+    for width in (1363, 390, 1543):
+        page.set_viewport_size({'width': width, 'height': 1052})
+        if width < 992:
+            expect(page.locator('.main-panel')).to_have_css('width', f'{width}px')
+        expect_full_text()
+        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
+    studio.get_by_label('Description', exact=True).fill('Short description')
+    expect_full_text()
+    assert studio.get_by_label('Description', exact=True).bounding_box()['height'] <= 50
+
+
+def test_metadata_file_toggle_uses_one_scroll_area_and_keeps_preview_size(new_context, metadata_backend):
+    backend, game = metadata_backend
+    value = metadata('bell.png')
+    value['analysis']['tags'] = [f'Tag {index}' for index in range(150)]
+    write(game / 'bell.png.json', value)
+    page = new_context().new_page()
+    studio = open_studio(page, backend)
+    image = studio.get_by_role('img', name='Source image', exact=True)
+    expect(image).to_be_visible()
+    studio.get_by_label('Description', exact=True).fill('Keep this edit while switching views.')
+    panel = studio.bounding_box()
+    preview = studio.locator('.studio-preview-column')
+    preview_box = preview.bounding_box()
+    studio.get_by_role('button', name='Show metadata file', exact=True).click()
+    file_view = studio.get_by_role('region', name='Metadata file', exact=True)
+    expect(file_view).to_be_visible()
+    expect(image).to_have_count(0)
+    assert json.loads(file_view.locator('pre').inner_text())['analysis']['description'] == 'Keep this edit while switching views.'
+    assert file_view.evaluate('element => element.scrollHeight > element.clientHeight')
+    assert preview.evaluate('element => element.scrollHeight <= element.clientHeight + 1')
+    assert studio.locator('.studio-body').evaluate('element => element.scrollHeight <= element.clientHeight + 1')
+    expect(file_view.locator('pre')).to_have_css('overflow-y', 'visible')
+    assert studio.bounding_box() == panel
+    assert preview.bounding_box() == preview_box
+    file_view.evaluate('element => element.scrollTop = element.scrollHeight')
+    studio.get_by_role('button', name='Show image preview', exact=True).click()
+    expect(image).to_be_visible()
+    expect(file_view).to_have_count(0)
+    expect(studio.get_by_label('Description', exact=True)).to_have_value('Keep this edit while switching views.')
+    assert studio.bounding_box() == panel
+    assert preview.bounding_box() == preview_box
+
+
+def test_metadata_panel_stays_stable_during_image_and_animation_loading(new_context, metadata_backend):
+    backend, game = metadata_backend
+    seed_metadata_browser(game)
+    page = new_context().new_page()
+    studio = open_studio(page, backend)
+    studio.get_by_role('button', name='Open bell.png', exact=True).click()
+    editor = studio.get_by_role('region', name='Image metadata editor', exact=True)
+    expect(editor).to_have_attribute('aria-busy', 'false')
+    panel = studio.bounding_box()
+    editor_box = editor.bounding_box()
+    pending = []
+    page.route('**/api/image-studio/metadata?*', lambda route: pending.append(route))
+    for name in ('SPIN', 'art/icons/gold.png', 'bell.png'):
+        studio.get_by_role('button', name=f'Open {name}', exact=True).click()
+        expect(editor).to_have_attribute('aria-busy', 'true')
+        expect(editor.get_by_role('status')).to_have_text('Loading metadata…')
+        assert studio.bounding_box() == panel
+        assert editor.bounding_box() == editor_box
+        pending.pop().continue_()
+        expect(editor).to_have_attribute('aria-busy', 'false')
+        expect(studio.get_by_role('button', name='Save metadata', exact=True)).to_be_visible()
+        assert studio.bounding_box() == panel
+        assert editor.bounding_box() == editor_box
+    studio.get_by_role('tab', name='Generation queue', exact=True).click()
+    assert studio.bounding_box() == panel
+    studio.get_by_role('tab', name='Metadata', exact=True).click()
+    assert studio.bounding_box() == panel
+
+
+def test_metadata_search_matches_only_filenames_with_smart_case(new_context, metadata_backend):
+    backend, game = metadata_backend
+    paths = ['bell.png', 'Squares/Line_05.png', 'lower/line_05.png', 'other/LINE_05.png', 'else/Squares.png']
+    for path in paths:
+        png(game / path)
+    write(game / 'RssImagesData.json', {'images': [{'id': f'IMAGE_{i}', 'path': path} for i, path in enumerate(paths)]})
+    for frame in ('00', '01'):
+        png(game / f'animations/Spin_{frame}.png')
+    write(game / 'RssImagesSeqData.json', {'imagesSeq': [{'id': 'HIDDEN_SEQUENCE_ID', 'frameTime': 60, 'loopCount': 0,
+        'frames': [{'path': 'animations/Spin_{00-01}.png'}]}]})
+    page = new_context().new_page()
+    studio = open_studio(page, backend)
+    search = studio.get_by_label('Find image', exact=True)
+    expect(studio.locator('.studio-file')).to_have_count(6)
+    for query, names in [
+        ('squares', ['else/Squares.png']),
+        ('line', ['Squares/Line_05.png', 'lower/line_05.png', 'other/LINE_05.png']),
+        ('Line', ['Squares/Line_05.png']),
+        ('LINE', ['other/LINE_05.png']),
+        ('lIne', []),
+        ('Squares/Line', []),
+        ('hidden_sequence', []),
+        ('spin', ['HIDDEN_SEQUENCE_ID']),
+        ('Spin_{00-01}.png', ['HIDDEN_SEQUENCE_ID']),
+        ('SPIN', []),
+    ]:
+        search.fill(query)
+        expect(studio.locator('.studio-file')).to_have_count(len(names))
+        for name in names:
+            expect(studio.get_by_role('button', name=f'Open {name}', exact=True)).to_be_visible()
+    studio.get_by_role('button', name='Clear image search', exact=True).click()
+    choose_folder(studio, 'Squares')
+    search.fill('line')
+    expect(studio.locator('.studio-file')).to_have_count(1)
+    expect(studio.get_by_role('button', name='Open Squares/Line_05.png', exact=True)).to_be_visible()
+    expect(studio.get_by_role('navigation', name='Folder path').locator('[aria-current="location"]')).to_have_text('Squares')
+
+
+@pytest.mark.parametrize('image, folder, query, kind', [
+    ('art/icons/gold.png', 'art/icons', 'gold', 'image'),
+    ('SPIN', 'animations', 'spin', 'sequence'),
+    ('../common/art/shared.png', '../common/art', 'shared', 'image'),
+])
+def test_metadata_sync_folder_to_open_image_keeps_edits_and_filters(new_context, metadata_backend, image, folder, query, kind):
+    backend, game = metadata_backend
+    seed_metadata_browser(game)
+    png(game / '../common/art/shared.png')
+    catalog = json.loads((game / 'RssImagesData.json').read_text())
+    catalog['images'].append({'id': 'SHARED', 'path': '../common/art/shared.png'})
+    write(game / 'RssImagesData.json', catalog)
+    page = new_context().new_page()
+    studio = open_studio(page, backend)
+    show_folders(studio)
+    studio.get_by_role('button', name='Show all images', exact=True).click()
+    opened = studio.get_by_role('button', name=f'Open {image}', exact=True)
+    opened.click()
+    studio.get_by_label('Description', exact=True).fill('Keep these unsaved edits when syncing.')
+    studio.get_by_label('Find image', exact=True).fill(query)
+    studio.get_by_label('Filter by image type', exact=True).select_option(kind)
+    studio.get_by_label('Filter by asset status', exact=True).select_option('available')
+    # The folder selection can differ from the image still open in the editor.
+    choose_folder(studio, 'backgrounds')
+    expect(studio.locator('.studio-file')).to_have_count(0)
+    sync = studio.get_by_role('button', name='Sync folder to selected image', exact=True)
+    sync.click()
+    expect(studio.get_by_role('navigation', name='Folder path').locator('[aria-current="location"]')).to_have_text(folder.split('/')[-1])
+    expect(opened).to_have_attribute('aria-pressed', 'true')
+    expect(studio.locator('.studio-file')).to_have_count(1)
+    expect(studio.get_by_label('Description', exact=True)).to_have_value('Keep these unsaved edits when syncing.')
+    expect(studio.get_by_label('Find image', exact=True)).to_have_value(query)
+    expect(studio.get_by_label('Filter by image type', exact=True)).to_have_value(kind)
+    expect(studio.get_by_label('Filter by asset status', exact=True)).to_have_value('available')
+    tree = show_folders(studio)
+    expect(tree.locator('[aria-selected="true"]')).to_have_attribute('aria-label', f'{folder}, {2 if folder == "art/icons" else 1} assets')
+    studio.locator('.studio-folder-picker > summary').press('Escape')
+    page.once('dialog', lambda dialog: dialog.accept())
+    studio.get_by_role('button', name='New image metadata', exact=True).click()
+    expect(sync).to_be_disabled()
+
+
+def test_metadata_folder_alt_click_toggles_subtree_without_selecting(new_context, metadata_backend):
+    backend, game = metadata_backend
+    seed_metadata_browser(game)
+    catalog = json.loads((game / 'RssImagesData.json').read_text())
+    for index, path in enumerate(('art/icons/special/shine.png', 'backgrounds/weather/cloud.png')):
+        png(game / path)
+        catalog['images'].append({'id': f'NESTED_{index}', 'path': path})
+    write(game / 'RssImagesData.json', catalog)
+    page = new_context().new_page()
+    studio = open_studio(page, backend)
+    gold = studio.get_by_role('button', name='Open art/icons/gold.png', exact=True)
+    gold.click()
+    studio.get_by_label('Description', exact=True).fill('Keep unsaved edits while expanding folders.')
+    tree = show_folders(studio)
+    studio.get_by_role('button', name='Expand folder backgrounds', exact=True).click()
+    art = tree.get_by_role('treeitem', name='art, 4 assets', exact=True)
+    icons = tree.get_by_role('treeitem', name='art/icons, 3 assets', exact=True)
+    special = tree.get_by_role('treeitem', name='art/icons/special, 1 assets', exact=True)
+    # Alt+Click on the label expands every descendant and keeps the picker open.
+    tree.get_by_role('button', name='Select folder art', exact=True).click(modifiers=['Alt'])
+    expect(art).to_have_attribute('aria-expanded', 'true')
+    expect(icons).to_have_attribute('aria-expanded', 'true')
+    expect(special).to_be_visible()
+    # Alt+Click on the disclosure collapses the entire branch, including hidden descendants.
+    tree.get_by_role('button', name='Collapse folder art', exact=True).click(modifiers=['Alt'])
+    expect(art).to_have_attribute('aria-expanded', 'false')
+    tree.get_by_role('button', name='Expand folder art', exact=True).click()
+    expect(icons).to_have_attribute('aria-expanded', 'false')
+    expect(special).to_have_count(0)
+    expect(tree.get_by_role('treeitem', name='backgrounds/weather, 1 assets', exact=True)).to_be_visible()
+    expect(gold).to_have_attribute('aria-pressed', 'true')
+    expect(studio.locator('.studio-file')).to_have_count(9)
+    expect(studio.get_by_label('Description', exact=True)).to_have_value('Keep unsaved edits while expanding folders.')
 
 
 def test_metadata_batch_uses_filtered_images_and_refreshes_asset_list(new_context, metadata_backend):
@@ -759,8 +1129,8 @@ def test_metadata_tree_selects_one_item_without_checkboxes(new_context, metadata
     show_folders(studio)
     expect(art).to_have_attribute('aria-selected', 'true')
     expect(selected).to_have_count(1)
-    studio.get_by_role('button', name='Collapse all', exact=True).click()
-    studio.get_by_role('button', name='Expand all', exact=True).click()
+    tree.get_by_role('button', name='Select folder art', exact=True).click(modifiers=['Alt'])
+    tree.get_by_role('button', name='Select folder art', exact=True).click(modifiers=['Alt'])
     expect(art).to_have_attribute('aria-selected', 'true')
     studio.locator('.studio-folder-picker > summary').press('Escape')
     # UI review only: selecting a destination does not change the actual save path.
@@ -791,7 +1161,7 @@ def test_metadata_batch_uses_only_selected_images_even_when_hidden_by_filter(new
     assert not (game / 'backgrounds/sky.png.json').exists()
     studio.get_by_role('tab', name='Metadata', exact=True).click()
     expect(studio.get_by_role('button', name='Generate batch 1', exact=True)).to_be_enabled()
-    studio.get_by_role('button', name='Clear filters', exact=True).click()
+    studio.get_by_role('button', name='Clear image search', exact=True).click()
     expect(studio.get_by_role('button', name='Open art/icons/silver.png', exact=True)).to_have_attribute('aria-pressed', 'true')
     BUILD.mkdir(exist_ok=True)
     page.evaluate('window.scrollTo(0, 0)')

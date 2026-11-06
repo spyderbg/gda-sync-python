@@ -31,7 +31,7 @@ const selectedKey = ref('');
 watch(() => props.selected, file => { selectedKey.value = file ? `file:${file}` : ''; }, { immediate: true });
 const focused = ref('');
 const tree = ref<HTMLElement>();
-const folderLabel = (value: string) => value === '.' ? 'Game folder' : value === '..' ? 'Shared resources' : value;
+const folderLabel = (value: string) => value === '.' ? 'Game folder' : value;
 const folderBreadcrumbs = computed(() => {
   if (folder.value === 'all') return [];
   const parts = folder.value === '.' ? [] : folder.value.split('/');
@@ -44,12 +44,13 @@ const folderBreadcrumbs = computed(() => {
   return crumbs;
 });
 const matching = computed(() => {
-  const needle = query.value.trim().toLowerCase();
+  const needle = query.value.trim();
+  const caseSensitive = needle !== needle.toLowerCase();
   return props.files.filter(file => (kind.value === 'all' || file.kind === kind.value)
     && (status.value === 'all' || file.category === status.value)
     && (folder.value === 'all' || file.folder === folder.value || file.folder.startsWith(`${folder.value}/`)
       || (folder.value === '.' && !file.folder.startsWith('..')))
-    && (!needle || `${file.name}\n${file.path}\n${file.folder}`.toLowerCase().includes(needle)));
+    && (!needle || (caseSensitive ? fileName(file) : fileName(file).toLowerCase()).includes(needle)));
 });
 async function observeThumbnails() {
   await nextTick();
@@ -70,6 +71,7 @@ onBeforeUnmount(() => thumbnailObserver?.disconnect());
 // One selected image or folder determines the batch scope.
 const selectedFolder = computed(() => selectedKey.value.startsWith('folder:') ? selectedKey.value.slice(7) : null);
 const selectedFile = computed(() => props.files.find(file => selectedKey.value === `file:${file.file}`));
+const openImage = computed(() => props.files.find(file => file.file === props.selected));
 const belongsToFolder = (file: StudioFile, path: string) => file.folder === path || file.folder.startsWith(`${path}/`)
   || (path === '.' && !file.folder.startsWith('..'));
 const batchFiles = computed(() => selectedFolder.value !== null
@@ -103,7 +105,7 @@ type FolderNode = { key: string; path: string; name: string; children: Map<strin
 type TreeRow = { key: string; parent: string; depth: number; name: string; folder: FolderNode };
 const roots = computed(() => {
   const root: FolderNode = { key: 'folder:.', path: '.', name: 'Game folder', children: new Map(), count: 0 };
-  const shared: FolderNode = { key: 'folder:..', path: '..', name: 'Shared resources', children: new Map(), count: 0 };
+  const shared: FolderNode = { key: 'folder:..', path: '..', name: '..', children: new Map(), count: 0 };
   // Keep every catalog folder available, independently of the active image filters.
   for (const file of props.files) {
     const parts = file.folder === '.' ? [] : file.folder.split('/');
@@ -137,15 +139,17 @@ watch(folderKeys, (keys, previousKeys) => {
 const treeRows = computed(() => {
   const rows: TreeRow[] = [];
   const visit = (node: FolderNode, depth: number, parent: string) => {
-    rows.push({ key: node.key, parent, depth, name: node.name, folder: node });
+    rows.push({ key: node.key, parent, depth,
+      name: depth === 0 && node.path.startsWith('../') ? node.path : node.name, folder: node });
     if (collapsed.value.has(node.key)) return;
     [...node.children.values()].sort((a, b) => a.name.localeCompare(b.name)).forEach(child => visit(child, depth + 1, node.key));
   };
-  roots.value.forEach(node => {
-    if (node.path === '.') {
-      [...node.children.values()].sort((a, b) => a.name.localeCompare(b.name)).forEach(child => visit(child, 0, ''));
+  const visitRoot = (node: FolderNode) => {
+    if (node.path === '.' || node.name === '..') {
+      [...node.children.values()].sort((a, b) => a.name.localeCompare(b.name)).forEach(visitRoot);
     } else visit(node, 0, '');
-  });
+  };
+  roots.value.forEach(visitRoot);
   return rows;
 });
 function activateRow(row: TreeRow) {
@@ -157,6 +161,14 @@ function chooseFolder(path: string) {
   selectedKey.value = path === 'all' ? '' : `folder:${path}`;
   folder.value = path;
 }
+function syncFolderToImage() {
+  if (props.working || !openImage.value) return;
+  folder.value = openImage.value.folder;
+  selectedKey.value = `file:${openImage.value.file}`;
+  const key = `folder:${folder.value}`;
+  collapsed.value = new Set([...collapsed.value].filter(parent => !key.startsWith(`${parent}/`)));
+  focused.value = key;
+}
 function closeFolderPicker() {
   if (!folderPicker.value) return;
   folderPicker.value.open = false;
@@ -167,10 +179,20 @@ function closePickerOnBlur(event: FocusEvent) {
 }
 const focusKey = computed(() => treeRows.value.some(row => row.key === focused.value) ? focused.value
   : treeRows.value.find(row => row.key === selectedKey.value)?.key ?? treeRows.value[0]?.key);
-function toggleFolder(key: string) {
+function toggleFolder(key: string, recursive = false) {
   const next = new Set(collapsed.value);
-  if (next.has(key)) next.delete(key); else next.add(key);
+  const shouldCollapse = !next.has(key);
+  const keys = recursive ? folderKeys.value.filter(candidate => candidate === key || candidate.startsWith(`${key}/`)) : [key];
+  for (const candidate of keys) {
+    if (shouldCollapse) next.add(candidate); else next.delete(candidate);
+  }
   collapsed.value = next;
+}
+function onFolderClick(event: MouseEvent, row: TreeRow) {
+  if (!event.altKey) return;
+  event.preventDefault();
+  event.stopPropagation();
+  toggleFolder(row.key, true);
 }
 async function focusRow(key: string | undefined) {
   if (!key) return;
@@ -215,17 +237,13 @@ const fileStatus = (file: StudioFile) => `${file.kind === 'sequence' ? `ImageSeq
           <summary class="btn btn-primary"><i aria-hidden="true" class="mdi mdi-folder-open-outline" /> Select folder <i aria-hidden="true" class="mdi mdi-chevron-down" /></summary>
           <div class="studio-folder-popover">
             <div class="studio-folder-picker-heading"><strong>Select folder</strong><button type="button" class="btn btn-link btn-sm" @click="folder = 'all'; selectedKey = ''; closeFolderPicker()">Show all images</button></div>
-            <div class="studio-tree-controls">
-              <button type="button" class="btn btn-link btn-sm" @click="collapsed = new Set()">Expand all</button>
-              <button type="button" class="btn btn-link btn-sm" @click="collapsed = new Set(folderKeys)">Collapse all</button>
-            </div>
             <div v-if="treeRows.length" ref="tree" class="studio-folder-tree" role="tree" aria-label="Select image folder" aria-multiselectable="false" @keydown="onTreeKey">
               <div v-for="row in treeRows" :key="row.key" role="treeitem" :data-studio-key="row.key" :tabindex="focusKey === row.key ? 0 : -1"
                    :class="['studio-folder', { active: folder === row.folder.path }]"
                    :style="{ paddingLeft: `${8 + row.depth * 16}px` }" :aria-level="row.depth + 1"
                    :aria-expanded="row.folder.children.size ? !collapsed.has(row.key) : undefined" :aria-selected="folder === row.folder.path"
-                   :aria-label="`${folderLabel(row.folder.path)}, ${row.folder.count} assets`" :title="row.folder.path"
-                   @focus="focused = row.key" @click.self="activateRow(row)">
+                   :aria-label="`${folderLabel(row.folder.path)}, ${row.folder.count} assets`" :title="`${row.folder.path}\nAlt+Click to expand or collapse all subfolders`"
+                   @focus="focused = row.key" @click.capture="onFolderClick($event, row)" @click.self="activateRow(row)">
                 <button v-if="row.folder.children.size" type="button" class="studio-disclosure" tabindex="-1"
                         :aria-label="`${collapsed.has(row.key) ? 'Expand' : 'Collapse'} folder ${folderLabel(row.folder.path)}`"
                         :aria-expanded="!collapsed.has(row.key)" @click="toggleFolder(row.key)">
@@ -241,11 +259,12 @@ const fileStatus = (file: StudioFile) => `${file.kind === 'sequence' ? `ImageSeq
             <p v-else class="studio-hint">No subfolders are available.</p>
           </div>
         </details>
+        <button type="button" class="btn btn-outline-primary studio-sync-folder" aria-label="Sync folder to selected image" title="Sync folder to selected image" :disabled="working || !openImage" @click="syncFolderToImage"><i aria-hidden="true" class="mdi mdi-sync" /></button>
         <nav class="studio-folder-path" aria-label="Folder path">
           <ol>
             <li v-if="folder === 'all'"><span aria-current="location">All images</span></li>
             <li v-for="(crumb, index) in folderBreadcrumbs" :key="crumb.path">
-              <i v-if="index" aria-hidden="true" class="mdi mdi-chevron-right" />
+              <span v-if="index" aria-hidden="true">/</span>
               <span v-if="index === folderBreadcrumbs.length - 1" aria-current="location"><template v-if="crumb.path !== '.'">{{ crumb.label }}</template><template v-else><i aria-hidden="true" class="mdi mdi-folder-outline" /><span class="sr-only">Game folder</span></template></span>
               <button v-else type="button" :disabled="working" :aria-label="crumb.label" @click="chooseFolder(crumb.path)"><i v-if="crumb.path === '.'" aria-hidden="true" class="mdi mdi-folder-outline" /><template v-else>{{ crumb.label }}</template></button>
             </li>
@@ -260,7 +279,6 @@ const fileStatus = (file: StudioFile) => `${file.kind === 'sequence' ? `ImageSeq
           <input v-model="query" class="form-control" type="search" aria-label="Find image" placeholder="Search files…">
           <button v-if="query" type="button" aria-label="Clear image search" @click="query = ''"><i aria-hidden="true" class="mdi mdi-close" /></button>
         </form>
-        <button v-if="hasFilters" type="button" class="btn btn-link studio-clear-filters" @click="clearFilters">Clear filters</button>
         <button type="button" class="btn btn-outline-primary studio-new-image" @click="emit('create')"><i aria-hidden="true" class="mdi mdi-plus" /> New image metadata</button>
       </div>
     </div>
@@ -291,8 +309,12 @@ const fileStatus = (file: StudioFile) => `${file.kind === 'sequence' ? `ImageSeq
 
 <style scoped>
 .studio-browser { container-type: inline-size; }
+.studio-browser.fill-height { display: flex; flex-direction: column; flex: 1; }
+.fill-height .studio-layout { flex: 1; }
+.fill-height .studio-file-list { flex: 1 1 0; min-height: 210px; max-height: none; align-content: start; }
 .studio-filter-toolbar { margin-bottom: 12px; }
-.studio-primary-toolbar { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px; }
+.studio-primary-toolbar { display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: center; gap: 8px; }
+.studio-sync-folder { display: inline-flex; align-items: center; justify-content: center; width: 32px; padding: 4px 0; font-size: 18px; }
 .studio-secondary-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding-top: 8px; }
 .studio-secondary-toolbar > .form-control { flex: 0 1 140px; min-width: 130px; width: 140px; }
 .studio-folder-picker { position: relative; flex-shrink: 0; }
@@ -306,18 +328,16 @@ const fileStatus = (file: StudioFile) => `${file.kind === 'sequence' ? `ImageSeq
 .studio-folder-path button:disabled { color: #77809a; cursor: default; }
 .studio-folder-path .mdi { flex-shrink: 0; color: #a1a9b8; }
 .studio-folder-popover { position: absolute; top: calc(100% + 8px); left: 0; z-index: 5; width: min(460px, calc(100vw - 88px)); padding: 16px; background: white; border: 1px solid #dce3ed; border-radius: 7px; box-shadow: 0 12px 32px #192c4926; }
-.studio-folder-picker-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; font-size: 13px; }
+.studio-folder-picker-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; font-size: 13px; }
 .studio-folder-picker-heading .btn { padding: 0; }
-.studio-tree-controls { display: flex; gap: 16px; margin-bottom: 12px; }
-.studio-tree-controls .btn { padding: 0; font-size: 11px; }
 .studio-folder-tree { max-height: 380px; overflow: auto; }
-.studio-folder { display: flex; align-items: center; gap: 5px; min-height: 36px; padding: 6px 8px; font-size: 12px; border-radius: 4px; cursor: pointer; }
+.studio-folder { display: flex; align-items: center; gap: 5px; min-height: 28px; padding: 3px 8px; font-size: 14px; line-height: 20px; border-radius: 4px; cursor: pointer; }
 .studio-folder.active { background: #eef5ff; color: #2277cf; }
 .studio-open { display: flex; align-items: center; flex: 1; min-width: 0; gap: 7px; padding: 0; border: 0; background: none; color: inherit; text-align: left; font: inherit; cursor: pointer; }
 .studio-open > span { overflow-wrap: anywhere; min-width: 0; }
 .studio-disclosure, .studio-disclosure-spacer { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; width: 16px; padding: 0; border: 0; background: none; color: inherit; }
 .studio-disclosure { cursor: pointer; }
-.studio-folder-count { margin-left: auto; font-size: 11px; color: #77809a; }
+.studio-folder-count { margin-left: auto; font-size: 12px; color: #77809a; }
 .studio-new-image { margin-left: auto; }
 .studio-layout { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 12px; align-items: stretch; }
 .studio-sidebar { display: flex; flex-direction: column; gap: 10px; min-width: 0; padding: 10px 8px; border: 1px solid #dce2f2; border-radius: 7px; box-shadow: 0 2px 5px #18204e06; }
@@ -330,6 +350,7 @@ const fileStatus = (file: StudioFile) => `${file.kind === 'sequence' ? `ImageSeq
 .studio-search { flex: 1 1 180px; display: flex; align-items: center; min-width: 0; position: relative; }
 .studio-search > .mdi { position: absolute; left: 10px; color: #8c93a3; }
 .studio-search .form-control { width: 100%; padding-left: 28px; padding-right: 24px; }
+.studio-search input::-webkit-search-cancel-button { display: none; }
 .studio-search button { position: absolute; right: 6px; border: 0; background: none; color: #77809a; cursor: pointer; }
 .studio-batch summary { cursor: pointer; font-size: 12px; color: #68718a; }
 .studio-hint { margin: 0; font-size: 12px; color: #77809a; line-height: 1.5; overflow-wrap: anywhere; }
@@ -354,7 +375,12 @@ const fileStatus = (file: StudioFile) => `${file.kind === 'sequence' ? `ImageSeq
 .studio-empty > .mdi { font-size: 24px; }
 @container (max-width: 800px) { .studio-layout { grid-template-columns: 200px minmax(0, 1fr); } }
 @container (max-width: 550px) { .studio-layout { grid-template-columns: minmax(0, 1fr); } .studio-file-list { max-height: 210px; } .studio-new-image { margin-left: auto; } }
-@container (max-width: 350px) { .studio-primary-toolbar { grid-template-columns: minmax(0, 1fr); } }
+@container (max-width: 550px) { .fill-height .studio-file-list { flex: none; min-height: 0; max-height: 210px; } }
+@container (max-width: 350px) { .studio-primary-toolbar { grid-template-columns: minmax(0, 1fr) auto; } .studio-folder-path { grid-column: 1 / -1; } }
+@media (min-width: 992px) {
+  .studio-browser.fill-height, .fill-height .studio-layout, .fill-height .studio-sidebar, .fill-height .studio-file-list { min-height: 0; }
+  .fill-height .studio-layout { grid-template-rows: minmax(0, 1fr); }
+}
 
 @media (pointer: coarse) { .studio-folder { min-height: 44px; } }
 </style>

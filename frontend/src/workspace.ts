@@ -145,15 +145,15 @@ export async function api<T>(path: string, method = 'POST', body?: unknown): Pro
   return value as T;
 }
 
-const navigationGuards = new Set<() => boolean>();
-export function registerNavigationGuard(guard: () => boolean) {
+const navigationGuards = new Set<(view?: View) => boolean>();
+export function registerNavigationGuard(guard: (view?: View) => boolean) {
   navigationGuards.add(guard);
   return () => { navigationGuards.delete(guard); };
 }
-const canNavigate = () => [...navigationGuards].every(guard => guard());
+const canNavigate = (view?: View) => [...navigationGuards].every(guard => guard(view));
 
 export function navigate(view: View, category: AssetSection | 'all' = 'all') {
-  if (view !== ui.view && !canNavigate()) return;
+  if (view !== ui.view && !canNavigate(view)) return;
   applyNavigation(view, category);
 }
 

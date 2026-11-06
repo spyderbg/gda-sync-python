@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onDeactivated, onMounted, ref, watch } from 'vue';
 import { baseName, reportPreviewURL } from '../format';
 import type { ImageMetadata } from '../imageStudio';
 
@@ -10,6 +10,7 @@ const index = ref(0);
 const playing = ref(false);
 const failed = ref(false);
 const ready = ref(false);
+const imageAspectRatios = ref(new Map<string, number>());
 const thumbnails = new Map<number, HTMLCanvasElement>();
 let images = new Map<string, HTMLImageElement | null>();
 let failedPaths = new Set<string>();
@@ -23,6 +24,11 @@ const visibleFrames = computed(() => {
   return props.sequence.frames.slice(start, start + 5).map((frame, offset) => ({ ...frame, index: start + offset }));
 });
 const file = (path: string) => `${props.game.replace(/\\/g, '/').replace(/\/$/, '')}/${path}`;
+function frameAspectRatio(position: number) {
+  const frame = props.sequence.frames[position];
+  return frame?.source && frame.source.w > 0 && frame.source.h > 0
+    ? frame.source.w / frame.source.h : imageAspectRatios.value.get(frame?.path ?? '') ?? 1;
+}
 
 function drawFrame(target: HTMLCanvasElement, position: number, thumbnail = false) {
   const frame = props.sequence.frames[position];
@@ -55,6 +61,7 @@ function load(position: number) {
   image.onload = () => {
     if (current !== generation || !images.has(frame.path)) return;
     images.set(frame.path, image);
+    imageAspectRatios.value.set(frame.path, image.naturalWidth / image.naturalHeight);
     draw();
   };
   image.onerror = () => {
@@ -111,6 +118,7 @@ watch(() => [props.sequence, props.game, props.revision], () => {
   pause();
   generation++;
   images = new Map();
+  imageAspectRatios.value = new Map();
   failedPaths = new Set();
   index.value = 0;
   failed.value = false;
@@ -135,6 +143,7 @@ onMounted(() => {
   draw();
 });
 onBeforeUnmount(() => { generation++; pause(); observer?.disconnect(); });
+onDeactivated(pause);
 </script>
 
 <template>
@@ -150,7 +159,7 @@ onBeforeUnmount(() => { generation++; pause(); observer?.disconnect(); });
         <option v-for="(_frame, position) in sequence.frames" :key="position" :value="position">{{ position + 1 }} / {{ sequence.frames.length }}</option>
       </select>
       <div class="studio-filmstrip">
-        <button v-for="frame in visibleFrames" :key="frame.index" type="button" :aria-label="`Show frame ${frame.index + 1}`" :aria-pressed="index === frame.index" :title="baseName(frame.path)" @click="seek(frame.index)">
+        <button v-for="frame in visibleFrames" :key="frame.index" type="button" :style="{ '--frame-aspect': frameAspectRatio(frame.index) }" :aria-label="`Show frame ${frame.index + 1}`" :aria-pressed="index === frame.index" :title="baseName(frame.path)" @click="seek(frame.index)">
           <canvas :ref="element => setThumbnail(frame.index, element)" aria-hidden="true" />
         </button>
       </div>
@@ -160,16 +169,17 @@ onBeforeUnmount(() => { generation++; pause(); observer?.disconnect(); });
 </template>
 
 <style scoped>
-.studio-sequence-stage { height: 285px; display: flex; align-items: center; justify-content: center; padding: 8px; background: repeating-conic-gradient(#f1f2f7 0% 25%, white 0% 50%) 50% / 12px 12px; }
+.studio-sequence-player { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.studio-sequence-stage { flex: 1; min-height: 0; height: var(--studio-preview-height, 285px); display: flex; align-items: center; justify-content: center; padding: 8px; background: repeating-conic-gradient(#f1f2f7 0% 25%, white 0% 50%) 50% / 12px 12px; }
 .studio-sequence-stage > canvas { display: block; width: 100%; height: 100%; object-fit: contain; }
-.studio-sequence-controls { display: grid; grid-template-columns: 32px 68px minmax(0, 1fr) 22px; align-items: center; gap: 6px; padding: 8px 0 0; }
+.studio-sequence-controls { display: grid; grid-template-columns: 32px 68px minmax(0, 1fr) 22px; align-items: center; gap: 6px; padding: 8px 0 0; flex-shrink: 0; }
 .studio-sequence-controls button, .studio-sequence-controls select { padding: 4px; height: 32px; min-width: 0; border: 1px solid #dce2f2; border-radius: 5px; background: white; font: inherit; font-size: 11px; color: #18204e; }
 .studio-sequence-controls button { cursor: pointer; }
-.studio-sequence-controls .studio-play { background: #2336ff; color: white; border-color: #2336ff; font-size: 24px; line-height: 1; }
-.studio-filmstrip { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; min-width: 0; }
-.studio-filmstrip button { height: 42px; overflow: hidden; padding: 3px; background: repeating-conic-gradient(#f1f2f7 0% 25%, white 0% 50%) 50% / 8px 8px; }
+.studio-sequence-controls .studio-play { display: flex; align-items: center; justify-content: center; padding: 0; background: #2336ff; color: white; border-color: #2336ff; font-size: 24px; line-height: 1; }
+.studio-filmstrip { display: flex; align-items: center; gap: 5px; min-width: 0; }
+.studio-filmstrip button { flex: 0 1 calc(42px * var(--frame-aspect)); aspect-ratio: var(--frame-aspect); height: auto; position: relative; overflow: hidden; padding: 0; background: repeating-conic-gradient(#f1f2f7 0% 25%, white 0% 50%) 50% / 8px 8px; }
 .studio-filmstrip button[aria-pressed=true] { border-color: #2336ff; box-shadow: 0 0 0 1px #2336ff; }
-.studio-filmstrip canvas { width: 100%; height: 100%; object-fit: contain; display: block; }
+.studio-filmstrip canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: block; }
 .studio-sequence-controls .studio-next-frames { border: 0; padding: 0; font-size: 21px; }
 .studio-next-frames:disabled { opacity: .35; cursor: default; }
 @media (max-width: 575px) { .studio-sequence-stage { height: 230px; } .studio-sequence-controls { grid-template-columns: 30px 62px minmax(0, 1fr) 18px; gap: 4px; } .studio-filmstrip { gap: 3px; } }

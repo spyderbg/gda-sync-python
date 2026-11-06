@@ -15,7 +15,7 @@ import BackupsView from './views/BackupsView.vue';
 import SyncHistoryView from './views/SyncHistoryView.vue';
 import SyncInProgressView from './views/SyncInProgressView.vue';
 import SyncView from './views/SyncView.vue';
-import { data, isLibraryView, load, loadError, stopped, ui, navigate } from './workspace';
+import { config, data, isLibraryView, load, loadError, stopped, ui, navigate } from './workspace';
 
 // The browser game (its engine, states and views) loads when its page first opens, and goes on playing while another
 // page shows (KeepAlive): back on Play, it is where it was.
@@ -67,7 +67,9 @@ onBeforeUnmount(() => {
           <SyncHistoryView v-else-if="ui.view === 'history'" />
           <BackupsView v-else-if="ui.view === 'backups'" />
           <SettingsView v-else-if="ui.view === 'settings'" />
-          <ImageStudioView v-else-if="ui.view === 'imageStudio'" />
+          <KeepAlive :key="config.defaultWorkspace">
+            <ImageStudioView v-if="ui.view === 'imageStudio'" />
+          </KeepAlive>
           <KeepAlive>
             <GameView v-if="ui.view === 'game' || ui.view === 'gameTools'" :tools-page="ui.view === 'gameTools'" />
           </KeepAlive>
