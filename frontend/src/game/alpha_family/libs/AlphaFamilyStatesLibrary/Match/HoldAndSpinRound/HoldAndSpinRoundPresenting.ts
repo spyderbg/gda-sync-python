@@ -1,6 +1,5 @@
 // Egt::Game::AlphaFamily::HoldAndSpinRoundPresentingState (AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundPresenting):
-// accumulates the phase's win, shows the coins that landed and the big win, then the next phase's reeling or the
-// round's ending.
+// accumulates the phase's win and shows the coins that landed, then the next phase's reeling or the round's ending.
 
 import { State } from '@game/engine/Fsm/Fsm';
 import { IsValidIndex } from '@game/engine/GameCore/Common/ContainerHelpers';
@@ -14,8 +13,6 @@ import {
   IHoldAndSpinRound, IHoldAndSpinRoundEnding, IHoldAndSpinRoundPresenting, IHoldAndSpinRoundReeling,
 } from '@game/alpha_family/libs/AlphaFamily/States/Match/IHoldAndSpinRound';
 import { ICoinsWinBarView, ICreditsWinBarView, IHoldAndSpinBarView } from '@game/alpha_family/libs/AlphaFamily/Views/BarsView.bridge';
-import { IBigWinInfoView } from '@game/alpha_family/libs/AlphaFamily/Views/IBigWinInfoView.bridge';
-import { IBigWinView } from '@game/alpha_family/libs/AlphaFamily/Views/IOverlayViews.bridge';
 import { IReelsView } from '@game/alpha_family/libs/AlphaFamily/Views/IReelsView.bridge';
 import { IWinFiguresView } from '@game/alpha_family/libs/AlphaFamily/Views/IWinFiguresView.bridge';
 import { HoldAndSpinRoundStorage } from './HoldAndSpinRound.data';
@@ -29,10 +26,16 @@ export class HoldAndSpinRoundPresentingState extends State {
   OnTransit(_isStartup: boolean, _isRecovery: boolean) {
     EgtATrace('OnTransit {} {} {}', this.Parent(IHoldAndSpinRound).GetRoundType(), _isStartup ? 'isStartup' : '', _isRecovery ? 'isRecovery' : '');
 
+    this.m_waitingBarValueAnim = false;
     this.AtachCallbacks();
 
     const winBarStarting = this.GetWinBarStartingValue();
-    this.Parent(IHoldAndSpinRound).SetupViews({ disableInfoButton: true, overrideWinBar: winBarStarting, showMainInfo: true });
+    this.Parent(IHoldAndSpinRound).SetupViews({
+      disableInfoButton: true,
+      overrideWinBar: winBarStarting,
+      showMainInfo: true,
+      showLastPhaseSpinsCompletedAnimated: !_isRecovery,
+    });
 
     this.StartAccumulationAnim();
   }
@@ -44,11 +47,13 @@ export class HoldAndSpinRoundPresentingState extends State {
   private AtachCallbacks() {
     this.ReactOn(this.RuntimeGetConst(ICreditsWinBarView.Events).animatingDone, this.OnAccumulationEnd);
     this.ReactOn(this.RuntimeGetConst(IWinFiguresView.Events).animatingDone, this.OnWinFiguresAnimatingDone);
-    this.ReactOn(this.RuntimeGetConst(IBigWinView.Events).animatingDone, this.OnBigWinAnimatingDone);
-
     const coinsBarViewEvents = this.RuntimeTryGetConst(ICoinsWinBarView.Events);
     if (coinsBarViewEvents) {
       this.ReactOn(coinsBarViewEvents.animatingDone, this.OnAccumulationEnd);
+    }
+    const hsBarViewEvents = this.RuntimeTryGetConst(IHoldAndSpinBarView.Events);
+    if (hsBarViewEvents) {
+      this.ReactOn(hsBarViewEvents.valueAnimDone, this.OnBarValueAnimDone);
     }
   }
 
@@ -171,39 +176,40 @@ export class HoldAndSpinRoundPresentingState extends State {
       this.RuntimeGet(IReelsView).ShowCombinations(winFiguresInfo); // hide symbols from underneath
       return this.Consume();
     } else {
-      return this.CheckBigWin();
+      return this.FinishPhase();
     }
   }
 
   private OnWinFiguresAnimatingDone() {
-    return this.CheckBigWin();
+    return this.FinishPhase();
   }
 
-  private CheckBigWin() {
-    const roundResult = this.ConstNvram(HoldAndSpinRoundStorage).roundResult;
-    const roundRules = this.Parent(IHoldAndSpinRound).GetRoundRules();
-    const tags = roundRules.GetRoundTags(roundResult!);
-
-    if (tags.length) {
-      this.RuntimeGet(IBigWinView).ShowAnimation(tags[tags.length - 1]);
-
-      const bigWinUnfoldedView = this.RuntimeTryGet(IBigWinInfoView);
-      if (bigWinUnfoldedView) {
-        bigWinUnfoldedView.ShowAnimation(tags[tags.length - 1]);
-      }
+  private FinishPhase() {
+    const hsBarView = this.RuntimeTryGet(IHoldAndSpinBarView);
+    if (hsBarView && hsBarView.IsValueAnimating()) {
+      this.m_waitingBarValueAnim = true;
       return this.Consume();
-    } else {
-      return this.OnBigWinAnimatingDone();
     }
+
+    return this.ToNextPhase();
   }
 
-  private OnBigWinAnimatingDone() {
+  private OnBarValueAnimDone() {
+    if (!this.m_waitingBarValueAnim) return this.Skip();
+
+    this.m_waitingBarValueAnim = false;
+    return this.ToNextPhase();
+  }
+
+  private ToNextPhase() {
     if (this.NextPhase()) {
       return this.Transit(IHoldAndSpinRoundReeling);
     } else {
       return this.ToRoundEnding();
     }
   }
+
+  private m_waitingBarValueAnim = false;
 }
 
 EgtALogCategoryClass(HoldAndSpinRoundPresentingState, 'HoldAndSpinRoundPresentingState');

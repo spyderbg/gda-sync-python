@@ -1,6 +1,7 @@
 // Egt::Game::AlphaFamily::IFreeRoundOverlayView (AlphaFamily/Views/IFreeRoundOverlayView.bridge.h): above the reels for special effects.
 
 import { Event } from '@game/engine/Core/Event';
+import type { CurrencyType } from '@game/engine/Game/Math/Common.data';
 import { Interface } from '@game/engine/GameCore/RuntimeAccess';
 import { type IControlView, IControlViewEvents } from './BaseInterfaces/IControlView';
 
@@ -8,7 +9,7 @@ export interface IFreeRoundOverlayView extends IControlView {
   ShowIntro(): void;
   ShowOutro(): void;
   Clear(): void;
-  SetRewardedAmount(rewarded: number): void;
+  SetRewardedAmount(rewarded: number, currencyType: CurrencyType): void;
   SetFreeSpinsRewarded(rewarded: number): void;
 }
 

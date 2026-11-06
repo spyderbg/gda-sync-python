@@ -9,6 +9,7 @@ import { AssertUnless, Unless } from '@game/engine/GameCore/Common/Defensive';
 import { IsValidIndex } from '@game/engine/GameCore/Common/ContainerHelpers';
 import { IResources, type Point } from '@game/engine/Game/RuntimeExport/IResources';
 import { ILocalization } from '@game/engine/Game/RuntimeImport/ILocalization';
+import { CountdownTimer } from '@game/engine/Game/Utils/CountdownTimer';
 import { IVideoManager } from '@game/engine/GameVideoCtrl/RuntimeExport/IVideoManager';
 import { make_sentinel, sentinel } from '@game/hat_libs/egt_hpp/sentinel';
 import * as tweeny from '@game/hat_libs/tweeny/tweeny';
@@ -199,6 +200,11 @@ const OutroAlphaDelay: tweeny.duration_t = OutroMovingPrizesDelay;
 const CollectedScaleDefault: Point = { x: 1.0, y: 1.0 };
 const CollectedScaleZoomed: Point = { x: 1.1, y: 1.1 };
 
+// comets (coin/shield collection flying to this screen)
+const CometMoveDuration: tweeny.duration_t = 750;
+// cometsAnimDone backstop: real comets land well before this; only a stuck comet trips it.
+const CometsGuardExtraDuration: tweeny.duration_t = 1000;
+
 const AlphaVisible = 255;
 const AlphaTransparent = 0;
 
@@ -225,6 +231,9 @@ export class HoldAndSpinRoundInfoView extends BaseView implements IHoldAndSpinRo
   private m_nextCometToStart = 0;
   private m_finishedComets = 0;
   private m_fastForwardComets = false;
+  // Backstop for cometsAnimDone: without it, a comet config/engine glitch on this screen would
+  // stall the FreeRound retrigger/intro splashes on screen 1 forever (they wait on that event).
+  private m_cometsGuardTimer = new CountdownTimer();
 
   private readonly m_data = {
     totalBet: 1,
@@ -271,6 +280,17 @@ export class HoldAndSpinRoundInfoView extends BaseView implements IHoldAndSpinRo
     this.RuntimeRemove(IHoldAndSpinRoundInfoView.Events);
 
     super.Deinit();
+  }
+
+  Process() {
+    super.Process();
+
+    if (this.m_mode === EMode.Comets && this.m_cometsGuardTimer.IsRunning() && this.m_cometsGuardTimer.IsExpired()) {
+      // cometsAnimDone never arrived in time; force it so the splashes waiting on it (screen 1)
+      // don't stay stuck forever on a comet glitch.
+      this.StopComets();
+      this.m_events.cometsAnimDone.Post();
+    }
   }
 
   HandleFileChanged(path: string) {
@@ -708,7 +728,7 @@ export class HoldAndSpinRoundInfoView extends BaseView implements IHoldAndSpinRo
       const effectValue = it.effectValue ?? 0;
       this.m_cometEffectIds.push(effectId);
 
-      const move = MoveTo(effect, { x: target.x - pivot.x, y: target.y - pivot.y }, 750);
+      const move = MoveTo(effect, { x: target.x - pivot.x, y: target.y - pivot.y }, CometMoveDuration);
       move.on_begin.connect(() => {
         this.m_elementsList.SetHidden(false, [effectId]);
       });
@@ -753,6 +773,7 @@ export class HoldAndSpinRoundInfoView extends BaseView implements IHoldAndSpinRo
         ++this.m_finishedComets;
 
         if (this.m_finishedComets === this.m_cometActions.length) {
+          this.m_cometsGuardTimer.Stop();
           this.m_events.cometsAnimDone.Post();
         }
       });
@@ -762,6 +783,16 @@ export class HoldAndSpinRoundInfoView extends BaseView implements IHoldAndSpinRo
 
     if (this.m_cometActions.length === 0) {
       this.m_events.cometsAnimDone.Post();
+    } else {
+      // Comets start one after another (each move triggers the next), the last one's shield/explosion
+      // is what the whole sequence waits on: N moves plus one landing.
+      const landingDuration = Math.max(shieldAnimDuration, endExplAnimDuration);
+      const expectedDuration =
+        CometMoveDuration * this.m_cometActions.length + landingDuration;
+
+      this.m_cometsGuardTimer.SetDuration(
+        expectedDuration + CometsGuardExtraDuration);
+      this.m_cometsGuardTimer.Start();
     }
   }
 
@@ -779,6 +810,8 @@ export class HoldAndSpinRoundInfoView extends BaseView implements IHoldAndSpinRo
   }
 
   private StopComets() {
+    this.m_cometsGuardTimer.Stop();
+
     for (const cometAction of this.m_cometActions) {
       tweeny.stop(cometAction);
     }

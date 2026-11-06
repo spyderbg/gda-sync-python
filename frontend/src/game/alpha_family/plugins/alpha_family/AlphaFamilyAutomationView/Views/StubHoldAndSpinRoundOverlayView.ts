@@ -1,6 +1,7 @@
 // Egt::Game::AlphaFamily::Stub::StubHoldAndSpinRoundOverlayView (AlphaFamilyAutomationView/Views/StubHoldAndSpinRoundOverlayView.h): the automation's IHoldAndSpinRoundOverlayView.
 
-import { IHoldAndSpinRoundOverlayView, type IHoldAndSpinRoundOverlayViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/IHoldAndSpinRoundOverlayView.bridge';
+import type { CurrencyType } from '@game/engine/Game/Math/Common.data';
+import { type HoldAndSpinRoundOverlayTheme, IHoldAndSpinRoundOverlayView, type IHoldAndSpinRoundOverlayViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/IHoldAndSpinRoundOverlayView.bridge';
 import { StubView } from '../Components/StubView';
 
 export class StubHoldAndSpinRoundOverlayView extends StubView<IHoldAndSpinRoundOverlayView, IHoldAndSpinRoundOverlayViewEvents> implements IHoldAndSpinRoundOverlayView {
@@ -25,6 +26,10 @@ export class StubHoldAndSpinRoundOverlayView extends StubView<IHoldAndSpinRoundO
     this.m_events!.outroMidway.Post();
     this.m_events!.outroFinished.Post();
   }
+
+  SetRewardedAmount(_rewarded: number, _currencyType: CurrencyType) {}
+
+  SetTheme(_theme: HoldAndSpinRoundOverlayTheme) {}
 
   Clear() {}
 

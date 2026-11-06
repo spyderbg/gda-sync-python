@@ -9,6 +9,7 @@ export interface IFreeRoundRetriggerView {
 }
 
 export class IFreeRoundRetriggerViewEvents {
+  readonly retriggerMidway = new Event();
   readonly retriggerFinished = new Event();
 }
 

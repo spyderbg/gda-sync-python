@@ -4,19 +4,22 @@
 import { State } from '@game/engine/Fsm/Fsm';
 import { Currencies } from '@game/engine/Game/Math/Common.data';
 import { Contains, IsValidIndex } from '@game/engine/GameCore/Common/ContainerHelpers';
-import { AssertIf } from '@game/engine/GameCore/Common/Defensive';
+import { AssertIf, assert } from '@game/engine/GameCore/Common/Defensive';
 import { Copy } from '@game/engine/GameCore/Common/Types';
 import { EgtALogCategoryClass, EgtATrace } from '@game/engine/GameCore/Log/LogCategory';
 import { Currency, RoundType, type SymbolGrid } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
 import { HoldAndSpinRoundInput } from '@game/alpha_family/libs/AlphaFamily/Math/HoldAndSpin/HoldAndSpinRoundInput.data';
 import { HoldAndSpinPhase } from '@game/alpha_family/libs/AlphaFamily/Math/HoldAndSpin/HoldAndSpinRoundPhase.data';
+import type { RoundResult } from '@game/alpha_family/libs/AlphaFamily/Math/RoundResult.data';
 import { IMathRules } from '@game/alpha_family/libs/AlphaFamily/RuntimeExport/IMathRules';
 import { IGameflow } from '@game/alpha_family/libs/AlphaFamily/RuntimeImport/IGameflow.bridge';
 import { IBetManager } from '@game/alpha_family/libs/AlphaFamily/States/IBetManager';
 import { IGameManager } from '@game/alpha_family/libs/AlphaFamily/States/IGameManager';
 import { IViewManager, type SetupViewsOptions } from '@game/alpha_family/libs/AlphaFamily/States/IViewManager';
 import { type HoldAndSpinViewOptions, IHoldAndSpinRound } from '@game/alpha_family/libs/AlphaFamily/States/Match/IHoldAndSpinRound';
+import { IHoldAndSpinBarView } from '@game/alpha_family/libs/AlphaFamily/Views/BarsView.bridge';
 import { IHoldAndSpinRoundInfoView } from '@game/alpha_family/libs/AlphaFamily/Views/IHoldAndSpinRoundInfoView.bridge';
+import { IHoldAndSpinRoundOverlayView } from '@game/alpha_family/libs/AlphaFamily/Views/IHoldAndSpinRoundOverlayView.bridge';
 import { EReelsOverlayType, IReelsOverlayView } from '@game/alpha_family/libs/AlphaFamily/Views/IReelsOverlayView.bridge';
 import { IReelsView } from '@game/alpha_family/libs/AlphaFamily/Views/IReelsView.bridge';
 import { HoldAndSpinRoundStorage } from './HoldAndSpinRound.data';
@@ -24,6 +27,19 @@ import { HoldAndSpinRoundStorage } from './HoldAndSpinRound.data';
 export class HoldAndSpinRoundState extends State implements IHoldAndSpinRound {
   static Interfaces = [IHoldAndSpinRound];
   static Nvrams = [HoldAndSpinRoundStorage];
+
+  // True while this round's result still leaves HoldAndSpinEnergy to play.
+  // The wallet does not show that until EndRound applies the override.
+  private static HasRemainingSpins(result: RoundResult) {
+    const overrides = result.m_overrideCurrencies;
+    for (const [currency, amount] of overrides) {
+      if (currency === Currency.HoldAndSpinEnergy) return amount > 0;
+    }
+    // CalculateRound always writes HoldAndSpinEnergy. Without it the remaining count is unknown,
+    // so the spins label stays.
+    assert(false);
+    return true;
+  }
 
   OnTransit(_isStartup: boolean, _isRecovery: boolean) {
     EgtATrace('OnTransit {} {} {}', this.GetRoundType(), _isStartup ? 'isStartup' : '', _isRecovery ? 'isRecovery' : '');
@@ -87,9 +103,59 @@ export class HoldAndSpinRoundState extends State implements IHoldAndSpinRound {
       this.RuntimeGet(IHoldAndSpinRoundInfoView).ShowMain();
     }
 
+    this.SetFeatureStartedViews(options.featureStarted ?? true);
+
+    if (options.showSpinsCompleted) {
+      const barView = this.RuntimeTryGet(IHoldAndSpinBarView);
+      if (barView) {
+        barView.ShowCompleted(false);
+      }
+    }
+
+    const nvramForSpinsBar = this.ConstNvram(HoldAndSpinRoundStorage);
+    const spinsExhausted: boolean =
+      nvramForSpinsBar.roundResult !== null && !HoldAndSpinRoundState.HasRemainingSpins(nvramForSpinsBar.roundResult);
+
+    if (options.showSpinsCompletedWhenExhausted && spinsExhausted) {
+      const barView = this.RuntimeTryGet(IHoldAndSpinBarView);
+      if (barView) {
+        barView.ShowCompleted(false);
+      }
+    }
+
+    if (options.showLastPhaseSpinsCompletedAnimated !== undefined && this.IsLastPhase() && spinsExhausted) {
+      const barView = this.RuntimeTryGet(IHoldAndSpinBarView);
+      if (barView) {
+        barView.ShowCompleted(options.showLastPhaseSpinsCompletedAnimated);
+      }
+    }
+  }
+
+  private IsLastPhase() {
+    const nvram = this.ConstNvram(HoldAndSpinRoundStorage);
+    const roundResult = nvram.roundResult;
+    if (!roundResult) return false;
+
+    const phases = roundResult.GetPhases(this.GetRuntime());
+    return phases.length > 0 && nvram.phaseIdx === phases.length - 1;
+  }
+
+  SetFeatureStartedViews(featureStarted: boolean) {
     const reelsOverlayView = this.RuntimeTryGet(IReelsOverlayView);
     if (reelsOverlayView) {
-      reelsOverlayView.SetType(EReelsOverlayType.HoldAndSpin);
+      reelsOverlayView.SetType(
+        featureStarted ? EReelsOverlayType.HoldAndSpin
+          : EReelsOverlayType.Main);
+    }
+
+    const overlayView = this.RuntimeTryGet(IHoldAndSpinRoundOverlayView);
+    if (overlayView) {
+      overlayView.SetHoldAndSpinBannerVisible(featureStarted);
+    }
+
+    const barView = this.RuntimeTryGet(IHoldAndSpinBarView);
+    if (barView) {
+      barView.SetFeatureStarted(featureStarted);
     }
   }
 

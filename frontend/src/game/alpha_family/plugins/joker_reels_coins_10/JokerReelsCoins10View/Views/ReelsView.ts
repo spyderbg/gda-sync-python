@@ -1,6 +1,6 @@
 // Egt::Game::AlphaFamily::ReelsView (JokerReelsCoins10View/Views/ReelsView.h/.cpp): the main game's five reels.
 
-import { Contains, IsArrayOf, IsValidIndex } from '@game/engine/GameCore/Common/ContainerHelpers';
+import { Contains, IsArrayOf } from '@game/engine/GameCore/Common/ContainerHelpers';
 import { AssertIf } from '@game/engine/GameCore/Common/Defensive';
 import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
 import { BrowserOnly } from '@game/engine/GameCore/Common/BrowserOnly';
@@ -20,7 +20,7 @@ import { ECategory, type ReelsViewConfig } from './ReelsView.data';
 const ReelsViewId = 'ReelsView';
 
 // the stop sounds' categories, from the least to the most important
-const StopSoundPriority: ECategory[] = [ECategory.None, ECategory.Default, ECategory.Scatter, ECategory.ExpandingWild];
+const StopSoundPriority: ECategory[] = [ECategory.None, ECategory.Default, ECategory.Scatter];
 
 export class ReelsView extends BaseView implements IReelsView, BaseReelsView {
   protected readonly m_events = new IReelsViewEvents();
@@ -251,11 +251,9 @@ export class ReelsView extends BaseView implements IReelsView, BaseReelsView {
   /** The sound of the reel that stopped: the most important category of what it stopped with (the scatters, when
    * the reels that can still hold them would make enough, the wild). */
   private ChooseStopSound() {
-    const expandingWildId: SymbolId = 8;
     const scatter1Id: SymbolId = 9;
     const scatter2Id: SymbolId = 10;
     const scatterAttractionCount = 3;
-    const expandingWildAttractionCount = 1;
 
     const stoppedReelIds = this.GetStoppedReelIds();
     const stoppedIdx = stoppedReelIds.length - 1;
@@ -263,14 +261,6 @@ export class ReelsView extends BaseView implements IReelsView, BaseReelsView {
 
     const isInFastReelingStop: boolean = this.m_pendingAllReelingSound || this.m_allReelingPlayback !== null;
     if (isInFastReelingStop) return '';
-
-    const CanTriggerSpecificSound = (symbolId: SymbolId, triggerSymCount: number): boolean => {
-      const specialSymbolStops = this.m_stopFigures.map(it => Contains(it, symbolId));
-      if (AssertIf(!IsValidIndex(specialSymbolStops, stoppedIdx))) return false;
-      return specialSymbolStops[stoppedIdx] &&
-        (stoppedIdx < (this.m_stopFigures.length - 1) ||
-          specialSymbolStops.filter(stop => stop).length > triggerSymCount);
-    };
 
     const CanContainScatterOnReel = (symbolId: SymbolId, reelIdx: number, reelsCount: number): boolean => {
       if (symbolId === scatter1Id) {
@@ -307,9 +297,6 @@ export class ReelsView extends BaseView implements IReelsView, BaseReelsView {
     }
     if (CanTriggerScatterAttractionSound(scatter2Id)) {
       m_priorities.push(ECategory.Scatter);
-    }
-    if (CanTriggerSpecificSound(expandingWildId, expandingWildAttractionCount)) {
-      m_priorities.push(ECategory.ExpandingWild);
     }
 
     let category = ECategory.None;

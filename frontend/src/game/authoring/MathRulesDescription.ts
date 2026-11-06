@@ -50,6 +50,8 @@ export interface RoundDescription {
   rtpReducer: MathPath;
   /** The round's bet is at least this times the main bet. */
   minBetMultiplier?: MathPath;
+  /** The round's bet is at most the product of these values times the main bet. */
+  maxBetMultiplier?: MathPath[];
   /** Wins of at least so many times the bet are tagged: no effect on the math. */
   winTypeThresholds: [number, RoundTagName][];
   screen?: ScreenDescription;
@@ -143,6 +145,7 @@ export function BuildReelRoundRules(description: MathRulesDescription, game: unk
     config.roundType = RoundType[round.roundType];
     config.betBarCurrencyType = Currency.Credits;
     if (round.minBetMultiplier) config.minBetMultiplier = value(round.minBetMultiplier);
+    if (round.maxBetMultiplier) config.maxBetMultiplier = round.maxBetMultiplier.reduce((product, path) => product * value<number>(path), 1);
     config.rtpConfig.rtp = input.simRtp;
     const reducer = value<{ zeroRounds: number[]; perRounds: number }>(round.rtpReducer);
     config.rtpConfig.zeroRoundChancePerBet = toZeroRound(bets, reducer.zeroRounds, reducer.perRounds);

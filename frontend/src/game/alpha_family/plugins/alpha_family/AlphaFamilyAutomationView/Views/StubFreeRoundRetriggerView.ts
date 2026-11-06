@@ -9,6 +9,7 @@ export class StubFreeRoundRetriggerView extends StubView<IFreeRoundRetriggerView
   }
 
   ShowRetriggerScreen(_spins: number) {
+    this.m_events!.retriggerMidway.Post();
     this.m_events!.retriggerFinished.Post();
   }
 

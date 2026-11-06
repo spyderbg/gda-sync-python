@@ -125,6 +125,7 @@ function RoundCpp(round: RoundDescription, description: MathRulesDescription) {
     'config.betBarCurrencyType = Currency::Credits;',
   ];
   if (round.minBetMultiplier) lines.push(`config.minBetMultiplier = ${value(round.minBetMultiplier)};`);
+  if (round.maxBetMultiplier) lines.push(`config.maxBetMultiplier = ${round.maxBetMultiplier.map(value).join(' * ')};`);
   const body = [lines.join('\n'), `config.rtpConfig.rtp = rulesConfig.simRtp;
 config.rtpConfig.zeroRoundChancePerBet = toZeroRound(
     ${value(round.allowedBets)},

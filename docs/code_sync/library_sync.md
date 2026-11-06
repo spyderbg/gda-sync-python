@@ -244,3 +244,4 @@ when the user asks. A `hat_libs` sync has no manifest entry, so this record is t
 | `def1924e4` | 2026-10-29 | `faa5f19a0` (2026-10-29) | checked 2026-11-04 | Burning Crown's view theme sync (games `6253e35ff`): the pin has not moved |
 | `def1924e4` | 2026-10-29 | `faa5f19a0` (2026-10-29) | checked 2026-11-05 | Zodiac Wheel Coins' import and the stubs' theme sync (games `47bc8436e`): the pin has not moved |
 | `def1924e4` | 2026-10-29 | `faa5f19a0` (2026-10-29) | checked 2026-11-05 | The views' theme overrides sync (games `eb1fd4f35`): the pin has not moved |
+| `def1924e4` | 2026-10-29 | `faa5f19a0` (2026-10-29) | checked 2026-11-05 | Burning Crown's sync with Nordic Rush's hold and spin outro (games `2882fd0e7`, branch `main-new-panel`): the pin has not moved |

@@ -2,27 +2,18 @@
 // or the tetra background, and the panel.
 
 import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import * as tweeny from '@game/hat_libs/tweeny/tweeny';
 import { IControlViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IControlView';
-import { ThemeType } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IThemeView';
+import type { ThemeType } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IThemeView';
 import { IGameBackgroundView } from '@game/alpha_family/libs/AlphaFamily/Views/IOverlayViews.bridge';
 import { BaseView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/BaseView';
+import { ThemeLayout } from '../ThemeLayout';
 
 const GameBackgroundViewId = 'GameBackgroundView';
 
-const ImageBackgroundId = 'image_game_background';
-const ImageBackgroundFrameId = 'image_game_background_frame';
-const ImagePanelBackgroundId = 'image_panel_background';
-const ImagePanelBackgroundFrameId = 'image_panel_background_frame';
-
-const ImageBackgroundTetraId = 'image_game_background_tetra';
-const ImageGameBackgroundFrameTetraId = 'image_game_background_frame_tetra';
-const ImagePanelBackgroundTetraId = 'image_panel_background_tetra';
-const ImagePanelBackgroundFrameTetraId = 'image_panel_background_frame_tetra';
-
-const AnimPanelTetraBetBarId = 'anim_panel_tetra_bet_bar';
-
 export class GameBackgroundView extends BaseView implements IGameBackgroundView {
   protected readonly m_events = new IControlViewEvents();
+  private readonly m_themeLayout = new ThemeLayout(this.m_elementsList, tweeny.ref(this, 'm_theme'));
 
   constructor() {
     super(GameBackgroundViewId);
@@ -50,19 +41,7 @@ export class GameBackgroundView extends BaseView implements IGameBackgroundView 
   }
 
   protected OnThemeChanged() {
-    const isTetraView = this.m_theme === ThemeType.Tetra;
-
-    this.m_elementsList.TryGet(ImageBackgroundId)?.SetHidden(isTetraView);
-    this.m_elementsList.TryGet(ImageBackgroundFrameId)?.SetHidden(isTetraView);
-    this.m_elementsList.TryGet(ImagePanelBackgroundId)?.SetHidden(isTetraView);
-    this.m_elementsList.TryGet(ImagePanelBackgroundFrameId)?.SetHidden(isTetraView);
-
-    this.m_elementsList.TryGet(ImageBackgroundTetraId)?.SetHidden(!isTetraView);
-    this.m_elementsList.TryGet(ImageGameBackgroundFrameTetraId)?.SetHidden(!isTetraView);
-    this.m_elementsList.TryGet(ImagePanelBackgroundTetraId)?.SetHidden(!isTetraView);
-    this.m_elementsList.TryGet(ImagePanelBackgroundFrameTetraId)?.SetHidden(!isTetraView);
-
-    this.m_elementsList.TryGet(AnimPanelTetraBetBarId)?.SetHidden(!isTetraView);
+    this.m_themeLayout.Apply();
   }
 
   IsOpaqueFullScreen() {

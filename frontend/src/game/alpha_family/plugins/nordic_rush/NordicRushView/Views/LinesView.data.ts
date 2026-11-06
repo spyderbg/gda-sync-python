@@ -12,6 +12,8 @@ export interface LinesViewConfig extends LinesVisualConfig {
 
   subScreen: ReelSubScreen;
 
+  winSquareHoldAndSpinTriggerRssKey?: string;
+
   winFiguresDefaultSoundRssKeys?: Record<SymbolId, string>;
   winFiguresX5SoundRssKeys?: Record<SymbolId, string>;
 }

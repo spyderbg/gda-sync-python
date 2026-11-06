@@ -25,7 +25,7 @@ export class CoinsFreeRoundOutroState extends ReelRoundOutroState {
       const rewarded = gameflow.GetConsecutiveRoundAvailable(Currency.Credits);
 
       const freeRoundOverlay = this.RuntimeGet(IFreeRoundOverlayView);
-      freeRoundOverlay.SetRewardedAmount(rewarded);
+      freeRoundOverlay.SetRewardedAmount(rewarded, Currency.Credits);
       freeRoundOverlay.ShowOutro();
     } else {
       this.TransitLater(this.OnOutroFinished()); // no transition to hold and spin

@@ -1,5 +1,6 @@
 // Egt::Game::AlphaFamily::Stub::StubFreeRoundOverlayView (AlphaFamilyAutomationView/Views/StubFreeRoundOverlayView.h): the automation's IFreeRoundOverlayView.
 
+import type { CurrencyType } from '@game/engine/Game/Math/Common.data';
 import { IFreeRoundOverlayView, type IFreeRoundOverlayViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/IFreeRoundOverlayView.bridge';
 import { StubView } from '../Components/StubView';
 
@@ -28,7 +29,7 @@ export class StubFreeRoundOverlayView extends StubView<IFreeRoundOverlayView, IF
 
   Clear() {}
 
-  SetRewardedAmount(_amount: number) {}
+  SetRewardedAmount(_amount: number, _currencyType: CurrencyType) {}
 
   SetFreeSpinsRewarded(_spins: number) {}
 }

@@ -9,7 +9,7 @@ import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
 import { Alignment } from '@game/engine/GameVideoCtrl/ViewElements/BaseElement';
 import { make_sentinel, sentinel } from '@game/hat_libs/egt_hpp/sentinel';
 import * as tweeny from '@game/hat_libs/tweeny/tweeny';
-import { ELeftStatusLine, ERightStatusLine, EStatusLine } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
+import { CombinationType, ELeftStatusLine, ERightStatusLine, EStatusLine } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
 import { CombinationsEqual, type ReelCombinations } from '@game/alpha_family/libs/AlphaFamily/Math/Reel/ReelRoundPhase.data';
 import { IControlViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IControlView';
 import { IStatusLineView } from '@game/alpha_family/libs/AlphaFamily/Views/IStatusLineView.bridge';
@@ -217,27 +217,33 @@ export class StatusLineView extends BaseView implements IStatusLineView {
         const actionsList: tweeny.tween_action[] = [];
 
         this.m_combinationsMid.forEach((combination, index) => {
-          // create the combo
-          const line = new StatusLineVisual(this.m_elementsList, this.m_config.visualConfig);
-          line.SetCombination(combination);
-          line.SetVisible(false);
-          this.m_statusLines.push(line);
+          if (combination.type === CombinationType.HoldAndSpinTrigger) {
+            const actionComboInterval = tweeny.delay(Math.max(lineEnd, interval), this.m_sentinel);
 
-          // control visibility of combos
-          const actionVisibleCombo = tweeny.delay(lineEnd, this.m_sentinel);
-          actionVisibleCombo.on_begin.connect(() => {
-            for (const winLine of this.m_statusLines) {
-              winLine.SetVisible(false);
-            }
-            this.m_statusLines[index].SetVisible(true);
-          });
-          actionVisibleCombo.on_end.connect(() => {
-            this.m_statusLines[index].SetVisible(false);
-          });
+            actionsList.push(actionComboInterval);
+          } else {
+            // create the combo
+            const line = new StatusLineVisual(this.m_elementsList, this.m_config.visualConfig);
+            line.SetCombination(combination);
+            line.SetVisible(false);
+            this.m_statusLines.push(line);
 
-          const actionComboInterval = tweeny.together([actionVisibleCombo, tweeny.delay(interval, this.m_sentinel)], this.m_sentinel);
+            // control visibility of combos
+            const actionVisibleCombo = tweeny.delay(lineEnd, this.m_sentinel);
+            actionVisibleCombo.on_begin.connect(() => {
+              for (const winLine of this.m_statusLines) {
+                winLine.SetVisible(false);
+              }
+              this.m_statusLines[index].SetVisible(true);
+            });
+            actionVisibleCombo.on_end.connect(() => {
+              this.m_statusLines[index].SetVisible(false);
+            });
 
-          actionsList.push(actionComboInterval);
+            const actionComboInterval = tweeny.together([actionVisibleCombo, tweeny.delay(interval, this.m_sentinel)], this.m_sentinel);
+
+            actionsList.push(actionComboInterval);
+          }
         });
         this.UpdateMidPoints();
 

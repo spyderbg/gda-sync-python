@@ -50,9 +50,16 @@ export const IExtraSpinBarView = Interface<IExtraSpinBarView, INumericBarViewEve
 
 export interface IHoldAndSpinBarView extends IWinBarViewWithShow {
   SetBet(bet: number): void;
+  SetFeatureStarted(featureStarted: boolean): void;
+  IsValueAnimating(): boolean;
+  ShowCompleted(animate: boolean): void;
 }
 
-export const IHoldAndSpinBarView = Interface<IHoldAndSpinBarView, INumericBarViewEvents>('IHoldAndSpinBarView');
+export class IHoldAndSpinBarViewEvents extends INumericBarViewEvents {
+  readonly valueAnimDone = new Event();
+}
+
+export const IHoldAndSpinBarView = Interface<IHoldAndSpinBarView, IHoldAndSpinBarViewEvents>('IHoldAndSpinBarView');
 
 export interface ICoinsBarView {
   Minimize(instant: boolean): void;

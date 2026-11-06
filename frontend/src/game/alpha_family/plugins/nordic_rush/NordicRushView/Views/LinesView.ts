@@ -168,6 +168,13 @@ export class LinesView extends BaseView implements ILinesView {
           this.m_lines.push(line);
           break;
         }
+        case CombinationType.HoldAndSpinTrigger: {
+          const line =
+            this.CreateLineVisual(comb.symbolViewInfos, this.m_config.winSquareHoldAndSpinTriggerRssKey ?? '', i === 0, fast);
+
+          this.m_lines.push(line);
+          break;
+        }
         default:
           break;
       }

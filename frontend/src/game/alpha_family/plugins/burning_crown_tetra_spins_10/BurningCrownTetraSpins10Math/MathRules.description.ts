@@ -36,6 +36,8 @@ export const MATH_RULES: MathRulesDescription = {
       rtpReducer: 'tetraRound.rtpReducer',
       // min tetra bet is 4x main bet
       minBetMultiplier: 'tetraTrigger',
+      // max is 3x (4x main bet)
+      maxBetMultiplier: ['maxBetTetraMultiplier', 'tetraTrigger'],
       winTypeThresholds: [[60, 'BigWin'], [80, 'SuperWin'], [120, 'EpicWin'], [200, 'MegaWin']],
       tetraSpin: { triggerTimesBet: 'tetraTrigger', maxRounds: 'tetraMaxRounds', subScreens: [0, 1, 2, 3].map(tetraSubScreen) },
     },

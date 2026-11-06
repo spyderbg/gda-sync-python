@@ -4,11 +4,26 @@
 // ThemeLayout of its elements list and its theme (BaseView.m_theme, which C++ holds by const reference: tweeny.ref
 // here, which the translator writes as the field), and applies it in OnThemeChanged.
 
+import { Unless } from '@game/engine/GameCore/Common/Defensive';
 import type { ElementsList } from '@game/engine/GameVideoCtrl/ViewElements/ElementsList';
 import type { ref_t } from '@game/hat_libs/tweeny/tween_common';
 import { ThemeType } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IThemeView';
 
 const TetraSuffix = '_tetra';
+
+function IsDigit(c: string) {
+  return c >= '0' && c <= '9';
+}
+
+function WithoutIndex(id: string) {
+  const pos = id.lastIndexOf('_');
+  if (pos === -1 || pos + 1 === id.length) return id;
+
+  const index = id.slice(pos + 1);
+  if (Unless([...index].every(IsDigit))) return id;
+
+  return id.slice(0, pos);
+}
 
 export class ThemeLayout {
   constructor(
@@ -37,14 +52,25 @@ export class ThemeLayout {
     return element !== null && !element.GetElementData().hidden;
   }
 
-  /** Hides the elements of the other theme, and shows this theme's as their JSON does. The view then sets what it
-   * shows of them. */
+  // Layout naming contract: "x_tetra" shows only in the Tetra theme, even without an "x"; several Tetra
+  // variants of one "x" are indexed ("x_01_tetra", "x_02_tetra"). An "x" with any of these shows only
+  // outside the Tetra theme; every other element is left as it is. The view then sets what it shows of them.
   Apply() {
-    for (const element of this.m_elementsList.GetElements()) {
+    const elements = this.m_elementsList.GetElements();
+
+    const mainIds = new Set<string>();
+    for (const element of elements) {
       const id = element.GetId();
-      const isTetraElement = id.endsWith(TetraSuffix);
-      const pairedId = isTetraElement ? id.slice(0, -TetraSuffix.length) : id + TetraSuffix;
-      if (this.m_elementsList.TryGet(pairedId) === null) continue;
+      if (Unless(id.endsWith(TetraSuffix))) continue;
+
+      const mainId = id.slice(0, id.length - TetraSuffix.length);
+      mainIds.add(mainId);
+      mainIds.add(WithoutIndex(mainId));
+    }
+
+    for (const element of elements) {
+      const isTetraElement: boolean = element.GetId().endsWith(TetraSuffix);
+      if (Unless(isTetraElement || mainIds.has(element.GetId()))) continue;
 
       element.SetHidden(isTetraElement !== this.IsTetra() || element.GetElementData().hidden === true);
     }

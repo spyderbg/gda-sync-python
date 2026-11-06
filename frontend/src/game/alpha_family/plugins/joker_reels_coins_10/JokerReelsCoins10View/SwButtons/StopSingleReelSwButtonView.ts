@@ -9,7 +9,7 @@ import { IStopSingleReelSwButtonView, IStopSingleReelSwButtonViewEvents } from '
 import { BaseView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/BaseView';
 
 const StopSingleReelSwButtonViewId = 'StopSingleReelSwButtonView';
-const SoundPanelButtonTouchId = 'MG_PANEL_BUTTON_TOUCH';
+const SoundPanelButtonTouchId = 'SOUND_PANEL_SUPREME_BUTTON_CLICKED';
 const ButtonReel1Id = 'button_reel_1';
 const ButtonReel2Id = 'button_reel_2';
 const ButtonReel3Id = 'button_reel_3';

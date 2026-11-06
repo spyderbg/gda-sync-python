@@ -26,9 +26,9 @@ const TextWinPrizeId = 'text_win_prize';
 
 const FrameDuration: tweeny.duration_t = Math.trunc(1000 / 24); // 1frames * 41ms;
 const MajorPrizeAlphaAnimationDuration: tweeny.duration_t = FrameDuration * 21;
-const MajorPrizeFullAnimationDuration: tweeny.duration_t = FrameDuration * 109;
+const MajorPrizeFullAnimationDuration: tweeny.duration_t = 5000;
 const GrandPrizeAlphaAnimationDuration: tweeny.duration_t = FrameDuration * 21;
-const GrandPrizeFullAnimationDuration: tweeny.duration_t = FrameDuration * 109;
+const GrandPrizeFullAnimationDuration: tweeny.duration_t = 5000;
 
 const ElementsAllIds = [
   AnimCoinEruptionId, AnimWinPrizeMajorId, AnimWinPrizeGrandId, TextWinPrizeId];

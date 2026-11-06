@@ -15,7 +15,6 @@ export enum ECategory {
   None = 'None',
   Default = 'Default',
   Scatter = 'Scatter',
-  ExpandingWild = 'ExpandingWild',
 }
 
 export interface ReelStopSoundConfig {

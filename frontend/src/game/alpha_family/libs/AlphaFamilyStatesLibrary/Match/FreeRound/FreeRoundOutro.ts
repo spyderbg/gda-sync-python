@@ -22,13 +22,13 @@ export class FreeRoundOutroState extends ReelRoundOutroState {
       this.Parent(IViewManager).SetupViews(RoundType.Free, {});
 
       const gameflow = this.RuntimeGetConst(IGameflow);
-      const rewarded = Math.max(
-        gameflow.GetConsecutiveRoundAvailable(Currency.ExtraSpinEnergy),
-        gameflow.GetConsecutiveRoundAvailable(Currency.CoinsSpinEnergy),
-      );
+      const creditsWin = gameflow.GetConsecutiveRoundAvailable(Currency.Credits);
+      const coinsWin = gameflow.GetConsecutiveRoundAvailable(Currency.CoinsSpinEnergy);
+      const rewarded = Math.max(creditsWin, coinsWin);
+      const currencyType = coinsWin >= creditsWin ? Currency.CoinsSpinEnergy : Currency.Credits;
 
       const freeRoundOverlay = this.RuntimeGet(IFreeRoundOverlayView);
-      freeRoundOverlay.SetRewardedAmount(rewarded);
+      freeRoundOverlay.SetRewardedAmount(rewarded, currencyType);
       freeRoundOverlay.ShowOutro();
     } else {
       this.TransitLater(this.OnOutroFinished()); // no transition to hold and spin

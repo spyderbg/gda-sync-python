@@ -13,6 +13,10 @@ export interface HoldAndSpinViewOptions {
   setupHoldAndSpinReels?: boolean; // HoldAndSpin phase reeling
   overrideWinBar?: number; // value for win bar
   showMainInfo?: boolean; // show HoldAndSpin info view main mode
+  featureStarted?: boolean; // reels fire, banner and spins bar are shown
+  showSpinsCompleted?: boolean; // spins bar shows "Spins Completed" without animation
+  showSpinsCompletedWhenExhausted?: boolean; // like showSpinsCompleted, gated on round energy override
+  showLastPhaseSpinsCompletedAnimated?: boolean; // on last phase when exhausted, ShowCompleted(animated)
 }
 
 export interface IHoldAndSpinRound extends IRound {
@@ -20,6 +24,7 @@ export interface IHoldAndSpinRound extends IRound {
   GetRoundRules(): HoldAndSpinRoundRules;
 
   SetupViews(options: HoldAndSpinViewOptions): void;
+  SetFeatureStartedViews(featureStarted: boolean): void;
 }
 
 export interface IHoldAndSpinRoundIntro {

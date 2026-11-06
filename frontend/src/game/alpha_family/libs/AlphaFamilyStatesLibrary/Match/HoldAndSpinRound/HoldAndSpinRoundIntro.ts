@@ -18,7 +18,7 @@ export class HoldAndSpinRoundIntroState extends State {
     this.AttachCallbacks();
 
     if (this.HasIntro()) {
-      this.Parent(IHoldAndSpinRound).SetupViews({ disableInfoButton: true });
+      this.Parent(IHoldAndSpinRound).SetupViews({ disableInfoButton: true, featureStarted: false });
       this.RuntimeGet(IHoldAndSpinRoundOverlayView).ShowIntro();
     } else {
       this.TransitLater(this.ToRoundInput());
@@ -34,7 +34,7 @@ export class HoldAndSpinRoundIntroState extends State {
     this.ReactOn(this.RuntimeGetConst(IStartHwButton.Events).buttonPressedEvent, this.OnStartHwButtonPressed);
 
     this.ReactOn(this.RuntimeGetConst(IHoldAndSpinRoundOverlayView.Events).introMidway, this.OnIntroMidway);
-    this.ReactOn(this.RuntimeGetConst(IHoldAndSpinRoundOverlayView.Events).introFinished, this.OnIntroFinished);
+    this.ReactOn(this.RuntimeGetConst(IHoldAndSpinRoundInfoView.Events).introFinished, this.OnInfoIntroFinished);
   }
 
   private HasIntro() {
@@ -49,11 +49,12 @@ export class HoldAndSpinRoundIntroState extends State {
   private OnStartHwButtonPressed() {
     this.RuntimeGet(IHoldAndSpinRoundOverlayView).HideIntro();
     this.RuntimeGet(IHoldAndSpinRoundInfoView).ShowIntro();
+    this.Parent(IHoldAndSpinRound).SetFeatureStartedViews(true);
 
     return this.Consume();
   }
 
-  private OnIntroFinished() {
+  private OnInfoIntroFinished() {
     return this.ToRoundInput();
   }
 }
