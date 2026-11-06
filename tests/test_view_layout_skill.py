@@ -1,0 +1,118 @@
+"""The view-layout skill's helper (.claude/skills/view-layout/view_layout.py): it finds where a preview shows each view
+element's image, and writes the positions that put them there, keeping the rest of the view's text."""
+
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+import cv2
+import numpy as np
+
+from egt_gda_sync.assets.views import render_view
+from tests.test_views import write_json, write_png
+
+HELPER = Path(__file__).resolve().parents[1] / ".claude" / "skills" / "view-layout" / "view_layout.py"
+
+
+def noise(width: int, height: int, seed: int) -> np.ndarray:
+    """An opaque image that matches in one place only."""
+    rgb = np.random.default_rng(seed).integers(0, 256, (height, width, 3), dtype=np.uint8)
+    return np.dstack([rgb, np.full((height, width), 255, np.uint8)])
+
+
+def helper(*args: str) -> subprocess.CompletedProcess:
+    return subprocess.run([sys.executable, "-I", str(HELPER), *args], capture_output=True, text=True, check=False, timeout=120)
+
+
+def write_game(root: Path) -> Path:
+    """A game whose view has a background, a label, and a twin of the label for another theme."""
+    game = root / "resources" / "game"
+    write_png(game / "art" / "back.png", noise(400, 200, 1))
+    write_png(game / "art" / "label.png", noise(40, 24, 2))
+    write_png(game / "art" / "knob.png", noise(30, 30, 3))
+    write_png(game / "art" / "white.png", np.full((12, 20, 4), 255, np.uint8))
+    write_json(game / "RssImagesData.json", {"images": [{"id": "IMAGE_BACK", "path": "art/back.png"},
+                                                        {"id": "IMAGE_LABEL", "path": "art/label.png"},
+                                                        {"id": "IMAGE_KNOB", "path": "art/knob.png"},
+                                                        {"id": "IMAGE_WHITE", "path": "art/white.png"}]})
+    view = game / "v" / "1920x1080" / "PanelView.json"
+    view.parent.mkdir(parents=True)
+    view.write_text('{\r\n  "name": "PanelView",\r\n  "elements": [\r\n'
+                    '    {"id": "image_back", "type": "Image", "rssKey": "IMAGE_BACK", "position": {"x": 100, "y": 800}},\r\n'
+                    '    {"id": "image_label", "type": "Image", "rssKey": "IMAGE_LABEL", "alignment": "TopCenter",'
+                    ' "position": {"x": 200, "y": 900}},\r\n'
+                    '    {"id": "image_label_tetra", "type": "Image", "rssKey": "IMAGE_LABEL", "alignment": "TopCenter",'
+                    ' "position": {"x": 300, "y": 900}},\r\n'
+                    '    {"id": "image_knob", "type": "Image", "rssKey": "IMAGE_KNOB", "alignment": "MiddleCenter",'
+                    ' "position": {"x": 450, "y": 850}},\r\n'
+                    '    {"id": "image_eye", "type": "Image", "rssKey": "IMAGE_WHITE", "position": {"x": 120, "y": 820}}\r\n  ]\r\n}\r\n')
+    return view
+
+
+def preview_of(view: Path, out: Path, moves: dict[str, tuple[int, int]], skip: tuple[str, ...] = (),
+               scales: dict[str, float] | None = None) -> np.ndarray:
+    """The screen drawn with some elements moved or scaled and others left out, as a designer's preview draws it."""
+    data = json.loads(view.read_text())
+    original = view.read_bytes()
+    data["elements"] = [{**element, "position": {"x": element["position"]["x"] + moves.get(element["id"], (0, 0))[0],
+                                                 "y": element["position"]["y"] + moves.get(element["id"], (0, 0))[1]},
+                         **({"scale": {"x": scales[element["id"]], "y": scales[element["id"]]}} if element["id"] in (scales or {}) else {})}
+                        for element in data["elements"] if element["id"] not in skip]
+    view.write_text(json.dumps(data))
+    try:
+        rgba = cv2.imdecode(np.frombuffer(render_view(view), np.uint8), cv2.IMREAD_UNCHANGED)
+    finally:
+        view.write_bytes(original)
+    screen = rgba[..., :3].astype(np.float32) * (rgba[..., 3:4] / 255.0)
+    cv2.imwrite(str(out), screen.astype(np.uint8))
+    return screen
+
+
+def rows(result: subprocess.CompletedProcess) -> dict[str, dict]:
+    assert result.returncode == 0, result.stderr
+    return {row["id"]: row for view in json.loads(result.stdout)["views"] for row in view["elements"]}
+
+
+def test_locate_finds_where_the_preview_moved_and_scaled_elements(tmp_path):
+    view = write_game(tmp_path)
+    preview = tmp_path / "preview.png"
+    preview_of(view, preview, {"image_label": (37, -12)}, skip=("image_label_tetra",))
+
+    found = rows(helper("locate", str(preview), str(view), "--skip", "*_tetra", "--json"))
+    assert found["image_label"]["move"] == [37, -12] and found["image_label"]["new"] == [237, 888]
+    assert found["image_label"]["score"] > 0.99 and "note" not in found["image_label"]
+    assert found["image_back"]["move"] == [0, 0] and found["image_knob"]["move"] == [0, 0]
+    assert "image_label_tetra" not in found
+    assert "flat color" in found["image_eye"]["note"]
+
+    # Without --skip, the twin is found where the label is: both are marked, since the preview shows only one of them.
+    found = rows(helper("locate", str(preview), str(view), "--json"))
+    assert found["image_label"]["move"] == [37, -12] and found["image_label_tetra"]["move"] == [-63, -12]
+    assert "image_label_tetra is found too" in found["image_label"]["note"]
+    assert "image_label is found too" in found["image_label_tetra"]["note"]
+
+    # A part of the screen is found where it looks like the views, and an element larger in it gets its scale.
+    part = tmp_path / "part.png"
+    screen = preview_of(view, tmp_path / "whole.png", {"image_label": (37, -12), "image_knob": (-20, 10)},
+                        skip=("image_label_tetra",), scales={"image_knob": 1.2})
+    cv2.imwrite(str(part), screen[780:1020, 80:520].astype(np.uint8))
+    result = helper("locate", str(part), str(view), "--skip", "*_tetra", "--origin", "auto", "--scales", "0.9,1.1,1.2", "--json")
+    assert "the preview is at 80,780" in result.stderr
+    found = rows(result)
+    assert found["image_label"]["move"] == [37, -12] and "scale" not in found["image_label"]
+    assert found["image_knob"]["scale"] == [1.2, 1.2] and found["image_knob"]["new"] == [430, 860]
+
+
+def test_move_writes_only_the_positions_and_keeps_the_files_layout(tmp_path):
+    view = write_game(tmp_path)
+    before = view.read_bytes().decode()
+    result = helper("move", str(view), "image_label=237,888", "#3=451.5,850")
+    assert result.returncode == 0, result.stderr
+    after = view.read_bytes().decode()
+    assert after == before.replace('"x": 200, "y": 900', '"x": 237, "y": 888').replace('"x": 450, "y": 850', '"x": 451.5, "y": 850')
+    assert "\r\n" in after
+
+    assert helper("move", str(view), "image_missing=1,1").returncode == 2
+    assert helper("move", str(view.parent.parent.parent / "RssImagesData.json"), "x=1,1").returncode == 2
+    assert view.read_bytes().decode() == after
