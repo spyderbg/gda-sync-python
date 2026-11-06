@@ -9,6 +9,7 @@ import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
 import { ButtonElement } from '@game/engine/GameVideoCtrl/ViewElements/ButtonElement';
 import * as tweeny from '@game/hat_libs/tweeny/tweeny';
 import { IExitGameSwButtonView, IExitGameSwButtonViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge';
+import { ThemeType } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IThemeView';
 import { ButtonView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/Components/ButtonView';
 import { ThemeLayout } from '../ThemeLayout';
 
@@ -62,7 +63,7 @@ export class ExitGameSwButtonView extends ButtonView<IExitGameSwButtonViewEvents
   }
 
   ReloadElementsList() {
-    if (this.IsVisible() || !this.m_themeLayout.IsTetra()) {
+    if (this.IsVisible() || this.m_theme !== ThemeType.Tetra) {
       super.ReloadElementsList();
       return;
     }
@@ -73,7 +74,7 @@ export class ExitGameSwButtonView extends ButtonView<IExitGameSwButtonViewEvents
   }
 
   Draw(drawList: DrawList) {
-    if (!this.m_themeLayout.IsTetra()) {
+    if (this.m_theme !== ThemeType.Tetra) {
       super.Draw(drawList);
       return;
     }

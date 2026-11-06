@@ -814,10 +814,10 @@
    "alpha_family/libs/src/Egt/AlphaFamily/Views/BaseInterfaces/IThemeView.h",
    "alpha_family/libs/src/Egt/AlphaFamily/Views/BaseInterfaces/IThemeView.cpp"
   ],
-  "sha256": "2119dd798835f95211c6f2197534153ef1de30bf89cd336475b3d436f9f26811",
-  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
+  "sha256": "703f00f262f59bc73f7f496a5fda37c317a7d2717f115537310d3b690808311f",
+  "cppCommit": "0317b4fa7df42feb6a3dfc5929e469b374df483f",
   "cppSha256": {
-   "alpha_family/libs/src/Egt/AlphaFamily/Views/BaseInterfaces/IThemeView.h": "39f911db3c7aa2335f237a8a44c087608086621834f81eed0aa124fe692a9901",
+   "alpha_family/libs/src/Egt/AlphaFamily/Views/BaseInterfaces/IThemeView.h": "878d9d62534bc0cb7753f4776ac0a86f6c8f9135818a27f71a6bd56bc2c01eb3",
    "alpha_family/libs/src/Egt/AlphaFamily/Views/BaseInterfaces/IThemeView.cpp": "c03a55ae6f1c18d5e7a1bb08f2e3f66421a8b3ff0c998cbbab908d88de1d5c01"
   }
  },
@@ -3058,11 +3058,11 @@
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/ExitGameSwButtonView.h",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/ExitGameSwButtonView.cpp"
   ],
-  "sha256": "49b488fcd364bff3204c6f3ee517436581872ea7e708f8c45a8d9c277ecc4af1",
-  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
+  "sha256": "ce205a67e987888116c227e4c503230939ebb3ae1ecf34ec4eda4d16bbf0e20e",
+  "cppCommit": "0317b4fa7df42feb6a3dfc5929e469b374df483f",
   "cppSha256": {
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/ExitGameSwButtonView.h": "e523cfa911a8a0d2e8e84468f7af7c356bacfb80cf1f3fc84998ac21a0d95b4b",
-   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/ExitGameSwButtonView.cpp": "8feb9200737a19168a50857def9f49f7eef27803917c42acb4dffa12f4118724"
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/SwButtons/ExitGameSwButtonView.cpp": "69d1ffaad28b474355e3016e409657b2bb2d00d6c9c08c96fc2116a9dce10468"
   }
  },
  "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/SwButtons/ExitTetraSwButtonView.ts": {
@@ -3166,11 +3166,11 @@
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/ThemeLayout.h",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/ThemeLayout.cpp"
   ],
-  "sha256": "84dea7a8a0819cd746d04da8078379b1b348de8be144b6aef554f96da236e8dc",
-  "cppCommit": "2882fd0e74f433262f7b8d47046d24083b154984",
+  "sha256": "f50bc0345ca1d3f0b45f4ff325786dfafbcf19b6be661306aa2a932c6cc40622",
+  "cppCommit": "0317b4fa7df42feb6a3dfc5929e469b374df483f",
   "cppSha256": {
-   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/ThemeLayout.h": "cb749832a770b9b7aac3daf09524183e3da6174d8f4cee66bf32206fb28f9b3d",
-   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/ThemeLayout.cpp": "057ed7d8f8a55edca02c028733060b911f3f454c78cb3e0d0cafee556bf52a99"
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/ThemeLayout.h": "07d8c4d958beede2b9cb6c0bf7a77f5f63fc3bd9dfb97226c09e334eb510a2ce",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/ThemeLayout.cpp": "82b03a45ac8a4f9a3ba87911b1e10dbfcaad9c0d0c54ea88c6292013ea32a4c2"
   }
  },
  "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Views/AutoPlayView.ts": {

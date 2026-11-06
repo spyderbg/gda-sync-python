@@ -178,10 +178,31 @@ export function run(layouts: Record<string, ElementsListData>) {
   legacyList.LoadFromResource();
   const theme = { value: ThemeType.Tetra };
   const legacy = new ThemeLayout(legacyList, tweeny.ref(theme, 'value'));
-  check(legacy.IsTetra(), 'the layout follows the theme it refers to');
   legacy.Apply();
   equal(legacyList.Get(legacy.ElementId('shared')).GetPosition(), { x: 19, y: 23 }, 'unpaired legacy elements remain usable');
   check(legacyList.Get('shared').IsVisible(), 'unpaired legacy elements stay shown in Tetra');
+
+  // A variant for any theme, by the theme's suffix (ThemeSuffix), and the theme the layout refers to as it changes.
+  layouts.Themed = { name: 'Themed', elements: [
+    { id: 'x', type: 'Image', position: { x: 1, y: 1 } },
+    { id: 'x_hold_and_spin', type: 'Image', position: { x: 2, y: 2 } },
+    { id: 'y_tetra', type: 'Image', position: { x: 3, y: 3 } },
+  ] };
+  const themedList = new ElementsList();
+  themedList.Init(runtime, 'Themed');
+  themedList.LoadFromResource();
+  const themed = new ThemeLayout(themedList, tweeny.ref(theme, 'value'));
+  theme.value = ThemeType.HoldAndSpin;
+  themed.Apply();
+  equal(themed.ElementId('x'), 'x_hold_and_spin', 'the layout follows the theme it refers to');
+  check(!themedList.Get('x').IsVisible() && themedList.Get('x_hold_and_spin').IsVisible(), 'a theme shows its own variant in the element\'s place');
+  check(!themedList.Get('y_tetra').IsVisible(), 'another theme\'s variant is hidden, even without its element');
+  theme.value = ThemeType.Tetra;
+  themed.Apply();
+  equal(themed.ElementId('x'), 'x', 'a theme without a variant binds the element itself');
+  check(themedList.Get('x').IsVisible() && !themedList.Get('x_hold_and_spin').IsVisible() && themedList.Get('y_tetra').IsVisible(),
+    'the element shows when the theme has no variant of it');
+  themedList.Deinit();
   views.forEach(view => view.Deinit());
   legacyList.Deinit();
   background.Deinit();

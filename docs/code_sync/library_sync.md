@@ -116,6 +116,9 @@ Then follow game_sync.md steps 2 to 5 (baseline, port, measure, manifest), with 
   base shares with its interface (`CppIndex.VirtualBases`); since `eb1fd4f35` no view has one. Since games `47bc8436e`
   (2026-11-05), the automation's `IStubView` is not an `IThemeView`: the stubs of the interfaces that are,
   `StubNumericBarView`, `StubSwButton` and `StubKnobsView`, have an empty `SetTheme` each, and `StubView` has none.
+  Since games `0317b4fa7` (2026-11-06), `IThemeView.h` also derives each theme's element id suffix (`ThemeSuffixes`,
+  `ThemeSuffix`: `_tetra`, `_hold_and_spin`) from the enumerators' names at compile time. `IThemeView.ts` derives the
+  same from the enum's names when it loads, so a new enumerator needs no more than its line in the enum.
 - **QA-only C++** (`EGT_DISTRIBUTION_TARGET_QA`, QaBridge, the drawn-elements observer) is not ported. Say so in the
   report.
 - **Moves between states and managers.** When a responsibility moves from a state to a manager (the tetra round's bet
@@ -258,3 +261,4 @@ when the user asks. A `hat_libs` sync has no manifest entry, so this record is t
 | `def1924e4` | 2026-10-29 | `faa5f19a0` (2026-10-29) | checked 2026-11-05 | Zodiac Wheel Coins' import and the stubs' theme sync (games `47bc8436e`): the pin has not moved |
 | `def1924e4` | 2026-10-29 | `faa5f19a0` (2026-10-29) | checked 2026-11-05 | The views' theme overrides sync (games `eb1fd4f35`): the pin has not moved |
 | `def1924e4` | 2026-10-29 | `faa5f19a0` (2026-10-29) | checked 2026-11-05 | Burning Crown's sync with Nordic Rush's hold and spin outro (games `2882fd0e7`, branch `main-new-panel`): the pin has not moved |
+| `def1924e4` | 2026-10-29 | `faa5f19a0` (2026-10-29) | checked 2026-11-06 | Burning Crown's theme suffixes sync (games `0317b4fa7`): the pin has not moved |
