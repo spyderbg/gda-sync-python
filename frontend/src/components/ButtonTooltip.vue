@@ -8,7 +8,7 @@ const activeTooltip = sharedRef<string | null>(null);
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, useId } from 'vue';
 
-defineProps<{ text: string }>();
+const props = defineProps<{ text: string; dismissOnClick?: boolean }>();
 
 // The trigger stays a direct child of its button group; the balloon lives outside cards that could clip it.
 const id = useId();
@@ -48,6 +48,7 @@ const bindings = computed(() => ({
   onMouseleave: leave,
   onFocus: (event: FocusEvent) => { focused.value = true; show(event); },
   onBlur: () => { focused.value = false; leave(); },
+  onClick: () => { if (props.dismissOnClick) hide(); },
 }));
 
 onMounted(() => {

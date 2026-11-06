@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import type { ReportAsset } from '../types';
-import { baseName, reportPreviewURL, time } from '../format';
+import { baseName, extensionOf, reportPreviewURL, time } from '../format';
 import { studioAPI, generatedURL, jobGeneratedURL, type ImageJobs, type ImageMetadata, type ImageSettings, type MetadataDocument, type StudioCatalog } from '../imageStudio';
 import AppModal from './AppModal.vue';
 import ImageStudioBrowser from './ImageStudioBrowser.vue';
 import ImageStudioQueue from './ImageStudioQueue.vue';
+import StudioSequencePlayer from './StudioSequencePlayer.vue';
 import { notify, openDeclaration, openResourceFolder, registerNavigationGuard } from '../workspace';
 
 const props = defineProps<{ row?: ReportAsset; stacked?: boolean; embedded?: boolean }>();
@@ -27,6 +28,7 @@ const newPath = ref('art/generated/new-image.png');
 const overwrite = ref(false);
 const preview = ref<'source' | 'generated' | 'comparison'>('source');
 const previewJob = ref('');
+const inspectorMode = ref<'describe' | 'generate'>('describe');
 const tags = ref('');
 const objects = ref('');
 const prompt = ref('');
@@ -36,6 +38,9 @@ const modelsDirty = computed(() => !!settings.value && JSON.stringify(settings.v
 const current = computed(() => catalog.value?.files.find(file => file.file === selected.value));
 const metadata = computed(() => document.value?.metadata);
 const isSequence = computed(() => document.value?.kind === 'sequence');
+const imageFormat = computed(() => extensionOf(metadata.value?.sequence?.frames[0]?.path ?? document.value?.file ?? '').toUpperCase());
+const imageTitle = computed(() => creating.value ? 'Create a new image' : isSequence.value
+  ? baseName(metadata.value?.sequence?.paths[0] ?? current.value?.name ?? 'Animation') : baseName(document.value?.file ?? ''));
 const fallbackPrompt = computed(() => [metadata.value?.analysis.description, metadata.value?.analysis.scene].filter(Boolean).join('\n'));
 const copyablePrompt = computed(() => prompt.value.trim() ? prompt.value : fallbackPrompt.value);
 const activeJobs = computed(() => jobs.value.jobs.filter(job => ['queued', 'running', 'cancelling'].includes(job.state)));
@@ -244,76 +249,116 @@ onBeforeUnmount(() => { disposed = true; loadId++; clearTimeout(timer); unregist
     <div class="studio-body" :class="{ 'modal-body': !embedded }">
       <p v-if="error" class="alert alert-danger" role="alert">{{ error }}</p>
       <p v-if="message" class="alert alert-info" role="status">{{ message }}</p>
-      <ImageStudioBrowser v-show="tab === 'metadata'" :files="catalog?.files ?? []" :selected="selected" :working="working" :batch="!row?.sequence"
-                            @select="selectFile($event)" @create="newMetadata" @analyze="enqueue('metadata', $event)" @generate="enqueue('image', $event)">
+      <ImageStudioBrowser v-show="tab === 'metadata'" :files="catalog?.files ?? []" :selected="selected" :working="working" :batch="!row?.sequence" :game="catalog?.game ?? ''" :revision="lastFinished"
+                            v-slot="{ destinationFolder }" @select="selectFile($event)" @create="newMetadata" @analyze="enqueue('metadata', $event)" @generate="enqueue('image', $event)">
           <section class="studio-editor" aria-label="Image metadata editor">
             <p v-if="loading" role="status">Loading metadata…</p>
             <p v-else-if="!metadata" class="text-muted">Choose an image, or create metadata for a new image.</p>
             <form v-else @submit.prevent="save">
               <p v-if="document?.sourceError" class="alert alert-warning">{{ document.sourceError }}</p>
-              <div class="studio-editor-heading">
-                <div><h6>{{ creating ? 'Create a new image' : isSequence ? current?.name ?? metadata.sequence?.id ?? 'Animation' : baseName(document?.file ?? '') }}</h6><p class="studio-hint">{{ document?.exists ? 'Saved metadata' : 'Manual metadata draft' }}<span v-if="dirty"> · Unsaved changes</span></p></div>
-                <button v-if="!creating && current?.exists" type="button" class="btn btn-outline-primary btn-sm" :disabled="working" @click="enqueue('metadata')">{{ isSequence ? 'Analyze animation' : 'Analyze image' }}</button>
-              </div>
-              <p v-if="isSequence && metadata.sequence" class="studio-animation-info">{{ metadata.sequence.frames.length }} frames · {{ metadata.sequence.frameTime }} ms per frame. One description covers the animation’s appearance and motion. Generating an image creates a single still from the shared prompt.</p>
-              <label v-if="creating" class="studio-field">Image path <input v-model="newPath" aria-label="Image path" class="form-control" required placeholder="art/generated/new-image.png"><small>Relative to the game folder. A .json metadata file is created beside this path.</small></label>
-              <div v-if="!creating && (current?.exists || document?.generated)" :class="['studio-preview', { 'is-sequence': isSequence && preview === 'source' }]">
-                <div class="studio-preview-tabs">
-                  <div class="studio-preview-modes" role="tablist" aria-label="Image preview">
-                    <button v-if="current?.exists" type="button" role="tab" :aria-selected="preview === 'source'" :class="{ active: preview === 'source' }" @click="preview = 'source'; previewFailed = []">{{ isSequence ? 'Animation frames' : 'Source image' }}</button>
-                    <button v-if="document?.generated" type="button" role="tab" :aria-selected="preview === 'generated'" :class="{ active: preview === 'generated' }" @click="preview = 'generated'; previewFailed = []">Generated image</button>
-                    <button v-if="current?.exists && document?.generated" type="button" role="tab" :aria-selected="preview === 'comparison'" :class="{ active: preview === 'comparison' }" @click="preview = 'comparison'; previewFailed = []">Side by side</button>
+              <div class="studio-workbench">
+                <div class="studio-preview-column">
+                  <div class="studio-editor-heading">
+                    <div><h6 :title="imageTitle">{{ imageTitle }}</h6><span v-if="dirty" class="studio-hint">Unsaved changes</span></div>
+                    <div class="studio-image-facts"><span v-if="imageFormat">{{ imageFormat }}</span><span>{{ metadata.image.width }} × {{ metadata.image.height }}</span><template v-if="isSequence && metadata.sequence"><span>{{ metadata.sequence.frames.length }} frames</span><span>{{ metadata.sequence.frameTime }} ms/frame</span></template></div>
                   </div>
-                  <a v-if="preview !== 'source'" :href="generatedPreviewURL" target="_blank" rel="noopener">Open PNG <i aria-hidden="true" class="mdi mdi-open-in-new" /></a>
-                </div>
-                <div v-if="preview === 'comparison'" class="studio-preview-comparison" role="tabpanel" aria-label="Side by side">
-                  <figure v-for="pane in comparisonPreviews" :key="pane.key">
-                    <div class="studio-image"><img v-if="!previewFailed.includes(pane.url)" :src="pane.url" :alt="pane.alt" @error="previewFailed.push(pane.url)"><span v-else class="text-muted">Preview unavailable</span></div>
-                  </figure>
-                </div>
-                <div v-else class="studio-image"><img v-if="!previewFailed.includes(previewURL)" :src="previewURL" :alt="preview === 'source' ? isSequence ? 'Representative animation frames' : 'Source image' : 'Generated image'" @error="previewFailed.push(previewURL)"><span v-else class="text-muted">Preview unavailable</span></div>
-                <p v-if="isSequence && preview !== 'generated'" class="studio-output-path">Frames are shown in playback order. Analysis uses up to 12 samples across the full animation, including the first and last frames.</p>
-                <p v-if="preview !== 'source'" class="studio-output-path">{{ previewOutput }}<small v-if="previewedJob?.renderSize">Saved render resolution: {{ previewedJob.renderSize.width }} × {{ previewedJob.renderSize.height }}</small><small>The latest generated image is also available beside the metadata file.</small></p>
-              </div>
-              <div class="studio-dimensions">
-                <fieldset><legend>Output resolution</legend><div class="studio-size"><label>Width<input v-model.number="metadata.image.width" type="number" min="1" max="16384" required class="form-control"></label><span>×</span><label>Height<input v-model.number="metadata.image.height" type="number" min="1" max="16384" required class="form-control"></label></div></fieldset>
-                <fieldset>
-                  <legend>Model render resolution</legend>
-                  <div class="studio-size"><label>Render width<input v-model.number="metadata.generation.width" type="number" min="32" max="16384" step="32" required class="form-control"></label><span>×</span><label>Render height<input v-model.number="metadata.generation.height" type="number" min="32" max="16384" step="32" required class="form-control"></label></div>
-                  <div class="studio-render-scales" role="group" aria-label="Render resolution multiplier">
-                    <span>Scale from output</span>
-                    <button v-for="factor in [1, 2, 4, 8]" :key="factor" type="button" class="btn btn-outline-primary btn-sm" :disabled="working || loading || !scaledRenderSize(factor)" :title="`Set render size to ${factor}× output resolution, rounded up to multiples of 32`" @click="setRenderScale(factor)">{{ factor }}×</button>
+
+                  <div v-if="!creating && (current?.exists || document?.generated)" :class="['studio-preview', { 'is-sequence': isSequence && preview === 'source' }]">
+                    <div v-if="document?.generated" class="studio-preview-tabs">
+                      <div class="studio-preview-modes" role="tablist" aria-label="Image preview">
+                        <button v-if="current?.exists" type="button" role="tab" :aria-selected="preview === 'source'" :class="{ active: preview === 'source' }" @click="preview = 'source'; previewFailed = []">{{ isSequence ? 'Animation frames' : 'Source image' }}</button>
+                        <button v-if="document?.generated" type="button" role="tab" :aria-selected="preview === 'generated'" :class="{ active: preview === 'generated' }" @click="preview = 'generated'; previewFailed = []">Generated image</button>
+                        <button v-if="current?.exists && document?.generated" type="button" role="tab" :aria-selected="preview === 'comparison'" :class="{ active: preview === 'comparison' }" @click="preview = 'comparison'; previewFailed = []">Side by side</button>
+                      </div>
+                      <a v-if="preview !== 'source'" :href="generatedPreviewURL" target="_blank" rel="noopener">Open PNG <i aria-hidden="true" class="mdi mdi-open-in-new" /></a>
+                    </div>
+                    <div v-if="preview === 'comparison'" class="studio-preview-comparison" role="tabpanel" aria-label="Side by side">
+                      <figure v-for="pane in comparisonPreviews" :key="pane.key">
+                        <div class="studio-image"><img v-if="!previewFailed.includes(pane.url)" :src="pane.url" :alt="pane.alt" @error="previewFailed.push(pane.url)"><span v-else class="text-muted">Preview unavailable</span></div>
+                      </figure>
+                    </div>
+                    <StudioSequencePlayer v-else-if="preview === 'source' && isSequence && metadata.sequence" :sequence="metadata.sequence" :game="catalog?.game ?? ''" :revision="document?.revision ?? ''" />
+                    <div v-else class="studio-image"><img v-if="!previewFailed.includes(previewURL)" :src="previewURL" :alt="preview === 'source' ? isSequence ? 'Representative animation frames' : 'Source image' : 'Generated image'" @error="previewFailed.push(previewURL)"><span v-else class="text-muted">Preview unavailable</span></div>
+
+                    <p v-if="preview !== 'source'" class="studio-output-path">{{ previewOutput }}<small v-if="previewedJob?.renderSize">Saved render resolution: {{ previewedJob.renderSize.width }} × {{ previewedJob.renderSize.height }}</small><small>The latest generated image is also available beside the metadata file.</small></p>
                   </div>
-                  <small>Multiples of 32. Resized to the output resolution.</small>
-                </fieldset>
+                  <div v-else class="studio-preview-placeholder">
+                    <i aria-hidden="true" :class="['mdi', creating ? 'mdi-image-plus-outline' : 'mdi-image-off-outline']" />
+                    <h6>{{ creating ? 'New image' : 'No image preview' }}</h6>
+                    <p v-if="creating" class="studio-hint">Describe the image in the inspector.</p>
+                  </div>
+                  <div v-if="creating" class="studio-destination-preview">
+                    <span class="studio-hint">New image destination · preview</span>
+                    <p><i aria-hidden="true" class="mdi mdi-folder-outline" /> {{ destinationFolder || 'Choose a folder with Select folder' }}</p>
+                    <small>Destination preview only. Saving still uses the Image path field.</small>
+                  </div>
+                  <details v-if="isSequence && metadata.sequence" class="studio-animation-info"><summary>Animation details</summary><p>One description covers the animation’s appearance and motion. Analysis samples up to 12 frames across the full animation. Generating an image creates a single still from the shared prompt.</p></details>
+                  <details class="studio-provenance">
+                    <summary>Metadata file and provenance</summary>
+                    <dl>
+                      <dt>JSON file</dt>
+                      <dd class="studio-metadata-file">
+                        <span>{{ document?.path || `${newPath}.json` }}</span>
+                        <span class="studio-file-actions">
+                          <button type="button" class="details-icon" aria-label="Open metadata folder" :title="document?.exists && !creating ? 'Open metadata folder' : 'Save metadata first'" :disabled="working || loading || creating || !document?.exists" @click="document && openResourceFolder(document.path)"><i aria-hidden="true" class="mdi mdi-folder-open-outline" /></button>
+                          <button type="button" class="details-icon" aria-label="Open metadata file in VS Code" :title="document?.exists && !creating ? 'Open metadata file in VS Code' : 'Save metadata first'" :disabled="working || loading || creating || !document?.exists" @click="document && openDeclaration(document.path, 1)"><i aria-hidden="true" class="mdi mdi-code-braces" /></button>
+                        </span>
+                      </dd>
+                      <dt>Model</dt><dd>{{ metadata.model }}</dd>
+                      <dt>Created</dt><dd>{{ time(metadata.created_at) }}</dd>
+                      <dt v-if="metadata.image.sha256">Source SHA-256</dt><dd v-if="metadata.image.sha256">{{ metadata.image.sha256 }}</dd>
+                    </dl>
+                    <pre>{{ JSON.stringify(metadata, null, 2) }}</pre>
+                  </details>
+                </div>
+                <div class="studio-inspector">
+                  <div class="studio-inspector-modes" role="group" aria-label="Image inspector">
+                    <button type="button" :class="{ active: inspectorMode === 'describe' }" :aria-pressed="inspectorMode === 'describe'" @click="inspectorMode = 'describe'">Describe</button>
+                    <button type="button" :class="{ active: inspectorMode === 'generate' }" :aria-pressed="inspectorMode === 'generate'" @click="inspectorMode = 'generate'">Generate</button>
+                  </div>
+                  <label v-if="creating" class="studio-field">Image path <input v-model="newPath" aria-label="Image path" class="form-control" required placeholder="art/generated/new-image.png"><small>Relative to the game folder. A .json metadata file is created beside this path.</small></label>
+                  <div v-show="inspectorMode === 'describe'">
+
+                    <label class="studio-field">Description<textarea v-model="metadata.analysis.description" rows="2" class="form-control" placeholder="Describe the image you want to create…" /></label>
+                    <label class="studio-field">Scene<textarea v-model="metadata.analysis.scene" rows="2" class="form-control" placeholder="Setting, background and lighting" /></label>
+                    <div class="studio-description-tools">
+                    <details class="studio-inspector-details">
+                      <summary>More metadata</summary>
+                      <div class="studio-dimensions"><label class="studio-field">Objects<input v-model="objects" class="form-control" placeholder="Comma-separated objects"></label><label class="studio-field">Tags<input v-model="tags" class="form-control" placeholder="Comma-separated tags"></label></div>
+                      <label class="studio-field">Text in image<textarea v-model="metadata.analysis.text" rows="2" class="form-control" /></label>
+                    </details>
+                      <button v-if="!creating && current?.exists" type="button" class="btn btn-link btn-sm studio-analyze" :disabled="working" :aria-label="isSequence ? 'Analyze animation' : 'Analyze image'" :title="isSequence ? 'Analyze animation' : 'Analyze image'" @click="enqueue('metadata')"><i aria-hidden="true" class="mdi mdi-auto-fix" /></button>
+                    </div>
+                  </div>
+                  <div v-show="inspectorMode === 'generate'">
+                    <div class="studio-field">
+                      <div class="studio-field-heading"><span>Generation prompt</span><button type="button" class="details-icon" aria-label="Copy generation prompt" title="Copy generation prompt" :disabled="!copyablePrompt.trim()" @click="copyGenerationPrompt"><i aria-hidden="true" class="mdi mdi-content-copy" /></button></div>
+                      <textarea v-model="prompt" aria-label="Generation prompt" rows="4" class="form-control" :placeholder="fallbackPrompt || 'Use the description and scene, or enter a custom prompt'" />
+                      <small>Leave empty to use the description and scene. Transparency instructions are added automatically.</small>
+                    </div>
+                    <details class="studio-inspector-details" open>
+                      <summary>Resolution &amp; background</summary>
+                      <div class="studio-dimensions">
+                        <fieldset><legend>Output resolution</legend><div class="studio-size"><label>Width<input v-model.number="metadata.image.width" type="number" min="1" max="16384" required class="form-control"></label><span>×</span><label>Height<input v-model.number="metadata.image.height" type="number" min="1" max="16384" required class="form-control"></label></div></fieldset>
+                        <fieldset>
+                          <legend>Model render resolution</legend>
+                          <div class="studio-size"><label>Render width<input v-model.number="metadata.generation.width" type="number" min="32" max="16384" step="32" required class="form-control"></label><span>×</span><label>Render height<input v-model.number="metadata.generation.height" type="number" min="32" max="16384" step="32" required class="form-control"></label></div>
+                          <div class="studio-render-scales" role="group" aria-label="Render resolution multiplier">
+                            <span>Scale from output</span>
+                            <button v-for="factor in [1, 2, 4, 8]" :key="factor" type="button" class="btn btn-outline-primary btn-sm" :disabled="working || loading || !scaledRenderSize(factor)" :title="`Set render size to ${factor}× output resolution, rounded up to multiples of 32`" @click="setRenderScale(factor)">{{ factor }}×</button>
+                          </div>
+                          <small>Multiples of 32. Resized to the output resolution.</small>
+                        </fieldset>
+                      </div>
+                      <label class="studio-check"><input v-model="metadata.image.transparency" type="checkbox"> Transparent background</label>
+                    </details>
+                  </div>
+                  <div class="studio-inspector-actions">
+                    <button type="button" :class="['btn', inspectorMode === 'describe' ? 'btn-primary' : 'btn-outline-primary']" :disabled="working || loading" @click="save"><i aria-hidden="true" class="mdi mdi-content-save-outline" /> Save metadata</button>
+                    <button v-if="inspectorMode === 'generate'" type="button" class="btn btn-primary" :disabled="working || loading" @click="enqueue('image')">Generate image</button>
+                  </div>
+                </div>
               </div>
-              <label class="studio-check"><input v-model="metadata.image.transparency" type="checkbox"> Transparent background</label>
-              <label class="studio-field">Description<textarea v-model="metadata.analysis.description" rows="4" class="form-control" placeholder="Describe the image you want to create…" /></label>
-              <label class="studio-field">Scene<textarea v-model="metadata.analysis.scene" rows="2" class="form-control" placeholder="Setting, background and lighting" /></label>
-              <div class="studio-field">
-                <div class="studio-field-heading"><span>Generation prompt</span><button type="button" class="details-icon" aria-label="Copy generation prompt" title="Copy generation prompt" :disabled="!copyablePrompt.trim()" @click="copyGenerationPrompt"><i aria-hidden="true" class="mdi mdi-content-copy" /></button></div>
-                <textarea v-model="prompt" aria-label="Generation prompt" rows="4" class="form-control" :placeholder="fallbackPrompt || 'Use the description and scene, or enter a custom prompt'" />
-                <small>Leave empty to use the description and scene. Transparency instructions are added automatically.</small>
-              </div>
-              <div class="studio-dimensions"><label class="studio-field">Objects<input v-model="objects" class="form-control" placeholder="Comma-separated objects"></label><label class="studio-field">Tags<input v-model="tags" class="form-control" placeholder="Comma-separated tags"></label></div>
-              <label class="studio-field">Text in image<textarea v-model="metadata.analysis.text" rows="2" class="form-control" /></label>
-              <details class="studio-provenance">
-                <summary>Metadata file and provenance</summary>
-                <dl>
-                  <dt>JSON file</dt>
-                  <dd class="studio-metadata-file">
-                    <span>{{ document?.path || `${newPath}.json` }}</span>
-                    <span class="studio-file-actions">
-                      <button type="button" class="details-icon" aria-label="Open metadata folder" :title="document?.exists && !creating ? 'Open metadata folder' : 'Save metadata first'" :disabled="working || loading || creating || !document?.exists" @click="document && openResourceFolder(document.path)"><i aria-hidden="true" class="mdi mdi-folder-open-outline" /></button>
-                      <button type="button" class="details-icon" aria-label="Open metadata file in VS Code" :title="document?.exists && !creating ? 'Open metadata file in VS Code' : 'Save metadata first'" :disabled="working || loading || creating || !document?.exists" @click="document && openDeclaration(document.path, 1)"><i aria-hidden="true" class="mdi mdi-code-braces" /></button>
-                    </span>
-                  </dd>
-                  <dt>Model</dt><dd>{{ metadata.model }}</dd>
-                  <dt>Created</dt><dd>{{ time(metadata.created_at) }}</dd>
-                  <dt v-if="metadata.image.sha256">Source SHA-256</dt><dd v-if="metadata.image.sha256">{{ metadata.image.sha256 }}</dd>
-                </dl>
-                <pre>{{ JSON.stringify(metadata, null, 2) }}</pre>
-              </details>
             </form>
           </section>
       </ImageStudioBrowser>
@@ -374,10 +419,6 @@ onBeforeUnmount(() => { disposed = true; loadId++; clearTimeout(timer); unregist
     <div class="studio-footer" :class="{ 'modal-footer': !embedded }">
       <label class="studio-check"><input v-model="overwrite" type="checkbox"> Replace existing metadata / generated PNGs after success</label>
       <div class="studio-footer-actions">
-        <template v-if="tab === 'metadata' && metadata">
-          <button type="button" class="btn btn-outline-primary" :disabled="working || loading" @click="save">Save metadata</button>
-          <button type="button" class="btn btn-primary" :disabled="working || loading" @click="enqueue('image')">Generate image</button>
-        </template>
         <button v-if="!embedded" type="button" class="btn btn-light" :disabled="working" @click="close">Close</button>
       </div>
     </div>
@@ -388,22 +429,50 @@ onBeforeUnmount(() => { disposed = true; loadId++; clearTimeout(timer); unregist
 :global(.image-studio .modal-content) { height: min(920px, calc(100dvh - 64px)); }
 .studio-page { overflow: hidden; }
 .studio-page .studio-body { overflow: visible; }
-.studio-page .studio-footer { display: flex; flex-wrap: wrap; gap: 16px; padding: 18px 24px; border-top: 1px solid #e0e4ec; background: white; position: sticky; bottom: 0; z-index: 2; }
+.studio-page .studio-footer { display: flex; flex-wrap: wrap; gap: 12px; padding: 12px 14px; border-top: 1px solid #e0e4ec; background: white; position: sticky; bottom: 0; z-index: 2; }
 .studio-tabs { display: flex; flex-wrap: wrap; gap: 24px; padding: 0 26px; border-bottom: 1px solid #e0e4ec; flex-shrink: 0; }
 .studio-tabs button { border: 0; border-bottom: 3px solid transparent; background: none; padding: 16px 0; color: #68718a; cursor: pointer; }
 .studio-tabs button.active { color: #4b49ac; border-color: #4b49ac; }
 .studio-tabs .mdi { margin-right: 6px; }
-.studio-body { padding: 24px; overflow-y: auto; min-height: 0; }
+.studio-body { padding: 14px; overflow-y: auto; min-height: 0; }
 .studio-hint, .studio-field small, fieldset > small { font-size: 12px; color: #77809a; line-height: 1.5; }
 .studio-hint { margin: 0; overflow-wrap: anywhere; }
-.studio-editor { min-width: 0; }
-.studio-editor h6 { margin: 0 0 6px; overflow-wrap: anywhere; }
-.studio-editor-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.studio-editor { min-width: 0; container-type: inline-size; }
+.studio-editor > p { padding: 20px; }
+.studio-editor h6 { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 600; color: #18204e; }
+.studio-editor-heading { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 0 0 8px; }
+.studio-editor-heading > div:first-child { flex: 1 1 120px; min-width: 0; }
+.studio-image-facts { display: flex; flex-wrap: wrap; gap: 4px; }
+.studio-image-facts span { padding: 2px 5px; background: #eceeff; color: #18204e; border-radius: 4px; font-size: 11px; white-space: nowrap; }
+.studio-editor-heading > .studio-hint { flex-shrink: 0; }
 .studio-editor-heading .btn { flex-shrink: 0; }
-.studio-field { display: flex; flex-direction: column; gap: 7px; margin: 0 0 18px; font-size: 13px; }
+.studio-workbench { display: grid; grid-template-columns: minmax(0, 1fr) 235px; gap: 12px; align-items: stretch; }
+.studio-preview-column { padding: 10px; min-width: 0; border: 1px solid #dce2f2; border-radius: 7px; box-shadow: 0 2px 5px #18204e06; }
+.studio-inspector { display: flex; flex-direction: column; min-height: 350px; padding: 12px; min-width: 0; border: 1px solid #dce2f2; border-radius: 7px; box-shadow: 0 2px 5px #18204e06; }
+.studio-inspector-modes { display: flex; border-bottom: 1px solid #e0e4ec; gap: 12px; margin-bottom: 14px; }
+.studio-inspector-modes button { flex: 1; padding: 0 4px 8px; border: 0; border-bottom: 2px solid transparent; color: #18204e; background: none; cursor: pointer; font-size: 12px; }
+.studio-inspector-modes button.active { color: #2336ff; border-bottom-color: #2336ff; font-weight: 600; }
+.studio-inspector .studio-dimensions { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+.studio-inspector-details { margin: 18px 0; padding-top: 14px; border-top: 1px solid #e0e4ec; }
+.studio-inspector-details > summary { cursor: pointer; font-size: 12px; color: #68718a; margin-bottom: 16px; }
+.studio-inspector-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; padding-top: 14px; }
+.studio-inspector-actions .btn { padding: 7px 10px; font-size: 12px; }
+.studio-inspector-actions .btn-primary { background: #2336ff; border-color: #2336ff; }
+.studio-description-tools { display: flex; align-items: flex-start; gap: 8px; border-top: 1px solid #e0e4ec; padding-top: 10px; }
+.studio-description-tools .studio-inspector-details { flex: 1; margin: 0; border: 0; padding: 0; }
+.studio-description-tools .studio-inspector-details > summary { margin: 0 0 10px; font-size: 11px; }
+.studio-inspector-actions .btn { flex: 1 1 100%; }
+.studio-analyze { flex-shrink: 0; padding: 0 5px; color: #2336ff; line-height: 1; font-size: 17px; }
+.studio-preview-placeholder { min-height: 340px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; background: #f8f9fc; border: 1px dashed #dce3ed; border-radius: 6px; text-align: center; }
+.studio-preview-placeholder > .mdi { font-size: 40px; color: #a2aec0; margin-bottom: 14px; }
+.studio-destination-preview { margin-top: 18px; padding: 14px; background: #f8f9fc; border-radius: 6px; overflow-wrap: anywhere; }
+.studio-destination-preview p { margin: 8px 0; font-size: 13px; }
+.studio-destination-preview small { font-size: 11px; color: #77809a; }
+.studio-field { display: flex; flex-direction: column; gap: 5px; margin: 0 0 12px; font-size: 12px; }
+.studio-inspector .form-control { min-width: 0; padding: 7px 8px; border-color: #dce2f2; border-radius: 5px; font-size: 12px; }
 .studio-field-heading { display: flex; align-items: center; gap: 6px; }
 .studio-field-heading .details-icon:disabled { opacity: .4; cursor: default; }
-.studio-field textarea { resize: vertical; line-height: 1.5; min-height: 64px; }
+.studio-field textarea { resize: vertical; line-height: 1.4; min-height: 48px; }
 .studio-dimensions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; margin-bottom: 15px; }
 .studio-dimensions > .studio-field { margin-bottom: 0; }
 fieldset { border: 0; min-width: 0; padding: 0; }
@@ -417,7 +486,7 @@ legend { width: auto; font-size: 13px; margin-bottom: 8px; font-weight: 500; }
 .studio-render-scales .btn { min-width: 34px; height: 26px; padding: 0 7px; font-size: 12px; }
 .studio-check { display: flex; align-items: center; gap: 8px; margin: 0 0 18px; font-size: 12px; color: #68718a; }
 .studio-check input { accent-color: #4b49ac; }
-.studio-preview { border: 1px solid #e0e4ec; border-radius: 7px; margin-bottom: 22px; overflow: hidden; }
+.studio-preview { margin: 0; overflow: hidden; }
 .studio-preview-tabs { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; padding: 7px 12px; background: #f8f9fc; }
 .studio-preview-modes { display: flex; flex-wrap: wrap; gap: 14px; }
 .studio-preview-tabs button { background: none; border: 0; padding: 5px 0; cursor: pointer; font-size: 12px; color: #77809a; }
@@ -426,11 +495,13 @@ legend { width: auto; font-size: 13px; margin-bottom: 8px; font-weight: 500; }
 .studio-preview-comparison { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .studio-preview-comparison figure { min-width: 0; margin: 0; }
 .studio-preview-comparison figure + figure { border-left: 1px solid #e0e4ec; }
-.studio-image { height: 180px; display: flex; align-items: center; justify-content: center; padding: 12px; background: repeating-conic-gradient(#f0f1f5 0% 25%, white 0% 50%) 50% / 16px 16px; }
+.studio-image { height: 285px; display: flex; align-items: center; justify-content: center; padding: 8px; background: repeating-conic-gradient(#f1f2f7 0% 25%, white 0% 50%) 50% / 12px 12px; }
 .studio-image img { max-width: 100%; max-height: 100%; object-fit: contain; }
-.studio-preview.is-sequence .studio-image { height: 380px; }
-.studio-animation-info { font-size: 12px; line-height: 1.6; color: #68718a; padding: 12px 14px; border-radius: 6px; background: #f3f2fc; margin-bottom: 18px; }
-.studio-provenance { margin: 20px 0; font-size: 12px; color: #77809a; }
+.studio-preview.is-sequence .studio-image { height: 285px; }
+.studio-animation-info { font-size: 11px; line-height: 1.5; color: #68718a; margin-top: 10px; }
+.studio-animation-info > summary { cursor: pointer; }
+.studio-animation-info p { margin: 8px 0 0; }
+.studio-provenance { margin: 10px 0 0; padding-top: 8px; border-top: 1px solid #e0e4ec; font-size: 11px; color: #77809a; }
 .studio-provenance summary { cursor: pointer; color: #4b49ac; }
 .studio-provenance dl { margin: 12px 0; }
 .studio-provenance dd { overflow-wrap: anywhere; font-family: monospace; }
@@ -448,5 +519,7 @@ legend { width: auto; font-size: 13px; margin-bottom: 8px; font-weight: 500; }
 .studio-models { max-width: 740px; margin: auto; }
 .studio-models fieldset { margin: 24px 0; padding-top: 18px; border-top: 1px solid #e0e4ec; }
 .studio-models legend { font-size: 16px; }
+@container (max-width: 480px) { .studio-workbench { grid-template-columns: minmax(0, 1fr); } .studio-image { height: 250px; } .studio-preview-placeholder { min-height: 240px; } }
+@media (max-width: 767px) { .studio-editor-heading { flex-wrap: wrap; } .studio-preview-column, .studio-inspector { padding: 10px; } }
 @media (max-width: 767px) { .studio-dimensions { grid-template-columns: minmax(0, 1fr); } .studio-tabs { gap: 16px; padding: 0 14px; } .studio-body { padding: 16px; } }
 </style>
