@@ -35,6 +35,11 @@ All commands run from the repository root (`/media/plamen/data/Python/gda-sync`)
   `alpha_family/plugins/<plugin>/src/Egt/<Module>/X.h` and `X.cpp` (`port-manifest.mjs`, `cppOf`). `X.bridge.ts` ports
   `X.bridge.h` and `X.data.ts` ports `X.data.h`. A C++ file without a TypeScript file of the same name is not tracked,
   for example the `.data.h` files whose structs a view's `.ts` declares.
+- A port elsewhere is tracked when `port-manifest.mjs`'s `PORTS` names it with its C++ files, relative to `$GAMES/game`:
+  on 2026-11-06, the engine's `NumberFormatter` (`libs/src/Egt/Game/Utils`) and the integration's `LocalizationManager`
+  number formats (`../integration/plugins/src/Egt/LocalizationManager`). Sync their changes as library_sync.md's part A
+  says. A `hat_libs` port cannot be tracked here (the games repository's history does not have a submodule's files):
+  library_sync.md's part B lists those.
 - `node frontend/src/game/export/import-cpp.mjs $GAMES/game` lists every tracked file whose C++ changed since it was
   ported, with the commits. It covers the game and the shared libraries.
 - `node frontend/src/game/export/port-manifest.mjs $GAMES/game --only <ts paths>` records that those files now port the

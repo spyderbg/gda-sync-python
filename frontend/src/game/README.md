@@ -48,7 +48,7 @@ The folders mirror the C++ ones, and the classes keep their C++ names and method
 | `hat_libs/tweeny`, `hat_libs/tweeny_extend/tweeny_extend_transform` | `games/hat_libs/tweeny` (all of it: tweens, combinators, manager, scopes, easings, inspector info; `tests/` are the C++ tests) and its transform tweens |
 | `hat_libs/egt_hpp`, `hat_libs/egt_math` | what tweeny needs of them: `hpp::event`, `hpp::sentinel`, `math::transformf` (position, rotation, scale) |
 | `engine/Fsm` | `games/game/libs/src/Egt/Fsm` (State, Machine, FsmBuilder) |
-| `engine/Game` | `Egt/Game` (Currencies, IMathTypes, IResources, RuntimeImport services, GameFsm, CountdownTimer) |
+| `engine/Game` | `Egt/Game` (Currencies, IMathTypes, IResources, RuntimeImport services, GameFsm, CountdownTimer, NumberFormatter) |
 | `engine/GameVideoCtrl` | `Egt/GameVideoCtrl` (ElementsList; Image, Anim (`AnimationClip/` ImageSeqElement and MovieElement), Text, Button and Rtf elements; `TweenyExtend/`; IVideo, IVideoManager) |
 | `engine/ResourceManager`, `VideoManager`, `AudioManager`, `ModuleManager`, `FileWatch` | the plugins of the same names |
 | `plugins/CappingSplashView` | `games/game/plugins/src/Egt/CappingSplashView`, a module of every alpha family game |
@@ -63,6 +63,7 @@ The folders mirror the C++ ones, and the classes keep their C++ names and method
 | `integration/GameServer` | no counterpart: the game server's client (`GameServer`) and the Play page's `GameEventsRelay` |
 | `engine/DebugImguiOverlay`, `engine/ImGuiEx`, `debug/` | `Egt/DebugImguiOverlay`, `Egt/ImGuiEx`: debug shortcuts and settings; `debug/` contains the Vue panels on the Tools page (`GameToolsPanel.vue`) |
 | `integration/BrowserKernel` | the kernel integrations (playground, hat...): wallet, limits, localization, hardware buttons |
+| `integration/LocalizationManager` | `integration/plugins/src/Egt/LocalizationManager`: its number formats and Format methods, with which the BrowserKernel writes amounts ("€ 1.234,56") |
 | `app/GameApp.ts`, `app/ModuleRegistry.ts` | the ModuleManager and the plugins it loads |
 | `authoring/`, `export/` | no counterpart: the math description and the C++ export (below) |
 

@@ -6,9 +6,9 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from egt_gda_sync.assets.view_text import DEFAULT_SAMPLE, sample_for
+from egt_gda_sync.assets.view_text import DEFAULT_SAMPLE, _image_glyphs, sample_for
 from egt_gda_sync.assets.views import render_view, view_layout
-from tests.test_views import BLUE, decode, write_game, write_json
+from tests.test_views import BLUE, decode, write_game, write_json, write_png
 
 # A TrueType font of the system, for the fonts that Pillow draws.
 SYSTEM_FONTS = [Path(path) for path in ("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", "/usr/share/fonts/dejavu/DejaVuSans.ttf",
@@ -23,12 +23,12 @@ def text_element(view: Path, layout: dict) -> dict:
 def test_a_text_is_drawn_with_the_sample_in_its_image_font_aligned_by_its_size(tmp_path):
     game = write_game(tmp_path)
     main = game / "v" / "1920x1080" / "MainView.json"
-    # The font has only digits: the sample's space and point are left out. Its 5 × 8 glyphs are drawn 4 times as large,
-    # the style's size over the font's.
+    # The font has only digits: the sample's space and point are left out. Its 6 × 8 glyphs (each with the column of the
+    # cyan pixel that starts it, as the C++ game cuts them) are drawn 4 times as large, the style's size over the font's.
     text = text_element(main, view_layout(main, text="1 234.56"))["text"]
-    assert (text["width"], text["height"], text["vertical"]) == (120, 32, False)
+    assert (text["width"], text["height"], text["vertical"]) == (144, 32, False)
     # Bottom center at its position (960, 900): it fits its 200 × 40 fit box, so it is not shrunk.
-    assert text["matrix"] == [1.0, 0.0, 0.0, 1.0, 900.0, 868.0]
+    assert text["matrix"] == [1.0, 0.0, 0.0, 1.0, 888.0, 868.0]
     drawn, without = (decode(render_view(main, 1920, text=sample)) for sample in ("1 234.56", ""))
     assert tuple(drawn[884, 905]) == BLUE and without[884, 905, 3] == 0
     # No sample, no text; the facts of a report have none.
@@ -48,17 +48,39 @@ def test_a_text_larger_than_its_fit_box_shrinks_into_it_and_a_vertical_one_is_a_
     game = write_game(tmp_path)
     main = game / "v" / "1920x1080" / "MainView.json"
     view = json.loads(main.read_text())
-    view["elements"][5]["fitBox"] = {"w": 60, "h": 40}
+    view["elements"][5]["fitBox"] = {"w": 72, "h": 40}
     main.write_text(json.dumps(view))
-    # 120 × 32 into 60 × 40: half as large, around the bottom center of the fit box (TextElement::GetTransform).
+    # 144 × 32 into 72 × 40: half as large, around the bottom center of the fit box (TextElement::GetTransform).
     text = text_element(main, view_layout(main, text="123456"))["text"]
-    assert text["matrix"] == [0.5, 0.0, 0.0, 0.5, 915.0, 888.0]
+    assert text["matrix"] == [0.5, 0.0, 0.0, 0.5, 906.0, 888.0]
     view["elements"][5].pop("fitBox")
     view["elements"][5]["orientation"] = "Vertical"
     main.write_text(json.dumps(view))
     # One digit under another, each as tall as its ink.
     text = text_element(main, view_layout(main, text="12"))["text"]
-    assert (text["width"], text["height"], text["vertical"]) == (20, 64, True)
+    assert (text["width"], text["height"], text["vertical"]) == (24, 64, True)
+
+
+def test_an_image_font_is_cut_into_glyphs_as_the_cpp_game_cuts_it(tmp_path):
+    # hat_libs/video_ctrl/png_font.cpp: only a cyan pixel ends a glyph, the next starts at its column, the first at the
+    # left edge; a glyph is the font's size tall, a line without one more cyan pixel goes on below.
+    cyan, red, ink = (0, 255, 255, 255), (255, 0, 0, 255), (10, 20, 30, 255)
+    font = np.zeros((2 * (3 + 1), 12, 4), np.uint8)
+    font[0, [4, 7]] = cyan
+    font[0, 2] = red  # opaque, but not cyan: not a mark
+    font[1:4, 1:4] = ink
+    font[4:, :] = (0, 0, 0, 0)
+    font[4, 5] = cyan
+    font[5:8, 0:5] = ink
+    path = tmp_path / "font.png"
+    write_png(path, font)
+    glyphs = _image_glyphs(path, "[U+0030-U+0032]", 3)
+    assert {character: glyph.shape for character, glyph in glyphs.items()} == {"0": (3, 4, 4), "1": (3, 3, 4), "2": (3, 5, 4)}
+    assert (glyphs["0"][:, 1:4] == ink).all() and glyphs["1"][..., 3].max() == 0 and (glyphs["2"] == ink).all()
+    # A glyph shorter where the image ends is as tall as the font's size, as C++'s quad is.
+    assert _image_glyphs(path, "[U+0030]", 5)["0"].shape == (5, 4, 4)
+    with pytest.raises(ValueError, match="no cyan pixel that ends the glyph of '3'"):
+        _image_glyphs(path, "[U+0030-U+0033]", 3)
 
 
 def test_a_style_whose_font_is_not_declared_is_reported_and_draws_no_text(tmp_path):

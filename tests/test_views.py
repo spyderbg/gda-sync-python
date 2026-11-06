@@ -56,7 +56,8 @@ def write_game(root: Path) -> Path:
         {"id": "ANIM_GLOW", "frameTime": 40, "loopCount": 0, "frames": [{"path": "art/frame_{00-02}.png"}]},
     ]})
     write_json(game / "RssTextStylesData.json", {"styles": [{"id": "STYLE_WIN", "font_id": "FONT_WIN", "size": 32}]})
-    # An image font of the ten digits: its first row marks where each 5 pixel wide glyph starts, its glyphs are 8 tall.
+    # An image font of the ten digits: a cyan pixel in its first row every 6 columns, so each glyph is an empty column and 5
+    # of ink (the C++ game's cut), 8 tall.
     font = np.zeros((9, 61, 4), np.uint8)
     font[0, ::6] = (0, 255, 255, 255)
     for digit in range(10):

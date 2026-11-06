@@ -6489,6 +6489,50 @@
    "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/ZodiacWheelCoinsView.cpp": "e8d5352467f3e21931ddb25680ae34eabccead9c3c65579c28f87a68b92085c5"
   }
  },
+ "engine/Game/Utils/NumberFormatter.data.ts": {
+  "cpp": [
+   "libs/src/Egt/Game/Utils/NumberFormatter.data.h"
+  ],
+  "sha256": "5c8c45770b43d1f11e93e3475e7052ab14f398f940e80e5b141e1e02c3b21a44",
+  "cppCommit": "0317b4fa7df42feb6a3dfc5929e469b374df483f",
+  "cppSha256": {
+   "libs/src/Egt/Game/Utils/NumberFormatter.data.h": "b7ef7bb9343db783b81c5c1149b0d85b15ec8930120edca7cde0a862c2ff081c"
+  }
+ },
+ "engine/Game/Utils/NumberFormatter.ts": {
+  "cpp": [
+   "libs/src/Egt/Game/Utils/NumberFormatter.h",
+   "libs/src/Egt/Game/Utils/NumberFormatter.cpp"
+  ],
+  "sha256": "d0f1f747f90d13017778298f8106c042d51988560ec4f83e0a9511f035876f89",
+  "cppCommit": "0317b4fa7df42feb6a3dfc5929e469b374df483f",
+  "cppSha256": {
+   "libs/src/Egt/Game/Utils/NumberFormatter.h": "af73c4bacbe9150fbfb4a1dade0ee88b797d27fd4c0a43d184a6fdeb85357e58",
+   "libs/src/Egt/Game/Utils/NumberFormatter.cpp": "c6a967f0cdb6371def5ab526718e657d057933925c009039e12f9e357e491e6d"
+  }
+ },
+ "integration/LocalizationManager/LocalizationManager.data.ts": {
+  "cpp": [
+   "../integration/plugins/src/Egt/LocalizationManager/LocalizationManager.data.h"
+  ],
+  "sha256": "e0e60b4db389890742b19d0ca6e49676e07b8e90ac065f6901cb9a36041c1cc1",
+  "cppCommit": "0317b4fa7df42feb6a3dfc5929e469b374df483f",
+  "cppSha256": {
+   "../integration/plugins/src/Egt/LocalizationManager/LocalizationManager.data.h": "3ccf70df64e5d5a913cfa2f8184ec16ac3dece77a289d6c87acba32e844c4f16"
+  }
+ },
+ "integration/LocalizationManager/LocalizationManager.ts": {
+  "cpp": [
+   "../integration/plugins/src/Egt/LocalizationManager/LocalizationManager.h",
+   "../integration/plugins/src/Egt/LocalizationManager/LocalizationManager.cpp"
+  ],
+  "sha256": "2df374e5a620129414b6fcef9856bc293ecd8dbff99889f10d62becd44ccdf5c",
+  "cppCommit": "0317b4fa7df42feb6a3dfc5929e469b374df483f",
+  "cppSha256": {
+   "../integration/plugins/src/Egt/LocalizationManager/LocalizationManager.h": "deb10530e2931c5f77d085af566d0bbc03f2f8a3cf093d155b877e792c78c1a6",
+   "../integration/plugins/src/Egt/LocalizationManager/LocalizationManager.cpp": "5305eed90186e91462a761af109a2fb7440855389cc6e080b072fabcc2632b65"
+  }
+ },
  "plugins/CappingSplashView/CappingSplashView.data.ts": {
   "cpp": [
    "plugins/src/Egt/CappingSplashView/CappingSplashView.data.h"

@@ -1,7 +1,8 @@
 // The BrowserKernel module: the cabinet around the game, in the browser. It keeps the player's credit (in the
 // browser's storage), plays the kernel's part in matches, and provides the services a C++ integration provides: the
-// wallet, the limits, the localization, the hardware buttons (the keyboard and the page's panel), the recovery's state
-// change actions, responsible gaming, the application control and the game pause (IPauseControl). The random numbers
+// wallet, the limits, the localization (numbers written as the C++ LocalizationManager writes them), the hardware buttons
+// (the keyboard and the page's panel), the recovery's state change actions, responsible gaming, the application control
+// and the game pause (IPauseControl). The random numbers
 // a round asks for come from the game server (integration/GameServer): the browser game is a server based game.
 
 import { EventQueue } from '@game/engine/Core/Event';
@@ -16,10 +17,13 @@ import { BaseModule, type ModuleConfig } from '@game/engine/ModuleManager/BaseMo
 import { Clock } from '@game/engine/Game/Utils/Clock';
 import { IPauseControl, type PauseReason } from '@game/integration/Runtime/IPauseControl';
 import { IGameServer } from '@game/integration/GameServer/GameServer';
+import { LocalizationManager } from '@game/integration/LocalizationManager/LocalizationManager';
 import { IKernelIntegration, IKernelIntegrationEvents, type IKernelApi } from './IKernelIntegration';
 
 const CREDIT_STORAGE_KEY = 'egt-game-credit';
 const LANGUAGES = ['en-GB', 'it-IT'];
+// The C++ LocalizationManager's number formats: the modules configs set none, so its defaults.
+const LOCALIZATION = new LocalizationManager();
 
 export interface BrowserKernelConfig extends ModuleConfig {
   /** The credit a new player starts with. */
@@ -108,10 +112,9 @@ export class BrowserKernel extends BaseModule implements IKernelApi, IKernelInte
         kernel.localizationEvents.languageChanged.Post(language);
       },
       GetSupportedLanguages: () => [...LANGUAGES],
-      FormatCurrency: value => BrowserKernel.FormatCurrency(value),
-      FormatNumber: value => BrowserKernel.FormatCurrency(value),
-      // the kernel's coins format is the currency's with "@ " for "€ ", which the browser leaves out as it does "€ "
-      FormatCoins: coins => BrowserKernel.FormatCurrency(coins),
+      FormatCurrency: value => LOCALIZATION.FormatCurrency(value),
+      FormatNumber: value => LOCALIZATION.FormatNumber(value),
+      FormatCoins: coins => LOCALIZATION.FormatCoins(coins),
     });
     this.RuntimeAdd(ILocalization.Events, this.localizationEvents);
     this.RuntimeAdd(IRecovery, {
@@ -164,10 +167,9 @@ export class BrowserKernel extends BaseModule implements IKernelApi, IKernelInte
     this.queue.ExecuteAllCallbacks();
   }
 
+  /** An amount of cents as the game writes it, for the page. */
   static FormatCurrency(value: number) {
-    const sign = value < 0 ? '-' : '';
-    const [whole, cents] = (Math.abs(value) / 100).toFixed(2).split('.');
-    return `${sign}${whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}.${cents}`;
+    return LOCALIZATION.FormatCurrency(value);
   }
 
   private static StateChangeAction(action: object): IStateChangeAction {

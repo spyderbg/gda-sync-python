@@ -145,6 +145,9 @@ export async function ExportPlugin(input: CppExportInput, token: string, options
   // Ported TypeScript that changed since it was ported.
   const changed: { ts: string; cpp: string[] }[] = [];
   for (const [ts, entry] of Object.entries(MANIFEST)) {
+    // the export writes the game's plugin: the engine's and the integration's ports (port-manifest.mjs's PORTS) follow
+    // their C++ only
+    if (!ts.startsWith('alpha_family/') && !ts.startsWith('plugins/')) continue;
     const load = SOURCES[`../${ts}`];
     const text = load ? await load() : null;
     if (text !== null && await Sha256(text) === entry.sha256) continue;

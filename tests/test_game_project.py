@@ -208,6 +208,13 @@ def test_the_cpp_changes_are_reported_and_ported_in_the_background(client, tmp_p
         time.sleep(0.05)
     assert status["result"]["ported"] == [{"ts": "alpha_family/x.ts"}]
     assert status["log"] == ["porting alpha_family/libs/AlphaFamilyVideoCtrl/Components/NumericBarView.ts with Claude Code..."]
+    # A port outside alpha_family/ and plugins/ is ported when the manifest tracks it, such as the engine's NumberFormatter.
+    assert client.post("/api/game/import", json={"files": ["engine/Game/Utils/Clock.ts"]}).status_code == 403
+    assert client.post("/api/game/import", json={"files": ["engine/Game/Utils/NumberFormatter.ts"]}).status_code == 200
+    for _ in range(100):
+        if not client.get("/api/game/agent/status").json()["running"]:
+            break
+        time.sleep(0.05)
 
 
 def test_claude_is_found_where_its_installers_put_it_when_the_path_lacks_it(tmp_path, monkeypatch):

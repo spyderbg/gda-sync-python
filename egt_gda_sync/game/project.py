@@ -61,6 +61,9 @@ TRANSLATE_TIMEOUT = 300
 # translator could not translate into its C++ (export-agent.mjs), one at a time, in the background (an agent takes
 # minutes per file).
 IMPORTER = GAME_SOURCES / "export" / "import-cpp.mjs"
+# The ported files, which the import can update: those of alpha_family/ and plugins/, and the others the manifest tracks
+# (port-manifest.mjs's PORTS), such as the engine's NumberFormatter.
+PORT_MANIFEST = GAME_SOURCES / "export" / "PortManifest.json"
 EXPORT_AGENT = GAME_SOURCES / "export" / "export-agent.mjs"
 GAME_IMPORTER = GAME_SOURCES / "export" / "import-game.mjs"
 PLUGIN_NAME = re.compile(r"^[a-z0-9_]{1,64}$")
@@ -290,8 +293,8 @@ class GameProject:
         if not find_claude():
             raise AppError(CLAUDE_MISSING, 501)
         for file in files:
-            if not TS_PATH.match(file) or ".." in file:
-                raise AppError(f"Not a TypeScript file of the browser game: {file}", 403)
+            if not _ported(file):
+                raise AppError(f"Not a ported TypeScript file of the browser game: {file}", 403)
         return _start_agent("import", [node, str(IMPORTER), str(root), "--agent", "--json", *files], files)
 
     def start_game_sync(self) -> dict:
@@ -431,6 +434,19 @@ def agent_status() -> dict:
     (ported, failed) when it ended."""
     with _agent_lock:
         return {key: (list(value) if isinstance(value, list) else value) for key, value in _agent_job.items()}
+
+
+def _ported(file: str) -> bool:
+    """Whether a TypeScript file of the browser game ports C++ that the import can port it again from: one of
+    alpha_family/ or plugins/, or another that the port manifest tracks."""
+    if ".." in file:
+        return False
+    if TS_PATH.match(file):
+        return True
+    try:
+        return file in json.loads(PORT_MANIFEST.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return False
 
 
 def find_claude() -> str | None:

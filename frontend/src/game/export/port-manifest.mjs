@@ -1,5 +1,5 @@
-// Writes PortManifest.json: each TypeScript file of the browser game that ports C++ (alpha_family/..., plugins/...), its
-// C++ files, the SHA-256 of the TypeScript as it was ported, and the C++ it ports: the games repository's commit
+// Writes PortManifest.json: each TypeScript file of the browser game that ports C++ (alpha_family/..., plugins/..., and
+// the other ports that PORTS names), its C++ files, the SHA-256 of the TypeScript as it was ported, and the C++ it ports: the games repository's commit
 // (cppCommit) and the SHA-256 of each C++ file there (cppSha256). The export compares the TypeScript with it: a file
 // that changed in the browser since has C++ to update, unless export/cpp has the updated C++. The import compares the
 // C++ with it (import-cpp.mjs): a C++ file that changed since has TypeScript to update.
@@ -52,6 +52,20 @@ function* walk(folder) {
   }
 }
 
+// Ports outside alpha_family/ and plugins/, whose C++ is elsewhere in the games repository: their C++ files, relative to
+// games/game. Add a file here when it ports C++ that its changes should be synced from (import-cpp.mjs lists them).
+// hat_libs is a submodule, whose files the games repository's history does not have: its ports are listed in
+// docs/code_sync/library_sync.md, part B, instead.
+const PORTS = {
+  'engine/Game/Utils/NumberFormatter.data.ts': ['libs/src/Egt/Game/Utils/NumberFormatter.data.h'],
+  'engine/Game/Utils/NumberFormatter.ts': ['libs/src/Egt/Game/Utils/NumberFormatter.h', 'libs/src/Egt/Game/Utils/NumberFormatter.cpp'],
+  'integration/LocalizationManager/LocalizationManager.data.ts': ['../integration/plugins/src/Egt/LocalizationManager/LocalizationManager.data.h'],
+  'integration/LocalizationManager/LocalizationManager.ts': [
+    '../integration/plugins/src/Egt/LocalizationManager/LocalizationManager.h',
+    '../integration/plugins/src/Egt/LocalizationManager/LocalizationManager.cpp',
+  ],
+};
+
 /** The C++ files a TypeScript file ports: the same path under src/Egt, as .h and .cpp. */
 function cppOf(file) {
   const path = relative(gameSources, file).replaceAll('\\', '/').replace(/\.ts$/, '');
@@ -68,23 +82,22 @@ const manifestPath = join(here, 'PortManifest.json');
 const previous = existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, 'utf8')) : {};
 const manifest = {};
 let refreshed = 0;
-for (const folder of ['alpha_family', 'plugins']) {
-  for (const file of walk(join(gameSources, folder))) {
-    const { path, cpp } = cppOf(file);
-    if (!cpp.length) continue;
-    const ts = `${path}.ts`;
-    const tsSha256 = sha256(readFileSync(file));
-    const old = previous[ts];
-    // kept: not asked for (--only), or the TypeScript as it was ported, with its C++ known
-    const keep = old && (only ? !only.has(ts) : old.sha256 === tsSha256 && old.cppCommit);
-    if (keep) {
-      manifest[ts] = old;
-      continue;
-    }
-    if (only && !only.has(ts)) continue;
-    refreshed++;
-    manifest[ts] = { cpp, sha256: tsSha256, cppCommit: base, cppSha256: Object.fromEntries(cpp.map(item => [item, CppSha256At(base, item)])) };
+const ported = [...['alpha_family', 'plugins'].flatMap(folder => [...walk(join(gameSources, folder))]).map(cppOf),
+  ...Object.entries(PORTS).map(([ts, cpp]) => ({ path: ts.replace(/\.ts$/, ''), cpp }))];
+for (const { path, cpp } of ported) {
+  if (!cpp.length) continue;
+  const ts = `${path}.ts`;
+  const tsSha256 = sha256(readFileSync(join(gameSources, ts)));
+  const old = previous[ts];
+  // kept: not asked for (--only), or the TypeScript as it was ported, with its C++ known
+  const keep = old && (only ? !only.has(ts) : old.sha256 === tsSha256 && old.cppCommit);
+  if (keep) {
+    manifest[ts] = old;
+    continue;
   }
+  if (only && !only.has(ts)) continue;
+  refreshed++;
+  manifest[ts] = { cpp, sha256: tsSha256, cppCommit: base, cppSha256: Object.fromEntries(cpp.map(item => [item, CppSha256At(base, item)])) };
 }
 const sorted = Object.fromEntries(Object.entries(manifest).sort(([a], [b]) => a.localeCompare(b)));
 writeFileSync(manifestPath, `${JSON.stringify(sorted, null, 1)}\n`);

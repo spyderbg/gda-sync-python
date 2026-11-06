@@ -1,9 +1,9 @@
 """The text of a view's Text elements, drawn as the game's TextElement draws it, for previews.
 
 A Text element names a text style (rssStyleId) whose font_id names a font (RssFontsData.json) and whose size is the
-size to draw it at. A font is a TrueType or OpenType file, drawn with Pillow, or an image font: an image whose first row
-marks where each glyph starts with an opaque pixel, its glyphs below that row, one for each character its entry declares
-(chars, such as "[U+0020][U+0030-U+0039]"), in order. An image font is scaled by the style's size over the font's.
+size to draw it at. A font is a TrueType or OpenType file, drawn with Pillow, or an image font: an image of glyphs, one
+for each character its entry declares (chars, such as "[U+0020][U+0030-U+0039]"), in order, cut as the C++ game's
+video_ctrl cuts them (_image_glyphs). An image font is scaled by the style's size over the font's.
 
 The text is laid out on one line, or for a vertical element (orientation Vertical) one character under another, each as
 tall as its ink. Its size is what the element is aligned by. A fit box shrinks a larger text uniformly, never grows it,
@@ -41,18 +41,34 @@ def is_image_font(path: str | Path) -> bool:
     return Path(path).suffix.lower() in IMAGE_FONT_SUFFIXES
 
 
-def _image_glyphs(path: Path, chars: str) -> dict[str, np.ndarray]:
-    """An image font's glyphs, by character, as RGBA arrays: the columns between two marks of its first row, below it."""
+def _image_glyphs(path: Path, chars: str, size: int | None = None) -> dict[str, np.ndarray]:
+    """An image font's glyphs, by character, as RGBA arrays, cut as hat_libs/video_ctrl/png_font.cpp's
+    create_font_from_cyan_sep_png cuts them (and the browser game's Fonts.ts): each runs from where the previous one ends
+    (the first from the left edge) to the next cyan pixel of its line's first row, so a glyph's first column is the
+    column of its cyan pixel, and its width is how far the next one starts; it is the font's size tall (size, or else
+    the image's height), below that row. A line without one more cyan pixel goes on to the next line, the font's size
+    and the cyan row lower. ValueError when the image runs out, where C++ cannot load the font."""
     rgba = decode_image(path)
     if rgba.shape[0] < 2:
         raise ValueError("the image font is too small")
-    marks = [int(x) for x in np.flatnonzero(rgba[0, :, 3] > 0)]
-    if len(marks) < 2:
-        raise ValueError("the image font has no glyph marks in its first row")
-    characters = [chr(point) for point in declared_characters(chars)]
+    cyan = (rgba[..., 0] == 0) & (rgba[..., 1] == 255) & (rgba[..., 2] == 255) & (rgba[..., 3] != 0)
+    height = size if size and size > 0 else rgba.shape[0] - 1
+    offset = 1  # the cyan row
     glyphs = {}
-    for character, start, end in zip(characters, marks, marks[1:]):
-        glyphs[character] = rgba[1:, start + 1:end]
+    x, y = 0, 0
+    for point in declared_characters(chars):
+        while True:
+            found = np.flatnonzero(cyan[y, x + 1:])
+            if found.size:
+                end = x + 1 + int(found[0])
+                break
+            x, y = 0, y + height + offset
+            if y >= rgba.shape[0]:
+                raise ValueError(f"the image font has no cyan pixel that ends the glyph of {chr(point)!r}")
+        glyph = rgba[y + offset:y + offset + height, x:end]
+        # as tall as the font's size even where the image ends sooner: C++'s glyph quad is
+        glyphs[chr(point)] = np.pad(glyph, ((0, height - glyph.shape[0]), (0, 0), (0, 0))) if glyph.shape[0] < height else glyph
+        x = end
     return glyphs
 
 
@@ -61,8 +77,8 @@ def _ink_rows(glyph: np.ndarray) -> tuple[int, int]:
     return (int(rows[0]), int(rows[-1]) + 1) if rows.size else (0, 0)
 
 
-def _image_text(path: Path, chars: str, scale: float, text: str, vertical: bool) -> tuple[np.ndarray, tuple[float, float]] | None:
-    glyphs = _image_glyphs(path, chars)
+def _image_text(path: Path, chars: str, size: int | None, scale: float, text: str, vertical: bool) -> tuple[np.ndarray, tuple[float, float]] | None:
+    glyphs = _image_glyphs(path, chars, size)
     drawn = [glyphs[character] for character in text if character in glyphs]
     if not drawn:
         return None
@@ -127,7 +143,7 @@ def text_image(font: dict, size: float, text: str, vertical: bool = False) -> tu
     if is_image_font(path):
         declared = font.get("size")
         scale = size / float(declared) if isinstance(declared, (int, float)) and declared > 0 and size > 0 else 1.0
-        result = _image_text(path, str(font.get("chars") or ""), scale, text, vertical)
+        result = _image_text(path, str(font.get("chars") or ""), round(declared) if isinstance(declared, (int, float)) else None, scale, text, vertical)
     else:
         result = _outline_text(path, size, text, vertical)
     with _lock:

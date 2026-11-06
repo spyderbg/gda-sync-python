@@ -42,7 +42,18 @@ Not tracked, and out of scope unless the user asks:
   when the family's tools change.
 
 Their C++ changes don't show up in `import-cpp.mjs`. Look at them only when a tracked change needs them, which the type
-check usually tells you.
+check usually tells you. The exceptions are the files that `port-manifest.mjs`'s `PORTS` names, whose C++ is not at the
+same path:
+
+| TypeScript (`frontend/src/game/...`) | C++ (`$GAMES/...`) |
+| --- | --- |
+| `engine/Game/Utils/NumberFormatter.ts`, `.data.ts` | `game/libs/src/Egt/Game/Utils/NumberFormatter.h`, `.cpp`, `.data.h` |
+| `integration/LocalizationManager/LocalizationManager.ts`, `.data.ts` | `integration/plugins/src/Egt/LocalizationManager/LocalizationManager.h`, `.cpp`, `.data.h`: the number formats and its Format methods, which `integration/BrowserKernel` provides as `ILocalization` |
+
+`import-cpp.mjs` lists their changes with the libraries'. Port them statement for statement as the other files, check
+them with `node tests/cpp-ports/run.mjs` (from `frontend`), and move their entries with `port-manifest.mjs --only`. A
+change to the LocalizationManager's languages, recovery or ImGui window has nothing to port: the BrowserKernel has its
+own. To track another such port, add it to `PORTS` and run `port-manifest.mjs --only <it>`.
 
 ### Every ported game uses these files
 
@@ -162,6 +173,7 @@ Each TypeScript file starts with a comment naming the C++ it ports. On 2026-10-2
 | `egt_hpp/event.ts` | `egt_hpp/event.hpp` |
 | `egt_hpp/sentinel.ts` | `egt_hpp/sentinel.hpp` |
 | `egt_math/transform.ts` | `egt_math/transform.hpp`, `.cpp` (`transform_t<float>`) |
+| `engine/GameVideoCtrl/Fonts.ts` (`CreateFontFromCyanSepPng`, checked by `frontend/tests/cpp-ports`), and the app's `egt_gda_sync/assets/view_text.py` (`_image_glyphs`) | `video_ctrl/png_font.cpp`: `is_cyan`, `next_cyan_on_line` and `create_font_from_cyan_sep_png`'s cut of a PNG font into glyphs (ported 2026-11-06 from `def1924e4`) |
 
 Left out on purpose: `egt_math`'s matrices and skew, `tweeny_extend_node`, `tweeny_extend_text`, and the rest of
 `egt_hpp`. Some things differ on purpose, as the files' header comments say:
@@ -178,7 +190,8 @@ Take the baseline, the last synced commit, from the sync record below. The targe
 ```sh
 cd $GAMES/hat_libs
 git log --format='%h %ad %an%n    %s' --date=short <baseline>..<pinned> -- \
-  tweeny tweeny_extend/tweeny_extend_transform egt_hpp/event.hpp egt_hpp/sentinel.hpp egt_math/transform.hpp egt_math/transform.cpp
+  tweeny tweeny_extend/tweeny_extend_transform egt_hpp/event.hpp egt_hpp/sentinel.hpp egt_math/transform.hpp egt_math/transform.cpp \
+  video_ctrl/png_font.cpp
 git diff <baseline> <pinned> -- <the same paths>
 ```
 
