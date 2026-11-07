@@ -678,7 +678,7 @@ legend { width: auto; font-size: 13px; margin-bottom: 8px; font-weight: 500; }
 .studio-size input { margin-top: 5px; }
 .studio-size > span { padding-bottom: 10px; color: #77809a; }
 .studio-render-scales { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 10px 0 6px; }
-.studio-render-scales > span { font-size: 11px; color: #77809a; margin-right: 2px; }
+.studio-render-scales > span { flex-basis: 100%; font-size: 11px; color: #77809a; }
 .studio-render-scales .btn { min-width: 34px; height: 26px; padding: 0 7px; font-size: 12px; }
 .studio-check { display: flex; align-items: center; gap: 8px; margin: 0 0 18px; font-size: 12px; color: #68718a; }
 .studio-check input { accent-color: #4b49ac; }
