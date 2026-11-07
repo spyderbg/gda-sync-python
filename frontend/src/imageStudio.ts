@@ -1,4 +1,5 @@
 import { api } from './workspace';
+import { reportPreviewURL } from './format';
 
 export interface ImageMetadata {
   schema_version: number;
@@ -46,4 +47,7 @@ export interface ModelSettings {
 export interface ImageSettings { path: string; settings: ModelSettings }
 export const studioAPI = <T>(path: string, body?: unknown) => api<T>(`image-studio/${path}`, body === undefined ? 'GET' : 'POST', body);
 export const generatedURL = (file: string, revision: string) => `/api/image-studio/generated?${new URLSearchParams({ file, revision })}`;
+/** An image's thumbnail; an animation's is its first frame. */
+export const studioThumbnailURL = (file: StudioFile, game: string, revision: string) =>
+  reportPreviewURL(file.kind === 'sequence' ? `${game}/${file.path}` : file.file, revision);
 export const jobGeneratedURL = (id: string, revision: string) => `/api/image-studio/jobs/${encodeURIComponent(id)}/image?${new URLSearchParams({ revision })}`;

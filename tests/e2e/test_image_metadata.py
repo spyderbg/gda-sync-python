@@ -65,10 +65,7 @@ def choose_folder(studio, path):
     studio.get_by_role('button', name=f'Select folder {path}', exact=True).click()
 
 
-def show_batch(studio):
-    panel = studio.locator('.studio-batch')
-    if not panel.evaluate('element => element.open'):
-        panel.locator('summary').click()
+JOBS = lambda request: request.method == 'POST' and request.url.endswith('/api/image-studio/jobs')
 
 
 def test_create_metadata_edit_render_size_and_generate_image(new_context, metadata_backend):
@@ -355,9 +352,9 @@ def test_selecting_an_image_loads_its_metadata_and_describe_asks_before_replacin
     describe.click()
     with page.expect_request(lambda request: request.url.endswith('/api/image-studio/jobs') and request.method == 'POST') as submitted:
         confirm.get_by_role('button', name='Describe again', exact=True).click()
-    # Confirming replaces the metadata even though the Replace existing… checkbox is off.
+    # Metadata replacement is confirmed separately from replacing generated PNGs.
     assert submitted.value.post_data_json == {'kind': 'metadata', 'files': [str(game / 'bell.png')], 'overwrite': True}
-    expect(studio.get_by_label('Replace existing metadata / generated PNGs after success')).not_to_be_checked()
+    expect(studio.get_by_label('Replace existing generated PNGs after success')).not_to_be_checked()
     expect(description).to_have_value('A golden bell.', timeout=10000)
     saved = json.loads(stored(game, 'bell.png.json').read_text())
     assert saved['analysis']['description'] == 'A golden bell.' and 'prompt' not in saved['generation']
@@ -427,7 +424,7 @@ def test_force_regenerates_skipped_image_without_adding_job(new_context, metadat
     expect(studio.locator('.studio-job').get_by_text('skipped', exact=True)).to_be_visible()
     force = studio.get_by_role('button', name='Generate', exact=True)
     expect(force).to_be_enabled()
-    expect(studio.get_by_label('Replace existing metadata / generated PNGs after success')).not_to_be_checked()
+    expect(studio.get_by_label('Replace existing generated PNGs after success')).not_to_be_checked()
     with page.expect_request(lambda request: request.url.endswith('/api/image-studio/jobs/retry')) as submitted:
         force.click()
     assert submitted.value.post_data_json == {'id': skipped_id, 'force': True}
@@ -440,7 +437,7 @@ def test_force_regenerates_skipped_image_without_adding_job(new_context, metadat
     assert args[args.index('-W') + 1] == '64' and args[args.index('-H') + 1] == '96'
     assert 'original golden bell' in args[args.index('-p') + 1]
     assert json.loads((stored(game, 'bell.png.json')).read_text())['generation']['width'] == 256
-    expect(studio.get_by_label('Replace existing metadata / generated PNGs after success')).not_to_be_checked()
+    expect(studio.get_by_label('Replace existing generated PNGs after success')).not_to_be_checked()
     studio.get_by_role('button', name='View', exact=True).click()
     expect(studio.get_by_text('Saved render resolution: 64 × 96', exact=True)).to_be_visible()
 
@@ -685,7 +682,7 @@ def test_studio_keeps_image_filters_edits_and_view_when_returning_from_all_pages
     studio.get_by_role('button', name='Open art/icons/gold.png', exact=True).click()
     studio.get_by_label('Description', exact=True).fill('Keep this unsaved description across screens.')
     studio.get_by_label('Find image', exact=True).fill('gold')
-    studio.get_by_label('Filter by image type', exact=True).select_option('image')
+    studio.get_by_label('Filter by asset type', exact=True).select_option('image')
     studio.get_by_label('Filter by asset status', exact=True).select_option('available')
     studio.get_by_role('button', name='Grid view', exact=True).click()
     studio.get_by_role('button', name='Show metadata file', exact=True).click()
@@ -716,7 +713,7 @@ def test_studio_keeps_image_filters_edits_and_view_when_returning_from_all_pages
         expect(studio).to_be_visible()
         expect(studio.get_by_label('Description', exact=True)).to_have_value('Keep this unsaved description across screens.')
         expect(studio.get_by_label('Find image', exact=True)).to_have_value('gold')
-        expect(studio.get_by_label('Filter by image type', exact=True)).to_have_value('image')
+        expect(studio.get_by_label('Filter by asset type', exact=True)).to_have_value('image')
         expect(studio.get_by_label('Filter by asset status', exact=True)).to_have_value('available')
         expect(studio.get_by_role('button', name='Grid view', exact=True)).to_have_attribute('aria-pressed', 'true')
         expect(studio.get_by_role('button', name='Open art/icons/gold.png', exact=True)).to_have_attribute('aria-pressed', 'true')
@@ -846,7 +843,20 @@ def test_metadata_filters_folder_tree_and_unsaved_editor(new_context, metadata_b
     page = new_context().new_page()
     studio = open_studio(page, backend)
     expect(studio.locator('.studio-file')).to_have_count(7)
-    expect(studio.get_by_role('group', name='Filter by metadata', exact=True)).to_have_count(0)
+    metadata_filter = studio.get_by_label('Filter by metadata', exact=True)
+    metadata_filter.select_option('with')
+    expect(studio.locator('.studio-file')).to_have_count(2)
+    expect(studio.get_by_role('button', name='Open art/icons/gold.png', exact=True)).to_be_visible()
+    expect(studio.get_by_role('button', name='Open drafts/new.png', exact=True)).to_be_visible()
+    metadata_filter.select_option('without')
+    expect(studio.locator('.studio-file')).to_have_count(5)
+    expect(studio.get_by_role('button', name='Open art/icons/gold.png', exact=True)).to_have_count(0)
+    # Show all images clears the metadata filter with the others.
+    studio.get_by_label('Find image', exact=True).fill('gold')
+    expect(studio.locator('.studio-file')).to_have_count(0)
+    studio.locator('.studio-empty').get_by_role('button', name='Show all images', exact=True).click()
+    expect(metadata_filter).to_have_value('all')
+    expect(studio.locator('.studio-file')).to_have_count(7)
     choose_folder(studio, 'art/icons')
     expect(studio.locator('.studio-file')).to_have_count(2)
     expect(studio.get_by_role('button', name='Open art/icons/gold.png', exact=True)).to_be_visible()
@@ -867,15 +877,17 @@ def test_metadata_filters_folder_tree_and_unsaved_editor(new_context, metadata_b
     expect(studio.locator('.studio-file')).to_have_count(1)
     expect(studio.get_by_role('button', name='Open art/icons/silver.png', exact=True)).to_be_visible()
     studio.get_by_role('button', name='Clear image search', exact=True).click()
-    studio.get_by_label('Filter by image type', exact=True).select_option('sequence')
+    studio.get_by_label('Filter by asset type', exact=True).select_option('sequence')
     expect(studio.locator('.studio-file')).to_have_count(1)
     expect(studio.get_by_role('button', name='Open SPIN', exact=True)).to_be_visible()
-    studio.get_by_label('Filter by image type', exact=True).select_option('all')
+    studio.get_by_label('Filter by asset type', exact=True).select_option('all')
     studio.get_by_label('Filter by asset status', exact=True).select_option('missing')
     expect(studio.locator('.studio-file')).to_have_count(1)
     studio.get_by_role('button', name='Open art/missing.png', exact=True).click()
-    show_batch(studio)
-    expect(studio.get_by_role('button', name='Describe batch 0', exact=True)).to_be_disabled()
+    # A missing image has nothing to describe, but its metadata can be written and saved.
+    actions = studio.locator('.studio-inspector-actions')
+    expect(actions.get_by_role('button', name='Save metadata', exact=True)).to_be_visible()
+    expect(actions.get_by_role('button', name='Describe', exact=True)).to_have_count(0)
     studio.get_by_label('Filter by asset status', exact=True).select_option('all')
     studio.get_by_role('button', name='Open art/icons/gold.png', exact=True).click()
     studio.get_by_label('Description', exact=True).fill('Keep this unsaved gold description.')
@@ -1062,7 +1074,7 @@ def test_metadata_sync_folder_to_open_image_keeps_edits_and_filters(new_context,
     opened.click()
     studio.get_by_label('Description', exact=True).fill('Keep these unsaved edits when syncing.')
     studio.get_by_label('Find image', exact=True).fill(query)
-    studio.get_by_label('Filter by image type', exact=True).select_option(kind)
+    studio.get_by_label('Filter by asset type', exact=True).select_option(kind)
     studio.get_by_label('Filter by asset status', exact=True).select_option('available')
     # The folder selection can differ from the image still open in the editor.
     choose_folder(studio, 'backgrounds')
@@ -1074,7 +1086,7 @@ def test_metadata_sync_folder_to_open_image_keeps_edits_and_filters(new_context,
     expect(studio.locator('.studio-file')).to_have_count(1)
     expect(studio.get_by_label('Description', exact=True)).to_have_value('Keep these unsaved edits when syncing.')
     expect(studio.get_by_label('Find image', exact=True)).to_have_value(query)
-    expect(studio.get_by_label('Filter by image type', exact=True)).to_have_value(kind)
+    expect(studio.get_by_label('Filter by asset type', exact=True)).to_have_value(kind)
     expect(studio.get_by_label('Filter by asset status', exact=True)).to_have_value('available')
     tree = show_folders(studio)
     expect(tree.locator('[aria-selected="true"]')).to_have_attribute('aria-label', f'{folder}, {2 if folder == "art/icons" else 1} assets')
@@ -1119,33 +1131,117 @@ def test_metadata_folder_alt_click_toggles_subtree_without_selecting(new_context
     expect(studio.get_by_label('Description', exact=True)).to_have_value('Keep unsaved edits while expanding folders.')
 
 
-def test_metadata_batch_uses_filtered_images_and_refreshes_asset_list(new_context, metadata_backend):
+def test_ctrl_click_selects_several_images_shown_as_thumbnails_and_describe_queues_each(new_context, metadata_backend):
     backend, game = metadata_backend
     seed_metadata_browser(game)
     page = new_context().new_page()
     studio = open_studio(page, backend)
-    studio.get_by_label('Find image', exact=True).fill('silver')
-    expect(studio.locator('.studio-file')).to_have_count(1)
-    choose_folder(studio, 'art/icons')
-    show_batch(studio)
-    expect(studio.get_by_role('button', name='Generate batch 0', exact=True)).to_be_disabled()
-    with page.expect_request(lambda request: request.method == 'POST' and request.url.endswith('/api/image-studio/jobs')) as submitted:
-        studio.get_by_role('button', name='Describe batch 1', exact=True).click()
-    body = submitted.value.post_data_json
-    assert body['kind'] == 'metadata' and len(body['files']) == 1
-    assert body['files'][0].endswith('/art/icons/silver.png')
-    expect(studio.get_by_role('tab', name='Metadata', exact=True)).to_have_attribute('aria-selected', 'true')
+    gold = studio.get_by_role('button', name='Open art/icons/gold.png', exact=True)
+    silver = studio.get_by_role('button', name='Open art/icons/silver.png', exact=True)
+    sky = studio.get_by_role('button', name='Open backgrounds/sky.png', exact=True)
+    description = studio.get_by_label('Description', exact=True)
+    saved_gold = stored(game, 'art/icons/gold.png.json').read_text()
+    gold.click()
+    description.fill('An unsaved gold edit.')
+    # Several selected images hide the editor, so its unsaved edits are discarded only when the user agrees.
+    page.once('dialog', lambda dialog: dialog.dismiss())
+    silver.click(modifiers=['Control'])
+    expect(silver).to_have_attribute('aria-pressed', 'false')
+    expect(description).to_have_value('An unsaved gold edit.')
+    page.once('dialog', lambda dialog: dialog.accept())
+    silver.click(modifiers=['Control'])
+    sky.click(modifiers=['Control'])
+    for button in (gold, silver, sky):
+        expect(button).to_have_attribute('aria-pressed', 'true')
+    grid = studio.get_by_role('list', name='Selected images', exact=True)
+    expect(grid.get_by_role('listitem')).to_have_count(3)
+    expect(grid.locator('img')).to_have_count(3)
+    expect(studio.get_by_text('3 images selected', exact=True)).to_be_visible()
+    expect(description).to_have_count(0)
+    expect(studio.get_by_role('button', name='Show metadata file', exact=True)).to_have_count(0)
+    BUILD.mkdir(exist_ok=True)
+    page.screenshot(path=str(BUILD / 'image-studio-multiple-selection.png'), full_page=True)
+    # Ctrl+Click removes an image from the selection.
+    sky.click(modifiers=['Control'])
+    expect(sky).to_have_attribute('aria-pressed', 'false')
+    expect(grid.get_by_role('listitem')).to_have_count(2)
+    show_inspector(studio)
+    expect(studio.get_by_role('button', name='Generate images 1', exact=True)).to_be_enabled()
+    show_inspector(studio, 'Describe')
+    describe = studio.locator('.studio-inspector-actions').get_by_role('button', name='Describe 2', exact=True)
+    describe.click()
+    confirm = page.get_by_role('dialog', name='Describe an image again?', exact=True)
+    expect(confirm).to_contain_text('art/icons/gold.png')
+    confirm.get_by_role('button', name='Cancel', exact=True).click()
+    assert page.request.get(backend.url + '/api/image-studio/jobs').json()['jobs'] == []
+    describe.click()
+    with page.expect_request(JOBS) as submitted:
+        confirm.get_by_role('button', name='Skip images with metadata', exact=True).click()
+    assert submitted.value.post_data_json == {'kind': 'metadata', 'files': [str(game / 'art/icons/silver.png')], 'overwrite': False}
     studio.get_by_role('tab', name='Generation queue', exact=True).click()
     expect(studio.locator('.studio-job .badge').filter(has_text='succeeded')).to_have_count(1, timeout=10000)
     studio.get_by_role('tab', name='Metadata', exact=True).click()
-    expect(studio.get_by_label('Find image', exact=True)).to_have_value('silver')
+    assert stored(game, 'art/icons/silver.png.json').is_file()
+    assert stored(game, 'art/icons/gold.png.json').read_text() == saved_gold
+    expect(grid.get_by_text('Metadata saved', exact=True)).to_have_count(2)
+    show_inspector(studio)
+    expect(studio.get_by_role('button', name='Generate images 2', exact=True)).to_be_enabled()
+    show_inspector(studio, 'Describe')
+    # When every image has metadata, the only choice is to describe them all again, one job each, in the list's order.
+    describe.click()
+    confirm = page.get_by_role('dialog', name='Describe 2 images again?', exact=True)
+    expect(confirm.get_by_role('button', name='Skip images with metadata', exact=True)).to_have_count(0)
+    with page.expect_request(JOBS) as submitted:
+        confirm.get_by_role('button', name='Describe all', exact=True).click()
+    assert submitted.value.post_data_json == {'kind': 'metadata', 'overwrite': True,
+        'files': [str(game / 'art/icons/gold.png'), str(game / 'art/icons/silver.png')]}
+    studio.get_by_role('tab', name='Generation queue', exact=True).click()
+    expect(studio.locator('.studio-job .badge').filter(has_text='succeeded')).to_have_count(3, timeout=10000)
+    studio.get_by_role('tab', name='Metadata', exact=True).click()
+    # A thumbnail opens its image alone.
+    grid.get_by_role('button', name='Select only art/icons/silver.png', exact=True).click()
+    expect(silver).to_have_attribute('aria-pressed', 'true')
+    expect(gold).to_have_attribute('aria-pressed', 'false')
+    expect(description).to_have_value('A golden bell.')
+    expect(studio.get_by_role('button', name='Show metadata file', exact=True)).to_be_visible()
+
+
+def test_shift_click_selects_the_listed_images_between_the_last_click_and_this_one(new_context, metadata_backend):
+    backend, game = metadata_backend
+    seed_metadata_browser(game)
+    page = new_context().new_page()
+    studio = open_studio(page, backend)
+    catalog = page.request.get(backend.url + '/api/image-studio/catalog').json()['files']
+    buttons = [studio.get_by_role('button', name=f"Open {file['name']}", exact=True) for file in catalog]
+
+    def expect_selected(first, last):
+        for index, button in enumerate(buttons):
+            expect(button).to_have_attribute('aria-pressed', 'true' if first <= index <= last else 'false')
+
+    buttons[1].click()
+    buttons[4].click(modifiers=['Shift'])
+    expect_selected(1, 4)
+    expect(studio.get_by_role('list', name='Selected images', exact=True).get_by_role('listitem')).to_have_count(4)
+    # Another Shift+Click ranges from the same image, in either direction.
+    buttons[0].click(modifiers=['Shift'])
+    expect_selected(0, 1)
+    # Ctrl+Shift+Click adds the range to the selection.
+    buttons[5].click(modifiers=['Control', 'Shift'])
+    expect_selected(0, 5)
+    expect(studio.get_by_text('6 images selected', exact=True)).to_be_visible()
+    # Images that the filters hide stay selected, and Describe queues them too.
+    studio.get_by_label('Find image', exact=True).fill(catalog[6]['name'].split('/')[-1])
     expect(studio.locator('.studio-file')).to_have_count(1)
-    expect(studio.get_by_role('button', name='Generate batch 1', exact=True)).to_be_enabled()
-    assert (stored(game, 'art/icons/silver.png.json')).is_file()
-    assert not (stored(game, 'backgrounds/sky.png.json')).exists()
-    studio.get_by_role('button', name='Clear image search', exact=True).click()
-    expect(studio.locator('.studio-file')).to_have_count(2)
-    expect(studio.get_by_role('button', name='Generate batch 2', exact=True)).to_be_enabled()
+    expect(studio.get_by_text('6 of the 6 selected images are outside the current filters.', exact=True)).to_be_visible()
+    selected = catalog[:6]
+    describable = [file['file'] for file in selected if file['exists']]
+    with page.expect_request(JOBS) as submitted:
+        studio.locator('.studio-inspector-actions').get_by_role('button', name=f'Describe {len(describable)}', exact=True).click()
+        if any(file['exists'] and file['metadata'] for file in selected):
+            page.get_by_role('dialog', name=re.compile('^Describe .* again\\?$')).get_by_role('button', name='Describe all', exact=True).click()
+    assert submitted.value.post_data_json['files'] == describable
+    studio.get_by_role('tab', name='Generation queue', exact=True).click()
+    expect(studio.locator('.studio-job .badge').filter(has_text='succeeded')).to_have_count(len(describable), timeout=15000)
 
 
 def test_metadata_tree_selects_one_item_without_checkboxes(new_context, metadata_backend):
@@ -1158,13 +1254,10 @@ def test_metadata_tree_selects_one_item_without_checkboxes(new_context, metadata
     expect(tree.get_by_role('checkbox')).to_have_count(0)
     expect(tree).to_have_attribute('aria-multiselectable', 'false')
     choose_folder(studio, 'art')
-    show_batch(studio)
-    expect(studio.get_by_role('button', name='Describe batch 2', exact=True)).to_be_enabled()
     show_folders(studio)
     expect(selected).to_have_count(1)
     expect(selected).to_have_attribute('aria-label', 'art, 3 assets')
     choose_folder(studio, 'backgrounds')
-    expect(studio.get_by_role('button', name='Describe batch 1', exact=True)).to_be_enabled()
     show_folders(studio)
     expect(selected).to_have_count(1)
     expect(selected).to_have_attribute('aria-label', 'backgrounds, 1 assets')
@@ -1173,7 +1266,6 @@ def test_metadata_tree_selects_one_item_without_checkboxes(new_context, metadata
     silver = studio.get_by_role('button', name='Open art/icons/silver.png', exact=True)
     gold.click()
     expect(gold).to_have_attribute('aria-pressed', 'true')
-    expect(studio.get_by_role('button', name='Generate batch 1', exact=True)).to_be_enabled()
     studio.get_by_label('Description', exact=True).fill('Keep this unsaved gold description.')
     page.once('dialog', lambda dialog: dialog.dismiss())
     silver.click()
@@ -1203,35 +1295,38 @@ def test_metadata_tree_selects_one_item_without_checkboxes(new_context, metadata
     assert not (stored(game, 'art/generated/new-image.png.json')).exists()
 
 
-def test_metadata_batch_uses_only_selected_images_even_when_hidden_by_filter(new_context, metadata_backend):
+def test_describe_uses_only_the_selected_images_even_when_hidden_by_filter(new_context, metadata_backend):
     backend, game = metadata_backend
     seed_metadata_browser(game)
     page = new_context().new_page()
     studio = open_studio(page, backend)
-    studio.get_by_role('button', name='Open art/icons/silver.png', exact=True).click()
+    silver = studio.get_by_role('button', name='Open art/icons/silver.png', exact=True)
+    silver.click()
     studio.get_by_label('Find image', exact=True).fill('sky')
-    expect(studio.get_by_role('button', name='Open backgrounds/sky.png', exact=True)).to_be_visible()
-    show_batch(studio)
-    expect(studio.locator('.studio-current-selection')).to_have_text('Selected image: art/icons/silver.png')
-    with page.expect_request(lambda request: request.method == 'POST' and request.url.endswith('/api/image-studio/jobs')) as submitted:
-        studio.get_by_role('button', name='Describe batch 1', exact=True).click()
+    sky = studio.get_by_role('button', name='Open backgrounds/sky.png', exact=True)
+    sky.click(modifiers=['Control'])
+    expect(studio.get_by_text('1 of the 2 selected images is outside the current filters.', exact=True)).to_be_visible()
+    with page.expect_request(JOBS) as submitted:
+        studio.locator('.studio-inspector-actions').get_by_role('button', name='Describe 2', exact=True).click()
     body = submitted.value.post_data_json
-    assert len(body['files']) == 1 and body['files'][0].endswith('/art/icons/silver.png')
+    assert body['files'] == [str(game / 'art/icons/silver.png'), str(game / 'backgrounds/sky.png')]
     expect(studio.get_by_role('tab', name='Metadata', exact=True)).to_have_attribute('aria-selected', 'true')
     studio.get_by_role('tab', name='Generation queue', exact=True).click()
-    expect(studio.locator('.studio-job .badge').filter(has_text='succeeded')).to_have_count(1, timeout=10000)
-    assert (stored(game, 'art/icons/silver.png.json')).is_file()
-    assert not (stored(game, 'backgrounds/sky.png.json')).exists()
+    expect(studio.locator('.studio-job .badge').filter(has_text='succeeded')).to_have_count(2, timeout=10000)
+    assert (stored(game, 'art/icons/silver.png.json')).is_file() and (stored(game, 'backgrounds/sky.png.json')).is_file()
+    assert not (stored(game, 'bell.png.json')).exists()
     studio.get_by_role('tab', name='Metadata', exact=True).click()
-    expect(studio.get_by_role('button', name='Generate batch 1', exact=True)).to_be_enabled()
+    show_inspector(studio)
+    expect(studio.get_by_role('button', name='Generate images 2', exact=True)).to_be_enabled()
     studio.get_by_role('button', name='Clear image search', exact=True).click()
-    expect(studio.get_by_role('button', name='Open art/icons/silver.png', exact=True)).to_have_attribute('aria-pressed', 'true')
+    expect(silver).to_have_attribute('aria-pressed', 'true')
+    expect(sky).to_have_attribute('aria-pressed', 'true')
     BUILD.mkdir(exist_ok=True)
     page.evaluate('window.scrollTo(0, 0)')
     page.screenshot(path=str(BUILD / 'image-studio-tree-selection.png'), full_page=True)
 
 
-def test_folder_name_selects_subfolders_for_batch_describe_when_collapsed(new_context, metadata_backend):
+def test_folder_tree_expands_and_collapses_independently_of_the_chosen_folder(new_context, metadata_backend):
     backend, game = metadata_backend
     seed_metadata_browser(game)
     page = new_context().new_page()
@@ -1241,11 +1336,11 @@ def test_folder_name_selects_subfolders_for_batch_describe_when_collapsed(new_co
     expect(art).to_have_attribute('aria-expanded', 'false')
     expect(studio.get_by_role('treeitem', name='art/icons, 2 assets', exact=True)).to_have_count(0)
     choose_folder(studio, 'art')
-    show_batch(studio)
     show_folders(studio)
     expect(art).to_have_attribute('aria-expanded', 'false')
     expect(art).to_have_attribute('aria-selected', 'true')
-    expect(studio.get_by_role('button', name='Describe batch 2', exact=True)).to_be_enabled()
+    # The folder's images, its subfolders' included, are listed while it is collapsed.
+    expect(studio.locator('.studio-file')).to_have_count(3)
     # Expanding is independent of selection, including from the keyboard.
     expand = studio.get_by_role('button', name='Expand folder art', exact=True)
     expand.focus()
@@ -1253,14 +1348,4 @@ def test_folder_name_selects_subfolders_for_batch_describe_when_collapsed(new_co
     expect(art).to_have_attribute('aria-expanded', 'true')
     expect(studio.get_by_role('treeitem', name='art/icons, 2 assets', exact=True)).to_have_attribute('aria-selected', 'false')
     studio.locator('.studio-folder-picker > summary').press('Escape')
-    with page.expect_request(lambda request: request.method == 'POST' and request.url.endswith('/api/image-studio/jobs')) as submitted:
-        studio.get_by_role('button', name='Describe batch 2', exact=True).click()
-    body = submitted.value.post_data_json
-    assert body['kind'] == 'metadata'
-    assert set(body['files']) == {str(game / 'art/icons/gold.png'), str(game / 'art/icons/silver.png')}
-    expect(studio.get_by_role('tab', name='Metadata', exact=True)).to_have_attribute('aria-selected', 'true')
-    studio.get_by_role('tab', name='Generation queue', exact=True).click()
-    expect(studio.locator('.studio-job .badge').filter(has_text='succeeded')).to_have_count(1, timeout=10000)
-    expect(studio.locator('.studio-job .badge').filter(has_text='skipped')).to_have_count(1)
-    assert (stored(game, 'art/icons/silver.png.json')).is_file()
-    assert not (stored(game, 'backgrounds/sky.png.json')).exists()
+    expect(art).not_to_be_visible()

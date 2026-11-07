@@ -93,17 +93,17 @@ function duration(job: ImageJob) {
 .studio-queue-actions .mdi { margin-right: 5px; }
 .studio-queue-empty { padding: 32px 22px; margin: 0; font-size: 13px; color: #77809a; }
 .studio-queue-list { padding: 0 22px; }
-.studio-job { display: grid; grid-template-columns: 68px 76px minmax(0, 1fr) 138px 86px 96px; align-items: center; gap: 12px 18px; padding: 18px 0; border-bottom: 1px solid #e5e9f2; }
+.studio-job { display: grid; grid-template-columns: 56px 76px minmax(0, 1fr) 138px 86px 96px; align-items: center; gap: 8px 18px; padding: 12px 0; border-bottom: 1px solid #e5e9f2; }
 .studio-job:last-child { border-bottom: 0; }
-.studio-job-preview { width: 68px; height: 68px; border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #f0f3ff; color: #929ff2; }
+.studio-job-preview { width: 56px; height: 56px; border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #f0f3ff; color: #929ff2; }
 .studio-job-preview img { width: 100%; height: 100%; object-fit: contain; padding: 5px; background: repeating-conic-gradient(#f0f1f5 0% 25%, white 0% 50%) 50% / 12px 12px; }
-.studio-job-preview .mdi { font-size: 36px; }
+.studio-job-preview .mdi { font-size: 30px; }
 .studio-job-status { justify-self: start; padding: 4px 6px; border-radius: 4px; }
 .studio-job-status.badge-warning { background: #fff3cd; color: #856404; }
 .studio-job-status.badge-light { background: #eef0f5; color: #586078; }
 .studio-job-details { min-width: 0; }
 .studio-job-name { display: block; color: #222344; font-size: 14px; overflow-wrap: anywhere; }
-.studio-job-model { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: #687596; margin: 7px 0 0; }
+.studio-job-model { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: #687596; margin: 4px 0 0; }
 .studio-job-model span { padding: 0 4px; }
 .studio-job-size { margin: 5px 0 0; font-size: 11px; color: #77809a; }
 .studio-job-date, .studio-job-duration { font-size: 12px; color: #687596; font-variant-numeric: tabular-nums; }

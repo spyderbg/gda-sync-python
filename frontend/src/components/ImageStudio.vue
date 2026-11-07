@@ -2,7 +2,7 @@
 import { computed, nextTick, onActivated, onBeforeUnmount, onMounted, ref } from 'vue';
 import type { ReportAsset } from '../types';
 import { baseName, extensionOf, reportPreviewURL, time } from '../format';
-import { studioAPI, generatedURL, jobGeneratedURL, type ImageJobs, type ImageMetadata, type ImageSettings, type MetadataDocument, type StudioCatalog } from '../imageStudio';
+import { studioAPI, generatedURL, jobGeneratedURL, studioThumbnailURL, type ImageJobs, type ImageMetadata, type ImageSettings, type MetadataDocument, type StudioCatalog, type StudioFile } from '../imageStudio';
 import AppModal from './AppModal.vue';
 import ImageStudioBrowser from './ImageStudioBrowser.vue';
 import ImageStudioQueue from './ImageStudioQueue.vue';
@@ -16,6 +16,9 @@ const tab = ref<'metadata' | 'queue' | 'models' | 'remote'>('metadata');
 const catalog = ref<StudioCatalog | null>(null);
 const document = ref<MetadataDocument | null>(null);
 const selected = ref('');
+// The images selected in the asset list. One opens in the editor; several show as thumbnails and are described or
+// generated together.
+const selection = ref<string[]>([]);
 const error = ref('');
 const message = ref('');
 const working = ref(false);
@@ -26,7 +29,7 @@ const original = ref('');
 const settingsOriginal = ref('');
 const creating = ref(false);
 const newPath = ref('art/generated/new-image.png');
-const overwrite = ref(false);
+const overwriteGenerated = ref(false);
 const preview = ref<'source' | 'generated' | 'comparison'>('source');
 const previewJob = ref('');
 const showMetadataFile = ref(false);
@@ -62,6 +65,16 @@ onBeforeUnmount(() => window.removeEventListener('scroll', rememberPageScroll));
 const dirty = computed(() => !!document.value && JSON.stringify([document.value.metadata, tags.value, objects.value, prompt.value]) !== original.value);
 const modelsDirty = computed(() => !!settings.value && JSON.stringify(settings.value.settings) !== settingsOriginal.value);
 const current = computed(() => catalog.value?.files.find(file => file.file === selected.value));
+const multiple = computed(() => selection.value.length > 1);
+// In the asset list's order, whatever order they were selected in.
+const selectedFiles = computed(() => {
+  const chosen = new Set(selection.value);
+  return (catalog.value?.files ?? []).filter(file => chosen.has(file.file));
+});
+const describable = computed(() => selectedFiles.value.filter(file => file.exists));
+const described = computed(() => describable.value.filter(file => file.metadata));
+const generatable = computed(() => selectedFiles.value.filter(file => file.metadata));
+const selectedName = (file: StudioFile) => file.kind === 'sequence' ? file.name : baseName(file.path);
 const metadata = computed(() => document.value?.metadata);
 const isSequence = computed(() => document.value?.kind === 'sequence');
 const imageFormat = computed(() => extensionOf(metadata.value?.sequence?.frames[0]?.path ?? document.value?.file ?? '').toUpperCase());
@@ -142,12 +155,18 @@ function markClean(value: MetadataDocument) {
 }
 async function loadCatalog() {
   catalog.value = await studioAPI<StudioCatalog>(`catalog${props.row ? `?asset=${encodeURIComponent(props.row.id)}` : ''}`);
+  const files = new Set(catalog.value.files.map(file => file.file));
+  if (selection.value.every(file => files.has(file))) return;
+  selection.value = selection.value.filter(file => files.has(file));
+  if (selection.value.length === 1 && selection.value[0] !== selected.value) void selectFile(selection.value[0], false);
 }
 async function selectFile(file: string, discard = true) {
   if (discard && !guardDiscard()) return false;
   clearMessages();
   const request = ++loadId;
   selected.value = file;
+  // Opening an image selects it alone.
+  if (discard) selection.value = [file];
   loading.value = true;
   try {
     const value = await studioAPI<MetadataDocument>(`metadata?file=${encodeURIComponent(file)}`);
@@ -161,6 +180,24 @@ async function selectFile(file: string, discard = true) {
     return true;
   } catch (e) { error.value = (e as Error).message; return false; } finally { if (request === loadId) loading.value = false; }
 }
+async function changeSelection(files: string[]) {
+  if (files.length === 1) {
+    // Selecting the image open in the editor again keeps its unsaved edits.
+    if (files[0] === selected.value && document.value && !creating.value) selection.value = files;
+    else await selectFile(files[0]);
+    return;
+  }
+  // The editor is hidden while several images or none are selected, so its edits are not kept out of sight.
+  if (!guardDiscard()) return;
+  discardEdits();
+  clearMessages();
+  selection.value = files;
+  if (files.length) return;
+  loadId++;
+  loading.value = false;
+  selected.value = '';
+  document.value = null;
+}
 async function viewJob(file: string, jobId?: string) {
   if (await selectFile(file)) { showMetadataFile.value = false; if (jobId) { previewJob.value = jobId; preview.value = 'generated'; } }
   tab.value = 'metadata';
@@ -173,6 +210,7 @@ function newMetadata() {
   creating.value = true;
   showMetadataFile.value = false;
   selected.value = '';
+  selection.value = [];
   const metadata: ImageMetadata = {
     schema_version: 1, image: { filename: 'new-image.png', width: 1024, height: 1024, transparency: false },
     generation: { width: 1024, height: 1024 }, model: 'manual', created_at: new Date().toISOString(),
@@ -196,6 +234,7 @@ async function save(): Promise<boolean> {
     if (creating.value) value.image.filename = baseName(file);
     const saved = await studioAPI<MetadataDocument>('metadata', { file, metadata: value, revision: document.value.revision });
     selected.value = saved.file;
+    selection.value = [saved.file];
     creating.value = false;
     markClean(saved);
     await loadCatalog();
@@ -203,7 +242,7 @@ async function save(): Promise<boolean> {
     return true;
   } catch (e) { error.value = (e as Error).message; return false; } finally { working.value = false; }
 }
-async function enqueue(kind: 'metadata' | 'image', batch?: string[], replace = overwrite.value) {
+async function enqueue(kind: 'metadata' | 'image', batch?: string[], replace = kind === 'image' && overwriteGenerated.value) {
   if (!batch && kind === 'image' && (dirty.value || creating.value || !document.value?.exists) && !await save()) return;
   if (kind === 'metadata' && !batch && !guardDiscard()) return;
   clearMessages();
@@ -212,15 +251,22 @@ async function enqueue(kind: 'metadata' | 'image', batch?: string[], replace = o
     const body = batch ? { kind, files: batch, overwrite: replace }
       : { kind, files: [document.value?.file], overwrite: replace };
     jobs.value = await studioAPI<ImageJobs>('jobs', body);
-    message.value = `${jobs.value.submitted?.length ?? 0} job(s) submitted. ${kind === 'image' ? 'Existing results with the same settings' : 'Existing metadata'} are ${replace ? 'replaced after success' : 'kept'}.`;
+    message.value = `${jobs.value.submitted?.length ?? 0} job(s) submitted. ${kind === 'image'
+      ? `Existing results with the same settings are ${replace ? 'replaced after success' : 'kept'}.`
+      : 'Metadata is saved after successful description.'}`;
   } catch (e) { error.value = (e as Error).message; } finally { working.value = false; }
 }
+// Several selected images are queued one job each, in the asset list's order.
 function describe() {
-  if (document.value?.exists) confirmingDescribe.value = true;
-  else void enqueue('metadata');
+  if (multiple.value ? described.value.length : document.value?.exists) confirmingDescribe.value = true;
+  else void enqueue('metadata', multiple.value ? describable.value.map(file => file.file) : undefined);
 }
-async function confirmDescribe() {
+async function confirmDescribe(replace = true) {
   confirmingDescribe.value = false;
+  if (multiple.value) {
+    await enqueue('metadata', describable.value.filter(file => replace || !file.metadata).map(file => file.file), replace);
+    return;
+  }
   discardEdits();
   await enqueue('metadata', undefined, true);
 }
@@ -291,7 +337,11 @@ onMounted(async () => {
     await loadCatalog();
     settings.value = await studioAPI<ImageSettings>('settings');
     settingsOriginal.value = JSON.stringify(settings.value.settings);
-    if (!document.value && !selected.value && catalog.value?.files[0]) await selectFile(catalog.value.files[0].file, false);
+    const [first] = catalog.value?.files ?? [];
+    if (!document.value && !selected.value && !selection.value.length && first) {
+      selection.value = [first.file];
+      await selectFile(first.file, false);
+    }
   } catch (e) { error.value = (e as Error).message; }
   if (!disposed) void pollJobs();
 });
@@ -311,9 +361,38 @@ onBeforeUnmount(() => { disposed = true; loadId++; clearTimeout(timer); unregist
     <div ref="studioBody" class="studio-body" :class="{ 'modal-body': !embedded }" @scroll.capture="rememberScroll">
       <p v-if="error" class="alert alert-danger" role="alert">{{ error }}</p>
       <p v-if="message" class="alert alert-info" role="status">{{ message }}</p>
-      <ImageStudioBrowser v-show="tab === 'metadata'" :class="{ 'fill-height': embedded }" :files="catalog?.files ?? []" :selected="selected" :working="working" :batch="!row?.sequence" :game="catalog?.game ?? ''" :revision="lastFinished"
-                            v-slot="{ destinationFolder }" @select="selectFile($event)" @create="newMetadata" @describe="enqueue('metadata', $event)" @generate="enqueue('image', $event)">
-          <section class="studio-editor" aria-label="Image metadata editor" :aria-busy="loading">
+      <ImageStudioBrowser v-show="tab === 'metadata'" :class="{ 'fill-height': embedded }" :files="catalog?.files ?? []" :selection="selection" :working="working" :game="catalog?.game ?? ''" :revision="lastFinished"
+                            v-slot="{ destinationFolder }" @select="changeSelection" @create="newMetadata">
+          <section class="studio-editor" :aria-label="multiple ? 'Selected images' : 'Image metadata editor'" :aria-busy="!multiple && loading">
+            <div v-if="multiple" class="studio-workbench">
+              <div class="studio-preview-column">
+                <div class="studio-editor-heading">
+                  <div><h6>{{ selectedFiles.length }} images selected</h6></div>
+                  <div class="studio-image-facts"><span>{{ generatable.length }} with metadata</span><span v-if="selectedFiles.length > describable.length">{{ selectedFiles.length - describable.length }} without an image</span></div>
+                </div>
+                <ul class="studio-selection-grid" aria-label="Selected images">
+                  <li v-for="file in selectedFiles" :key="file.file">
+                    <button type="button" class="studio-selection-item" :title="`${file.path}\nClick to select only this image`" :aria-label="`Select only ${file.name}`" :disabled="working" @click="changeSelection([file.file])">
+                      <span class="studio-selection-thumbnail"><img v-if="file.exists && !previewFailed.includes(file.file)" :src="studioThumbnailURL(file, catalog?.game ?? '', lastFinished)" alt="" loading="lazy" @error="previewFailed.push(file.file)"><i v-else aria-hidden="true" :class="['mdi', file.kind === 'sequence' ? 'mdi-animation-outline' : 'mdi-image-off-outline']" /></span>
+                      <span class="studio-selection-label"><strong>{{ selectedName(file) }}</strong><small>{{ file.metadata ? 'Metadata saved' : 'No metadata' }}{{ file.exists ? '' : ' · No image' }}</small></span>
+                    </button>
+                  </li>
+                </ul>
+              </div>
+              <div class="studio-inspector">
+                <div class="studio-inspector-modes" role="group" aria-label="Image inspector">
+                  <button type="button" :class="{ active: inspectorMode === 'describe' }" :aria-pressed="inspectorMode === 'describe'" @click="inspectorMode = 'describe'">Describe</button>
+                  <button type="button" :class="{ active: inspectorMode === 'generate' }" :aria-pressed="inspectorMode === 'generate'" @click="inspectorMode = 'generate'">Generate</button>
+                </div>
+                <p v-if="inspectorMode === 'describe'" class="studio-hint">Describe queues one job for each selected image, in the order of the asset list. {{ describable.length < selectedFiles.length ? 'Images that do not exist are left out.' : '' }} {{ described.length ? 'You are asked before metadata files are replaced.' : '' }}</p>
+                <p v-else class="studio-hint">Generate queues one image for each selected image with saved metadata, using its saved prompt and sizes. {{ generatable.length < selectedFiles.length ? 'Images without metadata are left out.' : '' }}</p>
+                <div class="studio-inspector-actions">
+                  <button v-if="inspectorMode === 'describe'" type="button" class="btn btn-primary" :disabled="working || !describable.length" title="Describe each selected image with the vision model and save its metadata after success" @click="describe"><i aria-hidden="true" class="mdi mdi-auto-fix" /> Describe <span class="badge badge-light">{{ describable.length }}</span></button>
+                  <button v-else type="button" class="btn btn-primary" :disabled="working || !generatable.length" @click="enqueue('image', generatable.map(file => file.file))">Generate images <span class="badge badge-light">{{ generatable.length }}</span></button>
+                </div>
+              </div>
+            </div>
+            <template v-else>
             <p v-if="loading" class="studio-loading" role="status">Loading metadata…</p>
             <p v-if="!loading && !metadata" class="text-muted">Choose an image, or create metadata for a new image.</p>
             <form v-if="metadata" :inert="loading" @submit.prevent="save">
@@ -429,6 +508,7 @@ onBeforeUnmount(() => { disposed = true; loadId++; clearTimeout(timer); unregist
                 </div>
               </div>
             </form>
+            </template>
           </section>
       </ImageStudioBrowser>
       <ImageStudioQueue v-if="tab === 'queue'" :jobs="jobs" :catalog="catalog" :working="working"
@@ -486,13 +566,27 @@ onBeforeUnmount(() => { disposed = true; loadId++; clearTimeout(timer); unregist
       </form>
     </div>
     <div class="studio-footer" :class="{ 'modal-footer': !embedded }">
-      <label class="studio-check"><input v-model="overwrite" type="checkbox"> Replace existing metadata / generated PNGs after success</label>
+      <label class="studio-check"><input v-model="overwriteGenerated" type="checkbox"> Replace existing generated PNGs after success</label>
       <div class="studio-footer-actions">
         <button v-if="!embedded" type="button" class="btn btn-light" :disabled="working" @click="close">Close</button>
       </div>
     </div>
     <Teleport to="body">
-      <AppModal v-if="confirmingDescribe && document" :title="isSequence ? 'Describe this animation again?' : 'Describe this image again?'" stacked @close="confirmingDescribe = false">
+      <AppModal v-if="confirmingDescribe && multiple" :title="`Describe ${described.length === 1 ? 'an image' : `${described.length} images`} again?`" stacked @close="confirmingDescribe = false">
+        <div class="modal-body">
+          <p>{{ described.length === describable.length ? (described.length === 1 ? 'The selected image already has' : `All ${described.length} selected images already have`) : `${described.length} of the ${describable.length} selected images already ${described.length === 1 ? 'has' : 'have'}` }} a metadata file. Describing {{ described.length === 1 ? 'it' : 'them' }} again replaces {{ described.length === 1 ? 'that file' : 'those files' }} when the model finishes, including {{ described.length === 1 ? 'its generation prompt and render resolution' : 'their generation prompts and render resolutions' }}.</p>
+          <ul class="studio-confirm-files">
+            <li v-for="file in described.slice(0, 8)" :key="file.file">{{ file.path }}</li>
+            <li v-if="described.length > 8">and {{ described.length - 8 }} more</li>
+          </ul>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" @click="confirmingDescribe = false">Cancel</button>
+          <button v-if="described.length < describable.length" type="button" class="btn btn-outline-primary" :disabled="working" @click="confirmDescribe(false)">Skip images with metadata</button>
+          <button type="button" class="btn btn-primary" :disabled="working" @click="confirmDescribe()"><i aria-hidden="true" class="mdi mdi-auto-fix" /> Describe all</button>
+        </div>
+      </AppModal>
+      <AppModal v-else-if="confirmingDescribe && document" :title="isSequence ? 'Describe this animation again?' : 'Describe this image again?'" stacked @close="confirmingDescribe = false">
         <div class="modal-body">
           <p><strong>{{ imageTitle }}</strong> already has a metadata file. Describing it again replaces that file when the model finishes, including its generation prompt and render resolution.</p>
           <p class="studio-hint studio-confirm-path">{{ document.path }}</p>
@@ -500,7 +594,7 @@ onBeforeUnmount(() => { disposed = true; loadId++; clearTimeout(timer); unregist
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-light" @click="confirmingDescribe = false">Cancel</button>
-          <button type="button" class="btn btn-primary" :disabled="working" @click="confirmDescribe"><i aria-hidden="true" class="mdi mdi-auto-fix" /> Describe again</button>
+          <button type="button" class="btn btn-primary" :disabled="working" @click="confirmDescribe()"><i aria-hidden="true" class="mdi mdi-auto-fix" /> Describe again</button>
         </div>
       </AppModal>
     </Teleport>
@@ -526,6 +620,17 @@ onBeforeUnmount(() => { disposed = true; loadId++; clearTimeout(timer); unregist
 .studio-hint, .studio-field small, fieldset > small { font-size: 12px; color: #77809a; line-height: 1.5; }
 .studio-hint { margin: 0; overflow-wrap: anywhere; }
 .studio-confirm-path { margin-bottom: 12px; font-family: var(--font-family-monospace, monospace); }
+.studio-confirm-files { max-height: 180px; overflow: auto; padding-left: 18px; margin: 0; font-size: 12px; color: #68718a; overflow-wrap: anywhere; }
+.studio-selection-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); align-content: start; gap: 8px; max-height: var(--studio-preview-height); overflow: auto; padding: 0; margin: 0; list-style: none; scrollbar-width: thin; }
+.studio-selection-item { display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 6px; text-align: left; color: #18204e; background: white; border: 1px solid #dce2f2; border-radius: 5px; cursor: pointer; }
+.studio-selection-item:hover:not(:disabled) { border-color: #cfd3ff; background: #f6f7ff; }
+.studio-selection-item:disabled { cursor: default; }
+.studio-selection-thumbnail { display: flex; align-items: center; justify-content: center; height: 96px; overflow: hidden; border-radius: 3px; background: repeating-conic-gradient(#f1f2f7 0% 25%, white 0% 50%) 50% / 10px 10px; }
+.studio-selection-thumbnail img { width: 100%; height: 100%; object-fit: contain; }
+.studio-selection-thumbnail .mdi { font-size: 26px; color: #8d96b1; }
+.studio-selection-label { min-width: 0; font-size: 11px; }
+.studio-selection-label strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.studio-selection-label small { display: block; margin-top: 2px; color: #68718a; font-size: 11px; }
 .studio-editor { position: relative; min-width: 0; container-type: inline-size; }
 .studio-editor > p { padding: 20px; }
 .studio-editor > .studio-loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; margin: 0; }
@@ -618,6 +723,7 @@ legend { width: auto; font-size: 13px; margin-bottom: 8px; font-weight: 500; }
   .studio-page .studio-preview-comparison, .studio-page .studio-preview-comparison figure { min-height: 0; }
   .studio-page .studio-preview-column, .studio-page .studio-preview-content { overflow: hidden; }
   .studio-page .studio-provenance { max-height: none; }
+  .studio-page .studio-selection-grid { flex: 1; min-height: 0; max-height: none; }
   .studio-page .studio-inspector { overflow-y: auto; }
 }
 @container (max-width: 480px) { .studio-workbench { grid-template-columns: minmax(0, 1fr); } .studio-image { height: 250px; } .studio-preview-placeholder { min-height: 240px; } }
