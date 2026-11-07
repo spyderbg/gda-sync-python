@@ -14,7 +14,7 @@ import time
 
 from PIL import Image
 
-from .analyzer import AnalysisError
+from .describer import ModelError
 
 
 def original_output_path(output_path: str | Path) -> Path:
@@ -36,11 +36,12 @@ def _prompt(metadata: dict) -> str:
         if not isinstance(custom, str) or not custom.strip():
             raise ValueError('generation.prompt must be a nonempty string')
         return custom.strip()
-    analysis = metadata.get("analysis")
-    if not isinstance(analysis, dict):
-        raise ValueError("Metadata must contain an analysis object")
-    description = analysis.get("description")
-    scene = analysis.get("scene", "")
+    # The description fields keep the image-analyzer schema name "analysis".
+    fields = metadata.get("analysis")
+    if not isinstance(fields, dict):
+        raise ValueError("Metadata must contain an analysis object with the image description")
+    description = fields.get("description")
+    scene = fields.get("scene", "")
     if not isinstance(description, str) or not description.strip():
         raise ValueError("Metadata must contain a nonempty analysis.description")
     if not isinstance(scene, str):
@@ -171,7 +172,7 @@ class ImageGenerator:
                         try:
                             while process.poll() is None:
                                 if cancel is not None and cancel.wait(0.2):
-                                    raise AnalysisError('Image generation cancelled')
+                                    raise ModelError('Image generation cancelled')
                                 if cancel is None:
                                     time.sleep(0.2)
                                 if time.monotonic() - started > self.timeout:
@@ -188,24 +189,24 @@ class ImageGenerator:
                         log.seek(0, 2)
                         log.seek(max(0, log.tell() - 3000))
                         detail = log.read().decode("utf-8", errors="replace")
-                        raise AnalysisError(f"sd-cli failed ({process.returncode}): {detail}")
+                        raise ModelError(f"sd-cli failed ({process.returncode}): {detail}")
             except subprocess.TimeoutExpired as exc:
-                raise AnalysisError("Image generation timed out; increase generation.timeout in the configuration") from exc
+                raise ModelError("Image generation timed out; increase generation.timeout in the configuration") from exc
             if not temporary.is_file():
-                raise AnalysisError("sd-cli completed without creating an image")
+                raise ModelError("sd-cli completed without creating an image")
             with temporary.open("rb") as handle:
                 if handle.read(8) != b"\x89PNG\r\n\x1a\n":
-                    raise AnalysisError("sd-cli output is not a PNG image")
+                    raise ModelError("sd-cli output is not a PNG image")
             try:
                 with Image.open(temporary) as rendered:
                     rendered.load()
                     if rendered.size != (render_width, render_height):
-                        raise AnalysisError("sd-cli returned unexpected image dimensions")
+                        raise ModelError("sd-cli returned unexpected image dimensions")
                     pixels = rendered.convert("RGBA")
                 if transparency:
                     minimum, maximum = pixels.getchannel("A").getextrema()
                     if minimum == 255 or maximum == 0:
-                        raise AnalysisError("Model did not generate a visible transparent image; retry generation")
+                        raise ModelError("Model did not generate a visible transparent image; retry generation")
                 else:
                     background = Image.new("RGBA", pixels.size, "white")
                     pixels = Image.alpha_composite(background, pixels).convert("RGB")
@@ -213,7 +214,7 @@ class ImageGenerator:
                     pixels = pixels.resize((width, height), Image.Resampling.LANCZOS)
                 pixels.save(processed, format="PNG")
             except (OSError, ValueError) as exc:
-                raise AnalysisError(f"Cannot read generated image: {exc}") from exc
+                raise ModelError(f"Cannot read generated image: {exc}") from exc
             if keep_original:
                 if overwrite:
                     os.replace(temporary, original)

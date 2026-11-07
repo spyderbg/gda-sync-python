@@ -42,7 +42,7 @@ const assetEntries = computed<Entry[]>(() => [...ASSET_CATEGORIES, ...(countSect
 const gameEntries = computed<Entry[]>(() => [
   { key: 'game', label: 'Play', icon: 'mdi-slot-machine-outline', title: 'Play the game in the browser', active: ui.view === 'game', onSelect: () => navigate('game') },
   { key: 'gameTools', label: 'Tools', icon: 'mdi-tools', title: 'RNG tools and automation', active: ui.view === 'gameTools', onSelect: () => navigate('gameTools') },
-  { key: 'imageStudio', label: 'Image studio', icon: 'mdi-image-edit-outline', title: 'Analyze images, edit metadata and generate artwork', active: ui.view === 'imageStudio', onSelect: () => navigate('imageStudio') },
+  { key: 'imageStudio', label: 'Image studio', icon: 'mdi-image-edit-outline', title: 'Describe images, edit metadata and generate artwork', active: ui.view === 'imageStudio', onSelect: () => navigate('imageStudio') },
 ]);
 
 const sections = computed(() => [

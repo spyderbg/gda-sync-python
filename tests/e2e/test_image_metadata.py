@@ -6,10 +6,17 @@ import pytest
 from PIL import Image
 from playwright.sync_api import expect
 
+from egt_gda_sync.images.metadata.service import store_folder
 from tests.e2e.conftest import BUILD, Backend
 from tests.test_image_metadata import comfy_server, comfy_workflow, metadata, png, remote_comfy_settings, runner_settings, vision_server, write
 
 pytestmark = pytest.mark.e2e
+
+
+def stored(game, path):
+    """Where the studio keeps a file for a path of a game folder: in the app-data folder, never in the game. The tests
+    keep games in tmp_path / 'resources' and the app data in tmp_path / 'app'."""
+    return store_folder(game.parent.parent / 'app', game.parent) / game.name / path
 
 
 @pytest.fixture
@@ -98,15 +105,15 @@ def test_create_metadata_edit_render_size_and_generate_image(new_context, metada
         opened.append((route.request.url.rsplit('/', 1)[-1], route.request.post_data_json))
         route.fulfill(json={'opened': True})
 
-    page.route('**/api/rss-sync/open-*', record_open)
+    page.route('**/api/image-studio/open-*', record_open)
     folder_button.click()
     code_button.click()
-    assert opened == [
-        ('open-folder', {'file': str(game / 'art/new-bell.png.json'), 'isFolder': False}),
-        ('open-declaration', {'descriptor': str(game / 'art/new-bell.png.json'), 'line': 1}),
-    ]
+    # The metadata file is in the app-data folder; the backend resolves it from the image.
+    assert opened == [('open-folder', {'file': str(game / 'art/new-bell.png')}),
+                      ('open-metadata', {'file': str(game / 'art/new-bell.png')})]
+    expect(dialog.locator('.studio-metadata-file')).to_contain_text(str(stored(game, 'art/new-bell.png.json')))
     expect(dialog.locator('.studio-provenance pre')).to_have_css('overflow-y', 'visible')
-    value = json.loads((game / 'art/new-bell.png.json').read_text())
+    value = json.loads((stored(game, 'art/new-bell.png.json')).read_text())
     assert value['generation'] == {'width': 64, 'height': 96, 'prompt': 'A polished emerald bell, centered.'}
     assert value['image']['width'] == 14 and value['image']['height'] == 21
     show_inspector(dialog)
@@ -118,8 +125,8 @@ def test_create_metadata_edit_render_size_and_generate_image(new_context, metada
     dialog.get_by_role('button', name='View', exact=True).click()
     expect(dialog.get_by_role('img', name='Generated image', exact=True)).to_be_visible()
     expect(dialog.get_by_role('tab', name='Side by side', exact=True)).to_have_count(0)
-    assert (game / 'art/new-bell.png.json.generated.png').is_file()
-    assert not (game / 'art/new-bell.png').exists()
+    assert (stored(game, 'art/new-bell.png.json.generated.png')).is_file()
+    assert not (game / 'art/new-bell.png').exists() and not (game / 'art').exists()
     # Studio is a full page, and the sidebar stays available.
     expect(page.get_by_role('dialog', name='Image studio', exact=True)).to_have_count(0)
     expect(page.get_by_role('navigation', name='Main navigation')).to_be_visible()
@@ -218,7 +225,7 @@ def test_submit_multiple_render_scales_without_leaving_metadata(new_context, met
         studio.locator('.studio-job').nth(index).get_by_role('button', name='View', exact=True).click()
         expect(studio.get_by_role('img', name='Generated image', exact=True)).to_have_attribute('src', re.compile(f'/jobs/{job_id}/image'))
         studio.get_by_role('tab', name='Generation queue', exact=True).click()
-    assert json.loads((game / 'scales.png.json').read_text())['generation']['width'] == 256
+    assert json.loads((stored(game, 'scales.png.json')).read_text())['generation']['width'] == 256
 
 
 def test_preview_compares_source_and_selected_generated_result_side_by_side(new_context, metadata_backend):
@@ -226,7 +233,7 @@ def test_preview_compares_source_and_selected_generated_result_side_by_side(new_
     value = metadata('bell.png')
     value['image'].update(width=14, height=21)
     value['generation'].update(width=64, height=96)
-    write(game / 'bell.png.json', value)
+    write(stored(game, 'bell.png.json'), value)
     page = new_context().new_page()
     studio = open_studio(page, backend)
     expect(studio.get_by_role('tab', name='Side by side', exact=True)).to_have_count(0)
@@ -287,7 +294,7 @@ def test_render_multipliers_disable_sizes_beyond_render_limits(new_context, meta
     expect(scales.get_by_role('button', name='1×', exact=True)).to_be_disabled()
 
 
-def test_analyze_from_asset_details_then_edit_without_losing_source(new_context, metadata_backend):
+def test_describe_from_asset_details_then_edit_without_losing_source(new_context, metadata_backend):
     backend, game = metadata_backend
     page = new_context().new_page()
     dialog = open_studio(page, backend)
@@ -295,18 +302,21 @@ def test_analyze_from_asset_details_then_edit_without_losing_source(new_context,
     page.get_by_role('button', name='Inspect bell.png', exact=True).click()
     page.get_by_role('button', name='Image metadata…', exact=True).click()
     dialog = page.get_by_role('dialog', name='Image studio', exact=True)
-    dialog.get_by_role('button', name='Analyze image', exact=True).click()
+    expect(dialog.get_by_role('button', name='Save metadata', exact=True)).to_have_count(0)
+    dialog.locator('.studio-inspector-actions').get_by_role('button', name='Describe', exact=True).click()
     expect(dialog.get_by_role('tab', name='Metadata', exact=True)).to_have_attribute('aria-selected', 'true')
+    expect(dialog.get_by_label('Description', exact=True)).to_have_value('A golden bell.', timeout=10000)
     dialog.get_by_role('tab', name='Generation queue', exact=True).click()
     expect(dialog.locator('.studio-job').get_by_text('succeeded', exact=True)).to_be_visible(timeout=10000)
     dialog.get_by_role('button', name='View', exact=True).click()
     expect(dialog.get_by_label('Description', exact=True)).to_have_value('A golden bell.')
     expect(dialog.get_by_label('Tags', exact=True)).to_have_value('bell, gold')
+    assert json.loads((stored(game, 'bell.png.json')).read_text())['analysis']['description'] == 'A golden bell.'
     show_inspector(dialog)
     dialog.get_by_label('Generation prompt', exact=True).fill('A silver bell.')
     dialog.get_by_role('button', name='Save metadata', exact=True).click()
     expect(dialog.get_by_role('status')).to_have_text('Metadata saved.')
-    assert json.loads((game / 'bell.png.json').read_text())['generation']['prompt'] == 'A silver bell.'
+    assert json.loads((stored(game, 'bell.png.json')).read_text())['generation']['prompt'] == 'A silver bell.'
     assert (game / 'bell.png').is_file()
     dialog.get_by_role('tab', name='Local models', exact=True).click()
     dialog.get_by_label('Vision model', exact=True).fill('another-vision-model')
@@ -314,9 +324,56 @@ def test_analyze_from_asset_details_then_edit_without_losing_source(new_context,
     expect(dialog.get_by_role('status')).to_contain_text('Model settings saved.')
 
 
+def test_selecting_an_image_loads_its_metadata_and_describe_asks_before_replacing_it(new_context, metadata_backend):
+    backend, game = metadata_backend
+    png(game / 'second.png')
+    value = metadata('bell.png')
+    value['analysis'].update(description='A saved silver bell.', tags=['silver'])
+    value['generation']['prompt'] = 'A custom prompt.'
+    write(stored(game, 'bell.png.json'), value)
+    page = new_context().new_page()
+    studio = open_studio(page, backend)
+    description = studio.get_by_label('Description', exact=True)
+    studio.get_by_role('button', name='Open second.png', exact=True).click()
+    expect(description).to_have_value('')
+    studio.get_by_role('button', name='Open bell.png', exact=True).click()
+    expect(description).to_have_value('A saved silver bell.')
+    expect(studio.get_by_label('Tags', exact=True)).to_have_value('silver')
+    show_inspector(studio)
+    expect(studio.get_by_label('Generation prompt', exact=True)).to_have_value('A custom prompt.')
+    show_inspector(studio, 'Describe')
+    description.fill('An unsaved edit.')
+    describe = studio.locator('.studio-inspector-actions').get_by_role('button', name='Describe', exact=True)
+    describe.click()
+    confirm = page.get_by_role('dialog', name='Describe this image again?', exact=True)
+    expect(confirm).to_contain_text(str(stored(game, 'bell.png.json')))
+    expect(confirm).to_contain_text('Your unsaved changes are discarded.')
+    confirm.get_by_role('button', name='Cancel', exact=True).click()
+    expect(confirm).to_have_count(0)
+    expect(description).to_have_value('An unsaved edit.')
+    assert page.request.get(backend.url + '/api/image-studio/jobs').json()['jobs'] == []
+    describe.click()
+    with page.expect_request(lambda request: request.url.endswith('/api/image-studio/jobs') and request.method == 'POST') as submitted:
+        confirm.get_by_role('button', name='Describe again', exact=True).click()
+    # Confirming replaces the metadata even though the Replace existing… checkbox is off.
+    assert submitted.value.post_data_json == {'kind': 'metadata', 'files': [str(game / 'bell.png')], 'overwrite': True}
+    expect(studio.get_by_label('Replace existing metadata / generated PNGs after success')).not_to_be_checked()
+    expect(description).to_have_value('A golden bell.', timeout=10000)
+    saved = json.loads(stored(game, 'bell.png.json').read_text())
+    assert saved['analysis']['description'] == 'A golden bell.' and 'prompt' not in saved['generation']
+    assert not (game / 'bell.png.json').exists()
+    # An image without metadata is described without asking.
+    studio.get_by_role('button', name='Open second.png', exact=True).click()
+    expect(description).to_have_value('')
+    describe.click()
+    expect(page.get_by_role('dialog', name='Describe this image again?')).to_have_count(0)
+    expect(description).to_have_value('A golden bell.', timeout=10000)
+    assert stored(game, 'second.png.json').is_file()
+
+
 def test_clean_queue_removes_finished_jobs_and_preserves_generated_files_after_reload(new_context, metadata_backend):
     backend, game = metadata_backend
-    write(game / 'bell.png.json', metadata('bell.png'))
+    write(stored(game, 'bell.png.json'), metadata('bell.png'))
     page = new_context().new_page()
     studio = open_studio(page, backend)
     studio.get_by_role('tab', name='Generation queue', exact=True).click()
@@ -327,8 +384,8 @@ def test_clean_queue_removes_finished_jobs_and_preserves_generated_files_after_r
                                   data={'kind': 'image', 'files': ['bell.png']})
     assert submitted.ok, submitted.text()
     expect(studio.get_by_text('succeeded', exact=True)).to_be_visible(timeout=10000)
-    output = game / 'bell.png.json.generated.png'
-    saved = {path: path.read_bytes() for path in (game / '.asset-metadata').rglob('*') if path.is_file()}
+    output = stored(game, 'bell.png.json.generated.png')
+    saved = {path: path.read_bytes() for path in stored(game, '.asset-metadata').rglob('*') if path.is_file()}
     saved[output] = output.read_bytes()
     clean.click()
     expect(studio.locator('.studio-job')).to_have_count(0)
@@ -355,7 +412,7 @@ def test_force_regenerates_skipped_image_without_adding_job(new_context, metadat
                                  data={'file': 'bell.png', 'metadata': value})
     assert response.ok, response.text()
     document = response.json()
-    output = png(game / 'bell.png.json.generated.png')
+    output = png(stored(game, 'bell.png.json.generated.png'))
     original = output.read_bytes()
     response = page.request.post(backend.url + '/api/image-studio/jobs', headers=headers,
                                  data={'kind': 'image', 'files': ['bell.png']})
@@ -382,7 +439,7 @@ def test_force_regenerates_skipped_image_without_adding_job(new_context, metadat
     args = json.loads((backend.log.parent / 'runner-args.json').read_text())
     assert args[args.index('-W') + 1] == '64' and args[args.index('-H') + 1] == '96'
     assert 'original golden bell' in args[args.index('-p') + 1]
-    assert json.loads((game / 'bell.png.json').read_text())['generation']['width'] == 256
+    assert json.loads((stored(game, 'bell.png.json')).read_text())['generation']['width'] == 256
     expect(studio.get_by_label('Replace existing metadata / generated PNGs after success')).not_to_be_checked()
     studio.get_by_role('button', name='View', exact=True).click()
     expect(studio.get_by_text('Saved render resolution: 64 × 96', exact=True)).to_be_visible()
@@ -397,7 +454,7 @@ def test_failed_job_can_be_retried_after_fixing_model_settings(new_context, meta
     studio.get_by_role('button', name='Save model settings', exact=True).click()
     expect(studio.get_by_role('status')).to_contain_text('Model settings saved.')
     studio.get_by_role('tab', name='Metadata', exact=True).click()
-    studio.get_by_role('button', name='Analyze image', exact=True).click()
+    studio.locator('.studio-inspector-actions').get_by_role('button', name='Describe', exact=True).click()
     expect(studio.get_by_role('tab', name='Metadata', exact=True)).to_have_attribute('aria-selected', 'true')
     studio.get_by_role('tab', name='Generation queue', exact=True).click()
     failed = studio.locator('.studio-job').filter(has=page.get_by_text('failed', exact=True))
@@ -424,7 +481,7 @@ def test_failed_job_can_be_retried_after_fixing_model_settings(new_context, meta
     expect(failed.get_by_role('button', name='Retry', exact=True)).to_have_count(0)
     studio.get_by_role('button', name='View', exact=True).click()
     expect(studio.get_by_label('Description', exact=True)).to_have_value('A golden bell.')
-    assert (game / 'bell.png.json').is_file()
+    assert (stored(game, 'bell.png.json')).is_file()
 
 
 def test_generation_queue_shows_previews_models_times_and_responsive_actions(new_context, metadata_backend):
@@ -434,8 +491,8 @@ def test_generation_queue_shows_previews_models_times_and_responsive_actions(new
     for index, state in enumerate(states):
         name = f'{state}.png'
         png(game / name)
-        write(game / f'{name}.json', metadata(name))
-        png(game / f'{name}.json.generated.png')
+        write(stored(game, f'{name}.json'), metadata(name))
+        png(stored(game, f'{name}.json.generated.png'))
         job = {'id': f'{index:032x}', 'kind': 'metadata' if state == 'failed' else 'image',
                'state': state, 'source': str(game / name), 'target': str(game / name),
                'createdAt': '2026-10-30T10:20:00Z', 'model': 'vision' if state == 'failed' else 'captured-model.gguf'}
@@ -493,24 +550,30 @@ def test_sequence_has_one_shared_description_and_prompt(new_context, metadata_ba
     dialog = page.get_by_role('dialog', name='Image studio', exact=True)
     expect(dialog.locator('.studio-file')).to_have_count(1)
     expect(dialog.get_by_role('img', name='Representative animation frames', exact=True)).to_be_visible()
-    dialog.get_by_role('button', name='Analyze animation', exact=True).click()
+    expect(dialog.get_by_role('button', name='Save metadata', exact=True)).to_have_count(0)
+    dialog.locator('.studio-inspector-actions').get_by_role('button', name='Describe', exact=True).click()
     expect(dialog.get_by_role('tab', name='Metadata', exact=True)).to_have_attribute('aria-selected', 'true')
+    expect(dialog.get_by_label('Description', exact=True)).to_have_value('A golden bell.', timeout=10000)
     dialog.get_by_role('tab', name='Generation queue', exact=True).click()
     expect(dialog.locator('.studio-job').get_by_text('succeeded', exact=True)).to_have_count(1, timeout=10000)
     dialog.get_by_role('button', name='View', exact=True).click()
     expect(dialog.get_by_label('Description', exact=True)).to_have_value('A golden bell.')
+    described = list(stored(game, '.asset-metadata/sequences').glob('*.imageseq.json'))
+    assert len(described) == 1
+    assert json.loads(described[0].read_text())['analysis']['description'] == 'A golden bell.'
     dialog.get_by_label('Description', exact=True).fill('A bell swings back and forth throughout the animation.')
+    expect(dialog.get_by_role('button', name='Save metadata', exact=True)).to_be_visible()
     show_inspector(dialog)
     dialog.get_by_label('Generation prompt', exact=True).fill('A silver bell swinging from left to right.')
     dialog.get_by_role('button', name='Save metadata', exact=True).click()
     expect(dialog.get_by_role('status')).to_have_text('Metadata saved.')
-    sidecars = list((game / '.asset-metadata' / 'sequences').glob('*.imageseq.json'))
+    sidecars = list(stored(game, '.asset-metadata/sequences').glob('*.imageseq.json'))
     assert len(sidecars) == 1
     value = json.loads(sidecars[0].read_text())
     assert value['analysis']['description'] == 'A bell swings back and forth throughout the animation.'
     assert value['generation']['prompt'] == 'A silver bell swinging from left to right.'
     assert len(value['sequence']['frames']) == 5 and value['sequence']['sampledFrames'] == list(range(5))
-    assert not list((game / 'frames').glob('*.json'))
+    assert not list((game / 'frames').glob('*.json')) and not list(stored(game, 'frames').glob('*.json'))
     assert descriptor.read_bytes() == original
     BUILD.mkdir(exist_ok=True)
     dialog.screenshot(path=str(BUILD / 'image-studio-animation.png'))
@@ -544,7 +607,7 @@ def test_studio_animation_preview_seeks_plays_and_crops_atlas_frames(new_context
     expect(frame).to_have_value('2')
     assert canvas.evaluate(pixel) == [0, 0, 255, 255]
     assert descriptor.read_bytes() == original
-    assert not (game / 'atlas.png.json').exists()
+    assert not (stored(game, 'atlas.png.json')).exists()
     assert page.request.get(backend.url + '/api/image-studio/jobs').json()['jobs'] == []
 
 
@@ -615,7 +678,7 @@ def test_studio_keeps_image_filters_edits_and_view_when_returning_from_all_pages
     write(game / 'RssRawData.json', {'rawFiles': [{'path': 'readme.txt'}]})
     value = metadata('gold.png')
     value['analysis']['tags'] = [f'Tag {i}' for i in range(100)]
-    write(game / 'art/icons/gold.png.json', value)
+    write(stored(game, 'art/icons/gold.png.json'), value)
     page = new_context().new_page()
     studio = open_studio(page, backend)
     choose_folder(studio, 'art/icons')
@@ -707,7 +770,7 @@ def test_remote_models_save_and_reopen(new_context, metadata_backend, comfy_serv
     page = new_context().new_page()
     studio = open_studio(page, backend)
     studio.get_by_role('tab', name='Remote models', exact=True).click()
-    studio.get_by_label('Use remote LM Studio for analysis', exact=True).check()
+    studio.get_by_label('Use remote LM Studio to describe images', exact=True).check()
     studio.get_by_label('Remote LM Studio API base URL', exact=True).fill('http://lm-host:1234/v1')
     studio.get_by_label('Remote vision model', exact=True).fill('remote-vision')
     studio.get_by_label('Use remote ComfyUI for image generation', exact=True).check()
@@ -773,8 +836,8 @@ def seed_metadata_browser(game):
     ]})
     write(game / 'RssImagesSeqData.json', {'imagesSeq': [{'id': 'SPIN', 'frameTime': 60, 'loopCount': 0,
         'frames': [{'path': 'animations/spin_{00-01}.png'}]}]})
-    write(game / 'art/icons/gold.png.json', metadata('gold.png'))
-    write(game / 'drafts/new.png.json', metadata('new.png'))
+    write(stored(game, 'art/icons/gold.png.json'), metadata('gold.png'))
+    write(stored(game, 'drafts/new.png.json'), metadata('new.png'))
 
 
 def test_metadata_filters_folder_tree_and_unsaved_editor(new_context, metadata_backend):
@@ -812,7 +875,7 @@ def test_metadata_filters_folder_tree_and_unsaved_editor(new_context, metadata_b
     expect(studio.locator('.studio-file')).to_have_count(1)
     studio.get_by_role('button', name='Open art/missing.png', exact=True).click()
     show_batch(studio)
-    expect(studio.get_by_role('button', name='Analyze batch 0', exact=True)).to_be_disabled()
+    expect(studio.get_by_role('button', name='Describe batch 0', exact=True)).to_be_disabled()
     studio.get_by_label('Filter by asset status', exact=True).select_option('all')
     studio.get_by_role('button', name='Open art/icons/gold.png', exact=True).click()
     studio.get_by_label('Description', exact=True).fill('Keep this unsaved gold description.')
@@ -838,7 +901,7 @@ def test_studio_text_fields_fit_saved_edits_and_resized_content_without_inner_sc
     value['analysis'].update(description=long_text, scene=long_text, text=long_text,
         objects=[f'A detailed object number {i}' for i in range(15)], tags=[f'Detailed tag {i}' for i in range(15)])
     value['generation']['prompt'] = long_text
-    write(game / 'bell.png.json', value)
+    write(stored(game, 'bell.png.json'), value)
     page = new_context().new_page()
     studio = open_studio(page, backend)
     inspector = studio.locator('.studio-inspector')
@@ -883,7 +946,7 @@ def test_metadata_file_toggle_uses_one_scroll_area_and_keeps_preview_size(new_co
     backend, game = metadata_backend
     value = metadata('bell.png')
     value['analysis']['tags'] = [f'Tag {index}' for index in range(150)]
-    write(game / 'bell.png.json', value)
+    write(stored(game, 'bell.png.json'), value)
     page = new_context().new_page()
     studio = open_studio(page, backend)
     image = studio.get_by_role('img', name='Source image', exact=True)
@@ -932,7 +995,7 @@ def test_metadata_panel_stays_stable_during_image_and_animation_loading(new_cont
         assert editor.bounding_box() == editor_box
         pending.pop().continue_()
         expect(editor).to_have_attribute('aria-busy', 'false')
-        expect(studio.get_by_role('button', name='Save metadata', exact=True)).to_be_visible()
+        expect(studio.locator('.studio-inspector-actions').get_by_role('button', name='Describe', exact=True)).to_be_visible()
         assert studio.bounding_box() == panel
         assert editor.bounding_box() == editor_box
     studio.get_by_role('tab', name='Generation queue', exact=True).click()
@@ -1067,7 +1130,7 @@ def test_metadata_batch_uses_filtered_images_and_refreshes_asset_list(new_contex
     show_batch(studio)
     expect(studio.get_by_role('button', name='Generate batch 0', exact=True)).to_be_disabled()
     with page.expect_request(lambda request: request.method == 'POST' and request.url.endswith('/api/image-studio/jobs')) as submitted:
-        studio.get_by_role('button', name='Analyze batch 1', exact=True).click()
+        studio.get_by_role('button', name='Describe batch 1', exact=True).click()
     body = submitted.value.post_data_json
     assert body['kind'] == 'metadata' and len(body['files']) == 1
     assert body['files'][0].endswith('/art/icons/silver.png')
@@ -1078,8 +1141,8 @@ def test_metadata_batch_uses_filtered_images_and_refreshes_asset_list(new_contex
     expect(studio.get_by_label('Find image', exact=True)).to_have_value('silver')
     expect(studio.locator('.studio-file')).to_have_count(1)
     expect(studio.get_by_role('button', name='Generate batch 1', exact=True)).to_be_enabled()
-    assert (game / 'art/icons/silver.png.json').is_file()
-    assert not (game / 'backgrounds/sky.png.json').exists()
+    assert (stored(game, 'art/icons/silver.png.json')).is_file()
+    assert not (stored(game, 'backgrounds/sky.png.json')).exists()
     studio.get_by_role('button', name='Clear image search', exact=True).click()
     expect(studio.locator('.studio-file')).to_have_count(2)
     expect(studio.get_by_role('button', name='Generate batch 2', exact=True)).to_be_enabled()
@@ -1096,12 +1159,12 @@ def test_metadata_tree_selects_one_item_without_checkboxes(new_context, metadata
     expect(tree).to_have_attribute('aria-multiselectable', 'false')
     choose_folder(studio, 'art')
     show_batch(studio)
-    expect(studio.get_by_role('button', name='Analyze batch 2', exact=True)).to_be_enabled()
+    expect(studio.get_by_role('button', name='Describe batch 2', exact=True)).to_be_enabled()
     show_folders(studio)
     expect(selected).to_have_count(1)
     expect(selected).to_have_attribute('aria-label', 'art, 3 assets')
     choose_folder(studio, 'backgrounds')
-    expect(studio.get_by_role('button', name='Analyze batch 1', exact=True)).to_be_enabled()
+    expect(studio.get_by_role('button', name='Describe batch 1', exact=True)).to_be_enabled()
     show_folders(studio)
     expect(selected).to_have_count(1)
     expect(selected).to_have_attribute('aria-label', 'backgrounds, 1 assets')
@@ -1137,7 +1200,7 @@ def test_metadata_tree_selects_one_item_without_checkboxes(new_context, metadata
     studio.get_by_role('button', name='New image metadata', exact=True).click()
     expect(studio.locator('.studio-destination-preview')).to_contain_text('art')
     expect(studio.get_by_label('Image path', exact=True)).to_have_value('art/generated/new-image.png')
-    assert not (game / 'art/generated/new-image.png.json').exists()
+    assert not (stored(game, 'art/generated/new-image.png.json')).exists()
 
 
 def test_metadata_batch_uses_only_selected_images_even_when_hidden_by_filter(new_context, metadata_backend):
@@ -1151,14 +1214,14 @@ def test_metadata_batch_uses_only_selected_images_even_when_hidden_by_filter(new
     show_batch(studio)
     expect(studio.locator('.studio-current-selection')).to_have_text('Selected image: art/icons/silver.png')
     with page.expect_request(lambda request: request.method == 'POST' and request.url.endswith('/api/image-studio/jobs')) as submitted:
-        studio.get_by_role('button', name='Analyze batch 1', exact=True).click()
+        studio.get_by_role('button', name='Describe batch 1', exact=True).click()
     body = submitted.value.post_data_json
     assert len(body['files']) == 1 and body['files'][0].endswith('/art/icons/silver.png')
     expect(studio.get_by_role('tab', name='Metadata', exact=True)).to_have_attribute('aria-selected', 'true')
     studio.get_by_role('tab', name='Generation queue', exact=True).click()
     expect(studio.locator('.studio-job .badge').filter(has_text='succeeded')).to_have_count(1, timeout=10000)
-    assert (game / 'art/icons/silver.png.json').is_file()
-    assert not (game / 'backgrounds/sky.png.json').exists()
+    assert (stored(game, 'art/icons/silver.png.json')).is_file()
+    assert not (stored(game, 'backgrounds/sky.png.json')).exists()
     studio.get_by_role('tab', name='Metadata', exact=True).click()
     expect(studio.get_by_role('button', name='Generate batch 1', exact=True)).to_be_enabled()
     studio.get_by_role('button', name='Clear image search', exact=True).click()
@@ -1168,7 +1231,7 @@ def test_metadata_batch_uses_only_selected_images_even_when_hidden_by_filter(new
     page.screenshot(path=str(BUILD / 'image-studio-tree-selection.png'), full_page=True)
 
 
-def test_folder_name_selects_subfolders_for_batch_analysis_when_collapsed(new_context, metadata_backend):
+def test_folder_name_selects_subfolders_for_batch_describe_when_collapsed(new_context, metadata_backend):
     backend, game = metadata_backend
     seed_metadata_browser(game)
     page = new_context().new_page()
@@ -1182,7 +1245,7 @@ def test_folder_name_selects_subfolders_for_batch_analysis_when_collapsed(new_co
     show_folders(studio)
     expect(art).to_have_attribute('aria-expanded', 'false')
     expect(art).to_have_attribute('aria-selected', 'true')
-    expect(studio.get_by_role('button', name='Analyze batch 2', exact=True)).to_be_enabled()
+    expect(studio.get_by_role('button', name='Describe batch 2', exact=True)).to_be_enabled()
     # Expanding is independent of selection, including from the keyboard.
     expand = studio.get_by_role('button', name='Expand folder art', exact=True)
     expand.focus()
@@ -1191,7 +1254,7 @@ def test_folder_name_selects_subfolders_for_batch_analysis_when_collapsed(new_co
     expect(studio.get_by_role('treeitem', name='art/icons, 2 assets', exact=True)).to_have_attribute('aria-selected', 'false')
     studio.locator('.studio-folder-picker > summary').press('Escape')
     with page.expect_request(lambda request: request.method == 'POST' and request.url.endswith('/api/image-studio/jobs')) as submitted:
-        studio.get_by_role('button', name='Analyze batch 2', exact=True).click()
+        studio.get_by_role('button', name='Describe batch 2', exact=True).click()
     body = submitted.value.post_data_json
     assert body['kind'] == 'metadata'
     assert set(body['files']) == {str(game / 'art/icons/gold.png'), str(game / 'art/icons/silver.png')}
@@ -1199,5 +1262,5 @@ def test_folder_name_selects_subfolders_for_batch_analysis_when_collapsed(new_co
     studio.get_by_role('tab', name='Generation queue', exact=True).click()
     expect(studio.locator('.studio-job .badge').filter(has_text='succeeded')).to_have_count(1, timeout=10000)
     expect(studio.locator('.studio-job .badge').filter(has_text='skipped')).to_have_count(1)
-    assert (game / 'art/icons/silver.png.json').is_file()
-    assert not (game / 'backgrounds/sky.png.json').exists()
+    assert (stored(game, 'art/icons/silver.png.json')).is_file()
+    assert not (stored(game, 'backgrounds/sky.png.json')).exists()

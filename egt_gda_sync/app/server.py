@@ -625,6 +625,18 @@ def create_app(
     def save_metadata(body: MetadataBody) -> dict:
         return library.save_metadata(body.file, body.metadata, body.revision)
 
+    @app.post('/api/image-studio/open-folder')
+    def open_metadata_folder(body: ResourceFileBody) -> dict:
+        """Open the folder of an image or animation's saved metadata file, in the app-data folder's metadata store."""
+        opener(os.path.dirname(library.metadata_file(body.file)))
+        return {'opened': True}
+
+    @app.post('/api/image-studio/open-metadata')
+    def open_metadata_file(body: ResourceFileBody) -> dict:
+        """Open an image or animation's saved metadata file, in the app-data folder's metadata store, in VS Code."""
+        code_opener(library.metadata_file(body.file), 1)
+        return {'opened': True}
+
     @app.get('/api/image-studio/jobs')
     def image_jobs() -> dict:
         return library.image_metadata.status(library._active_workspace()[0])

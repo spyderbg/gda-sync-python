@@ -6,7 +6,7 @@ import { config } from '../workspace';
 
 <template>
   <PageHeader title="Image studio">
-    <template #links><li><span>Analyze image assets, edit metadata, or create a new image.</span></li></template>
+    <template #links><li><span>Describe image assets, edit metadata, or create a new image.</span></li></template>
   </PageHeader>
   <ImageStudio :key="config.defaultWorkspace" embedded />
 </template>

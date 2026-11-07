@@ -50,7 +50,7 @@ function duration(job: ImageJob) {
           <button type="button" class="btn btn-primary btn-sm" :disabled="working" @click="emit('compose')"><i class="mdi mdi-plus" aria-hidden="true" /> Generate images</button>
         </div>
       </header>
-      <p v-if="!recentJobs.length" class="studio-queue-empty">Analyze an image or generate one from saved metadata to start a job.</p>
+      <p v-if="!recentJobs.length" class="studio-queue-empty">Describe an image or generate one from saved metadata to start a job.</p>
       <div class="studio-queue-list">
         <div v-for="job in recentJobs" :key="job.id" class="studio-job">
           <div class="studio-job-preview" aria-hidden="true">
@@ -60,7 +60,7 @@ function duration(job: ImageJob) {
           <span :class="['badge studio-job-status', job.state === 'failed' ? 'badge-danger' : job.state === 'succeeded' ? 'badge-success' : job.state === 'skipped' ? 'badge-warning' : 'badge-light']">{{ job.state }}</span>
           <div class="studio-job-details">
             <strong class="studio-job-name" :title="job.source">{{ job.label ?? baseName(job.source) }}</strong>
-            <p class="studio-job-model" :title="job.model || 'Model not configured'">{{ job.kind === 'metadata' ? 'Analyze' : 'Generate' }} <span aria-hidden="true">·</span> {{ job.model || 'Model not configured' }}</p>
+            <p class="studio-job-model" :title="job.model || 'Model not configured'">{{ job.kind === 'metadata' ? 'Describe' : 'Generate' }} <span aria-hidden="true">·</span> {{ job.model || 'Model not configured' }}</p>
             <p v-if="job.renderSize" class="studio-job-size">Render: {{ job.renderSize.width }} × {{ job.renderSize.height }}</p>
           </div>
           <time class="studio-job-date" :datetime="job.createdAt" :title="new Date(job.createdAt).toLocaleString()">{{ time(job.createdAt) }}</time>

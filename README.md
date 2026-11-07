@@ -228,8 +228,9 @@ Apply also requires the preview's `fingerprint`. Preview is read-only; all four 
 
 ### Image metadata and generation
 
-**Game → Image studio** in the sidebar opens a full-page studio; **Image metadata…** in an Image/ImageSeq's details opens the same tools in a popup for that asset. Analyze image assets
-with a local or remote LM Studio vision model. The backend Python package `egt_gda_sync.images.metadata` adapts the analyzer,
+**Game → Image studio** in the sidebar opens a full-page studio; **Image metadata…** in an Image/ImageSeq's details opens the same tools in a popup for that asset. **Describe**
+image assets with a local or remote LM Studio vision model: it writes a description, scene, objects, tags and the text in
+the image. The backend Python package `egt_gda_sync.images.metadata` adapts the vision client (`ImageDescriber`),
 metadata format and stable-diffusion.cpp runner from the sibling `image-analyzer` project. It also decodes DDS
 (including BC7) to PNG for vision input. Width, height, transparency and the original file's SHA-256 come from the
 image, rather than the model. Supported inputs are DDS, PNG, JPEG, WebP, BMP, TGA and TIFF.
@@ -244,35 +245,49 @@ Click one image or folder to select it; only that row is highlighted. An image o
 batch target. A folder targets matching images in that folder and its subfolders, even while collapsed. The separate
 arrow expands or collapses a folder without changing the selection. Space or Enter selects the focused row; the
 arrow keys navigate and expand or collapse folders. Selection stays active across filters and tree/list layouts.
-**Analyze batch** includes only targets whose source images exist; **Generate batch** includes only targets with
+**Describe batch** includes only targets whose source images exist; **Generate batch** includes only targets with
 saved metadata, including image drafts. Counts on both buttons show the eligible jobs. Select **Game folder** to
-process all matching images in the game. Metadata counts refresh after saving metadata or completing analysis.
+process all matching images in the game. Metadata counts refresh after saving metadata or completing a Describe job.
 
-Metadata is UTF-8 JSON beside the image: `bell.dds.json`. Its structured editor shows description, scene, objects,
-tags, OCR text and provenance, and edits **Output resolution**, **Model render resolution**, transparency and an
-optional **Generation prompt**. An empty custom prompt uses the description and scene. Render sizes are multiples
-of 32; generated PNGs are resized to the exact output size. **Save metadata** works without a model. Existing
-image-analyzer sidecars use the same schema. Saving refuses a stale revision instead of overwriting another edit.
+Metadata is UTF-8 JSON in the app-data folder, never in the resources folder. Each resources folder has a metadata
+store there, `image-metadata/<folder name>-<path hash>/`, that mirrors its layout: `<resources>/game/bell.dds` is
+described by `image-metadata/resources-1a2b3c4d5e6f/game/bell.dds.json`. The hash of the folder's path separates
+resources folders with the same name, and workspaces that share a resources folder share its metadata. **Metadata
+file** shows the file's path, with buttons that open it in VS Code or open its folder.
 
-An ImageSeq has **one description and generation prompt for the entire animation**, with one JSON file in the game's
-`.asset-metadata/sequences/<asset-id>.imageseq.json`. Its metadata includes the ordered frame list, source rectangles,
-range paths, timing and loop settings. Each animation has its own metadata even when it shares DDS files with another
-animation or an Image. A separately declared Image still has its own image sidecar.
+Selecting an image or animation loads its metadata file when it has one; otherwise the editor starts a draft with the
+image's dimensions and transparency. The structured editor shows description, scene, objects, tags, OCR text and
+provenance, and edits **Output resolution**, **Model render resolution**, transparency and an optional **Generation
+prompt**. An empty custom prompt uses the description and scene. Render sizes are multiples of 32; generated PNGs are
+resized to the exact output size. **Save metadata** works without a model. The file keeps the image-analyzer schema,
+including the name of its `analysis` object, which holds what Describe wrote, so files can be copied between the
+projects. Saving refuses a stale revision instead of overwriting another edit.
 
-**Analyze animation** submits one model request containing a chronological contact sheet of up to 12 representative
-frames, evenly covering the animation and including its first and last frame. Atlas frames are cropped to their
-declared source rectangles before analysis. The model is asked for one description of the subject, appearance, motion
-and changes over time; sampled frame indices are recorded. Long animations are sampled, so short events between
-samples may need manual description. Analysis creates no per-frame metadata files and never edits the descriptor.
-The editor shows this one animation entry, its representative frames, and shared description/prompt. Output sizes
-start with the first frame's dimensions. Generating from animation metadata creates one still PNG from its shared
-prompt; it does not synthesize an animated sequence. **Analyze batch** / **Generate batch** in the library studio
-submit one job per selected image or animation; repeated selections of the same asset are deduplicated.
+**Describe** on an image or animation that already has a metadata file asks first, in a confirmation popup that names
+the file. Confirming replaces the file when the model finishes, including its generation prompt and render resolution,
+whatever **Replace existing…** is set to, and discards unsaved edits; **Cancel** queues nothing. Without a metadata
+file, **Describe** starts at once. **Describe batch** asks nothing: it follows **Replace existing…**, and otherwise
+keeps existing metadata.
 
-**New image metadata** creates a sidecar at an image path relative to the game folder, even when that image does not
+An ImageSeq has **one description and generation prompt for the entire animation**, with one JSON file in the store's
+`<game>/.asset-metadata/sequences/<asset-id>.imageseq.json`. Its metadata includes the ordered frame list, source
+rectangles, range paths, timing and loop settings. Each animation has its own metadata even when it shares DDS files
+with another animation or an Image. A separately declared Image still has its own metadata file.
+
+**Describe** on an animation submits one model request containing a chronological contact sheet of up to 12
+representative frames, evenly covering the animation and including its first and last frame. Atlas frames are cropped
+to their declared source rectangles before they are described. The model is asked for one description of the subject,
+appearance, motion and changes over time; sampled frame indices are recorded. Long animations are sampled, so short
+events between samples may need manual description. Describe creates no per-frame metadata files and never edits the
+descriptor. The editor shows this one animation entry, its representative frames, and shared description/prompt.
+Output sizes start with the first frame's dimensions. Generating from animation metadata creates one still PNG from
+its shared prompt; it does not synthesize an animated sequence. **Describe batch** / **Generate batch** in the library
+studio submit one job per selected image or animation; repeated selections of the same asset are deduplicated.
+
+**New image metadata** creates metadata for an image path relative to the game folder, even when that image does not
 exist yet. Enter a prompt and sizes, then **Generate image**. The editor stays open so more render scales can be queued.
 Each generation captures its metadata and model settings at submission. Different scales or prompts create separate
-jobs and retained PNGs in `.asset-metadata/generations`; **View** opens that job's result. The common generated PNG
+jobs and retained PNGs in the store's `<game>/.asset-metadata/generations`; **View** opens that job's result. The common generated PNG
 beside the metadata follows the latest successful generation. Repeating the same settings keeps the existing result
 unless **Replace existing…** is enabled. The original source image stays intact;
 the generated result is `bell.dds.json.generated.png`, viewable in the studio. **Keep original** also saves the model's
@@ -283,32 +298,37 @@ otherwise existing outputs are skipped. Failed or cancelled jobs preserve existi
 **Generation queue** is one persistent worker for the entire Library, across workspaces. **Cancel All** cancels all
 queued jobs and requests cancellation of the running job in the current workspace, keeping completed history and other workspaces' jobs.
 **Clean** clears finished jobs (succeeded, skipped, failed or cancelled) from the current workspace's list. Queued and
-running jobs, generated images, and saved configurations are kept; cleared rows stay hidden after a restart. Metadata analysis and
+running jobs, generated images, and saved configurations are kept; cleared rows stay hidden after a restart. Describe and
 image generation never run concurrently. Pending jobs with the current operation type and model settings are
 drained together before switching types, reducing vision/diffusion model switches. Jobs capture their workspace,
 input revisions and settings when submitted. Changing workspaces or settings does not redirect queued work. Generation
 uses its captured metadata, so later prompt or size edits can be submitted independently. Changing source pixels or
-animation inputs still invalidates the queued result; analysis also refuses to replace metadata edited after submission.
+animation inputs still invalidates the queued result; Describe also refuses to replace metadata edited after submission.
 Cancel stops a queued job immediately; an active vision request discards its
 result on return, and an active diffusion runner is terminated. Leaving Image studio or closing an asset popup keeps work running. On application
 restart, queued jobs resume and interrupted jobs are marked failed for explicit retry. Queue history is stored in
 `image-jobs.json` in the app-data folder, retaining the newest 1000 completed jobs.
-Each queued analysis or generation also saves its execution configuration under the workspace game's
-`.asset-metadata/jobs/<workspace-hash>/<job-id>/config.json`. The hash separates workspaces that share a game folder.
+Each queued Describe or generation job also saves its execution configuration in the store's
+`<game>/.asset-metadata/jobs/<workspace-hash>/<job-id>/config.json`. The hash separates workspaces that share a game folder.
 The worker reads that file, including captured model settings, generation metadata and animation inputs. **Generate**
 on a skipped job reuses that saved configuration, so later editor changes cannot alter its render size or prompt.
 **Retry** also keeps the saved generation inputs, while accepting updated model settings to fix connection or model-path
-errors. Existing queue entries with captured inputs are migrated when used; unavailable original configurations are
-reported instead of being guessed from newer metadata.
+errors. Jobs queued before metadata moved to the app-data folder cannot be resumed or retried: queued ones fail on
+startup with a message to queue them again. Their generated results stay viewable.
+
+Earlier versions saved metadata in the resources folder: `bell.dds.json` beside the image, and `.asset-metadata` in the
+game folder. The first time Image studio opens a game, it copies the metadata files found there, with their generated
+PNGs, into the store, never replacing a file already in it. The originals are kept: delete them, and the game's
+`.asset-metadata` folder, once the studio shows your metadata.
 
 Configure **Local models** once: LM Studio base URL and vision model, and installed diffusion, text encoder, VAE and
 `sd-cli` paths. Defaults match `image-analyzer` (Qwen vision / Qwen-Image generation). Settings live in the app-data
-folder's `image-analyzer.json`; `IMAGE_ANALYZER_CONFIG` selects a different file, including the original project's
+folder's `image-analyzer.json`, with Describe's under `analysis`, the original project's key; `IMAGE_ANALYZER_CONFIG` selects a different file, including the original project's
 configuration. Relative weights/executable paths resolve against that file. LM Studio authentication uses
 `LM_STUDIO_API_KEY`. No model or runner is downloaded automatically. The runner must support Qwen-Image-2.1;
 the matching VAE is required. Model unloading options are editable because they affect other local model clients.
 
-**Remote models** has independent switches for **Remote LM Studio** analysis and **Remote ComfyUI** generation.
+**Remote models** has independent switches for **Remote LM Studio** (Describe) and **Remote ComfyUI** generation.
 Disabled switches use the corresponding Local models configuration. The remote settings are stored under
 `remote.analysis` and `remote.generation` in the same `image-analyzer.json`; existing configurations default to local.
 For LM Studio, enter the other computer's API URL (including `/v1`), vision model, and timeout. Enable
@@ -332,12 +352,14 @@ finish on its server, but its result is discarded; other users' running workflow
 Queued jobs retain the connection and workflow settings captured at submission. No request is sent merely by saving settings.
 
 API: `GET /api/image-studio/catalog?asset=<optional id>`, `GET /metadata?file=<image path or sequence key>` and `POST /metadata`
-with `{file, metadata, revision}`; `GET /jobs`, `POST /jobs` with `{kind: "metadata" | "image", assets?: [id],
-files?: [image path], overwrite?: false}`, and `POST /jobs/cancel` with `{id}` or `POST /jobs/cancel-all` for the current workspace; `GET /settings` and `POST /settings`
+with `{file, metadata, revision}`; `POST /open-metadata` and `POST /open-folder` with `{file}` open the metadata file in
+VS Code or its folder; `GET /jobs`, `POST /jobs` with `{kind: "metadata" | "image", assets?: [id],
+files?: [image path], overwrite?: false}` (`metadata` is Describe), and `POST /jobs/cancel` with `{id}` or `POST /jobs/cancel-all` for the current workspace; `GET /settings` and `POST /settings`
 with `{settings}`. These paths share the `/api/image-studio` prefix. `GET /generated?file=<image path>` serves the
 result PNG. Animation entries use the catalog's `sequence:<asset-id>` key in place of an image path;
-`GET /sequence-preview?file=<sequence key>` serves their contact sheet. Mutations use the usual session guard. Reads and writes stay inside workspace resources without links;
-new drafts stay inside the game folder.
+`GET /sequence-preview?file=<sequence key>` serves their contact sheet. Mutations use the usual session guard. Images are read
+inside workspace resources without links; metadata, generated images and job configurations are written only in the
+metadata store, also without links. New drafts are images of the game folder.
 
 ### Report versions
 
@@ -624,7 +646,7 @@ The interface has the following page views in `frontend/src/views`:
 | Vue file | Purpose |
 | --- | --- |
 | [DashboardView.vue](frontend/src/views/DashboardView.vue) | Workspace selection using [WorkspaceCard.vue](frontend/src/components/WorkspaceCard.vue), with the project usage guide above and combined statistics, charts, and file lists for all configured workspaces. Opening a workspace card selects it and opens Asset library. Inspecting a file selects its owning workspace. |
-| [ImageStudioView.vue](frontend/src/views/ImageStudioView.vue) | **Game → Image studio** (`imageStudio`), immediately after **Play**. Full-page image and animation metadata editing, batch analysis/generation, generation queue, and local/remote model settings. Uses [ImageStudio.vue](frontend/src/components/ImageStudio.vue), which also powers the per-asset metadata popup. |
+| [ImageStudioView.vue](frontend/src/views/ImageStudioView.vue) | **Game → Image studio** (`imageStudio`), immediately after **Play**. Full-page image and animation metadata editing, batch Describe/generation, generation queue, and local/remote model settings. Uses [ImageStudio.vue](frontend/src/components/ImageStudio.vue), which also powers the per-asset metadata popup. |
 | [AssetsLibraryView.vue](frontend/src/views/AssetsLibraryView.vue) | The sidebar's **Asset library** (`library`). Shows the newest asset report of the workspace (`GET /api/asset-report`), which its **Rescan** writes (`POST /api/asset-report`): the report file, its counts by status (which filter the assets when clicked), and the folders its assets are in, the Game path first, each on its own line, which show only that folder's assets when clicked, then the assets in grid or list form as [AssetCard.vue](frontend/src/components/AssetCard.vue) cards, with status filters, search by path, entry id or sequence, and the sidebar's sections (Images and ImagesSeq for textures, then the other types). A card shows the asset's preview, name, folder, size, status and the entries that load it; an image sequence plays its frames. Clicking an asset opens [AssetDetails.vue](frontend/src/components/AssetDetails.vue), a dialog like the Sync page's resource details: a large preview, what the status means, the descriptor entries that load the asset, its game path with buttons to copy it or open its folder, and its format, size, resolution, pixel format, mip levels and modification time; a sequence also shows how it plays and each frame. A font is drawn with itself, with each Font entry's declared characters, the ones it misses marked, its names and glyph count, and a card warns when a font misses declared characters. An RTF shows its pages: a card has a strip of them, and the dialog draws the chosen page in each language, with [RtfPreview.vue](frontend/src/components/RtfPreview.vue), and lists its pages and the files they miss. Escape closes the dialog. Views can be selected with their check boxes and shown together in [ViewsDetails.vue](frontend/src/components/ViewsDetails.vue), drawn one over another. Inspecting a file on the Dashboard opens the library with a search for its name. |
 | [SyncView.vue](frontend/src/views/SyncView.vue) | The sidebar's **Sync** page (`pending`). Shows only the workspace's latest successful GDA sync report, never the library scan. Opens with the workspace section (name, the report file, the report's compared, not-in-sync, in-sync and supplementary counts, and the GDA and Game folders), then lists the report's **Different**, **Missing**, **Invalid** and **Supplementary** resources in report order as [ResourceCard.vue](frontend/src/components/ResourceCard.vue) cards, in the look of the Asset library's cards: the game file's preview, name, folder and the report's status, with status filters, search, and buttons to copy the game path or GDA path. A **Different** resource spans the row and shows each GDA file with its name as a card beside it, closest folder first; the first is the one Sync copies. A **Different** or **Missing** image instead shows, on one line, every GDA image that may show the same picture: its possible matches by content and its same-named GDA files, most likely first, each with its probability and match type, in cards of the game image's card size. Only the GDA images scroll sideways, right of the copy arrow. Clicking anywhere on an image's card chooses it, and clicking it again clears the choice; Left and Right choose the previous and next image; the copy arrow between the cards stays disabled until an image is chosen, then copies the chosen image, which also syncs a missing image. A GDA image with the game file's contents cannot be chosen, since copying it changes nothing. An image sequence is one card that plays its frames with [SequencePreview.vue](frontend/src/components/SequencePreview.vue): a frame every `frameTime` milliseconds, `loopCount` times (`0` repeats forever), each loop after the first starting at frame `loopTo`, showing only the `source` rectangle of a frame that has one. Its frames load when the card comes into view, and it plays only while in view; clicking the preview plays it again from the first frame. The card lists the sequence's files that are not in sync, and a **Different** sequence plays its GDA frames beside it. Clicking a card, or its details button, opens [ResourceDetails.vue](frontend/src/components/ResourceDetails.vue), a dialog like the Asset library's asset details: a large preview, beside the GDA file's when the GDA has one, what the status means, where the resource is declared, its game and GDA paths with buttons to copy them or open their folders, and the format, size, resolution, pixel format, mip levels and modification time of the game and GDA files side by side, with values that differ in red. An image sequence plays in the dialog, with its frame time, loops, the duration of one loop, the totals of its files and the status of each frame. **Sync this resource** asks to sync it, and Escape closes the dialog. An image's details show only the game image and one GDA image, with the image matching algorithms' values for the pair: the image chosen on its card, or else the most likely one, which **Sync this resource** copies. Left and Right choose the previous and next GDA image without closing the dialog, which then compares the game image with the new one (only the new image's file details are read), and the card shows the new choice. The file details come from `POST /api/rss-sync/details`, which reads only files inside the workspace's resources and GDA folders. An RTF is one card for its folder, with its pages and the files that are not in sync; a **Different** one shows the closest GDA folder's pages beside it, labelled with what Sync changes, and the other GDA folders that hold its `.rtf` file. Its details draw the game and GDA pages side by side, on the same page, compare the two projects, and list every file with what Sync does to it. Syncing an RTF makes the game's folder a copy of the closest GDA folder: it copies the changed files and the ones only the GDA has, and deletes the ones only the game has, unless a descriptor declares them, each replaced or deleted file saved in your backups. Deleting a **Supplementary** RTF deletes its whole folder, and removing an **Invalid** one's declarations removes the entries that declare its `.rtf` file. The check box of a card with an action selects it; a **Missing** card has none. Previews come from `GET /api/rss-sync/preview`, which serves only image, audio, and font files, and the page layout of an RTF (`.rtf`) as JSON, inside the workspace's resources and GDA folders. A font is drawn with itself by [FontPreview.vue](frontend/src/components/FontPreview.vue): a card shows "Aa" and a line of text once it scrolls into view, and offers to load a font larger than 2 MB instead of loading it; the details dialog is a specimen: the font's family and style, its alphabets and digits, a sample of each writing system it can draw (Latin Extended, Cyrillic, Greek, Arabic, Hebrew, Thai, Japanese, Chinese, Korean) and its currency signs, a waterfall of text to type from 12 to 72 px with the declared size marked, and each declared range, with the characters the font misses marked. The preview response's `X-Font-Facts` header names the samples the font can draw, so a card shows the font's own writing system. A different font shows the game and GDA versions side by side with the same text, and the table compares their names, glyph counts, and how many of each `Font` entry's characters they have, from `POST /api/rss-sync/details` with the entries' `chars`. **Sync all pending**, and **Sync selected** for a selection of **Different** resources, copy the GDA image chosen on each image's card, or else its most likely GDA image, the closest GDA file of any other file, or of each different frame of a sequence, over the game resource (`POST /api/rss-sync/copy`, with the chosen image of each image in `gdaFiles`; the backend refuses one that is not a candidate of the image in the report), back up the replaced file, and start a new comparison. For other selections the button reads **Remove declarations** (**Invalid**), **Delete selected** (**Supplementary**), or **Apply to selected** (several statuses), and a confirmation lists the resources by action before `POST /api/rss-sync/apply` applies them. Each resource is sent with the status it was selected with, and one that a newer report gives another status is refused. The sidebar's Sync badge counts the report summary's resources that are not in sync. Without a report it shows only a notice and Rescan. |
 | [SyncInProgressView.vue](frontend/src/views/SyncInProgressView.vue) | The sidebar's **In sync** page (`rssSync`). Displays the resource comparison report with **In sync**, **Missing**, **Different**, **Invalid**, and **Supplementary** categories, scan progress, matching GDA paths, descriptor references, and DDS mip-level differences. An image sequence is one row with its id and how it plays, and its GDA files are summed up by folder. |

@@ -8,7 +8,7 @@ import ImageStudioBrowser from './ImageStudioBrowser.vue';
 import ImageStudioQueue from './ImageStudioQueue.vue';
 import StudioSequencePlayer from './StudioSequencePlayer.vue';
 import { vAutoSize } from '../directives/autoSize';
-import { notify, openDeclaration, openResourceFolder, registerNavigationGuard, ui } from '../workspace';
+import { notify, registerNavigationGuard, ui } from '../workspace';
 
 const props = defineProps<{ row?: ReportAsset; stacked?: boolean; embedded?: boolean }>();
 const emit = defineEmits<{ close: [] }>();
@@ -30,6 +30,8 @@ const overwrite = ref(false);
 const preview = ref<'source' | 'generated' | 'comparison'>('source');
 const previewJob = ref('');
 const showMetadataFile = ref(false);
+// Describe asks before it replaces an image's saved metadata file.
+const confirmingDescribe = ref(false);
 const inspectorMode = ref<'describe' | 'generate'>('describe');
 const tags = ref('');
 const objects = ref('');
@@ -113,6 +115,15 @@ function setRenderScale(factor: number) {
   if (metadata.value && scaled) Object.assign(metadata.value.generation, scaled);
 }
 function guardDiscard() { return !dirty.value || window.confirm('Discard unsaved metadata changes?'); }
+// Puts the editor back to the saved metadata, so the description replaces it when Describe finishes.
+function discardEdits() {
+  if (!document.value) return;
+  const [value, savedTags, savedObjects, savedPrompt] = JSON.parse(original.value) as [ImageMetadata, string, string, string];
+  document.value = { ...document.value, metadata: value };
+  tags.value = savedTags;
+  objects.value = savedObjects;
+  prompt.value = savedPrompt;
+}
 function canLeave() {
   return !working.value && guardDiscard() && (!modelsDirty.value || window.confirm('Discard unsaved model settings?'));
 }
@@ -192,17 +203,34 @@ async function save(): Promise<boolean> {
     return true;
   } catch (e) { error.value = (e as Error).message; return false; } finally { working.value = false; }
 }
-async function enqueue(kind: 'metadata' | 'image', batch?: string[]) {
+async function enqueue(kind: 'metadata' | 'image', batch?: string[], replace = overwrite.value) {
   if (!batch && kind === 'image' && (dirty.value || creating.value || !document.value?.exists) && !await save()) return;
   if (kind === 'metadata' && !batch && !guardDiscard()) return;
   clearMessages();
   working.value = true;
   try {
-    const body = batch ? { kind, files: batch, overwrite: overwrite.value }
-      : { kind, files: [document.value?.file], overwrite: overwrite.value };
+    const body = batch ? { kind, files: batch, overwrite: replace }
+      : { kind, files: [document.value?.file], overwrite: replace };
     jobs.value = await studioAPI<ImageJobs>('jobs', body);
-    message.value = `${jobs.value.submitted?.length ?? 0} job(s) submitted. ${kind === 'image' ? 'Existing results with the same settings' : 'Existing metadata'} are ${overwrite.value ? 'replaced after success' : 'kept'}.`;
+    message.value = `${jobs.value.submitted?.length ?? 0} job(s) submitted. ${kind === 'image' ? 'Existing results with the same settings' : 'Existing metadata'} are ${replace ? 'replaced after success' : 'kept'}.`;
   } catch (e) { error.value = (e as Error).message; } finally { working.value = false; }
+}
+function describe() {
+  if (document.value?.exists) confirmingDescribe.value = true;
+  else void enqueue('metadata');
+}
+async function confirmDescribe() {
+  confirmingDescribe.value = false;
+  discardEdits();
+  await enqueue('metadata', undefined, true);
+}
+// The metadata files are in the app-data folder, which the resource folder actions do not open.
+async function openMetadata(action: 'open-folder' | 'open-metadata') {
+  if (!document.value?.exists) return;
+  try {
+    await studioAPI(action, { file: document.value.file });
+    notify(action === 'open-folder' ? 'Opened folder.' : 'Opened metadata file in VS Code.');
+  } catch (e) { notify((e as Error).message, true); }
 }
 async function retry(id: string, force = false) {
   clearMessages();
@@ -284,7 +312,7 @@ onBeforeUnmount(() => { disposed = true; loadId++; clearTimeout(timer); unregist
       <p v-if="error" class="alert alert-danger" role="alert">{{ error }}</p>
       <p v-if="message" class="alert alert-info" role="status">{{ message }}</p>
       <ImageStudioBrowser v-show="tab === 'metadata'" :class="{ 'fill-height': embedded }" :files="catalog?.files ?? []" :selected="selected" :working="working" :batch="!row?.sequence" :game="catalog?.game ?? ''" :revision="lastFinished"
-                            v-slot="{ destinationFolder }" @select="selectFile($event)" @create="newMetadata" @analyze="enqueue('metadata', $event)" @generate="enqueue('image', $event)">
+                            v-slot="{ destinationFolder }" @select="selectFile($event)" @create="newMetadata" @describe="enqueue('metadata', $event)" @generate="enqueue('image', $event)">
           <section class="studio-editor" aria-label="Image metadata editor" :aria-busy="loading">
             <p v-if="loading" class="studio-loading" role="status">Loading metadata…</p>
             <p v-if="!loading && !metadata" class="text-muted">Choose an image, or create metadata for a new image.</p>
@@ -302,10 +330,10 @@ onBeforeUnmount(() => { disposed = true; loadId++; clearTimeout(timer); unregist
                       <dl>
                         <dt>JSON file</dt>
                         <dd class="studio-metadata-file">
-                          <span>{{ document?.path || `${newPath}.json` }}</span>
+                          <span>{{ document?.path || 'Created in the app-data folder when you save the metadata' }}</span>
                           <span class="studio-file-actions">
-                            <button type="button" class="details-icon" aria-label="Open metadata folder" :title="document?.exists && !creating ? 'Open metadata folder' : 'Save metadata first'" :disabled="working || loading || creating || !document?.exists" @click="document && openResourceFolder(document.path)"><i aria-hidden="true" class="mdi mdi-folder-open-outline" /></button>
-                            <button type="button" class="details-icon" aria-label="Open metadata file in VS Code" :title="document?.exists && !creating ? 'Open metadata file in VS Code' : 'Save metadata first'" :disabled="working || loading || creating || !document?.exists" @click="document && openDeclaration(document.path, 1)"><i aria-hidden="true" class="mdi mdi-code-braces" /></button>
+                            <button type="button" class="details-icon" aria-label="Open metadata folder" :title="document?.exists && !creating ? 'Open metadata folder' : 'Save metadata first'" :disabled="working || loading || creating || !document?.exists" @click="openMetadata('open-folder')"><i aria-hidden="true" class="mdi mdi-folder-open-outline" /></button>
+                            <button type="button" class="details-icon" aria-label="Open metadata file in VS Code" :title="document?.exists && !creating ? 'Open metadata file in VS Code' : 'Save metadata first'" :disabled="working || loading || creating || !document?.exists" @click="openMetadata('open-metadata')"><i aria-hidden="true" class="mdi mdi-code-braces" /></button>
                           </span>
                         </dd>
                         <dt>Model</dt><dd>{{ metadata.model }}</dd>
@@ -344,7 +372,7 @@ onBeforeUnmount(() => { disposed = true; loadId++; clearTimeout(timer); unregist
                         <p><i aria-hidden="true" class="mdi mdi-folder-outline" /> {{ destinationFolder || 'Choose a folder with Select folder' }}</p>
                         <small>Destination preview only. Saving still uses the Image path field.</small>
                       </div>
-                      <details v-if="isSequence && metadata.sequence" class="studio-animation-info"><summary>Animation details</summary><p>One description covers the animation’s appearance and motion. Analysis samples up to 12 frames across the full animation. Generating an image creates a single still from the shared prompt.</p></details>
+                      <details v-if="isSequence && metadata.sequence" class="studio-animation-info"><summary>Animation details</summary><p>One description covers the animation’s appearance and motion. Describe samples up to 12 frames across the full animation. Generating an image creates a single still from the shared prompt.</p></details>
                     </template>
                   </div>
                   <button type="button" class="btn btn-outline-primary btn-sm studio-preview-toggle" :aria-label="showMetadataFile ? 'Show image preview' : 'Show metadata file'" :aria-pressed="showMetadataFile" @click="showMetadataFile = !showMetadataFile"><i aria-hidden="true" :class="['mdi', showMetadataFile ? 'mdi-image-outline' : 'mdi-code-json']" /> {{ showMetadataFile ? 'Image preview' : 'Metadata file' }}</button>
@@ -354,7 +382,7 @@ onBeforeUnmount(() => { disposed = true; loadId++; clearTimeout(timer); unregist
                     <button type="button" :class="{ active: inspectorMode === 'describe' }" :aria-pressed="inspectorMode === 'describe'" @click="inspectorMode = 'describe'">Describe</button>
                     <button type="button" :class="{ active: inspectorMode === 'generate' }" :aria-pressed="inspectorMode === 'generate'" @click="inspectorMode = 'generate'">Generate</button>
                   </div>
-                  <label v-if="creating" class="studio-field">Image path <textarea v-auto-size v-model="newPath" rows="1" aria-label="Image path" class="form-control" required placeholder="art/generated/new-image.png" @keydown.enter.prevent /><small>Relative to the game folder. A .json metadata file is created beside this path.</small></label>
+                  <label v-if="creating" class="studio-field">Image path <textarea v-auto-size v-model="newPath" rows="1" aria-label="Image path" class="form-control" required placeholder="art/generated/new-image.png" @keydown.enter.prevent /><small>Relative to the game folder. Its metadata file is kept in the app-data folder, not in the game.</small></label>
                   <div v-show="inspectorMode === 'describe'">
 
                     <div class="studio-field">
@@ -368,7 +396,6 @@ onBeforeUnmount(() => { disposed = true; loadId++; clearTimeout(timer); unregist
                       <div class="studio-dimensions"><label class="studio-field">Objects<textarea v-auto-size v-model="objects" rows="1" class="form-control" placeholder="Comma-separated objects" /></label><label class="studio-field">Tags<textarea v-auto-size v-model="tags" rows="1" class="form-control" placeholder="Comma-separated tags" /></label></div>
                       <label class="studio-field">Text in image<textarea v-auto-size v-model="metadata.analysis.text" rows="2" class="form-control" /></label>
                     </details>
-                      <button v-if="!creating && current?.exists" type="button" class="btn btn-link btn-sm studio-analyze" :disabled="working" :aria-label="isSequence ? 'Analyze animation' : 'Analyze image'" :title="isSequence ? 'Analyze animation' : 'Analyze image'" @click="enqueue('metadata')"><i aria-hidden="true" class="mdi mdi-auto-fix" /></button>
                     </div>
                   </div>
                   <div v-show="inspectorMode === 'generate'">
@@ -395,7 +422,8 @@ onBeforeUnmount(() => { disposed = true; loadId++; clearTimeout(timer); unregist
                     </details>
                   </div>
                   <div class="studio-inspector-actions">
-                    <button type="button" :class="['btn', inspectorMode === 'describe' ? 'btn-primary' : 'btn-outline-primary']" :disabled="working || loading" @click="save"><i aria-hidden="true" class="mdi mdi-content-save-outline" /> Save metadata</button>
+                    <button v-if="inspectorMode === 'describe' && !creating && current?.exists" type="button" class="btn btn-primary" :disabled="working || loading" title="Describe the image with the vision model and save its metadata after success" @click="describe"><i aria-hidden="true" class="mdi mdi-auto-fix" /> Describe</button>
+                    <button v-if="inspectorMode === 'generate' || creating || !current?.exists || dirty" type="button" :class="['btn', inspectorMode === 'describe' && (creating || !current?.exists) ? 'btn-primary' : 'btn-outline-primary']" :disabled="working || loading" @click="save"><i aria-hidden="true" class="mdi mdi-content-save-outline" /> Save metadata</button>
                     <button v-if="inspectorMode === 'generate'" type="button" class="btn btn-primary" :disabled="working || loading" @click="enqueue('image')">Generate image</button>
                   </div>
                 </div>
@@ -408,11 +436,11 @@ onBeforeUnmount(() => { disposed = true; loadId++; clearTimeout(timer); unregist
         @view="viewJob" />
       <form v-else-if="tab === 'models' && settings" class="studio-models" @submit.prevent="saveModels">
         <p class="studio-hint">Configure installed weights and a local LM Studio server. Enable Remote models to use another computer for either operation. No models are downloaded. Settings are stored in {{ settings.path }}.</p>
-        <fieldset><legend>Vision analysis · LM Studio</legend>
+        <fieldset><legend>Describe · LM Studio</legend>
           <label class="studio-field">API base URL<input v-model="settings.settings.analysis.base_url" class="form-control" required></label>
           <label class="studio-field">Vision model<input v-model="settings.settings.analysis.model" class="form-control" required></label>
-          <div class="studio-dimensions"><label class="studio-field">Analysis timeout (seconds)<input v-model.number="settings.settings.analysis.timeout" type="number" min="1" class="form-control"></label><label class="studio-field">Maximum response tokens<input v-model.number="settings.settings.analysis.max_tokens" type="number" min="1" class="form-control"></label></div>
-          <label class="studio-check"><input v-model="settings.settings.analysis.load_model" type="checkbox"> Load the vision model when analysis starts</label>
+          <div class="studio-dimensions"><label class="studio-field">Describe timeout (seconds)<input v-model.number="settings.settings.analysis.timeout" type="number" min="1" class="form-control"></label><label class="studio-field">Maximum response tokens<input v-model.number="settings.settings.analysis.max_tokens" type="number" min="1" class="form-control"></label></div>
+          <label class="studio-check"><input v-model="settings.settings.analysis.load_model" type="checkbox"> Load the vision model when describing starts</label>
           <label class="studio-check"><input v-model="settings.settings.analysis.unload_others" type="checkbox"> Unload other LM Studio models when loading vision</label>
         </fieldset>
         <fieldset><legend>Image generation · stable-diffusion.cpp</legend>
@@ -425,13 +453,13 @@ onBeforeUnmount(() => { disposed = true; loadId++; clearTimeout(timer); unregist
       </form>
       <form v-else-if="tab === 'remote' && settings" class="studio-models" @submit.prevent="saveModels">
         <p class="studio-hint">Use LM Studio and ComfyUI on other computers. Enable either connection to use it for new jobs; otherwise the corresponding Local models settings apply. Settings are stored in {{ settings.path }}.</p>
-        <fieldset><legend>Vision analysis · Remote LM Studio</legend>
-          <label class="studio-check"><input v-model="settings.settings.remote.analysis.enabled" type="checkbox"> Use remote LM Studio for analysis</label>
+        <fieldset><legend>Describe · Remote LM Studio</legend>
+          <label class="studio-check"><input v-model="settings.settings.remote.analysis.enabled" type="checkbox"> Use remote LM Studio to describe images</label>
           <label class="studio-field">Remote LM Studio API base URL<input v-model="settings.settings.remote.analysis.base_url" aria-label="Remote LM Studio API base URL" class="form-control" type="url" required placeholder="http://your-lm-studio-host:1234/v1"><small>Enable Serve on Local Network in LM Studio on that computer. Include /v1.</small></label>
           <label class="studio-field">Remote vision model<input v-model="settings.settings.remote.analysis.model" class="form-control" required></label>
           <label class="studio-field">LM Studio API key environment variable<input v-model="settings.settings.remote.analysis.api_key_env" aria-label="LM Studio API key environment variable" class="form-control" placeholder="LM_STUDIO_REMOTE_API_KEY"><small>Optional. Set this variable on the computer running EGT GDA Sync before starting it. Leave empty for a server without authentication.</small></label>
-          <div class="studio-dimensions"><label class="studio-field">Remote analysis timeout (seconds)<input v-model.number="settings.settings.remote.analysis.timeout" type="number" min="1" required class="form-control"></label><label class="studio-field">Remote maximum response tokens<input v-model.number="settings.settings.remote.analysis.max_tokens" type="number" min="1" required class="form-control"></label></div>
-          <label class="studio-check"><input v-model="settings.settings.remote.analysis.load_model" type="checkbox"> Load the remote vision model when analysis starts</label>
+          <div class="studio-dimensions"><label class="studio-field">Remote describe timeout (seconds)<input v-model.number="settings.settings.remote.analysis.timeout" type="number" min="1" required class="form-control"></label><label class="studio-field">Remote maximum response tokens<input v-model.number="settings.settings.remote.analysis.max_tokens" type="number" min="1" required class="form-control"></label></div>
+          <label class="studio-check"><input v-model="settings.settings.remote.analysis.load_model" type="checkbox"> Load the remote vision model when describing starts</label>
           <label class="studio-check"><input v-model="settings.settings.remote.analysis.unload_others" type="checkbox"> Unload other models on the remote LM Studio server</label>
         </fieldset>
         <fieldset><legend>Image generation · Remote ComfyUI</legend>
@@ -463,6 +491,19 @@ onBeforeUnmount(() => { disposed = true; loadId++; clearTimeout(timer); unregist
         <button v-if="!embedded" type="button" class="btn btn-light" :disabled="working" @click="close">Close</button>
       </div>
     </div>
+    <Teleport to="body">
+      <AppModal v-if="confirmingDescribe && document" :title="isSequence ? 'Describe this animation again?' : 'Describe this image again?'" stacked @close="confirmingDescribe = false">
+        <div class="modal-body">
+          <p><strong>{{ imageTitle }}</strong> already has a metadata file. Describing it again replaces that file when the model finishes, including its generation prompt and render resolution.</p>
+          <p class="studio-hint studio-confirm-path">{{ document.path }}</p>
+          <p v-if="dirty" class="text-warning mb-0"><i aria-hidden="true" class="mdi mdi-alert-outline" /> Your unsaved changes are discarded.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" @click="confirmingDescribe = false">Cancel</button>
+          <button type="button" class="btn btn-primary" :disabled="working" @click="confirmDescribe"><i aria-hidden="true" class="mdi mdi-auto-fix" /> Describe again</button>
+        </div>
+      </AppModal>
+    </Teleport>
   </component>
 </template>
 
@@ -484,6 +525,7 @@ onBeforeUnmount(() => { disposed = true; loadId++; clearTimeout(timer); unregist
 .studio-body { padding: 14px; overflow-y: auto; min-height: 0; }
 .studio-hint, .studio-field small, fieldset > small { font-size: 12px; color: #77809a; line-height: 1.5; }
 .studio-hint { margin: 0; overflow-wrap: anywhere; }
+.studio-confirm-path { margin-bottom: 12px; font-family: var(--font-family-monospace, monospace); }
 .studio-editor { position: relative; min-width: 0; container-type: inline-size; }
 .studio-editor > p { padding: 20px; }
 .studio-editor > .studio-loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; margin: 0; }
@@ -511,7 +553,6 @@ onBeforeUnmount(() => { disposed = true; loadId++; clearTimeout(timer); unregist
 .studio-description-tools .studio-inspector-details { flex: 1; margin: 0; border: 0; padding: 0; }
 .studio-description-tools .studio-inspector-details > summary { margin: 0 0 10px; font-size: 11px; }
 .studio-inspector-actions .btn { flex: 1 1 100%; }
-.studio-analyze { flex-shrink: 0; padding: 0 5px; color: #2336ff; line-height: 1; font-size: 17px; }
 .studio-preview-placeholder { min-height: 340px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; background: #f8f9fc; border: 1px dashed #dce3ed; border-radius: 6px; text-align: center; }
 .studio-preview-placeholder > .mdi { font-size: 40px; color: #a2aec0; margin-bottom: 14px; }
 .studio-destination-preview { margin-top: 18px; padding: 14px; background: #f8f9fc; border-radius: 6px; overflow-wrap: anywhere; }

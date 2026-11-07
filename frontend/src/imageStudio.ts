@@ -4,6 +4,7 @@ export interface ImageMetadata {
   schema_version: number;
   image: { filename: string; width: number; height: number; transparency: boolean; sha256?: string; mime_type?: string; size_bytes?: number };
   generation: { width: number; height: number; prompt?: string };
+  /** What Describe saw. The field keeps the image-analyzer schema name, so either project reads the file. */
   analysis: { description: string; scene: string; objects: string[]; tags: string[]; text: string };
   model: string; created_at: string;
   sequence?: { id: string | null; frameTime: number; loopCount: number; loopTo: number | null; paths: string[];
@@ -25,7 +26,7 @@ export interface ImageJob {
   result?: string; renderSize?: { width: number; height: number };
 }
 export interface ImageJobs { jobs: ImageJob[]; queued: number; running: boolean; submitted?: string[] }
-export interface RemoteAnalysisSettings {
+export interface RemoteDescribeSettings {
   enabled: boolean; base_url: string; model: string; timeout: number; max_tokens: number;
   load_model: boolean; unload_others: boolean; api_key_env: string;
 }
@@ -34,9 +35,10 @@ export interface ComfySettings {
   prompt_node: string; size_node: string; sampler_node: string; output_node: string;
   steps: number; seed: number; cfg_scale: number; keep_original: boolean;
 }
+/** The settings of Describe are under analysis, the key image-analyzer's configuration files use. */
 export interface ModelSettings {
   overwrite: boolean; recursive: boolean;
-  remote: { analysis: RemoteAnalysisSettings; generation: ComfySettings };
+  remote: { analysis: RemoteDescribeSettings; generation: ComfySettings };
   analysis: { base_url: string; model: string; timeout: number; max_tokens: number; load_model: boolean; unload_others: boolean };
   generation: { diffusion_model: string; text_encoder: string; vae: string; sd_cli: string; timeout: number;
     width: number; height: number; steps: number; seed: number; cfg_scale: number; unload_lm_studio: boolean; keep_original: boolean };

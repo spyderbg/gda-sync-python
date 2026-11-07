@@ -5,7 +5,7 @@ import type { StudioFile } from '../imageStudio';
 import { useAssetReport } from '../composables/useAssetReport';
 
 const props = defineProps<{ files: StudioFile[]; selected: string; working: boolean; batch: boolean; game: string; revision: string }>();
-const emit = defineEmits<{ select: [file: string]; create: []; analyze: [files: string[]]; generate: [files: string[]] }>();
+const emit = defineEmits<{ select: [file: string]; create: []; describe: [files: string[]]; generate: [files: string[]] }>();
 const kind = ref<'all' | StudioFile['kind']>('all');
 const status = ref<'all' | StudioFile['category']>('all');
 const folder = ref('.');
@@ -77,7 +77,7 @@ const belongsToFolder = (file: StudioFile, path: string) => file.folder === path
 const batchFiles = computed(() => selectedFolder.value !== null
   ? matching.value.filter(file => belongsToFolder(file, selectedFolder.value!))
   : selectedFile.value ? [selectedFile.value] : []);
-const analysisFiles = computed(() => batchFiles.value.filter(file => file.exists).map(file => file.file));
+const describeFiles = computed(() => batchFiles.value.filter(file => file.exists).map(file => file.file));
 const generationFiles = computed(() => batchFiles.value.filter(file => file.metadata).map(file => file.file));
 const selectionLabel = computed(() => selectedFolder.value !== null ? `Selected folder: ${folderLabel(selectedFolder.value)}`
   : selectedFile.value ? `Selected image: ${selectedFile.value.name}` : '');
@@ -298,7 +298,7 @@ const fileStatus = (file: StudioFile) => `${file.kind === 'sequence' ? `ImageSeq
           <summary>Batch actions</summary>
           <p v-if="selectionLabel" class="studio-hint studio-current-selection">{{ selectionLabel }}</p>
           <p class="studio-hint">{{ selectedFolder !== null ? 'Batch actions use matching images in the selected folder and its subfolders.' : selectedFile ? 'Batch actions use the selected image.' : 'Select an image or folder for batch actions.' }}</p>
-          <button type="button" class="btn btn-outline-primary btn-sm" :disabled="working || !analysisFiles.length" @click="emit('analyze', analysisFiles)">Analyze batch <span class="badge badge-light">{{ number(analysisFiles.length) }}</span></button>
+          <button type="button" class="btn btn-outline-primary btn-sm" :disabled="working || !describeFiles.length" @click="emit('describe', describeFiles)">Describe batch <span class="badge badge-light">{{ number(describeFiles.length) }}</span></button>
           <button type="button" class="btn btn-outline-primary btn-sm" :disabled="working || !generationFiles.length" @click="emit('generate', generationFiles)">Generate batch <span class="badge badge-light">{{ number(generationFiles.length) }}</span></button>
         </details>
       </aside>

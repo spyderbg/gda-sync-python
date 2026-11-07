@@ -4,7 +4,7 @@ info:
   description: The local HTTP API of EGT GDA Sync. It answers only requests to a loopback
     host; requests other than GET and HEAD need the session token that GET /api/session
     returns, in the X-GDA-Token header.
-  version: 1.0.0
+  version: 2.0.1
 components:
   schemas:
     Area:
@@ -188,6 +188,56 @@ components:
       required:
       - error
       title: Error
+    GameEventBody:
+      properties:
+        event:
+          type: string
+          enum:
+          - roundStarting
+          - roundEnded
+          - takeCoinsPressed
+          - cashoutPressed
+          - gamblePressed
+          title: Event
+        roundType:
+          type: integer
+          maximum: 1000.0
+          minimum: 0.0
+          title: Roundtype
+          default: 0
+        idle:
+          type: boolean
+          title: Idle
+        nextRoundType:
+          type: integer
+          maximum: 1000.0
+          minimum: 0.0
+          title: Nextroundtype
+          default: 0
+        currencies:
+          items:
+            prefixItems:
+            - type: integer
+              maximum: 1000.0
+              minimum: 0.0
+            - type: integer
+              maximum: 4.611686018427388e+18
+              minimum: -4.611686018427388e+18
+            type: array
+            maxItems: 2
+            minItems: 2
+          type: array
+          maxItems: 64
+          title: Currencies
+          default: []
+      additionalProperties: false
+      type: object
+      required:
+      - event
+      - idle
+      title: GameEventBody
+      description: What the game did that its debug tools follow, and what they read
+        of the game then.
     GameExportBody:
       properties:
         name:
@@ -221,6 +271,84 @@ components:
       title: GameExportBody
       description: The files that the browser game generates, by their paths relative
         to the export's folder.
+    GameExportFileBody:
+      properties:
+        id:
+          type: string
+          maxLength: 100
+          title: Id
+        file:
+          anyOf:
+          - type: string
+            maxLength: 4096
+          - type: 'null'
+          title: File
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      title: GameExportFileBody
+      description: An export of the browser game, by its id (its folder name), and
+        a file of it, by its path in the export.
+    GameImportBody:
+      properties:
+        files:
+          items:
+            type: string
+            maxLength: 4096
+          type: array
+          maxItems: 200
+          title: Files
+          default: []
+      additionalProperties: false
+      type: object
+      title: GameImportBody
+      description: 'Ported TypeScript files of the browser game whose C++ changes
+        to port (none: all of them).'
+    GameImportGameBody:
+      properties:
+        plugin:
+          type: string
+          maxLength: 64
+          title: Plugin
+        files:
+          items:
+            type: string
+            maxLength: 4096
+          type: array
+          maxItems: 200
+          title: Files
+          default: []
+        copiesOnly:
+          type: boolean
+          title: Copiesonly
+          default: false
+      additionalProperties: false
+      type: object
+      required:
+      - plugin
+      title: GameImportGameBody
+      description: 'A C++ game of the family to import (its plugin folder), and the
+        TypeScript files of it to port (none: all).'
+    GameSourceBody:
+      properties:
+        file:
+          type: string
+          maxLength: 4096
+          title: File
+        line:
+          type: integer
+          maximum: 2147483647.0
+          minimum: 1.0
+          title: Line
+      additionalProperties: false
+      type: object
+      required:
+      - file
+      - line
+      title: GameSourceBody
+      description: A line of a TypeScript or Vue file of the browser game, by its
+        path in frontend/src/game.
     GameTranslateBody:
       properties:
         files:
@@ -248,6 +376,21 @@ components:
       required:
       - id
       title: ImageJobBody
+    ImageJobRetryBody:
+      properties:
+        id:
+          type: string
+          pattern: ^[a-f0-9]{32}$
+          title: Id
+        force:
+          type: boolean
+          title: Force
+          default: false
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      title: ImageJobRetryBody
     ImageJobsBody:
       properties:
         kind:
@@ -570,6 +713,17 @@ components:
       required:
       - resources
       title: ResourceActionsBody
+    ResourceFileBody:
+      properties:
+        file:
+          type: string
+          maxLength: 4096
+          title: File
+      additionalProperties: false
+      type: object
+      required:
+      - file
+      title: ResourceFileBody
     ResourceFilesBody:
       properties:
         files:
@@ -628,6 +782,127 @@ components:
       required:
       - id
       title: RestoreBody
+    RngEntryBody:
+      properties:
+        id:
+          type: integer
+          minimum: 1.0
+          title: Id
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      title: RngEntryBody
+      description: A queued RNG sequence, by its id.
+    RngMoveBody:
+      properties:
+        id:
+          type: integer
+          minimum: 1.0
+          title: Id
+        before:
+          anyOf:
+          - type: integer
+            minimum: 1.0
+          - type: 'null'
+          title: Before
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      title: RngMoveBody
+      description: 'Where a queued sequence goes: before the sequence of this id,
+        or to the end.'
+    RngNumberBody:
+      properties:
+        op:
+          type: integer
+          maximum: 65535.0
+          minimum: 0.0
+          title: Op
+        range:
+          type: integer
+          maximum: 4294967296.0
+          minimum: 0.0
+          title: Range
+        value:
+          type: integer
+          exclusiveMaximum: 4294967296.0
+          minimum: 0.0
+          title: Value
+      additionalProperties: false
+      type: object
+      required:
+      - op
+      - range
+      - value
+      title: RngNumberBody
+      description: 'A number of an RNG sequence (GameCore::RngNumber): the operation
+        that asks for it, its range and its value.'
+    RngRandomsBody:
+      properties:
+        count:
+          type: integer
+          maximum: 4096.0
+          minimum: 1.0
+          title: Count
+      additionalProperties: false
+      type: object
+      required:
+      - count
+      title: RngRandomsBody
+    RngRoundBody:
+      properties:
+        roundType:
+          type: integer
+          maximum: 1000.0
+          minimum: 0.0
+          title: Roundtype
+      additionalProperties: false
+      type: object
+      required:
+      - roundType
+      title: RngRoundBody
+    RngSequenceBody:
+      properties:
+        roundType:
+          type: integer
+          maximum: 1000.0
+          minimum: 0.0
+          title: Roundtype
+        name:
+          type: string
+          maxLength: 400
+          title: Name
+          default: ''
+        sequence:
+          items:
+            $ref: '#/components/schemas/RngNumberBody'
+          type: array
+          maxItems: 4096
+          title: Sequence
+      additionalProperties: false
+      type: object
+      required:
+      - roundType
+      - sequence
+      title: RngSequenceBody
+      description: 'An RNG sequence to queue: its round type, its name (a scenario''s
+        is tagged) and its numbers.'
+    RngSequencesBody:
+      properties:
+        sequences:
+          items:
+            $ref: '#/components/schemas/RngSequenceBody'
+          type: array
+          maxItems: 1000
+          minItems: 1
+          title: Sequences
+      additionalProperties: false
+      type: object
+      required:
+      - sequences
+      title: RngSequencesBody
     SettingsBody:
       properties:
         name:
@@ -2065,6 +2340,68 @@ paths:
           $ref: '#/components/responses/ServerError'
       tags:
       - Image studio
+  /api/image-studio/open-folder:
+    post:
+      summary: Open Metadata Folder
+      description: Open the folder of an image or animation's saved metadata file, in
+        the app-data folder's metadata store.
+      operationId: open_metadata_folder_api_image_studio_open_folder_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResourceFileBody'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Open Metadata Folder Api Image Studio Open Folder Post
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '413':
+          $ref: '#/components/responses/ContentTooLarge'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Image studio
+  /api/image-studio/open-metadata:
+    post:
+      summary: Open Metadata File
+      description: Open an image or animation's saved metadata file, in the app-data
+        folder's metadata store, in VS Code.
+      operationId: open_metadata_file_api_image_studio_open_metadata_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResourceFileBody'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Open Metadata File Api Image Studio Open Metadata Post
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '413':
+          $ref: '#/components/responses/ContentTooLarge'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Image studio
   /api/image-studio/jobs:
     get:
       summary: Image Jobs
@@ -2112,6 +2449,35 @@ paths:
           $ref: '#/components/responses/ServerError'
       tags:
       - Image studio
+  /api/image-studio/jobs/retry:
+    post:
+      summary: Retry Image Job
+      operationId: retry_image_job_api_image_studio_jobs_retry_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImageJobRetryBody'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Retry Image Job Api Image Studio Jobs Retry Post
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '413':
+          $ref: '#/components/responses/ContentTooLarge'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Image studio
   /api/image-studio/jobs/cancel:
     post:
       summary: Cancel Image Job
@@ -2137,6 +2503,45 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '413':
           $ref: '#/components/responses/ContentTooLarge'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Image studio
+  /api/image-studio/jobs/cancel-all:
+    post:
+      summary: Cancel All Image Jobs
+      operationId: cancel_all_image_jobs_api_image_studio_jobs_cancel_all_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Cancel All Image Jobs Api Image Studio Jobs Cancel All
+                  Post
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Image studio
+  /api/image-studio/jobs/clean:
+    post:
+      summary: Clean Image Jobs
+      operationId: clean_image_jobs_api_image_studio_jobs_clean_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Clean Image Jobs Api Image Studio Jobs Clean Post
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '500':
           $ref: '#/components/responses/ServerError'
       tags:
@@ -2183,7 +2588,11 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
         '413':
-          $ref: '#/components/responses/ContentTooLarge'
+          description: The request body is larger than 6272 KiB
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '500':
           $ref: '#/components/responses/ServerError'
       tags:
@@ -2200,6 +2609,32 @@ paths:
           type: string
           maxLength: 4096
           title: File
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Image studio
+  /api/image-studio/jobs/{job_id}/image:
+    get:
+      summary: Generated Job Image
+      operationId: generated_job_image_api_image_studio_jobs__job_id__image_get
+      parameters:
+      - name: job_id
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: ^[a-f0-9]{32}$
+          title: Job Id
       responses:
         '200':
           description: Successful Response
@@ -2375,6 +2810,237 @@ paths:
           $ref: '#/components/responses/ServerError'
       tags:
       - Browser game
+  /api/game/import:
+    get:
+      summary: Game Import Report
+      operationId: game_import_report_api_game_import_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Game Import Report Api Game Import Get
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Browser game
+    post:
+      summary: Game Import
+      operationId: game_import_api_game_import_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GameImportBody'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Game Import Api Game Import Post
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '413':
+          $ref: '#/components/responses/ContentTooLarge'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Browser game
+  /api/game/sync:
+    post:
+      summary: Game Sync
+      operationId: game_sync_api_game_sync_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Game Sync Api Game Sync Post
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Browser game
+  /api/game/import-game:
+    get:
+      summary: Game Import Game Report
+      operationId: game_import_game_report_api_game_import_game_get
+      parameters:
+      - name: plugin
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 64
+          - type: 'null'
+          title: Plugin
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Game Import Game Report Api Game Import Game Get
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Browser game
+    post:
+      summary: Game Import Game
+      operationId: game_import_game_api_game_import_game_post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GameImportGameBody'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Game Import Game Api Game Import Game Post
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '413':
+          $ref: '#/components/responses/ContentTooLarge'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Browser game
+  /api/game/export-agent:
+    post:
+      summary: Game Export Agent
+      operationId: game_export_agent_api_game_export_agent_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GameExportFileBody'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Game Export Agent Api Game Export Agent Post
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '413':
+          $ref: '#/components/responses/ContentTooLarge'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Browser game
+  /api/game/agent/status:
+    get:
+      summary: Game Agent Status
+      operationId: game_agent_status_api_game_agent_status_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Game Agent Status Api Game Agent Status Get
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Browser game
+  /api/game/open-source:
+    post:
+      summary: Game Open Source
+      operationId: game_open_source_api_game_open_source_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GameSourceBody'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Game Open Source Api Game Open Source Post
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '413':
+          $ref: '#/components/responses/ContentTooLarge'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Browser game
+  /api/game/open-export:
+    post:
+      summary: Game Open Export
+      operationId: game_open_export_api_game_open_export_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GameExportFileBody'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Game Open Export Api Game Open Export Post
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '413':
+          $ref: '#/components/responses/ContentTooLarge'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Browser game
   /api/game/export:
     post:
       summary: Game Export
@@ -2404,6 +3070,310 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Browser game
+  /api/game/rng:
+    get:
+      summary: Game Rng State
+      operationId: game_rng_state_api_game_rng_get
+      parameters:
+      - name: revision
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+            minimum: 0
+          - type: 'null'
+          title: Revision
+      - name: after
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+            minimum: 0
+          - type: 'null'
+          title: After
+      - name: workspace
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 200
+          - type: 'null'
+          title: Workspace
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Game Rng State Api Game Rng Get
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Browser game
+  /api/game/rng/queue:
+    post:
+      summary: Game Rng Add
+      operationId: game_rng_add_api_game_rng_queue_post
+      parameters:
+      - name: workspace
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 200
+          - type: 'null'
+          title: Workspace
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RngSequencesBody'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Game Rng Add Api Game Rng Queue Post
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '413':
+          $ref: '#/components/responses/ContentTooLarge'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Browser game
+  /api/game/rng/queue/delete:
+    post:
+      summary: Game Rng Delete
+      operationId: game_rng_delete_api_game_rng_queue_delete_post
+      parameters:
+      - name: workspace
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 200
+          - type: 'null'
+          title: Workspace
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RngEntryBody'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Game Rng Delete Api Game Rng Queue Delete Post
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '413':
+          $ref: '#/components/responses/ContentTooLarge'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Browser game
+  /api/game/rng/queue/move:
+    post:
+      summary: Game Rng Move
+      operationId: game_rng_move_api_game_rng_queue_move_post
+      parameters:
+      - name: workspace
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 200
+          - type: 'null'
+          title: Workspace
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RngMoveBody'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Game Rng Move Api Game Rng Queue Move Post
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '413':
+          $ref: '#/components/responses/ContentTooLarge'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Browser game
+  /api/game/rng/queue/clear:
+    post:
+      summary: Game Rng Clear
+      operationId: game_rng_clear_api_game_rng_queue_clear_post
+      parameters:
+      - name: workspace
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 200
+          - type: 'null'
+          title: Workspace
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Game Rng Clear Api Game Rng Queue Clear Post
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Browser game
+  /api/game/rng/round:
+    post:
+      summary: Game Rng Round
+      operationId: game_rng_round_api_game_rng_round_post
+      parameters:
+      - name: workspace
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 200
+          - type: 'null'
+          title: Workspace
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RngRoundBody'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Game Rng Round Api Game Rng Round Post
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '413':
+          $ref: '#/components/responses/ContentTooLarge'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Browser game
+  /api/game/rng/randoms:
+    post:
+      summary: Game Rng Randoms
+      operationId: game_rng_randoms_api_game_rng_randoms_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RngRandomsBody'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Game Rng Randoms Api Game Rng Randoms Post
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '413':
+          $ref: '#/components/responses/ContentTooLarge'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Browser game
+  /api/game/rng/events:
+    post:
+      summary: Game Rng Event
+      operationId: game_rng_event_api_game_rng_events_post
+      parameters:
+      - name: workspace
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 200
+          - type: 'null'
+          title: Workspace
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GameEventBody'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Game Rng Event Api Game Rng Events Post
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '413':
+          $ref: '#/components/responses/ContentTooLarge'
         '500':
           $ref: '#/components/responses/ServerError'
       tags:

@@ -1,4 +1,4 @@
-"""Local vision requests, editable sidecars, and the single persistent model queue."""
+"""Local vision requests, editable metadata kept in the app-data folder, and the single persistent model queue."""
 from copy import deepcopy
 import base64
 import hashlib
@@ -41,6 +41,16 @@ def metadata(name='frame.png'):
     return value
 
 
+def sidecar(studio, source, root):
+    """Where the studio keeps the metadata of an image of a resources folder."""
+    return service.sidecar(source, root, studio.store(root))
+
+
+def stored(api, path):
+    """Where the studio keeps a file for a path of the client's resources folder."""
+    return api.store / Path(path).relative_to(api.game.parent)
+
+
 def wait_jobs(studio, workspace='game'):
     deadline = time.monotonic() + 8
     while True:
@@ -79,7 +89,7 @@ def studio_client(tmp_path, monkeypatch):
     monkeypatch.setattr(library, 'start_comparison', lambda: None)
     with TestClient(create_app(library, dev=True), base_url='http://127.0.0.1') as api:
         api.headers.update(session_headers(api))
-        api.game, api.library = game, library
+        api.game, api.library, api.store = game, library, library.image_metadata.store(game.parent)
         assert api.post('/api/asset-report').status_code == 200
         yield api
 
@@ -127,7 +137,7 @@ def vision_server():
     thread.join()
 
 
-def test_dds_is_analyzed_as_png_with_original_provenance_and_pixel_dimensions(studio, tmp_path, vision_server):
+def test_dds_is_described_as_png_with_original_provenance_and_pixel_dimensions(studio, tmp_path, vision_server):
     base_url, calls = vision_server
     studio.save_settings({'analysis': {'base_url': base_url, 'model': 'vision'}})
     source = tmp_path / 'bell.dds'
@@ -142,6 +152,7 @@ def test_dds_is_analyzed_as_png_with_original_provenance_and_pixel_dimensions(st
     assert value['generation'] == {'width': 32, 'height': 32}
     assert value['analysis']['description'] == 'A golden bell.'
     assert source.read_bytes() == original
+    assert sidecar(studio, source, tmp_path).is_file() and not (tmp_path / 'bell.dds.json').exists()
     request = next(body for path, body in calls if path == '/v1/chat/completions')
     assert request['model'] == 'vision-instance'
     assert request['messages'][1]['content'][1]['image_url']['url'].startswith('data:image/png;base64,')
@@ -178,7 +189,10 @@ def test_batch_describes_each_animation_once_and_keeps_shared_image_separate(stu
         assert value['sequence']['paths'] == ['frames/bell_{00-04}.png']
         assert value['analysis']['description'] == 'A golden bell.'
     assert len(set(paths)) == 2
-    assert not any((api.game / 'frames' / f'bell_{index:02}.png.json').exists() for index in range(1, 5))
+    assert all(Path(path).is_relative_to(api.store) for path in paths)
+    assert not any(stored(api, api.game / 'frames' / f'bell_{index:02}.png.json').exists() for index in range(1, 5))
+    # Nothing is written in the resources folder.
+    assert not list(api.game.rglob('*.png.json')) and not (api.game / '.asset-metadata').exists()
     instructions = [body['messages'][1]['content'][0]['text'] for path, body in calls if path.endswith('/chat/completions')]
     assert sum('ONE description of the whole animation' in text for text in instructions) == 2
     before = len(calls)
@@ -212,7 +226,7 @@ def test_sequence_storyboard_crops_atlas_frames_in_order_and_saves_one_document(
     value = api.get('/api/image-studio/metadata', params={'file': target}).json()['metadata']
     assert [frame['source']['x'] for frame in value['sequence']['frames']] == [0, 2, 0]
     assert value['sequence']['loopTo'] == 1 and value['sequence']['sampledFrames'] == [0, 1, 2]
-    assert not (api.game / 'atlas.png.json').exists()
+    assert not (api.game / 'atlas.png.json').exists() and not stored(api, api.game / 'atlas.png.json').exists()
     assert api.get('/api/image-studio/sequence-preview', params={'file': target}).status_code == 200
 
 
@@ -235,7 +249,7 @@ def test_animation_generation_uses_the_shared_prompt_once(studio_client, tmp_pat
         assert image.size == (7, 5)
     args = json.loads((tmp_path / 'runner-args.json').read_text())
     assert value['generation']['prompt'] in args[args.index('-p') + 1]
-    assert len(list(api.game.rglob('*.generated.png'))) == 1
+    assert len(list(api.store.rglob('*.generated.png'))) == 1 and not list(api.game.rglob('*.generated.png'))
 
 
 def test_long_animation_covers_first_and_last_and_rejects_changes_to_unsampled_frames(studio_client, monkeypatch):
@@ -249,13 +263,13 @@ def test_long_animation_covers_first_and_last_and_rejects_changes_to_unsampled_f
     entered, release = threading.Event(), threading.Event()
     requests = []
 
-    def analyze(_self, source, *, data, instruction=None):
+    def describe(_self, source, *, data, instruction=None):
         requests.append(instruction)
         entered.set()
         assert release.wait(5)
         return metadata(source.name)
 
-    monkeypatch.setattr(service.ImageAnalyzer, 'analyze', analyze)
+    monkeypatch.setattr(service.ImageDescriber, 'describe', describe)
     api.post('/api/image-studio/jobs', json={'kind': 'metadata', 'files': [str(api.game / 'frames/bell_00.png')]})
     assert entered.wait(3)
     animation = next(item for item in api.get('/api/image-studio/catalog').json()['files'] if item['kind'] == 'sequence')
@@ -267,7 +281,7 @@ def test_long_animation_covers_first_and_last_and_rejects_changes_to_unsampled_f
     release.set()
     assert [job['state'] for job in wait_jobs(api.library.image_metadata)] == ['succeeded', 'failed']
     assert len(requests) == 1
-    assert not list((api.game / '.asset-metadata' / 'sequences').glob('*.imageseq.json'))
+    assert not list(stored(api, api.game / '.asset-metadata' / 'sequences').glob('*.imageseq.json'))
 
 
 def test_manual_create_edit_conflict_validation_and_draft_discovery(studio_client):
@@ -279,7 +293,9 @@ def test_manual_create_edit_conflict_validation_and_draft_discovery(studio_clien
     assert response.status_code == 200, response.text
     document = response.json()
     assert not (api.game / 'new/art/new.png').exists()
-    assert json.loads((api.game / 'new/art/new.png.json').read_text()) == value
+    assert json.loads(stored(api, api.game / 'new/art/new.png.json').read_text()) == value
+    assert document['path'] == str(stored(api, api.game / 'new/art/new.png.json'))
+    assert not (api.game / 'new').exists()
     assert any(item['name'] == 'new/art/new.png' and item['metadata'] and not item['exists']
                for item in api.get('/api/image-studio/catalog').json()['files'])
     edited = deepcopy(value)
@@ -288,7 +304,7 @@ def test_manual_create_edit_conflict_validation_and_draft_discovery(studio_clien
     assert api.post('/api/image-studio/metadata', json={'file': document['file'], 'metadata': value, 'revision': document['revision']}).status_code == 409
     edited['generation']['width'] = 1023
     assert api.post('/api/image-studio/metadata', json={'file': 'bad.png', 'metadata': edited}).status_code == 400
-    assert not (api.game / 'bad.png.json').exists()
+    assert not stored(api, api.game / 'bad.png.json').exists()
     for file in ('../../outside.png', 'RssImagesData.json', '../other/unlisted.png'):
         assert api.post('/api/image-studio/metadata', json={'file': file, 'metadata': value}).status_code in (400, 404)
     (api.game / 'linked').symlink_to(api.game / 'frames', target_is_directory=True)
@@ -297,7 +313,7 @@ def test_manual_create_edit_conflict_validation_and_draft_discovery(studio_clien
 
 def test_queue_is_serial_groups_model_types_and_deduplicates_active_jobs(studio, tmp_path, monkeypatch):
     sources = [png(tmp_path / f'image{index}.png') for index in range(4)]
-    write(service.sidecar(sources[1]), metadata())
+    write(sidecar(studio, sources[1], tmp_path), metadata())
     entered, release = threading.Event(), threading.Event()
     trace = []
     active = 0
@@ -326,41 +342,41 @@ def test_queue_is_serial_groups_model_types_and_deduplicates_active_jobs(studio,
     assert trace == [('metadata', 'image0.png'), ('metadata', 'image2.png'), ('metadata', 'image3.png'), ('image', 'image1.png')]
 
 
-def test_cancel_running_analysis_discards_result_and_keeps_next_job_running(studio, tmp_path, monkeypatch):
+def test_cancel_running_description_discards_result_and_keeps_next_job_running(studio, tmp_path, monkeypatch):
     settings = deepcopy(DEFAULTS)
     settings['analysis']['load_model'] = False
     studio.save_settings(settings)
     first, second = png(tmp_path / 'first.png'), png(tmp_path / 'second.png')
     entered, release = threading.Event(), threading.Event()
 
-    def analyze(_self, source, *, data):
+    def describe(_self, source, *, data):
         assert data.startswith(b'\x89PNG')
         if source == first:
             entered.set()
             assert release.wait(5)
         return metadata(source.name)
 
-    monkeypatch.setattr(service.ImageAnalyzer, 'analyze', analyze)
+    monkeypatch.setattr(service.ImageDescriber, 'describe', describe)
     jobs = studio.enqueue('game', tmp_path, tmp_path, [first, second], 'metadata')
     assert entered.wait(3)
     studio.cancel('game', jobs['submitted'][0])
     release.set()
     assert [job['state'] for job in wait_jobs(studio)] == ['cancelled', 'succeeded']
-    assert not service.sidecar(first).exists()
-    assert service.sidecar(second).is_file()
+    assert not sidecar(studio, first, tmp_path).exists()
+    assert sidecar(studio, second, tmp_path).is_file()
 
 
-def test_analysis_refuses_to_replace_metadata_edited_during_inference(studio, tmp_path, monkeypatch):
+def test_describe_refuses_to_replace_metadata_edited_during_inference(studio, tmp_path, monkeypatch):
     studio.save_settings({'analysis': {'load_model': False}})
     source = png(tmp_path / 'source.png')
     entered, release = threading.Event(), threading.Event()
 
-    def analyze(_self, _source, *, data):
+    def describe(_self, _source, *, data):
         entered.set()
         assert release.wait(5)
         return metadata()
 
-    monkeypatch.setattr(service.ImageAnalyzer, 'analyze', analyze)
+    monkeypatch.setattr(service.ImageDescriber, 'describe', describe)
     studio.enqueue('game', tmp_path, tmp_path, [source], 'metadata')
     assert entered.wait(3)
     saved = metadata()
@@ -428,7 +444,7 @@ def test_generations_capture_distinct_scales_and_keep_each_result(studio, tmp_pa
     submitted, rendered = [], []
     for width in (32, 64, 128):
         value['generation'].update(width=width, height=width)
-        studio.save(source, tmp_path, value, service.revision(service.sidecar(source)))
+        studio.save(source, tmp_path, value, service.revision(sidecar(studio, source, tmp_path)))
         response = studio.enqueue('game', tmp_path, tmp_path, [source], 'image')
         submitted.extend(response['submitted'])
     assert len(set(submitted)) == 3
@@ -436,7 +452,7 @@ def test_generations_capture_distinct_scales_and_keep_each_result(studio, tmp_pa
     assert len(studio.jobs) == 3
     assert [job['renderSize']['width'] for job in studio.status('game')['jobs']] == [32, 64, 128]
     assert all('inputMetadata' not in job for job in studio.status('game')['jobs'])
-    saved = service.sidecar(source).read_bytes()
+    saved = sidecar(studio, source, tmp_path).read_bytes()
     assert [job['inputMetadata']['generation']['width'] for job in json.loads(studio.queue_path.read_text())] == [32, 64, 128]
 
     def generate(_self, meta_path, output_path, **_options):
@@ -459,7 +475,7 @@ def test_generations_capture_distinct_scales_and_keep_each_result(studio, tmp_pa
         jobs = wait_jobs(active)
         assert [job['state'] for job in jobs] == ['succeeded'] * 3, jobs
         assert rendered == [32, 64, 128]
-        assert service.sidecar(source).read_bytes() == saved
+        assert sidecar(active, source, tmp_path).read_bytes() == saved
         assert len({job['result'] for job in jobs}) == 3
         for job, width in zip(jobs, rendered):
             with Image.open(active.generated_result('game', job['id'])) as image:
@@ -471,7 +487,7 @@ def test_generations_capture_distinct_scales_and_keep_each_result(studio, tmp_pa
         assert Path(active.generated_result('game', jobs[0]['id'])).is_file()
         # A new scale also remains a separate job after previous runs completed.
         value['generation'].update(width=256, height=256)
-        active.save(source, tmp_path, value, service.revision(service.sidecar(source)))
+        active.save(source, tmp_path, value, service.revision(sidecar(active, source, tmp_path)))
         active.enqueue('game', tmp_path, tmp_path, [source], 'image')
         assert wait_jobs(active)[-1]['state'] == 'succeeded'
         assert rendered[-1] == 256
@@ -486,8 +502,10 @@ def test_restart_marks_interrupted_job_failed_and_resumes_queued_with_captured_w
     root.mkdir()
     source = png(root / 'image.png')
     home = tmp_path / 'app'
-    job = {'id': 'a' * 32, 'workspace': 'original', 'root': str(root), 'game': str(root), 'source': str(source),
-           'metadata': str(service.sidecar(source)), 'output': f'{source}.json.generated.png', 'kind': 'metadata',
+    store = service.store_folder(home, root)
+    job = {'id': 'a' * 32, 'workspace': 'original', 'root': str(root), 'store': str(store), 'game': str(root),
+           'source': str(source), 'metadata': str(service.sidecar(source, root, store)),
+           'output': f'{service.sidecar(source, root, store)}.generated.png', 'kind': 'metadata',
            'state': 'running', 'settings': deepcopy(DEFAULTS), 'group': 'metadata', 'expected': {}, 'createdAt': service.now()}
     pending = {**job, 'id': 'b' * 32, 'state': 'queued'}
     write(home / 'image-jobs.json', [job, pending])
@@ -530,7 +548,7 @@ def test_keep_original_output_follows_overwrite_policy_and_preserves_render_size
     value['image'].update(width=14, height=21)
     value['generation'].update(width=64, height=96)
     studio.save(source, tmp_path, value, '')
-    output = Path(f'{source}.json.generated.png')
+    output = Path(f'{sidecar(studio, source, tmp_path)}.generated.png')
     original = output.with_name(f'{output.stem}.original.png')
     original.write_bytes(b'existing render')
     studio.enqueue('game', tmp_path, tmp_path, [source], 'image')
@@ -650,13 +668,13 @@ def test_remote_lm_studio_uses_its_own_model_authentication_and_load_policy(stud
     api = studio_client
     monkeypatch.setenv('TEST_REMOTE_LM_KEY', 'test-remote-token')
     observed = []
-    original = service.ImageAnalyzer._request
+    original = service.ImageDescriber._request
 
-    def record(analyzer, *args, **kwargs):
-        observed.append((analyzer.base_url, analyzer.api_key))
-        return original(analyzer, *args, **kwargs)
+    def record(describer, *args, **kwargs):
+        observed.append((describer.base_url, describer.api_key))
+        return original(describer, *args, **kwargs)
 
-    monkeypatch.setattr(service.ImageAnalyzer, '_request', record)
+    monkeypatch.setattr(service.ImageDescriber, '_request', record)
     response = api.post('/api/image-studio/settings', json={'settings': {
         'analysis': {'base_url': 'http://127.0.0.1:1/v1', 'model': 'unused-local'},
         'remote': {'analysis': {'enabled': True, 'base_url': vision_server[0], 'model': 'vision',
@@ -670,7 +688,7 @@ def test_remote_lm_studio_uses_its_own_model_authentication_and_load_policy(stud
     assert observed and all(item == (vision_server[0], 'test-remote-token') for item in observed)
     assert any(path == '/api/v1/models/load' for path, _ in vision_server[1])
     assert not any(path.endswith('/unload') for path, _ in vision_server[1])
-    value = json.loads((api.game / 'frames/bell_00.png.json').read_text())
+    value = json.loads(stored(api, api.game / 'frames/bell_00.png.json').read_text())
     assert value['analysis']['description'] == 'A golden bell.'
     queue = (api.library.image_metadata.queue_path).read_text()
     assert 'test-remote-token' not in queue
@@ -716,7 +734,7 @@ def test_remote_comfy_failures_keep_existing_generated_files(studio, tmp_path, c
     value = metadata('new.png')
     value['image']['transparency'] = True
     studio.save(source, root, value, '')
-    output = Path(str(source) + '.json.generated.png')
+    output = Path(f'{sidecar(studio, source, root)}.generated.png')
     original = output.with_name(output.stem + '.original.png')
     output.write_bytes(b'previous output')
     original.write_bytes(b'previous original')
@@ -746,7 +764,7 @@ def test_remote_comfy_cancellation_removes_only_its_pending_prompt(studio, tmp_p
     assert wait_jobs(studio)[-1]['state'] == 'cancelled'
     assert any(path == '/queue' and body == {'delete': ['our-prompt']} for path, body, _ in calls)
     assert not any(path == '/interrupt' for path, _body, _auth in calls)
-    assert not Path(str(source) + '.json.generated.png').exists()
+    assert not Path(f'{sidecar(studio, source, root)}.generated.png').exists()
 
 
 @pytest.mark.parametrize('change', [
@@ -887,8 +905,8 @@ def test_force_regenerates_skipped_image_in_place_and_keeps_existing_output_on_f
     assert (api.game / file).read_bytes() == source and path.read_bytes() == saved_metadata
 
 
-@pytest.mark.parametrize('restart,legacy', [(False, False), (True, False), (True, True)])
-def test_skipped_generation_reuses_saved_configuration_after_editor_and_model_changes(studio, tmp_path, restart, legacy):
+@pytest.mark.parametrize('restart', [False, True])
+def test_skipped_generation_reuses_saved_configuration_after_editor_and_model_changes(studio, tmp_path, restart):
     settings = runner_settings(tmp_path)
     settings['generation']['seed'] = 7
     studio.save_settings(settings)
@@ -897,20 +915,16 @@ def test_skipped_generation_reuses_saved_configuration_after_editor_and_model_ch
     value['image'].update(width=14, height=21, transparency=True)
     value['generation'].update(width=64, height=96, prompt='The original golden bell.')
     studio.save(source, tmp_path, value, '')
-    png(Path(f'{source}.json.generated.png'))
+    png(Path(f'{sidecar(studio, source, tmp_path)}.generated.png'))
     skipped = studio.enqueue('game', tmp_path, tmp_path, [source], 'image')['jobs'][0]
     assert skipped['state'] == 'skipped'
     config_path = Path(skipped['configuration'])
+    assert config_path.is_relative_to(studio.store(tmp_path))
     saved_config = json.loads(config_path.read_text())
     assert saved_config['workspace'] == 'game'
     assert saved_config['inputMetadata']['generation']['width'] == 64
-    if legacy:
-        studio.jobs[0].pop('configuration')
-        config_path.unlink()
-        with studio.condition:
-            studio._persist()
     value['generation'].update(width=256, height=384, prompt='A newer silver bell.')
-    studio.save(source, tmp_path, value, service.revision(service.sidecar(source)))
+    studio.save(source, tmp_path, value, service.revision(sidecar(studio, source, tmp_path)))
     studio.save_settings({'generation': {'diffusion_model': '/missing/new-model.gguf', 'seed': 99}})
     if restart:
         studio.close()
@@ -939,23 +953,87 @@ def test_skipped_generation_reuses_saved_configuration_after_editor_and_model_ch
             active.close()
 
 
-def test_legacy_skipped_generation_does_not_guess_missing_original_render_size(studio, tmp_path):
-    source = png(tmp_path / 'bell.png')
-    value = metadata(source.name)
-    studio.save(source, tmp_path, value, '')
-    png(Path(f'{source}.json.generated.png'))
-    skipped = studio.enqueue('game', tmp_path, tmp_path, [source], 'image')['jobs'][0]
-    Path(skipped['configuration']).unlink()
-    studio.jobs[0].pop('configuration')
-    studio.jobs[0].pop('inputMetadata')
-    value['generation'].update(width=64, height=96)
-    studio.save(source, tmp_path, value, service.revision(service.sidecar(source)))
-    with pytest.raises(AppError, match='original generation configuration is unavailable'):
-        studio.retry('game', skipped['id'], force=True)
-    assert studio.status('game')['jobs'][0]['state'] == 'skipped'
+def test_jobs_queued_before_the_metadata_store_must_be_queued_again_and_keep_their_results(tmp_path, monkeypatch):
+    monkeypatch.delenv('IMAGE_ANALYZER_CONFIG', raising=False)
+    root, home = tmp_path / 'resources', tmp_path / 'app'
+    source = png(root / 'bell.png')
+    result = png(root / '.asset-metadata' / 'generations' / 'result.png')
+    legacy = {'id': 'a' * 32, 'workspace': 'game', 'root': str(root), 'game': str(root), 'source': str(source),
+              'metadata': f'{source}.json', 'output': f'{source}.json.generated.png', 'kind': 'image', 'result': str(result),
+              'state': 'succeeded', 'settings': deepcopy(DEFAULTS), 'group': 'image', 'expected': {}, 'createdAt': service.now()}
+    write(home / 'image-jobs.json', [legacy, {**legacy, 'id': 'b' * 32, 'state': 'queued'},
+                                     {**legacy, 'id': 'c' * 32, 'state': 'skipped', 'configuration': 'config.json'}])
+    studio = service.MetadataLibrary(str(home), threading.Lock())
+    studio.start()
+    try:
+        succeeded, queued, skipped = wait_jobs(studio)
+        assert queued['state'] == 'failed' and queued['error'] == service.LEGACY_JOB
+        # Their earlier results stay viewable.
+        assert studio.generated_result('game', succeeded['id']) == str(result)
+        for job, force in ((queued, False), (skipped, True)):
+            with pytest.raises(AppError, match='Queue it again') as error:
+                studio.retry('game', job['id'], force=force)
+            assert error.value.status_code == 409
+        assert [job['state'] for job in studio.status('game')['jobs']] == ['succeeded', 'failed', 'skipped']
+    finally:
+        studio.close()
 
 
-def test_analysis_configurations_are_workspace_specific_and_used_for_execution(studio, tmp_path, monkeypatch):
+def test_metadata_saved_beside_images_is_copied_to_the_store_once(studio_client):
+    api = studio_client
+    legacy = {'frames/bell_00.png.json': metadata('bell_00.png'), 'drafts/new.png.json': metadata('new.png'),
+              '.asset-metadata/sequences/imageseq.imageseq.json': metadata('animation')}
+    for file, value in legacy.items():
+        write(api.game / file, value)
+    png(api.game / 'frames/bell_00.png.json.generated.png')
+    write(api.game / 'frames/bell_01.png.json', {'unrelated': True})
+    stale = stored(api, api.game / 'frames/bell_01.png.json')
+    kept = metadata('bell_01.png')
+    write(stale, kept)
+    files = {item['path']: item for item in api.get('/api/image-studio/catalog').json()['files'] if item['kind'] == 'image'}
+    assert files['frames/bell_00.png']['metadata'] and files['frames/bell_00.png']['generated']
+    assert files['drafts/new.png']['metadata'] and files['drafts/new.png']['category'] == 'draft'
+    for file, value in legacy.items():
+        assert json.loads(stored(api, api.game / file).read_text()) == value
+        assert (api.game / file).is_file()  # The originals are kept.
+    # Metadata already in the store is never replaced.
+    assert json.loads(stale.read_text()) == kept
+    document = api.get('/api/image-studio/metadata', params={'file': 'frames/bell_00.png'}).json()
+    assert document['exists'] and document['path'] == str(stored(api, api.game / 'frames/bell_00.png.json'))
+    assert document['metadata']['analysis']['description'] == 'A golden bell.'
+    # The import runs once: later files beside images are ignored.
+    write(api.game / 'art/later.png.json', metadata('later.png'))
+    assert not any(item['path'] == 'art/later.png' for item in api.get('/api/image-studio/catalog').json()['files'])
+    assert not stored(api, api.game / 'art/later.png.json').exists()
+
+
+def test_open_metadata_file_and_folder_from_the_store(tmp_path, monkeypatch):
+    monkeypatch.delenv('IMAGE_ANALYZER_CONFIG', raising=False)
+    game, gda, home = tmp_path / 'resources' / 'game', tmp_path / 'gda', tmp_path / 'app'
+    gda.mkdir()
+    png(game / 'bell.png')
+    write(game / 'RssImagesData.json', {'images': [{'id': 'BELL', 'path': 'bell.png'}]})
+    write(home / 'workspace.json', {'workspaces': [{'id': 'game', 'game_name': 'Metadata',
+        'game_path': str(game), 'gda_path': str(gda)}], 'defaultWorkspace': 'game'})
+    library = Library(str(home))
+    library.init()
+    monkeypatch.setattr(library, 'start_comparison', lambda: None)
+    opened = []
+    app = create_app(library, dev=True, opener=lambda path: opened.append(('folder', path)),
+                     code_opener=lambda path, line: opened.append(('code', path, line)))
+    with TestClient(app, base_url='http://127.0.0.1') as api:
+        api.headers.update(session_headers(api))
+        assert api.post('/api/asset-report').status_code == 200
+        assert api.post('/api/image-studio/open-metadata', json={'file': 'bell.png'}).status_code == 404
+        saved = api.post('/api/image-studio/metadata', json={'file': 'bell.png', 'metadata': metadata('bell.png')}).json()
+        assert api.post('/api/image-studio/open-metadata', json={'file': 'bell.png'}).status_code == 200
+        assert api.post('/api/image-studio/open-folder', json={'file': 'bell.png'}).status_code == 200
+        assert api.post('/api/image-studio/open-folder', json={'file': '../outside.png'}).status_code in (400, 404)
+    assert opened == [('code', saved['path'], 1), ('folder', str(Path(saved['path']).parent))]
+    assert Path(saved['path']).is_relative_to((home / service.STORE).resolve())
+
+
+def test_describe_configurations_are_workspace_specific_and_used_for_execution(studio, tmp_path, monkeypatch):
     monkeypatch.setattr(studio, '_wake', lambda: None)
     source = png(tmp_path / 'bell.png')
     studio.save_settings({'analysis': {'model': 'first-model', 'load_model': False}})
@@ -971,11 +1049,11 @@ def test_analysis_configurations_are_workspace_specific_and_used_for_execution(s
     studio.jobs[0]['settings']['analysis']['model'] = 'incorrect-cached-model'
     observed = []
 
-    def analyze(analyzer, _source, *, data):
-        observed.append(analyzer.model)
+    def describe(describer, _source, *, data):
+        observed.append(describer.model)
         return metadata(source.name)
 
-    monkeypatch.setattr(service.ImageAnalyzer, 'analyze', analyze)
+    monkeypatch.setattr(service.ImageDescriber, 'describe', describe)
     studio._run(studio.jobs[0], threading.Event())
     assert observed == ['first-model']
 
@@ -984,7 +1062,7 @@ def test_analysis_configurations_are_workspace_specific_and_used_for_execution(s
 def test_skipped_generation_does_not_fall_back_when_saved_configuration_is_unreadable(studio, tmp_path, missing):
     source = png(tmp_path / 'bell.png')
     studio.save(source, tmp_path, metadata(source.name), '')
-    png(Path(f'{source}.json.generated.png'))
+    png(Path(f'{sidecar(studio, source, tmp_path)}.generated.png'))
     job = studio.enqueue('game', tmp_path, tmp_path, [source], 'image')['jobs'][0]
     config_path = Path(job['configuration'])
     if missing:
@@ -1014,7 +1092,7 @@ def test_force_only_accepts_skipped_generation_in_active_workspace(studio_client
 def test_queue_status_exposes_captured_model_names_without_model_settings(studio, tmp_path, monkeypatch):
     monkeypatch.setattr(studio, '_wake', lambda: None)
     source = png(tmp_path / 'bell.png')
-    write(service.sidecar(source), metadata())
+    write(sidecar(studio, source, tmp_path), metadata())
     settings = runner_settings(tmp_path)
     settings['analysis'] = {'model': 'original-vision'}
     studio.save_settings(settings)

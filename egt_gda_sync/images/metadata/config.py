@@ -6,6 +6,7 @@ import math
 import os
 from pathlib import Path
 
+# "analysis" holds the settings of Describe. The key keeps image-analyzer's name, so its configuration files still load.
 DEFAULTS = {
     "overwrite": False,
     "recursive": False,

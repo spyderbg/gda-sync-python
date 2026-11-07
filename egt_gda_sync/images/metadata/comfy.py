@@ -15,7 +15,7 @@ import uuid
 
 from PIL import Image
 
-from .analyzer import AnalysisError
+from .describer import ModelError
 from .generator import generation_options_from_meta, prompt_from_meta, render_dimensions_from_meta
 
 MAX_RESPONSE = 64 * 1024 * 1024
@@ -67,7 +67,7 @@ class ComfyGenerator:
             with urlopen(request, timeout=timeout or min(30, self.settings['timeout'])) as response:
                 content = response.read(MAX_RESPONSE + 1)
             if len(content) > MAX_RESPONSE:
-                raise AnalysisError('ComfyUI response exceeds 64 MB')
+                raise ModelError('ComfyUI response exceeds 64 MB')
             if raw:
                 return content
             value = json.loads(content)
@@ -75,11 +75,11 @@ class ComfyGenerator:
                 raise ValueError('expected a JSON object')
             return value
         except HTTPError as error:
-            raise AnalysisError(f'ComfyUI returned HTTP {error.code}: {error.read(2000).decode(errors="replace")}') from error
+            raise ModelError(f'ComfyUI returned HTTP {error.code}: {error.read(2000).decode(errors="replace")}') from error
         except (URLError, TimeoutError, OSError) as error:
-            raise AnalysisError(f'Cannot reach ComfyUI at {self.base_url}: {error}') from error
+            raise ModelError(f'Cannot reach ComfyUI at {self.base_url}: {error}') from error
         except (ValueError, UnicodeError) as error:
-            raise AnalysisError('ComfyUI returned invalid JSON') from error
+            raise ModelError('ComfyUI returned invalid JSON') from error
 
     def generate(self, meta_path: str | Path, output_path: str | Path, *, width: int = 1024,
                  height: int = 1024, cancel: threading.Event | None = None, **_options) -> Path:
@@ -96,48 +96,48 @@ class ComfyGenerator:
             seed = self.settings['seed']
             inputs['seed' if 'seed' in inputs else 'noise_seed'] = uuid.uuid4().int % (2 ** 63) if seed < 0 else seed
         if cancel is not None and cancel.is_set():
-            raise AnalysisError('ComfyUI generation cancelled')
+            raise ModelError('ComfyUI generation cancelled')
         deadline = time.monotonic() + self.settings['timeout']
         result = self._request('prompt', {'prompt': workflow, 'client_id': str(uuid.uuid4())})
         prompt_id = result.get('prompt_id')
         if not isinstance(prompt_id, str) or not prompt_id:
-            raise AnalysisError(f'ComfyUI rejected the workflow: {json.dumps(result)[:2000]}')
+            raise ModelError(f'ComfyUI rejected the workflow: {json.dumps(result)[:2000]}')
         try:
             while True:
                 if cancel is not None and cancel.is_set():
-                    raise AnalysisError('ComfyUI generation cancelled')
+                    raise ModelError('ComfyUI generation cancelled')
                 remaining = deadline - time.monotonic()
                 if remaining <= 0:
-                    raise AnalysisError('ComfyUI generation timed out; increase remote.generation.timeout')
+                    raise ModelError('ComfyUI generation timed out; increase remote.generation.timeout')
                 history = self._request(f'history/{quote(prompt_id, safe="")}', timeout=min(30, remaining)).get(prompt_id)
                 if history is not None:
                     if not isinstance(history, dict):
-                        raise AnalysisError('ComfyUI returned invalid job history')
+                        raise ModelError('ComfyUI returned invalid job history')
                     status = history.get('status', {})
                     if status.get('status_str') == 'error':
-                        raise AnalysisError(f'ComfyUI workflow failed: {json.dumps(status.get("messages", []))[:2000]}')
+                        raise ModelError(f'ComfyUI workflow failed: {json.dumps(status.get("messages", []))[:2000]}')
                     outputs = history.get('outputs', {}).get(self.settings['output_node'], {}).get('images', [])
                     if outputs:
                         image = outputs[0]
                         if not isinstance(image, dict) or not isinstance(image.get('filename'), str):
-                            raise AnalysisError('ComfyUI returned an invalid image output')
+                            raise ModelError('ComfyUI returned an invalid image output')
                         query = urlencode({key: image.get(key, '') for key in ('filename', 'subfolder', 'type')})
                         data = self._request(f'view?{query}', raw=True, timeout=min(30, max(0.1, deadline - time.monotonic())))
                         break
-                    raise AnalysisError('ComfyUI workflow completed without an image at the configured output node')
+                    raise ModelError('ComfyUI workflow completed without an image at the configured output node')
                 if cancel is not None:
                     cancel.wait(min(0.5, remaining))
                 else:
                     time.sleep(min(0.5, remaining))
-        except AnalysisError:
+        except ModelError:
             # Delete only our pending prompt. Never interrupt a different user's running workflow.
             try:
                 self._request('queue', {'delete': [prompt_id]})
-            except AnalysisError:
+            except ModelError:
                 pass
             raise
         if cancel is not None and cancel.is_set():
-            raise AnalysisError('ComfyUI generation cancelled')
+            raise ModelError('ComfyUI generation cancelled')
         destination = Path(output_path)
         try:
             with Image.open(BytesIO(data)) as rendered:
@@ -146,7 +146,7 @@ class ComfyGenerator:
             if transparency:
                 minimum, maximum = pixels.getchannel('A').getextrema()
                 if minimum == 255 or maximum == 0:
-                    raise AnalysisError('ComfyUI workflow did not produce a visible transparent image; use an RGBA workflow')
+                    raise ModelError('ComfyUI workflow did not produce a visible transparent image; use an RGBA workflow')
             else:
                 pixels = Image.alpha_composite(Image.new('RGBA', pixels.size, 'white'), pixels).convert('RGB')
             if self.settings['keep_original']:
@@ -157,5 +157,5 @@ class ComfyGenerator:
                 pixels = pixels.resize((width, height), Image.Resampling.LANCZOS)
             pixels.save(destination, format='PNG')
         except (OSError, ValueError) as error:
-            raise AnalysisError(f'Cannot read ComfyUI generated image: {error}') from error
+            raise ModelError(f'Cannot read ComfyUI generated image: {error}') from error
         return destination

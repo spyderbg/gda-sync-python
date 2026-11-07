@@ -38,7 +38,7 @@ from egt_gda_sync.sync import rss_refactor
 from egt_gda_sync.sync.rss_jobs import SyncJobs
 from egt_gda_sync.images.image_cache import CACHE_FILE
 from egt_gda_sync.images.metadata.service import (EXTENSIONS as METADATA_EXTENSIONS, MetadataLibrary, checked as metadata_path,
-                                                image_data as metadata_image_data, target_key, target_paths)
+                                                image_data as metadata_image_data, target_key)
 from egt_gda_sync.images.metadata.sequence import storyboard
 from egt_gda_sync.workspace.paths import PLACEHOLDER, contract, expand, expand_fields, global_paths
 from egt_gda_sync.sync.rss_schemas import DOCUMENT_TYPES, parse_dataclass
@@ -1014,7 +1014,7 @@ class Library:
             for file in _asset_files(row):
                 source = metadata_path(file, root)
                 if source.suffix.lower() not in METADATA_EXTENSIONS:
-                    raise AppError(f'Image analysis does not support {source.suffix} files')
+                    raise AppError(f'Image metadata does not support {source.suffix} files')
                 if not row.get('sequence'):
                     sources.append(source)
             if sequence := row.get('sequence'):
@@ -1025,7 +1025,7 @@ class Library:
                 files = {frame['path']: str(metadata_path(original['resourcePath'], root))
                          for frame, original in zip(frames, sequence['frames'])}
                 sources.append({'file': f'sequence:{row["id"]}', 'source': next(iter(files.values())),
-                                'path': str(game / '.asset-metadata' / 'sequences' / f'{row["id"]}.imageseq.json'),
+                                'path': str(self.image_metadata.sequence_path(root, game, row['id'])),
                                 'sequence': {'id': sequence['id'], 'frameTime': sequence['frameTime'],
                                              'loopCount': sequence['loopCount'], 'loopTo': sequence['loopTo'],
                                              'paths': sequence['paths'], 'frames': frames, 'files': files,
@@ -1048,13 +1048,14 @@ class Library:
             eligible = [row['id'] for row in rows if row['type'] == 'texture' and row.get('scope') != 'outside' and all(
                         Path(file).suffix.lower() in METADATA_EXTENSIONS for file in _asset_files(row))]
             sources = self._metadata_sources(workspace, root, eligible, rows=rows)
+        self.image_metadata.import_legacy(root, game, sources)
+        if not asset:
             # Include manually created image drafts even before their image exists.
-            sources.extend(Path(str(path)[:-5]) for path in game.rglob('*.json')
-                           if Path(str(path)[:-5]).suffix.lower() in METADATA_EXTENSIONS and not path.is_symlink())
+            sources.extend(self.image_metadata.drafts(root, game))
         sources = list({target_key(target): target for target in sources}.values())
         entries = []
         for target in sources:
-            source, path, output, sequence = target_paths(target, root)
+            source, path, output, sequence = self.image_metadata.paths(target, root)
             exists = all(Path(file).is_file() for file in sequence['files'].values()) if sequence else source.is_file()
             entries.append({'file': target_key(target), 'kind': 'sequence' if sequence else 'image',
                             'name': (sequence['id'] or sequence['paths'][0]) if sequence else os.path.relpath(source, game).replace(os.sep, '/'),
@@ -1103,9 +1104,17 @@ class Library:
     def generated_image(self, file: str) -> str:
         _workspace, root, game = self._metadata_context()
         source = self._metadata_source(file, root, game)
-        path = target_paths(source, root)[2]
+        path = self.image_metadata.paths(source, root)[2]
         if not path.is_file():
             raise AppError('No generated image exists yet', 404)
+        return str(path)
+
+    def metadata_file(self, file: str) -> str:
+        """The saved metadata file of an image or animation, which the app-data folder keeps."""
+        _workspace, root, game = self._metadata_context()
+        path = self.image_metadata.paths(self._metadata_source(file, root, game), root)[1]
+        if not path.is_file():
+            raise AppError('Save the metadata first', 404)
         return str(path)
 
     def metadata_sequence_preview(self, file: str) -> bytes:

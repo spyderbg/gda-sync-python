@@ -1,6 +1,8 @@
-"""Editable image sidecars and one persistent worker for all local model work.
+"""Editable image metadata and one persistent worker for all local model work.
 
-Jobs snapshot workspace roots, model settings and generation metadata at submission.
+Metadata, generated images and job configurations are kept in the app-data folder, never in the resources folder:
+each resources folder has its own store there that mirrors its layout, so ``<resources>/game/bell.dds`` is described by
+``<store>/game/bell.dds.json``. Jobs snapshot workspace roots, model settings and generation metadata at submission.
 They never follow the currently selected workspace. Each ImageSeq has one shared
 description and one queued job. Pending jobs of the same operation/model run
 together to avoid repeatedly loading the vision and diffusion models.
@@ -15,6 +17,8 @@ import json
 import mimetypes
 import os
 from pathlib import Path
+import re
+import shutil
 import tempfile
 import threading
 import uuid
@@ -23,9 +27,9 @@ from PIL import Image
 
 from egt_gda_sync.app.errors import AppError
 from egt_gda_sync.images.dds import decode_dds
-from .analyzer import ImageAnalyzer
 from .config import DEFAULTS, _merge, load_config
 from .comfy import ComfyGenerator
+from .describer import ImageDescriber
 from .generator import ImageGenerator
 from .sequence import instruction as sequence_instruction, manifest, storyboard
 
@@ -33,8 +37,13 @@ EXTENSIONS = {'.dds', '.png', '.jpg', '.jpeg', '.webp', '.bmp', '.tga', '.tif', 
 MAX_METADATA = 1024 * 1024
 MAX_IMAGE = 64 * 1024 * 1024
 TERMINAL = {'succeeded', 'skipped', 'failed', 'cancelled'}
-JOB_CONFIGURATION = ('id', 'workspace', 'root', 'game', 'source', 'metadata', 'output', 'target', 'kind',
+JOB_CONFIGURATION = ('id', 'workspace', 'root', 'store', 'game', 'source', 'metadata', 'output', 'target', 'kind',
                      'label', 'settings', 'group', 'overwrite', 'expected', 'sequence', 'inputMetadata', 'result')
+# The app-data folder that holds every resources folder's metadata store.
+STORE = 'image-metadata'
+OUTSIDE_ROOT = 'Images must stay inside the workspace resources folder, without symbolic links'
+OUTSIDE_STORE = 'Image metadata must stay inside its app-data folder, without symbolic links'
+LEGACY_JOB = 'This job was queued before image metadata moved to the app-data folder. Queue it again.'
 
 
 def now() -> str:
@@ -45,23 +54,38 @@ def revision(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest() if path.exists() else ''
 
 
-def checked(path: str | Path, root: str | Path) -> Path:
+def checked(path: str | Path, root: str | Path, message: str = OUTSIDE_ROOT) -> Path:
     """Confine reads and writes to a captured root, without following symbolic links."""
     root = Path(root).resolve()
     path = Path(os.path.abspath(path))
     if not path.is_relative_to(root) or path.resolve() != path:
-        raise AppError('Image metadata must stay inside the workspace resources folder, without symbolic links')
+        raise AppError(message)
     return path
 
 
-def sidecar(source: Path) -> Path:
-    return Path(f'{source}.json')
+def store_folder(home: str | Path, root: str | Path) -> Path:
+    """The metadata store of a resources folder: a folder of the app-data folder, named after it and its path."""
+    root = Path(root).resolve()
+    name = re.sub(r'[^A-Za-z0-9._-]+', '_', root.name).strip('._') or 'resources'
+    digest = hashlib.sha256(os.path.normcase(str(root)).encode()).hexdigest()[:12]
+    return Path(home).resolve() / STORE / f'{name}-{digest}'
 
 
-def target_paths(target: Path | dict, root: Path) -> tuple[Path, Path, Path, dict | None]:
+def mirrored(path: str | Path, root: Path, store: Path) -> Path:
+    """Where the store keeps the file for a path of the resources folder: at the same relative path."""
+    return checked(store / checked(path, root).relative_to(Path(root).resolve()), store, OUTSIDE_STORE)
+
+
+def sidecar(source: Path, root: Path, store: Path) -> Path:
+    return Path(f'{mirrored(source, root, store)}.json')
+
+
+def target_paths(target: Path | dict, root: Path, store: Path) -> tuple[Path, Path, Path, dict | None]:
+    """An image or animation's source, metadata file, generated image and animation, by the target that names it."""
     source = checked(target['source'] if isinstance(target, dict) else target, root)
-    path = checked(target['path'] if isinstance(target, dict) else sidecar(source), root)
-    return source, path, checked(f'{path}.generated.png', root), target.get('sequence') if isinstance(target, dict) else None
+    path = checked(target['path'], store, OUTSIDE_STORE) if isinstance(target, dict) else sidecar(source, root, store)
+    return (source, path, checked(f'{path}.generated.png', store, OUTSIDE_STORE),
+            target.get('sequence') if isinstance(target, dict) else None)
 
 
 def target_key(target: Path | dict) -> str:
@@ -127,12 +151,12 @@ def validate_metadata(value: object) -> dict:
 
 def image_data(source: Path) -> tuple[bytes, dict]:
     if source.stat().st_size > MAX_IMAGE:
-        raise AppError('The image is too large to analyze (maximum 64 MiB)')
+        raise AppError('The image is too large to describe (maximum 64 MiB)')
     original = source.read_bytes()
     data = decode_dds(original) if source.suffix.lower() == '.dds' else original
     with Image.open(BytesIO(data)) as pixels:
         if pixels.width * pixels.height > 64 * 1024 * 1024:
-            raise AppError('The image dimensions are too large to analyze')
+            raise AppError('The image dimensions are too large to describe')
         rgba = pixels.convert('RGBA')
         properties = {'filename': source.name, 'width': pixels.width, 'height': pixels.height,
                       'transparency': rgba.getchannel('A').getextrema()[0] < 255,
@@ -203,12 +227,75 @@ class MetadataLibrary:
                     for job in self.jobs:
                         if job['state'] in ('running', 'cancelling'):
                             job.update(state='failed', error='The application stopped during this job. Queue it again.', finishedAt=now())
+                        elif job['state'] == 'queued' and not job.get('store'):
+                            job.update(state='failed', error=LEGACY_JOB, finishedAt=now())
                     self._persist()
             except Exception:
                 self._release_lease()
                 self.started = False
                 raise
             self._wake()
+
+    def store(self, root: Path) -> Path:
+        """The folder that keeps the metadata of a resources folder's images."""
+        return store_folder(self.home, root)
+
+    def paths(self, target: Path | dict, root: Path) -> tuple[Path, Path, Path, dict | None]:
+        return target_paths(target, root, self.store(root))
+
+    def sequence_path(self, root: Path, game: Path, asset: str) -> Path:
+        """The metadata file of an ImageSeq asset of a game."""
+        return mirrored(game, root, self.store(root)) / '.asset-metadata' / 'sequences' / f'{asset}.imageseq.json'
+
+    def drafts(self, root: Path, game: Path) -> list[Path]:
+        """The images of a game folder that have metadata, including new images that do not exist yet."""
+        store, folder = self.store(root), mirrored(game, root, self.store(root))
+        if not folder.is_dir():
+            return []
+        return [root.resolve() / Path(str(path)[:-5]).relative_to(store) for path in folder.rglob('*.json')
+                if Path(str(path)[:-5]).suffix.lower() in EXTENSIONS and not path.is_symlink()
+                and '.asset-metadata' not in path.relative_to(folder).parts]
+
+    def import_legacy(self, root: Path, game: Path, sources: list[Path | dict]) -> None:
+        """Once per game folder, copy the metadata that earlier versions saved in the resources folder into the store:
+        image metadata beside the images, with their generated images, and animation metadata in the game's
+        .asset-metadata/sequences. The originals are kept, and files already in the store are never replaced."""
+        root, store = root.resolve(), self.store(root)
+        marker = mirrored(game, root, store) / '.asset-metadata' / 'legacy-imported'
+        if marker.exists():
+            return
+        home = self.home.resolve()
+        found = [path for path in game.rglob('*.json') if Path(str(path)[:-5]).suffix.lower() in EXTENSIONS
+                 and not path.is_relative_to(home)]
+        found += (game / '.asset-metadata' / 'sequences').glob('*.imageseq.json')
+        # Shared frames outside the game folder are imported for the assets that use them.
+        found += [Path(f'{target}.json') for target in sources if isinstance(target, Path) and not target.is_relative_to(game)]
+        with self.condition:
+            if marker.exists():
+                return
+            complete = True
+            for legacy in found:
+                for suffix in ('', '.generated.png', '.generated.original.png'):
+                    original = Path(f'{legacy}{suffix}')
+                    try:
+                        destination = mirrored(original, root, store)
+                        if not original.is_file() or destination.exists():
+                            continue
+                        destination.parent.mkdir(parents=True, exist_ok=True)
+                        with tempfile.NamedTemporaryFile(dir=destination.parent, delete=False, suffix='.tmp') as handle:
+                            temporary = Path(handle.name)
+                        try:
+                            shutil.copyfile(original, temporary)
+                            os.replace(temporary, destination)
+                        finally:
+                            temporary.unlink(missing_ok=True)
+                    except AppError:
+                        continue  # A symbolic link, which is never followed.
+                    except OSError:
+                        complete = False  # Try again when the studio next opens.
+            if complete:
+                marker.parent.mkdir(parents=True, exist_ok=True)
+                marker.write_text(f'{now()}\n', encoding='utf-8')
 
     def _wake(self) -> None:
         if self.thread is None and any(job['state'] == 'queued' for job in self.jobs):
@@ -228,9 +315,9 @@ class MetadataLibrary:
         validated = deepcopy(DEFAULTS)
         try:
             _merge(validated, values)
-            ImageAnalyzer(**{key: validated['analysis'][key] for key in ('base_url', 'model', 'timeout', 'max_tokens')})
+            ImageDescriber(**{key: validated['analysis'][key] for key in ('base_url', 'model', 'timeout', 'max_tokens')})
             remote = validated['remote']
-            ImageAnalyzer(**{key: remote['analysis'][key] for key in ('base_url', 'model', 'timeout', 'max_tokens')})
+            ImageDescriber(**{key: remote['analysis'][key] for key in ('base_url', 'model', 'timeout', 'max_tokens')})
             generator = ComfyGenerator(remote['generation'])
             if remote['generation']['enabled'] or remote['generation']['workflow'].strip():
                 generator.validate()
@@ -250,7 +337,11 @@ class MetadataLibrary:
         workspace = hashlib.sha256(job['workspace'].encode()).hexdigest()[:16]
         if len(job['id']) != 32 or any(char not in '0123456789abcdef' for char in job['id']):
             raise AppError('Invalid image job ID')
-        return checked(Path(job['game']) / '.asset-metadata' / 'jobs' / workspace / job['id'] / 'config.json', job['root'])
+        if not job.get('store'):
+            raise AppError(LEGACY_JOB, 409)
+        store = Path(job['store'])
+        return checked(mirrored(job['game'], Path(job['root']), store) / '.asset-metadata' / 'jobs' / workspace / job['id'] / 'config.json',
+                       store, OUTSIDE_STORE)
 
     def _save_configuration(self, job: dict) -> None:
         path = self._configuration_path(job)
@@ -259,18 +350,9 @@ class MetadataLibrary:
         job['configuration'] = str(path)
 
     def _load_configuration(self, job: dict) -> dict:
-        if not job.get('configuration'):
-            # Migrate older queue entries using their captured inputs. Never
-            # guess an old render size from metadata that has since been edited.
-            if job['kind'] == 'image' and not job.get('inputMetadata'):
-                if revision(checked(job['metadata'], job['root'])) != job['expected'].get('metadata'):
-                    raise AppError('The original generation configuration is unavailable. Submit a new job from Metadata.')
-                target = {'file': job.get('target', job['source']), 'source': job['source'],
-                          'path': job['metadata'], 'sequence': job.get('sequence')}
-                job['inputMetadata'] = self.document(target, Path(job['root']), draft=False)['metadata']
-            self._save_configuration(job)
-            with self.condition:
-                self._persist()
+        # Jobs queued before metadata moved to the store, or before configurations were saved, cannot be run again.
+        if not job.get('store') or not job.get('configuration'):
+            raise AppError(LEGACY_JOB, 409)
         path = self._configuration_path(job)
         if str(path) != job['configuration']:
             raise AppError('Invalid image job configuration path')
@@ -278,7 +360,7 @@ class MetadataLibrary:
             configuration = json.loads(path.read_text(encoding='utf-8'))
         except (OSError, ValueError) as error:
             raise AppError(f'Cannot read the saved image job configuration: {path.name}') from error
-        identity = ('id', 'workspace', 'root', 'game', 'source', 'metadata', 'output', 'target', 'kind', 'result')
+        identity = ('id', 'workspace', 'root', 'store', 'game', 'source', 'metadata', 'output', 'target', 'kind', 'result')
         if (not isinstance(configuration, dict) or configuration.get('schema_version') != 1
                 or any(configuration.get(key) != job.get(key) for key in identity)):
             raise AppError('The image job configuration does not match this job')
@@ -306,7 +388,7 @@ class MetadataLibrary:
                     'queued': sum(job['state'] == 'queued' for job in jobs)}
 
     def document(self, target: Path | dict, root: Path, *, draft: bool = True) -> dict:
-        source, path, output, sequence = target_paths(target, root)
+        source, path, output, sequence = self.paths(target, root)
         value = None
         source_error = None
         if path.exists():
@@ -341,12 +423,12 @@ class MetadataLibrary:
                 'metadata': value, 'generated': str(output) if output.is_file() else None, 'sourceError': source_error}
 
     def save(self, target: Path | dict, root: Path, metadata: dict, expected: str) -> dict:
-        _source, path, _output, sequence = target_paths(target, root)
+        _source, path, _output, sequence = self.paths(target, root)
         if sequence:
             metadata = sequence_metadata(metadata, sequence)
         validate_metadata(metadata)
         with self.operation_lock, self.condition:
-            checked(path, root)
+            checked(path, self.store(root), OUTSIDE_STORE)
             if revision(path) != expected:
                 raise AppError('The metadata changed. Reload it before saving.', 409)
             atomic_json(path, metadata)
@@ -361,7 +443,7 @@ class MetadataLibrary:
         if not self.started:
             self.start()
         if kind not in ('metadata', 'image'):
-            raise AppError('Choose metadata analysis or image generation')
+            raise AppError('Choose Describe or image generation')
         settings = (self.settings()['settings'] if configuration is None or refresh_settings
                     else deepcopy(configuration['settings']))
         operation = 'analysis' if kind == 'metadata' else 'generation'
@@ -369,12 +451,13 @@ class MetadataLibrary:
         operation_settings = remote if remote['enabled'] else settings[operation]
         group = json.dumps([kind, 'remote' if remote['enabled'] else 'local', operation_settings], sort_keys=True)
         keep_original = kind == 'image' and operation_settings['keep_original']
+        store = self.store(root)
         batch = uuid.uuid4().hex
         jobs = []
         # Validate the entire submission before queueing its first job.
         unique = {target_key(target): target for target in sources}
         for target in unique.values():
-            source, path, output, sequence = target_paths(target, root)
+            source, path, output, sequence = target_paths(target, root, store)
             if source.suffix.lower() not in EXTENSIONS:
                 raise AppError(f'Unsupported image type: {source.suffix}')
             if kind == 'metadata' and not source.is_file():
@@ -386,14 +469,14 @@ class MetadataLibrary:
                 snapshot = (deepcopy(configuration['inputMetadata']) if configuration is not None
                             else self.document(target, root, draft=False)['metadata'])
             jobs.append({'id': uuid.uuid4().hex, 'batch': batch, 'workspace': workspace,
-                         'root': str(root), 'game': str(game), 'source': str(source), 'metadata': str(path),
+                         'root': str(root), 'store': str(store), 'game': str(game), 'source': str(source), 'metadata': str(path),
                          'output': str(output), 'kind': kind, 'state': 'queued', 'createdAt': now(),
                          'settings': settings, 'group': group, 'overwrite': overwrite,
                          'expected': {'source': revision(source), 'metadata': revision(path), 'output': revision(output)}})
             jobs[-1]['target'] = target_key(target)
             if snapshot is not None:
                 fingerprint = hashlib.sha256(json.dumps([workspace, str(path), snapshot, group], sort_keys=True).encode()).hexdigest()
-                result = checked(game / '.asset-metadata' / 'generations' / f'{fingerprint}.png', root)
+                result = mirrored(game, root, store) / '.asset-metadata' / 'generations' / f'{fingerprint}.png'
                 jobs[-1].update(inputMetadata=snapshot, result=str(result))
                 jobs[-1]['expected']['result'] = revision(result)
             if sequence:
@@ -402,8 +485,8 @@ class MetadataLibrary:
                 inputs = {*sequence['files'].values(), *sequence.get('descriptors', [])}
                 jobs[-1]['expected']['inputs'] = {str(checked(file, root)): revision(checked(file, root)) for file in inputs}
                 if kind == 'metadata' and any(not Path(file).is_file() for file in sequence['files'].values()):
-                    raise AppError('All animation frame files must exist before analysis')
-            original = checked(output.with_name(f'{output.stem}.original.png'), root)
+                    raise AppError('All animation frame files must exist before the animation is described')
+            original = checked(output.with_name(f'{output.stem}.original.png'), store, OUTSIDE_STORE)
             jobs[-1]['expected']['original'] = revision(original)
         with self.condition:
             submitted = []
@@ -448,7 +531,9 @@ class MetadataLibrary:
             job = next((job for job in self.jobs if job['workspace'] == workspace and job['id'] == job_id), None)
             if job is None or job['kind'] != 'image' or job['state'] != 'succeeded':
                 raise AppError('Generated image not found', 404)
-            path = checked(job.get('result', job['output']), job['root'])
+            # Jobs queued before metadata moved to the store keep their results in the resources folder.
+            path = checked(job.get('result', job['output']), job.get('store') or job['root'],
+                           OUTSIDE_STORE if job.get('store') else OUTSIDE_ROOT)
             if not path.is_file():
                 raise AppError('Generated image not found', 404)
             return str(path)
@@ -546,8 +631,9 @@ class MetadataLibrary:
         # The per-workspace file is the execution configuration; the queue index
         # contains status and a copy for display, rather than mutable editor state.
         job = {**job, **{key: value for key, value in self._load_configuration(job).items() if key in JOB_CONFIGURATION}}
-        root = Path(job['root'])
-        source, path, output = (checked(job[key], root) for key in ('source', 'metadata', 'output'))
+        root, store = Path(job['root']), Path(job['store'])
+        source = checked(job['source'], root)
+        path, output = (checked(job[key], store, OUTSIDE_STORE) for key in ('metadata', 'output'))
         expected = job['expected']
         captured_metadata = job.get('inputMetadata')
         def inputs_unchanged():
@@ -555,25 +641,26 @@ class MetadataLibrary:
 
         if (captured_metadata is None and revision(path) != expected['metadata']) or revision(source) != expected['source'] or not inputs_unchanged():
             raise AppError('An input changed while this job was queued. Queue it again.')
-        analysis, generation = job['settings']['analysis'], job['settings']['generation']
+        # The settings of Describe keep image-analyzer's key, "analysis".
+        describe, generation = job['settings']['analysis'], job['settings']['generation']
         remote = job['settings'].get('remote', DEFAULTS['remote'])
         if job['kind'] == 'metadata' and remote['analysis']['enabled']:
-            analysis = remote['analysis']
-            api_key = os.environ.get(analysis['api_key_env']) if analysis['api_key_env'] else None
+            describe = remote['analysis']
+            api_key = os.environ.get(describe['api_key_env']) if describe['api_key_env'] else None
         else:
             api_key = os.environ.get('LM_STUDIO_API_KEY')
-        analyzer = ImageAnalyzer(**{key: analysis[key] for key in ('base_url', 'model', 'timeout', 'max_tokens')},
-                                 api_key=api_key)
+        describer = ImageDescriber(**{key: describe[key] for key in ('base_url', 'model', 'timeout', 'max_tokens')},
+                                   api_key=api_key)
         if job['kind'] == 'metadata':
             sequence = job.get('sequence')
             if sequence:
                 data, properties, indices = storyboard(sequence, lambda file: image_data(checked(file, root)))
             else:
                 data, properties = image_data(source)
-            if analysis['load_model']:
-                analyzer.load_model(unload_others=analysis['unload_others'])
-            value = (analyzer.analyze(source, data=data, instruction=sequence_instruction(sequence, indices)) if sequence
-                     else analyzer.analyze(source, data=data))
+            if describe['load_model']:
+                describer.load_model(unload_others=describe['unload_others'])
+            value = (describer.describe(source, data=data, instruction=sequence_instruction(sequence, indices)) if sequence
+                     else describer.describe(source, data=data))
             value['image'] = properties
             # Render a single new image at a frame's dimensions, not at the contact sheet's size.
             value['generation'] = {'width': (properties['width'] + 31) // 32 * 32,
@@ -585,9 +672,9 @@ class MetadataLibrary:
             with self.operation_lock, self.condition:
                 if cancel.is_set() or self.stopping.is_set():
                     return
-                checked(path, root)
+                checked(path, store, OUTSIDE_STORE)
                 if revision(source) != expected['source'] or revision(path) != expected['metadata'] or not inputs_unchanged():
-                    raise AppError('The image or metadata changed during analysis. Existing files were kept.', 409)
+                    raise AppError('The image or metadata changed while it was being described. Existing files were kept.', 409)
                 atomic_json(path, value)
         else:
             remote_generation = remote['generation']['enabled']
@@ -602,7 +689,7 @@ class MetadataLibrary:
             # The common preview follows the latest successful variant. Each
             # variant also has its own retained PNG, independent of later edits.
             output_revision = revision(output) if captured_metadata is not None else expected['output']
-            original = checked(output.with_name(f'{output.stem}.original.png'), root)
+            original = checked(output.with_name(f'{output.stem}.original.png'), store, OUTSIDE_STORE)
             original_revision = revision(original) if captured_metadata is not None else expected.get('original', '')
             # Generate privately from a snapshot. Publish only after rechecking every input and output.
             with tempfile.TemporaryDirectory(prefix='image-job-') as directory:
@@ -610,24 +697,24 @@ class MetadataLibrary:
                 target = {'file': job.get('target', str(source)), 'source': str(source), 'path': str(path), 'sequence': job.get('sequence')}
                 atomic_json(snapshot, job.get('inputMetadata') or self.document(target, root, draft=False)['metadata'])
                 if not remote_generation and generation['unload_lm_studio']:
-                    analyzer.unload_all_models()
+                    describer.unload_all_models()
                 generator.generate(snapshot, rendered, width=generation['width'], height=generation['height'],
                                    steps=generation['steps'], seed=generation['seed'], cfg_scale=generation['cfg_scale'],
                                    keep_original=generation['keep_original'], cancel=cancel)
                 with self.operation_lock, self.condition:
                     if cancel.is_set() or self.stopping.is_set():
                         return
-                    checked(output, root)
+                    checked(output, store, OUTSIDE_STORE)
                     if ((job.get('inputMetadata') is None and revision(path) != expected['metadata']) or revision(output) != output_revision
                             or revision(source) != expected['source'] or not inputs_unchanged()):
                         raise AppError('The metadata or generated image changed during generation. Existing files were kept.', 409)
-                    original = checked(output.with_name(f'{output.stem}.original.png'), root)
+                    original = checked(output.with_name(f'{output.stem}.original.png'), store, OUTSIDE_STORE)
                     if generation['keep_original'] and revision(original) != original_revision:
                         raise AppError('The original render changed during generation. Existing files were kept.', 409)
                     output.parent.mkdir(parents=True, exist_ok=True)
                     files = [(output, rendered)]
                     if job.get('result'):
-                        result = checked(job['result'], root)
+                        result = checked(job['result'], store, OUTSIDE_STORE)
                         if revision(result) != expected['result']:
                             raise AppError('This generation result changed during generation. Existing files were kept.', 409)
                         result.parent.mkdir(parents=True, exist_ok=True)
