@@ -30,6 +30,7 @@ import type { InfoViewPages, ViewModule } from '@game/app/GameModules';
 import type { MathExportInput } from '@game/export/MathExporter';
 import { DebugImguiOverlay } from '@game/engine/DebugImguiOverlay/DebugImguiOverlay';
 import GameToolsPanel from './GameToolsPanel.vue';
+import GameClock from './debug/GameClock.vue';
 import { GameServer } from '@game/integration/GameServer/GameServer';
 import { AutomationManager } from '@game/integration/AutomationManager/AutomationManager';
 
@@ -52,6 +53,11 @@ const statsOpen = ref(false);
 const devOpen = ref(false);
 /** Refreshes the tools' panels after game frames and their commands. */
 const toolsTick = ref(0);
+/** The Automation window's game clock, which the game's panel shows too: none without the automation manager. */
+const automation = computed(() => {
+  void toolsTick.value;
+  return state.value === 'running' ? app?.Get(AutomationManager) ?? null : null;
+});
 /** Why the game server does not answer, while it does not: the game waits for its rounds' numbers. */
 const serverError = ref('');
 const exportResult = ref<{ folder: string; id: string; files: string[] } | null>(null);
@@ -593,6 +599,7 @@ onBeforeUnmount(() => {
             <button type="button" class="btn btn-sm" :class="topperOpen ? 'btn-primary' : 'btn-outline-secondary'" :aria-expanded="topperOpen" title="The cabinet's topper screen" @click="topperOpen = !topperOpen"><i class="mdi mdi-monitor-shimmer" aria-hidden="true" /> Topper screen</button>
             <button type="button" class="btn btn-sm" :class="statsOpen ? 'btn-primary' : 'btn-outline-secondary'" :aria-expanded="statsOpen" aria-controls="game-stats" @click="statsOpen = !statsOpen"><i class="mdi mdi-chart-box-outline" aria-hidden="true" /> Game stats</button>
             <button type="button" class="btn btn-sm" :class="devOpen ? 'btn-primary' : 'btn-outline-secondary'" :aria-expanded="devOpen" aria-controls="game-developer" @click="devOpen = !devOpen"><i class="mdi mdi-code-tags" aria-hidden="true" /> Developer</button>
+            <GameClock v-if="automation" class="game-panel-clock" slider-only :manager="automation" :tick="toolsTick" @changed="toolsTick++" />
           </div>
         </div>
       </div>
@@ -833,6 +840,10 @@ onBeforeUnmount(() => {
   flex-basis: 100%;
   padding-top: 0.75rem;
   border-top: 1px solid #ebedf2;
+}
+
+.game-panel-clock {
+  margin-left: auto;
 }
 
 .game-dev-states {

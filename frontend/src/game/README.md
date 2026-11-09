@@ -61,7 +61,7 @@ The folders mirror the C++ ones, and the classes keep their C++ names and method
 | `integration/AlphaFamilyGameflow` | `integration/libs/src/Egt/AlphaFamilyGameflow` |
 | `integration/RngPresetManager`, `integration/AutomationManager`, `integration/Runtime` | `integration/plugins/src/Egt/RngPresetManager`, `AutomationManager` (the RNG Queue, the Automation window) and `integration/libs/src/Egt/Integration/Runtime` (their interfaces, IGameflowIntegration, IPauseControl) |
 | `integration/GameServer` | no counterpart: the game server's client (`GameServer`) and the Play page's `GameEventsRelay` |
-| `engine/DebugImguiOverlay`, `engine/ImGuiEx`, `debug/` | `Egt/DebugImguiOverlay`, `Egt/ImGuiEx`: debug shortcuts and settings; `debug/` contains the Vue panels on the Tools page (`GameToolsPanel.vue`) |
+| `engine/DebugImguiOverlay`, `engine/ImGuiEx`, `debug/` | `Egt/DebugImguiOverlay`, `Egt/ImGuiEx`: debug shortcuts and settings; `debug/` contains the Vue panels on the Tools page (`GameToolsPanel.vue`), and the Automation window's game clock, whose speed slider the Play page's panel shows too (`GameClock.vue`) |
 | `integration/BrowserKernel` | the kernel integrations (playground, hat...): wallet, limits, localization, hardware buttons |
 | `integration/LocalizationManager` | `integration/plugins/src/Egt/LocalizationManager`: its number formats and Format methods, with which the BrowserKernel writes amounts ("€ 1.234,56") |
 | `app/GameApp.ts`, `app/ModuleRegistry.ts` | the ModuleManager and the plugins it loads |

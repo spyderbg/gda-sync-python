@@ -7,20 +7,17 @@ import { AutomationMode } from '@game/integration/Runtime/IAutomationManager';
 import {
   type AutomationManager, MaxGenerateCount, SeedMode, SeedModeLabels, StrategyLabels, ViewModeLabels,
 } from '@game/integration/AutomationManager/AutomationManager';
+import GameClock from './GameClock.vue';
 import ToolPanel from './ToolPanel.vue';
 
 const props = defineProps<{ manager: AutomationManager; tick: number }>();
 const emit = defineEmits<{ changed: [] }>();
-
-const SPEEDS: [string, number][] = [['1/60', 1 / 60], ['100%', 1], ['200%', 2], ['400%', 4], ['1000%', 10]];
 
 const state = computed(() => {
   void props.tick;
   const m = props.manager;
   const gamesCount = m.GetGamesCount();
   return {
-    pause: m.GetPauseControl(),
-    speed: m.GetClockSpeed(),
     mode: m.m_mode,
     running: m.m_mode !== AutomationMode.Disabled,
     gameInProgress: m.m_gameInProgress !== null,
@@ -70,14 +67,7 @@ function close() {
 <template>
   <ToolPanel title="Automation" closable @close="close">
     <div class="automation-section">Game Clock</div>
-    <div class="automation-row">
-      <button type="button" class="btn btn-outline-secondary btn-sm" :disabled="!state.pause" @click="run(() => manager.TogglePause())">{{ state.pause?.held ? 'Resume' : 'Pause' }}</button>
-      <button v-for="[label, speed] in SPEEDS" :key="label" type="button" class="btn btn-outline-secondary btn-sm" @click="run(() => manager.SetClockSpeed(speed))">{{ label }}</button>
-    </div>
-    <label class="automation-row mb-0">
-      <input type="range" min="0" max="4" step="0.01" :value="state.speed" aria-label="Speed" @input="run(() => manager.SetClockSpeed(number($event)))">
-      <span>{{ state.speed.toFixed(3) }} Speed</span>
-    </label>
+    <GameClock :manager="manager" :tick="tick" @changed="emit('changed')" />
 
     <div class="automation-section">Auto Play</div>
     <div class="automation-row">
