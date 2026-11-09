@@ -1,6 +1,9 @@
 // The picture of a movie's current frame, for video_ctrl::draw_list::add_movie_image. A "valpha" movie stacks its alpha
 // under its picture: the top half of each frame is the picture, the bottom half its alpha as gray. The frame is composed
 // into a transparent picture of half the height, on the GPU (WebGL), or else from its pixels.
+//
+// The WebGL picture is an OffscreenCanvas where the browser has one: Firefox swaps red and blue when its GPU 2D canvas
+// (the game's) draws a WebGL <canvas> (a gold Big Win shows blue), but not when it draws a WebGL OffscreenCanvas.
 
 const VERTEX = `attribute vec2 p; varying vec2 uv;
 void main() { uv = vec2(p.x, 1.0 - p.y) ; gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0); }`;
@@ -11,8 +14,10 @@ void main() {
   gl_FragColor = vec4(color * alpha, alpha);
 }`;
 
+const ATTRIBUTES: WebGLContextAttributes = { premultipliedAlpha: true, alpha: true, preserveDrawingBuffer: true };
+
 export class MovieFrame {
-  private canvas: HTMLCanvasElement | null = null;
+  private canvas: HTMLCanvasElement | OffscreenCanvas | null = null;
   private gl: WebGLRenderingContext | null = null;
   private ctx: CanvasRenderingContext2D | null = null;
   private composedTime = -1;
@@ -33,18 +38,24 @@ export class MovieFrame {
   }
 
   private Create(width: number, height: number) {
-    this.canvas = document.createElement('canvas');
-    this.canvas.width = width;
-    this.canvas.height = height;
     this.composedTime = -1;
-    this.gl = this.canvas.getContext('webgl', { premultipliedAlpha: true, alpha: true, preserveDrawingBuffer: true });
+    this.ctx = null;
+    const canvas = typeof OffscreenCanvas !== 'undefined' ? new OffscreenCanvas(width, height) : MovieFrame.Element(width, height);
+    this.canvas = canvas;
+    this.gl = canvas instanceof HTMLCanvasElement ? canvas.getContext('webgl', ATTRIBUTES) : canvas.getContext('webgl', ATTRIBUTES);
     if (!this.gl || !this.Program(this.gl)) {
       this.gl = null;
-      this.canvas = document.createElement('canvas');
-      this.canvas.width = width;
-      this.canvas.height = height;
-      this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
+      const fallback = MovieFrame.Element(width, height);
+      this.canvas = fallback;
+      this.ctx = fallback.getContext('2d', { willReadFrequently: true });
     }
+  }
+
+  private static Element(width: number, height: number) {
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    return canvas;
   }
 
   private Program(gl: WebGLRenderingContext) {
