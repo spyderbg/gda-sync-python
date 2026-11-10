@@ -352,6 +352,8 @@ def test_view_layout_validates_the_preview_workspace_and_installation(client, tm
     from egt_gda_sync.game import project
     body = layout_preview()
     monkeypatch.setattr(project, "find_claude", lambda: None)
+    for invalid_model in ("unknown", "opus --other-option", None):
+        assert client.post("/api/game/view-layout", json={**body, "model": invalid_model}).status_code == 400
     assert client.post("/api/game/view-layout", json=body).status_code == 501
     monkeypatch.setattr(project, "find_claude", lambda: "/unused/claude")
     assert client.post("/api/game/view-layout", json={**body, "workspace": "another"}).status_code == 409
@@ -367,7 +369,8 @@ def test_view_layout_validates_the_preview_workspace_and_installation(client, tm
     assert not (client.home / "view-layouts").exists()
 
 
-def test_view_layout_streams_all_responses_and_runs_the_skill_for_the_selected_workspace(client, tmp_path, monkeypatch):
+@pytest.mark.parametrize("model", [None, "opus", "sonnet", "haiku"])
+def test_view_layout_streams_all_responses_and_runs_the_skill_for_the_selected_workspace(client, tmp_path, monkeypatch, model):
     import sys
     from egt_gda_sync.game import project
     view = client.game / "v" / "1920x1080" / "LayoutView.json"
@@ -406,6 +409,8 @@ emit({{"type": "result", "is_error": False, "result": "Layout updated. Full repo
     claude.chmod(0o755)
     monkeypatch.setattr(project, "find_claude", lambda: str(claude))
     body = {**layout_preview(), "instructions": "Main game: BetBarView."}
+    if model is not None:
+        body["model"] = model
     try:
         started = client.post("/api/game/view-layout", json=body)
         assert started.status_code == 200
@@ -446,10 +451,12 @@ emit({{"type": "result", "is_error": False, "result": "Layout updated. Full repo
     assert str(scratch / "preview.png") in run["prompt"]
     assert shlex.split(run["prompt"]) == ["/view-layout", str(scratch / "preview.png"), "example"]
     assert run["argv"][:6] == ["-p", "--output-format", "stream-json", "--verbose", "--permission-mode", "auto"]
+    assert run["argv"][run["argv"].index("--model") + 1] == (model or "opus")
     assert "Skill(view-layout)" in run["argv"]
     assert "Bash(.venv/bin/python -I .claude/skills/view-layout/view_layout.py:*)" in run["argv"]
     assert "Bash(.venv/bin/python -I .claude/skills/view-layout/execute_conditions.py:*)" in run["argv"]
     execution = status["execution"]
+    assert execution["model"] == (model or "opus")
     assert execution["invocation"] == {"skill": "view-layout", "arguments": [str(scratch / "preview.png"), "example"], "validated": True}
     assert len(execution["calls"]) == 2
     assert execution["calls"][0]["arguments"] == ["validate-inputs", str(scratch / "preview.png"), "example"]

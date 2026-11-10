@@ -5,6 +5,9 @@ import PageHeader from '../components/PageHeader.vue';
 import { startingViewLayout, updateGameAgentActivity } from '../composables/useGameAgentActivity';
 import { api, config, notify } from '../workspace';
 
+type ClaudeModel = 'opus' | 'sonnet' | 'haiku';
+const modelNames: Record<ClaudeModel, string> = { opus: 'Opus', sonnet: 'Sonnet', haiku: 'Haiku' };
+
 interface AgentStatus {
   running: boolean;
   kind: string | null;
@@ -13,6 +16,7 @@ interface AgentStatus {
   result: { report: string; cost: number | null; turns: number | null } | null;
   error: string | null;
   execution?: {
+    model?: ClaudeModel;
     invocation: { skill: string; arguments: string[]; validated: boolean };
     startedAt: number;
     durationSeconds: number | null;
@@ -30,6 +34,7 @@ const workspace = config.value.defaultWorkspace || 'current';
 const image = ref<File | null>(null);
 const preview = ref('');
 const instructions = ref('');
+const model = ref<ClaudeModel>('opus');
 const starting = ref(false);
 const openingPreview = ref(false);
 const error = ref('');
@@ -124,7 +129,7 @@ async function start() {
   generation++;
   try {
     const encoded = await readImage(image.value);
-    status.value = await api<AgentStatus>('game/view-layout', 'POST', { workspace, image: encoded, instructions: instructions.value });
+    status.value = await api<AgentStatus>('game/view-layout', 'POST', { workspace, image: encoded, instructions: instructions.value, model: model.value });
     updateGameAgentActivity(status.value);
     void scrollOutput();
   } catch (failure) {
@@ -167,6 +172,12 @@ onBeforeUnmount(() => {
             <textarea id="layout-instructions" v-model="instructions" class="form-control" rows="4" maxlength="8000" :disabled="starting || status?.running" placeholder="For example: main game, BetBarView and CreditsWinBarView." />
           </div>
           <div class="form-group">
+            <label for="layout-model">Claude Code model</label>
+            <select id="layout-model" v-model="model" class="form-control" :disabled="starting || status?.running">
+              <option v-for="(label, value) in modelNames" :key="value" :value="value">{{ label }}</option>
+            </select>
+          </div>
+          <div class="form-group">
             <label class="small mb-0"><input v-model="showClaudeLogs" type="checkbox" @change="scrollOutput"> Claude Code logs</label>
           </div>
           <p class="small text-muted">If the skill needs clarification or permission, Claude Code stops and includes its question in the output.</p>
@@ -190,7 +201,7 @@ onBeforeUnmount(() => {
           <p v-if="thisRun?.error" class="alert alert-danger" role="alert">{{ thisRun.error }}</p>
           <section v-if="thisRun?.execution" class="layout-summary mb-3" aria-label="Execution summary">
             <h3 class="h6">Execution summary</h3>
-            <p class="small mb-2"><strong>Total time:</strong> {{ thisRun.execution.durationSeconds == null ? 'In progress…' : duration(thisRun.execution.durationSeconds) }}</p>
+            <p v-if="thisRun.execution.model" class="small mb-2"><strong>Model:</strong> {{ modelNames[thisRun.execution.model] }}</p>
             <p class="small mb-2"><strong>Skill arguments:</strong> {{ thisRun.execution.invocation.validated ? 'Validated by the skill' : thisRun.running ? 'Awaiting skill validation…' : 'Not validated' }}</p>
             <ol class="small layout-arguments">
               <li>
@@ -201,6 +212,7 @@ onBeforeUnmount(() => {
             </ol>
             <p v-if="thisRun.running || thisRun.execution.result" class="layout-result mb-2"><strong>Result:</strong> {{ thisRun.running ? 'In progress…' : thisRun.execution.result }}</p>
             <p v-for="warning in thisRun.execution.warnings" :key="warning" class="alert alert-warning small">{{ warning }}</p>
+            <p class="small mb-2"><strong>Total time:</strong> {{ thisRun.execution.durationSeconds == null ? 'In progress…' : duration(thisRun.execution.durationSeconds) }}</p>
           </section>
           <details v-if="thisRun?.result" class="layout-details mb-3">
             <summary><h3 class="h6 d-inline">Claude Code report</h3></summary>

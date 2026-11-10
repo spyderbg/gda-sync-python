@@ -42,7 +42,7 @@ def test_layout_upload_shows_live_complete_output_and_recovers_it_after_reload(l
                      log=["assistant:\nFirst response.\n" + "x" * 1000 + "\nLast line."],
                      execution={"invocation": {"skill": "view-layout", "arguments": ["/tmp/layout with spaces/preview.png", body["workspace"]], "validated": False},
                                 "startedAt": 100, "durationSeconds": None, "gamePath": "/games/resources/example",
-                                "calls": [], "changedFiles": None, "warnings": []})
+                                "calls": [], "changedFiles": None, "warnings": [], "model": body["model"]})
         route.fulfill(json=state)
 
     page.route("**/api/game/view-layout", start)
@@ -57,6 +57,11 @@ def test_layout_upload_shows_live_complete_output_and_recovers_it_after_reload(l
     expect(page.get_by_role("heading", name="View layout", exact=True)).to_be_visible()
     run = page.get_by_role("button", name="Run view-layout", exact=True)
     expect(run).to_be_disabled()
+    model = page.get_by_role("combobox", name="Claude Code model", exact=True)
+    expect(model).to_have_value("opus")
+    assert model.locator("option").all_text_contents() == ["Opus", "Sonnet", "Haiku"]
+    model.select_option("haiku")
+    model.select_option("sonnet")
     image = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jQ1sAAAAASUVORK5CYII=")
     page.get_by_label("Upload preview").set_input_files({"name": "preview.png", "mimeType": "image/png", "buffer": image})
     preview = page.get_by_role("img", name="Selected layout preview")
@@ -78,15 +83,18 @@ def test_layout_upload_shows_live_complete_output_and_recovers_it_after_reload(l
     expect(output).to_contain_text("First response.")
     expect(output).to_contain_text("Response received while logs were hidden.")
     expect(page.get_by_role("button", name="Claude Code is running…", exact=True)).to_be_disabled()
+    expect(model).to_be_disabled()
     expect(spinner).to_be_visible()
     expect(layout_entry).to_have_attribute('aria-busy', 'true')
     BUILD.mkdir(exist_ok=True)
     navigation.screenshot(path=str(BUILD / 'view-layout-running.png'))
     assert requests[0]["instructions"] == "Main game, BetBarView."
+    assert requests[0]["model"] == "sonnet"
     assert base64.b64decode(requests[0]["image"]) == image
     summary = page.get_by_role("region", name="Execution summary")
     expect(summary).to_contain_text("Awaiting skill validation…")
     expect(summary).to_contain_text("Result: In progress…")
+    expect(summary).to_contain_text("Model: Sonnet")
     with page.expect_response("**/api/game/view-layout/open-preview"):
         summary.get_by_role("button", name="Open preview image", exact=True).click()
     assert opened_previews == [{"file": "/tmp/layout with spaces/preview.png"}]

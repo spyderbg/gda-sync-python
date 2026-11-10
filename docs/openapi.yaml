@@ -1002,6 +1002,14 @@ components:
           maxLength: 8000
           title: Instructions
           default: ''
+        model:
+          type: string
+          enum:
+          - opus
+          - sonnet
+          - haiku
+          title: Model
+          default: opus
       additionalProperties: false
       type: object
       required:

@@ -331,8 +331,10 @@ class GameProject:
                    "--add-dir", str(scratch), "--allowedTools", *game_sync_tools(games)]
         return _start_agent("game-sync", command, [plugin], run=lambda: _run_claude(command, prompt))
 
-    def start_view_layout(self, workspace: str, image: bytes, instructions: str = "") -> dict:
+    def start_view_layout(self, workspace: str, image: bytes, instructions: str = "", *, model: str = "opus") -> dict:
         """Run view-layout with an uploaded preview and retain every session response for the layout page."""
+        if model not in {"opus", "sonnet", "haiku"}:
+            raise AppError("Choose Opus, Sonnet or Haiku for View layout")
         workspace_id, entry, resources, game = self._folders()
         if workspace != workspace_id:
             raise AppError("The workspace changed. Select the preview again for the current workspace.", 409)
@@ -384,11 +386,11 @@ class GameProject:
                  f"Bash(git -C {resources.parent} status:*)", f"Bash(git -C {resources.parent} diff:*)",
                  "Bash(node tests/tetra-panel/run.mjs:*)"]
         command = [claude, "-p", "--output-format", "stream-json", "--verbose", "--permission-mode", "auto",
-                   "--append-system-prompt", context,
+                   "--model", model, "--append-system-prompt", context,
                    "--add-dir", str(scratch), str(resources.parent), "--allowedTools", *tools]
         execution = {"invocation": {"skill": "view-layout", "arguments": arguments, "validated": False},
                      "startedAt": time.time(), "durationSeconds": None, "calls": [], "changedFiles": None,
-                     "conditions": None, "result": None, "warnings": [], "gamePath": str(game)}
+                     "conditions": None, "result": None, "warnings": [], "gamePath": str(game), "model": model}
         env = _agent_env()
         env[AUDIT_ENV] = str(scratch / "helper-calls.jsonl")
         env[CONTEXT_ENV] = json.dumps({"arguments": arguments, "previewSha256": fingerprint(preview_path),

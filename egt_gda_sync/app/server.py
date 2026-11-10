@@ -232,6 +232,7 @@ class ViewLayoutBody(_Body):
     workspace: Text4K
     image: Annotated[str, StringConstraints(min_length=1, max_length=LAYOUT_IMAGE_BASE64)]
     instructions: Annotated[str, StringConstraints(max_length=8000)] = ""
+    model: Literal["opus", "sonnet", "haiku"] = "opus"
 
 
 class GameSourceBody(_Body):
@@ -816,7 +817,7 @@ def create_app(
             image = base64.b64decode(body.image, validate=True)
         except (ValueError, binascii.Error) as error:
             raise AppError("The layout preview must be an image in base64") from error
-        return GameProject(library).start_view_layout(body.workspace, image, body.instructions)
+        return GameProject(library).start_view_layout(body.workspace, image, body.instructions, model=body.model)
 
     @app.post("/api/game/view-layout/open-preview")
     def open_view_layout_preview(body: ResourceFileBody) -> dict:
