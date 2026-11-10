@@ -1,3 +1,9 @@
+
+
+
+
+
+
 """The view-layout skill's helper: lays a game's views (v/<resolution>/*View.json, their ElementsList) out by a preview,
 a picture of how the screen should look, such as a designer's PNG in the GDA's DESIGN/09.Preview.
 

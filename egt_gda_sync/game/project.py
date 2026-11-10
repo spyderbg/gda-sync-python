@@ -46,6 +46,10 @@ DESCRIPTOR_LISTS = ("images", "imagesSeq", "fonts", "styles", "audioEvents", "id
 EXPORT_PATH = re.compile(r"^(?!.*\.\.)[A-Za-z0-9_.-]+(/[A-Za-z0-9_.-]+)*$")
 MAX_EXPORT_FILES = 500
 MAX_EXPORT_BYTES = 8 * 1024 * 1024
+# The browser game's screenshots, by workspace: PNG images of its screen, at most this large.
+SCREENSHOTS_FOLDER = "screenshots"
+MAX_SCREENSHOT_BYTES = 16 * 1024 * 1024
+PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 # The C++ sources an export copies: sources, headers and their build files.
 CPP_FILE = re.compile(r"(\.(h|hpp|cpp|inl|txt|json|cmake)|/\.clang-format)$")
 MAX_CPP_FILES = 2000
@@ -427,6 +431,29 @@ class GameProject:
         if not os.path.isfile(path):
             raise AppError(f"{file} is not in the export", 404)
         return path
+
+    def save_screenshot(self, workspace_id: str, image: bytes) -> dict:
+        """Write a screenshot of a workspace's browser game (a PNG image of its screen) to the
+        app data folder's screenshots, outside the repository and the games, named as the C++
+        ScreenshotsManager names the main viewport's (screenshot_main_ and the time in UTC), and
+        return where it is."""
+        if len(image) > MAX_SCREENSHOT_BYTES:
+            megabytes = MAX_SCREENSHOT_BYTES // (1024 * 1024)
+            raise AppError(f"A screenshot is larger than {megabytes} MB", 413)
+        if not image.startswith(PNG_SIGNATURE) or image[12:16] != b"IHDR":
+            raise AppError("A screenshot is a PNG image")
+        folder = Path(self.library.home) / SCREENSHOTS_FOLDER / workspace_id
+        folder.mkdir(parents=True, exist_ok=True)
+        stem = f"screenshot_main_{time.strftime('%Y-%m-%dT%H%M%SZ', time.gmtime())}"
+        for number in range(1, 1000):
+            path = folder / (f"{stem}.png" if number == 1 else f"{stem}_{number}.png")
+            try:
+                with open(path, "xb") as file:
+                    file.write(image)
+            except FileExistsError:
+                continue
+            return {"file": str(path), "folder": str(folder)}
+        raise AppError("Too many screenshots in one second", 429)
 
 
 def agent_status() -> dict:

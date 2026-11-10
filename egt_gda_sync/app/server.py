@@ -1,6 +1,8 @@
 """The local HTTP API and the embedded frontend."""
 
 import asyncio
+import base64
+import binascii
 import hmac
 import os
 import secrets
@@ -24,7 +26,8 @@ from egt_gda_sync.app.desktop import choose_folder, open_in_code, open_on_deskto
 from egt_gda_sync.app.errors import AppError
 from egt_gda_sync.assets.fonts import FONT_EXTENSIONS, facts_header
 from egt_gda_sync.assets.movies import is_movie
-from egt_gda_sync.game.project import MAX_EXPORT_BYTES, GameProject, agent_status, game_source_path
+from egt_gda_sync.game.project import (MAX_EXPORT_BYTES, MAX_SCREENSHOT_BYTES, GameProject,
+                                       agent_status, game_source_path)
 from egt_gda_sync.game.rng_server import MAX_QUEUE, MAX_RANDOMS, MAX_SEQUENCE, UINT32, GameServer
 from egt_gda_sync.workspace.library import MAX_TEXT_BYTES, Library
 from egt_gda_sync.images.metadata.service import MAX_METADATA
@@ -36,8 +39,11 @@ BODY_LIMIT = 128 * 1024
 # A text file that the asset details save comes whole: up to MAX_TEXT_BYTES of UTF-8, each byte of which JSON escapes
 # as at most six bytes (\u001f); the rest of the body fits in BODY_LIMIT.
 TEXT_BODY_LIMIT = 6 * MAX_TEXT_BYTES + BODY_LIMIT
-# A game export's files come whole, each byte of which JSON escapes as at most six bytes.
+# A game export's files come whole, each byte of which JSON escapes as at most six bytes; a
+# screenshot's PNG comes in base64, four characters for each three bytes.
+SCREENSHOT_BASE64 = (MAX_SCREENSHOT_BYTES + 2) // 3 * 4
 BODY_LIMITS = {"/api/asset-report/text": TEXT_BODY_LIMIT, "/api/game/export": 6 * MAX_EXPORT_BYTES + BODY_LIMIT,
+               "/api/game/screenshot": SCREENSHOT_BASE64 + BODY_LIMIT,
                '/api/image-studio/metadata': 6 * MAX_METADATA + BODY_LIMIT,
                '/api/image-studio/settings': 6 * MAX_METADATA + BODY_LIMIT}
 LOCAL_HOSTS = {"127.0.0.1", "localhost", "[::1]"}
@@ -212,6 +218,11 @@ class GameExportBody(_Body):
     files: Annotated[dict[Text4K, str], Field(min_length=1, max_length=500)]
     # C++ sources copied as they are: an export path to its path in the C++ game sources.
     copies: Annotated[dict[Text4K, Text4K], Field(max_length=500)] = {}
+
+
+class GameScreenshotBody(_Body):
+    """A screenshot of the browser game's screen: a PNG image, in base64."""
+    image: Annotated[str, StringConstraints(min_length=1, max_length=SCREENSHOT_BASE64)]
 
 
 class GameSourceBody(_Body):
@@ -810,6 +821,14 @@ def create_app(
         return workspace
 
     PlayedGame = Annotated[str, Depends(played_game)]
+
+    @app.post("/api/game/screenshot")
+    def game_screenshot(body: GameScreenshotBody, game: PlayedGame) -> dict:
+        try:
+            image = base64.b64decode(body.image, validate=True)
+        except binascii.Error as error:
+            raise AppError("A screenshot comes as a PNG image in base64") from error
+        return GameProject(library).save_screenshot(game, image)
 
     @app.get("/api/game/rng")
     def game_rng_state(game: PlayedGame, revision: Annotated[int | None, Query(ge=0)] = None,

@@ -1,12 +1,16 @@
 """The browser game's files: the game project (modules config and descriptors), its JSON data and its exports."""
 
+import base64
+import io
 import json
+import re
 import shutil
 import time
 from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
+from PIL import Image
 
 from egt_gda_sync.app.server import create_app
 from egt_gda_sync.game.project import GAME_SOURCES
@@ -116,6 +120,27 @@ def test_an_export_is_written_to_the_app_data_folder(client):
     assert client.post("/api/game/export", json={"name": "Example", "files": {"../escape.txt": "x"}}).status_code == 400
     assert client.post("/api/game/export", json={"name": "Example", "files": {"/etc/escape.txt": "x"}}).status_code == 400
     assert client.post("/api/game/export", json={"name": "Example", "files": files}, headers={"x-gda-token": "wrong"}).status_code == 403
+
+
+def test_a_screenshot_is_saved_to_the_app_data_folder_by_the_time_it_was_taken(client):
+    output = io.BytesIO()
+    Image.new("RGB", (1920, 1080), (200, 100, 20)).save(output, "PNG")
+    png = output.getvalue()
+    image = base64.b64encode(png).decode()
+    first = client.post("/api/game/screenshot", json={"image": image}).json()
+    second = client.post("/api/game/screenshot", params={"workspace": "example"}, json={"image": image}).json()
+    folder = client.home / "screenshots" / "example"
+    assert first["folder"] == str(folder)
+    # Named as the C++ ScreenshotsManager names the main viewport's: the time in UTC, a number for one of the same second.
+    assert re.fullmatch(r"screenshot_main_\d{4}-\d\d-\d\dT\d{6}Z\.png", Path(first["file"]).name)
+    assert Path(second["file"]).parent == folder and second["file"] != first["file"]
+    assert Path(first["file"]).read_bytes() == png and Path(second["file"]).read_bytes() == png
+    # Only a PNG image, in base64, of a workspace's game, with the session's token.
+    assert client.post("/api/game/screenshot", json={"image": base64.b64encode(b"GIF89a").decode()}).status_code == 400
+    assert client.post("/api/game/screenshot", json={"image": "not base64!"}).status_code == 400
+    assert client.post("/api/game/screenshot", params={"workspace": "../escape"}, json={"image": image}).status_code == 404
+    assert client.post("/api/game/screenshot", json={"image": image}, headers={"x-gda-token": "wrong"}).status_code == 403
+    assert sorted(path.name for path in folder.iterdir()) == sorted([Path(first["file"]).name, Path(second["file"]).name])
 
 
 def test_an_exports_folder_and_its_readme_open(client):

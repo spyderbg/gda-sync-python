@@ -334,12 +334,72 @@ function fullscreen() {
   else void stage.value?.requestFullscreen?.();
 }
 
+/** A screenshot's size, whatever the size the page shows the game at. */
+const SCREENSHOT = { width: 1920, height: 1080 };
+let screenshotTaking = false;
+
+/** The C++ ScreenshotsManager's screenshot of the main viewport (Ctrl+S): the game screen alone, its canvas, at
+ * 1920x1080, saved to the app data folder's screenshots (outside the repository) and copied to the clipboard. */
+async function takeScreenshot() {
+  const screen = canvas.value;
+  if (state.value !== 'running' || !screen || !project.value || screenshotTaking) return;
+  screenshotTaking = true;
+  try {
+    const shot = document.createElement('canvas');
+    shot.width = SCREENSHOT.width;
+    shot.height = SCREENSHOT.height;
+    const ctx = shot.getContext('2d');
+    if (!ctx) throw new Error('the browser could not draw the game screen');
+    // over black, as C++ clears the screenshot's frame buffer
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, shot.width, shot.height);
+    ctx.drawImage(screen, 0, 0, shot.width, shot.height);
+    const png = new Promise<Blob>((resolve, reject) => shot.toBlob(blob => (blob ? resolve(blob) : reject(new Error('the browser could not make the PNG image'))), 'image/png'));
+    // Copied at once, while the click or the key press still lets the page write the clipboard: '' or why not.
+    const copied = copyImage(png).then(() => '', (failure: Error) => failure.message || String(failure));
+    const image = await blobBase64(await png);
+    const saved = await api<{ file: string }>(`game/screenshot?workspace=${encodeURIComponent(project.value.workspace.id)}`, 'POST', { image })
+      .then(result => ({ file: result.file, error: '' }), (failure: Error) => ({ file: '', error: failure.message }));
+    const notCopied = await copied;
+    if (saved.file && !notCopied) notify(`Screenshot taken: saved to ${saved.file} and copied to the clipboard.`);
+    else if (saved.file) notify(`Screenshot saved to ${saved.file}, but not copied to the clipboard: ${notCopied}`, true);
+    else if (!notCopied) notify(`Screenshot copied to the clipboard, but not saved: ${saved.error}`, true);
+    else notify(`The screenshot was not saved (${saved.error}) or copied to the clipboard (${notCopied}).`, true);
+  } catch (failure) {
+    notify(`The screenshot was not taken: ${(failure as Error).message}`, true);
+  } finally {
+    screenshotTaking = false;
+  }
+}
+
+/** Copies a PNG image to the system clipboard. Its write starts before the image is made (an image to come), so that
+ * the browser still counts it as the user's action. */
+async function copyImage(png: Promise<Blob>) {
+  if (!navigator.clipboard?.write || typeof ClipboardItem === 'undefined') throw new Error('this browser cannot copy images');
+  await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })]);
+}
+
+function blobBase64(blob: Blob) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).slice(String(reader.result).indexOf(',') + 1));
+    reader.onerror = () => reject(reader.error ?? new Error('the browser could not read the PNG image'));
+    reader.readAsDataURL(blob);
+  });
+}
+
 function onKeydown(event: KeyboardEvent) {
   if (state.value !== 'running' || event.metaKey || event.altKey) return;
   // On the game's page the keys are the cabinet's: Space is START even when a button has the focus.
   const target = event.target as HTMLElement;
   if (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable) return;
   if (event.ctrlKey) {
+    // a screenshot (C++'s Ctrl+S, the Screenshots window), by the key's place whatever the keyboard layout
+    if (event.code === 'KeyS' && !event.shiftKey) {
+      event.preventDefault();
+      void takeScreenshot();
+      return;
+    }
     // the debug tools' shortcuts (C++'s imguiShortcuts: Ctrl+A, the Automation window)
     const shortcut = app?.Get(DebugImguiOverlay)?.GetShortcuts().Find(event);
     if (!shortcut) return;
@@ -587,6 +647,8 @@ onBeforeUnmount(() => {
             <button type="button" class="btn btn-outline-primary btn-sm" title="Insert credit" @click="cashIn(1000)">+10.00</button>
             <button type="button" class="btn btn-outline-primary btn-sm" title="Insert credit" @click="cashIn(10000)">+100.00</button>
             <button type="button" class="btn btn-outline-secondary btn-sm" title="Full screen" aria-label="Full screen" @click="fullscreen"><i class="mdi mdi-fullscreen" aria-hidden="true" /></button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" title="Screenshot of the game screen, saved and copied to the clipboard (Ctrl+S)" aria-label="Take a screenshot"
+              :disabled="state !== 'running'" @click="takeScreenshot"><i class="mdi mdi-camera-outline" aria-hidden="true" /></button>
           </div>
           <div class="game-panel-row" role="group" aria-label="Game cabinet buttons">
             <button v-for="button in cabinetButtons" :key="button.name" type="button" class="btn btn-outline-secondary btn-sm"
