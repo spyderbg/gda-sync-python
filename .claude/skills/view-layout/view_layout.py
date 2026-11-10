@@ -29,9 +29,13 @@ import argparse
 import fnmatch
 import json
 import math
+import os
 import sys
 from collections import Counter
+from collections.abc import Callable, Iterable
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
+from functools import cached_property
 from pathlib import Path
 
 from egt_gda_sync.game.layout_trace import HelperTrace
@@ -56,6 +60,31 @@ MIN_PIXELS = 64  # an image with fewer pixels than this to match by is not match
 BACKGROUND = 48.0  # the gray of the screen where the preview does not cover it
 FLAT = 8.0  # an image whose pixels' colors vary less than this (standard deviation, 0..255) is one flat color
 COLORS = [(255, 64, 64), (64, 200, 255), (255, 200, 0), (120, 255, 120), (255, 120, 255), (255, 255, 255)]
+# Threads that decode, match and draw at once. OpenCV and NumPy's large operations release Python's lock, so the work
+# runs in parallel; past 8 threads, memory bandwidth limits it and the gain is small.
+WORKERS = min(8, os.cpu_count() or 1)
+
+
+def parallel(function: Callable, items: Iterable) -> list:
+    """function of each item, computed on WORKERS threads, in the items' order. An exception is raised here."""
+    items = list(items)
+    if len(items) < 2 or WORKERS < 2:
+        return [function(item) for item in items]
+    with ThreadPoolExecutor(WORKERS) as pool:
+        return list(pool.map(function, items))
+
+
+def decode_images(items: Iterable[dict]) -> None:
+    """Decodes the images of laid out elements, each once and all at once, into the library's image cache, which placed
+    and render_view then take them from. An image that cannot be decoded fails where it is drawn, as before."""
+    def decode(key: tuple[str, tuple[int, ...] | None]) -> None:
+        try:
+            _scaled_image(Path(key[0]), key[1], 1.0)
+        except (OSError, ValueError, cv2.error):
+            pass
+    keys = {(item["file"], tuple(item["source"]) if "source" in item else None): None
+            for item in items if item["drawn"] and "file" in item}
+    parallel(decode, keys)
 
 
 def patterns(text: str | None) -> list[str]:
@@ -101,6 +130,36 @@ class Preview:
     scale: float  # preview pixels per screen pixel
     origin: tuple[float, float]  # the screen point the preview's top-left shows
     native: np.ndarray  # the preview (its part) at its own size, float32 RGB, which a smaller one is matched in
+
+    @cached_property
+    def planes(self) -> Planes:
+        """What images are matched in: the native preview when it is smaller than the screen, else the screen."""
+        return Planes.of(self.native if self.scale < 1.0 else self.rgb)
+
+
+@dataclass
+class Planes:
+    """An image's channels and the sum of their squares, apart, which templates are correlated with."""
+    channels: list[np.ndarray]
+    squares: np.ndarray
+
+    @staticmethod
+    def of(rgb: np.ndarray) -> Planes:
+        return Planes([np.ascontiguousarray(rgb[..., channel]) for channel in range(3)], (rgb * rgb).sum(axis=2))
+
+
+def masked_sqdiff(planes: Planes, window: tuple[int, int, int, int], rgb: np.ndarray, mask: np.ndarray) -> np.ndarray:
+    """cv2.matchTemplate's TM_SQDIFF of an RGB template in a window (left, top, right, bottom) of an image, with a mask that
+    is the same in every channel, as plain correlations, which OpenCV computes several times faster than a masked match:
+    Σ m(I - T)² = Σ m·I² - 2 Σ m·T·I + Σ m·T², the first over the image's squares summed over its channels. It is the sum
+    OpenCV's masked match computes, so it is as precise."""
+    left, top, right, bottom = window
+    weights = mask.astype(np.float32)
+    weighted = rgb * weights[..., None]
+    result = cv2.matchTemplate(planes.squares[top:bottom, left:right], weights, cv2.TM_CCORR)
+    for channel, plane in enumerate(planes.channels):
+        result -= 2 * cv2.matchTemplate(plane[top:bottom, left:right], np.ascontiguousarray(weighted[..., channel]), cv2.TM_CCORR)
+    return result + float((weighted.astype(np.float64) * rgb).sum())
 
 
 def load_preview(path: str, resolution: tuple[int, int], part: str | None, origin: str | None, scale: str | None,
@@ -152,26 +211,41 @@ def skipped(element_id: str, skip: list[str]) -> bool:
     return any(fnmatch.fnmatchcase(element_id, pattern) for pattern in skip)
 
 
-def rendered(file: Path, hidden: bool, text: str, skip: list[str]) -> list[bytes]:
-    """A view drawn as the app draws it, as PNG images to lay one over another: the whole view, or without the elements
-    left out, the segments of the view between them."""
-    cuts = tuple(index for index, element in enumerate(read_view(file)["elements"]) if skipped(str(element.get("id") or ""), skip))
-    if not cuts:
-        return [render_view(file, None, hidden, text=text)]
-    segments = []
-    while True:
+def rendered(files: list[Path], hidden: bool, text: str, skip: list[str]) -> list[bytes]:
+    """The views drawn as the app draws them, as PNG images to lay one over another, the first view's first: each whole
+    view, or without the elements left out, the segments of the view between them. All are drawn at once."""
+    # Laid out here first, so the threads find the game's resources loaded, and its images decoded.
+    decode_images(item for file in files for item in view_layout(file)["elements"]
+                  if (hidden or not item["hidden"]) and item["type"] != "Dummy" and not skipped(item["id"], skip))
+    jobs = []
+    for number, file in enumerate(files):
+        cuts = tuple(index for index, element in enumerate(read_view(file)["elements"]) if skipped(str(element.get("id") or ""), skip))
+        # A view has a segment more than the cuts it draws, so at most one more than its cuts.
+        jobs += [(number, file, cuts, segment) for segment in range(len(cuts) + 1)]
+
+    def render(job: tuple[int, Path, tuple[int, ...], int]) -> bytes | None:
+        _number, file, cuts, segment = job
+        if not cuts:
+            return render_view(file, None, hidden, text=text)
         try:
-            segments.append(render_view(file, None, hidden, segment=len(segments), cuts=cuts, text=text))
-        except ValueError:
-            return segments
+            return render_view(file, None, hidden, segment=segment, cuts=cuts, text=text)
+        except ValueError:  # past the view's last segment
+            return None
+
+    layers, ended = [], set()
+    for (number, *_job), png in zip(jobs, parallel(render, jobs)):
+        if png is None:
+            ended.add(number)
+        elif number not in ended:
+            layers.append(png)
+    return layers
 
 
 def composed(files: list[Path], resolution: tuple[int, int], skip: list[str]) -> np.ndarray:
     """The views drawn together on the gray screen, without their texts, as float32 RGB."""
     screen = np.full((resolution[1], resolution[0], 3), BACKGROUND, np.float32)
-    for file in files:
-        for png in rendered(file, False, "", skip):
-            blend(screen, png, 1.0)
+    for png in rendered(files, False, "", skip):
+        blend(screen, png, 1.0)
     return screen
 
 
@@ -270,9 +344,7 @@ def match(preview: Preview, template: np.ndarray, x0: int, y0: int, search: int)
         reach = max(1, round(search * factor)) if search else max(image.shape)
         left, top = max(left, cx0 - reach), max(top, cy0 - reach)
         right, bottom = min(right, cx0 + width + reach), min(bottom, cy0 + height + reach)
-    window = np.ascontiguousarray(image[top:bottom, left:right])
-    weights = np.repeat(mask[..., None], 3, axis=2).astype(np.float32)
-    result = cv2.matchTemplate(window, np.ascontiguousarray(template[..., :3] * 255.0), cv2.TM_SQDIFF, mask=weights)
+    result = masked_sqdiff(preview.planes, (left, top, right, bottom), template[..., :3] * 255.0, mask)
     scores = 1.0 - np.sqrt(np.maximum(np.nan_to_num(result, nan=np.inf, posinf=np.inf), 0) / (mask.sum() * 3)) / 255.0
     best = float(scores.max())
     hx, hy = cx0 - left, cy0 - top
@@ -319,32 +391,47 @@ def locate(args: argparse.Namespace) -> None:
                     return (name if view == file else f"{layouts[view][0]['name']}:{name}") + (" is found" if (mx, my) != (0, 0) else " is")
         return None
 
+    # Each element placed at its own scale, its box kept, and matched at each scale; all at once, then taken in order.
+    laid = [(file, item, data[item["index"]]) for file, (layout, data) in layouts.items() for item in layout["elements"]
+            if item["type"] != "Dummy" and not skipped(item["id"], skip)]
+    wanted = [not ((only and item["id"] not in only and f"#{item['index']}" not in only) or (item["hidden"] and not args.hidden and not only))
+              for _file, item, _data in laid]
+    decode_images(item for _file, item, _data in laid)
+    preview.planes  # computed here, once, before the threads that share it
+    jobs = [(number, factor) for number in range(len(laid)) for factor in (dict.fromkeys(factors) if wanted[number] else [1.0])]
+
+    def placed_and_matched(job: tuple[int, float]) -> tuple[tuple[np.ndarray, int, int] | None, Match | str | None]:
+        number, factor = job
+        _file, item, data = laid[number]
+        scaled = placed(data, item, factor)
+        return scaled, match(preview, scaled[0], scaled[1], scaled[2], args.search) if scaled is not None and wanted[number] else None
+
+    done = dict(zip(jobs, parallel(placed_and_matched, jobs)))
     results: dict[tuple[Path, int], tuple[Match, float] | str] = {}
     flat: set[tuple[Path, int]] = set()
-    for file, (layout, data) in layouts.items():
-        for item in layout["elements"]:
-            if item["type"] == "Dummy" or skipped(item["id"], skip) or (drawn := placed(data[item["index"]], item)) is None:
+    for number, (file, item, _data) in enumerate(laid):
+        drawn = done[(number, 1.0)][0]
+        if drawn is None:
+            continue
+        boxes[(file, item["index"])] = (item.get("file"), tuple(item.get("source", ())), drawn[0].shape[:2], drawn[1], drawn[2])
+        if not wanted[number]:
+            continue
+        best: tuple[Match, float] | str = "draws nothing"
+        for factor in factors:
+            scaled, found = done[(number, factor)]
+            if scaled is None:
                 continue
-            boxes[(file, item["index"])] = (item.get("file"), tuple(item.get("source", ())), drawn[0].shape[:2], drawn[1], drawn[2])
-            if (only and item["id"] not in only and f"#{item['index']}" not in only) or (item["hidden"] and not args.hidden and not only):
-                continue
-            best: tuple[Match, float] | str = "draws nothing"
-            for factor in factors:
-                scaled = drawn if factor == 1.0 else placed(data[item["index"]], item, factor)
-                if scaled is None:
-                    continue
-                found = match(preview, scaled[0], scaled[1], scaled[2], args.search)
-                if isinstance(found, str):
-                    best = found if isinstance(best, str) and best == "draws nothing" else best
-                elif isinstance(best, str) or found.score > best[0].score:
-                    best = (found, factor)
-            results[(file, item["index"])] = best
-            # A flat image, such as a white icon, matches any patch of its color: its shape is not compared.
-            opaque = drawn[0][..., 3] >= 0.5
-            if opaque.any() and float((drawn[0][..., :3][opaque] * 255).std(axis=0).max()) < FLAT:
-                flat.add((file, item["index"]))
-            if not isinstance(best, str) and best[1] == 1.0 and best[0].score >= good:
-                found_at[(file, item["index"])] = (best[0].dx, best[0].dy)
+            if isinstance(found, str):
+                best = found if isinstance(best, str) and best == "draws nothing" else best
+            elif isinstance(best, str) or found.score > best[0].score:
+                best = (found, factor)
+        results[(file, item["index"])] = best
+        # A flat image, such as a white icon, matches any patch of its color: its shape is not compared.
+        opaque = drawn[0][..., 3] >= 0.5
+        if opaque.any() and float((drawn[0][..., :3][opaque] * 255).std(axis=0).max()) < FLAT:
+            flat.add((file, item["index"]))
+        if not isinstance(best, str) and best[1] == 1.0 and best[0].score >= good:
+            found_at[(file, item["index"])] = (best[0].dx, best[0].dy)
 
     for file, (layout, data) in layouts.items():
         rows = []
@@ -424,9 +511,15 @@ def locate(args: argparse.Namespace) -> None:
 
 
 def blend(base: np.ndarray, png: bytes, opacity: float) -> None:
-    layer = cv2.cvtColor(cv2.imdecode(np.frombuffer(png, np.uint8), cv2.IMREAD_UNCHANGED), cv2.COLOR_BGRA2RGBA).astype(np.float32)
+    pixels = cv2.imdecode(np.frombuffer(png, np.uint8), cv2.IMREAD_UNCHANGED)
+    # Only where the layer draws: elsewhere it is transparent, and leaves the base as it is.
+    x, y, width, height = cv2.boundingRect(cv2.extractChannel(pixels, 3))
+    if not width or not height:
+        return
+    layer = cv2.cvtColor(pixels[y:y + height, x:x + width], cv2.COLOR_BGRA2RGBA).astype(np.float32)
     alpha = layer[..., 3:4] / 255.0 * opacity
-    base[:] = layer[..., :3] * alpha + base * (1 - alpha)
+    area = base[y:y + height, x:x + width]
+    area[:] = layer[..., :3] * alpha + area * (1 - alpha)
 
 
 def draw(args: argparse.Namespace) -> None:
@@ -440,9 +533,8 @@ def draw(args: argparse.Namespace) -> None:
         tiles = (np.indices((height, width)) // 16).sum(axis=0) % 2
         base = np.where(tiles[..., None] == 1, 96.0, 64.0).astype(np.float32).repeat(3, axis=2)
     opacity = args.opacity if args.opacity is not None else (0.5 if args.over else 1.0)
-    for file in files:
-        for png in rendered(file, args.hidden, sample, skip) if opacity > 0 else []:
-            blend(base, png, opacity)
+    for png in rendered(files, args.hidden, sample, skip) if opacity > 0 else []:
+        blend(base, png, opacity)
     left, top, crop_width, crop_height = (int(value) for value in numbers(args.crop, 4, "--crop")) if args.crop else (0, 0, width, height)
     left, top = max(0, left), max(0, top)
     right, bottom = min(width, left + crop_width), min(height, top + crop_height)
