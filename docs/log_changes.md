@@ -7,6 +7,12 @@ Versions follow the project's single-digit major.minor.build scheme.
 
 ## [Unreleased]
 
+## [2.1.2] - 2026-11-10
+
+### Changed
+
+- Trace view-layout helper calls and show hidden elements
+
 ## [2.1.1] - 2026-11-10
 
 ### Changed
@@ -190,5 +196,7 @@ Versions follow the project's single-digit major.minor.build scheme.
 
 [2.1.0]: https://github.com/spyderbg/gda-sync-python/compare/dad723a9d3be93ab740d559bc4e65994b9634ece...releases%2Fv2.1.0
 
-[Unreleased]: https://github.com/spyderbg/gda-sync-python/compare/releases%2Fv2.1.1...HEAD
 [2.1.1]: https://github.com/spyderbg/gda-sync-python/compare/1756283f6b40e3f9ffee3d0064a871284e0845ab...releases%2Fv2.1.1
+
+[Unreleased]: https://github.com/spyderbg/gda-sync-python/compare/releases%2Fv2.1.2...HEAD
+[2.1.2]: https://github.com/spyderbg/gda-sync-python/compare/cbd2d0ea24898107ff7b0c73bfcca7980a56718f...releases%2Fv2.1.2
