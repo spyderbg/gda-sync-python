@@ -36,7 +36,7 @@ const error = ref('');
 const pollingError = ref('');
 const status = ref<AgentStatus | null>(null);
 const output = ref<HTMLElement | null>(null);
-const followOutput = ref(true);
+const showClaudeLogs = ref(true);
 const thisRun = computed(() => status.value?.kind === 'view-layout' && status.value.files[0] === workspace ? status.value : null);
 const transcript = computed(() => thisRun.value?.log.join('\n\n') ?? '');
 const locked = computed(() => starting.value || !!startingViewLayout.value || !status.value || !!pollingError.value || status.value.running);
@@ -80,7 +80,7 @@ function readImage(file: File): Promise<string> {
 }
 
 async function scrollOutput() {
-  if (!followOutput.value) return;
+  if (!showClaudeLogs.value) return;
   await nextTick();
   if (output.value) output.value.scrollTop = output.value.scrollHeight;
 }
@@ -126,7 +126,6 @@ async function start() {
     const encoded = await readImage(image.value);
     status.value = await api<AgentStatus>('game/view-layout', 'POST', { workspace, image: encoded, instructions: instructions.value });
     updateGameAgentActivity(status.value);
-    followOutput.value = true;
     void scrollOutput();
   } catch (failure) {
     error.value = (failure as Error).message;
@@ -167,6 +166,9 @@ onBeforeUnmount(() => {
             <label for="layout-instructions">Layout instructions (optional)</label>
             <textarea id="layout-instructions" v-model="instructions" class="form-control" rows="4" maxlength="8000" :disabled="starting || status?.running" placeholder="For example: main game, BetBarView and CreditsWinBarView." />
           </div>
+          <div class="form-group">
+            <label class="small mb-0"><input v-model="showClaudeLogs" type="checkbox" @change="scrollOutput"> Claude Code logs</label>
+          </div>
           <p class="small text-muted">If the skill needs clarification or permission, Claude Code stops and includes its question in the output.</p>
           <p v-if="error" class="alert alert-danger" role="alert">{{ error }}</p>
           <button type="submit" class="btn btn-primary" :disabled="!image || locked">
@@ -193,7 +195,7 @@ onBeforeUnmount(() => {
             <ol class="small layout-arguments">
               <li>
                 <strong>Preview image:</strong> <code>{{ thisRun.execution.invocation.arguments[0] }}</code>
-                <button v-if="thisRun.execution.invocation.arguments[0]" type="button" class="btn btn-sm btn-outline-primary ml-2 py-0" aria-label="Open preview image" title="Open preview image in the default image viewer" :disabled="openingPreview" @click="openPreviewImage">{{ openingPreview ? 'Opening…' : 'Open' }}</button>
+                <button v-if="thisRun.execution.invocation.arguments[0]" type="button" class="details-icon d-inline-flex ml-1" aria-label="Open preview image" title="Open preview image in the default image viewer" :disabled="openingPreview" :aria-busy="openingPreview || undefined" @click="openPreviewImage"><i class="mdi mdi-open-in-new" aria-hidden="true" /></button>
               </li>
               <li><strong>Workspace id:</strong> <code>{{ thisRun.execution.invocation.arguments[1] }}</code></li>
             </ol>
@@ -224,10 +226,9 @@ onBeforeUnmount(() => {
               </li>
             </ol>
           </details>
-          <details class="layout-details mb-3" @toggle="scrollOutput">
+          <details v-if="showClaudeLogs && transcript.trim()" class="layout-details mb-3" @toggle="scrollOutput">
             <summary><h3 class="h6 d-inline">Claude Code logs</h3></summary>
-            <label class="small mb-2"><input v-model="followOutput" type="checkbox" @change="scrollOutput"> Follow output</label>
-            <pre ref="output" class="layout-output" tabindex="0" aria-label="Complete Claude Code output">{{ transcript || 'Waiting for Claude Code…' }}</pre>
+            <pre ref="output" class="layout-output" tabindex="0" aria-label="Complete Claude Code output">{{ transcript }}</pre>
           </details>
         </div>
       </section>
