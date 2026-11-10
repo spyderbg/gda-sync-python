@@ -2,6 +2,7 @@
 element's image, and writes the positions that put them there, keeping the rest of the view's text."""
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -13,6 +14,42 @@ from egt_gda_sync.assets.views import render_view
 from tests.test_views import write_json, write_png
 
 HELPER = Path(__file__).resolve().parents[1] / ".claude" / "skills" / "view-layout" / "view_layout.py"
+
+
+def test_helper_traces_exact_arguments_failures_and_validates_the_uploaded_inputs(tmp_path):
+    from egt_gda_sync.game.layout_trace import AUDIT_ENV, CONTEXT_ENV, fingerprint
+    preview = tmp_path / "preview with spaces 'and quotes'.png"
+    write_png(preview, noise(8, 8, 5))
+    audit = tmp_path / "calls.jsonl"
+    arguments = [str(preview), "workspace-with-id"]
+    env = {**os.environ, AUDIT_ENV: str(audit),
+           CONTEXT_ENV: json.dumps({"arguments": arguments, "previewSha256": fingerprint(preview)})}
+
+    def run(*args):
+        return subprocess.run([sys.executable, "-I", str(HELPER), *args], env=env, capture_output=True,
+                              text=True, check=False, timeout=30)
+
+    result = run("validate-inputs", *arguments)
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout) == {"preview": arguments[0], "workspace": arguments[1], "validated": True}
+    assert "exit 0" in result.stderr
+    assert run("validate-inputs", arguments[1], arguments[0]).returncode == 2
+    assert run("validate-inputs", arguments[0], "other-workspace").returncode == 2
+    write_png(preview, noise(8, 8, 6))
+    changed = run("validate-inputs", *arguments)
+    assert changed.returncode == 2 and "uploaded preview changed" in changed.stderr
+    assert run("unknown-subcommand", "argument with spaces").returncode == 2
+    events = [json.loads(line) for line in audit.read_text().splitlines()]
+    starts = [event for event in events if event["event"] == "started"]
+    finishes = [event for event in events if event["event"] == "finished"]
+    assert len(starts) == len(finishes) == 5
+    assert len({event["id"] for event in starts}) == 5
+    assert starts[0]["arguments"] == ["validate-inputs", *arguments]
+    assert starts[0]["argv"][-5:] == ["-I", str(HELPER), "validate-inputs", *arguments]
+    assert starts[-1]["arguments"] == ["unknown-subcommand", "argument with spaces"]
+    assert [event["exitCode"] for event in finishes] == [0, 2, 2, 2, 2]
+    assert all(event["durationSeconds"] > 0 for event in finishes)
+    assert [event["arguments"] for event in events if event["event"] == "validated"] == [arguments]
 
 
 def noise(width: int, height: int, seed: int) -> np.ndarray:

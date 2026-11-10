@@ -34,6 +34,11 @@ from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 
+from egt_gda_sync.game.layout_trace import HelperTrace
+
+# Register before OpenCV and the app imports, so their startup and failures are timed too.
+_trace = HelperTrace() if __name__ == "__main__" else None
+
 import cv2
 import numpy as np
 
@@ -540,9 +545,21 @@ def move(args: argparse.Namespace) -> None:
         print(f"{file.name} #{index} {data[index].get('id', '')}: {number_text(old[0])},{number_text(old[1])} -> {number_text(x)},{number_text(y)}")
 
 
+def validate_inputs(args) -> None:
+    try:
+        print(json.dumps(_trace.validate(args.preview, args.workspace)))
+    except (OSError, ValueError) as error:
+        fail(str(error))
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0], formatter_class=argparse.RawDescriptionHelpFormatter, epilog=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
+
+    command = commands.add_parser("validate-inputs", help="validate the skill's preview and workspace arguments")
+    command.add_argument("preview")
+    command.add_argument("workspace")
+    command.set_defaults(run=validate_inputs)
 
     def preview_options(command: argparse.ArgumentParser) -> None:
         command.add_argument("--skip", metavar="ID,...", help="leave out the elements whose ids match these patterns, such as "
@@ -592,4 +609,10 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except SystemExit as error:
+        _trace.exit_code = error.code if isinstance(error.code, int) else 1 if error.code else 0
+        raise
+    else:
+        _trace.exit_code = 0

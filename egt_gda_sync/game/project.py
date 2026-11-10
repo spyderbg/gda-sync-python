@@ -21,10 +21,12 @@ game lists, so that an export is a whole plugin: the C++ files the browser game 
 
 from __future__ import annotations
 
+import copy
 import io
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import tempfile
@@ -35,6 +37,7 @@ from pathlib import Path
 from PIL import Image, UnidentifiedImageError
 
 from egt_gda_sync.app.errors import AppError
+from egt_gda_sync.game.layout_trace import AUDIT_ENV, CONTEXT_ENV, changed_files, fingerprint, view_snapshot
 from egt_gda_sync.sync.rss_sync import expand_path, load_documents
 from egt_gda_sync.workspace.library import Library, contained, safe_path
 
@@ -358,9 +361,10 @@ class GameProject:
         scratch = Path(tempfile.mkdtemp(prefix="layout-", dir=parent))
         preview_path = scratch / f"preview{suffix}"
         preview_path.write_bytes(image)
-        prompt = (
-            f"Use the `view-layout` skill with preview {json.dumps(str(preview_path))} and workspace {json.dumps(workspace)}.\n"
-            f"Read and follow {json.dumps(str(VIEW_LAYOUT_SKILL))}.\n"
+        arguments = [str(preview_path), workspace]
+        prompt = "/view-layout " + shlex.join(arguments)
+        context = (
+            f"Follow the view-layout skill at {json.dumps(str(VIEW_LAYOUT_SKILL))}.\n"
             "The application supplied these authoritative inputs; use them instead of another workspace configuration:\n"
             + json.dumps({"workspace": workspace, "name": entry.get("game_name", workspace), "game_path": str(game),
                           "games_root_path": str(resources.parent), "config": self.library.config_path,
@@ -369,7 +373,7 @@ class GameProject:
             "The View layout page started this session. No one can answer questions during execution. "
             "If the skill requires confirmation or clarification, stop before that action and put the question in your report. "
             "Keep all the skill's scope restrictions, including checking for uncommitted view changes before editing. "
-            "Only edit the selected game's view element positions, scales and permitted fitBox fields. "
+            "Only edit the selected game's views within the skill's permitted scope. "
             "Do not commit. Keep drawings in the supplied scratch folder. Report progress and the complete result.\n"
             f"\nUser's layout instructions:\n{instructions or 'Match the preview; infer the visible views and state using the skill.'}\n"
         )
@@ -378,9 +382,17 @@ class GameProject:
                  f"Bash(git -C {resources.parent} status:*)", f"Bash(git -C {resources.parent} diff:*)",
                  "Bash(node tests/tetra-panel/run.mjs:*)"]
         command = [claude, "-p", "--output-format", "stream-json", "--verbose", "--permission-mode", "auto",
+                   "--append-system-prompt", context,
                    "--add-dir", str(scratch), str(resources.parent), "--allowedTools", *tools]
+        execution = {"invocation": {"skill": "view-layout", "arguments": arguments, "validated": False},
+                     "startedAt": time.time(), "durationSeconds": None, "calls": [], "changedFiles": None,
+                     "warnings": [], "gamePath": str(game)}
+        env = _agent_env()
+        env[AUDIT_ENV] = str(scratch / "helper-calls.jsonl")
+        env[CONTEXT_ENV] = json.dumps({"arguments": arguments, "previewSha256": fingerprint(preview_path)})
         try:
-            return _start_agent("view-layout", command, [workspace], run=lambda: _run_claude(command, prompt, full_output=True))
+            return _start_agent("view-layout", command, [workspace], execution=execution,
+                                run=lambda: _run_layout(command, prompt, env, game, scratch))
         except AppError:
             shutil.rmtree(scratch)
             raise
@@ -524,7 +536,7 @@ def agent_status(*, summary: bool = False) -> dict:
     (ported, failed) when it ended."""
     with _agent_lock:
         keys = ("running", "kind", "files") if summary else _agent_job.keys()
-        return {key: (list(_agent_job[key]) if isinstance(_agent_job[key], list) else _agent_job[key]) for key in keys}
+        return {key: copy.deepcopy(_agent_job[key]) for key in keys}
 
 
 def _ported(file: str) -> bool:
@@ -590,21 +602,21 @@ def game_sync_tools(games: Path) -> list[str]:
     return ["Read", "Grep", "Glob", *(f"Bash({command}:*)" for command in commands)]
 
 
-def _start_agent(kind: str, command: list[str], files: list[str], run=None) -> dict:
+def _start_agent(kind: str, command: list[str], files: list[str], run=None, execution=None) -> dict:
     with _agent_lock:
         if _agent_job["running"]:
             raise AppError("An agent is running", 409)
-        _agent_job.update(running=True, kind=kind, log=[], result=None, error=None, files=list(files))
+        _agent_job.update(running=True, kind=kind, log=[], result=None, error=None, files=list(files), execution=execution)
     threading.Thread(target=run or (lambda: _run_agent(command)), daemon=True).start()
     return agent_status()
 
 
-def _run_claude(command: list[str], prompt: str, *, full_output: bool = False) -> None:
+def _run_claude(command: list[str], prompt: str, *, full_output: bool = False, env=None, finish_job: bool = True) -> None:
     """A headless Claude Code session (claude -p, stream-json): each of its steps in the log as it comes, and its last
     message, the report, as the result."""
     final = None
     try:
-        with subprocess.Popen(command, cwd=APP_SOURCES, env=_agent_env(), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+        with subprocess.Popen(command, cwd=APP_SOURCES, env=env if env is not None else _agent_env(), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                               stderr=subprocess.STDOUT, text=True) as process:
             process.stdin.write(prompt)
             process.stdin.close()
@@ -633,7 +645,92 @@ def _run_claude(command: list[str], prompt: str, *, full_output: bool = False) -
         with _agent_lock:
             _agent_job["error"] = f"Claude Code did not run: {error}"
     finally:
+        if finish_job:
+            with _agent_lock:
+                _agent_job["running"] = False
+
+
+def _layout_event(event: dict) -> None:
+    """Publish actual helper activity without truncating Claude's own responses."""
+    with _agent_lock:
+        execution = _agent_job["execution"]
+        call = next((item for item in execution["calls"] if item["id"] == event["id"]), None)
+        if event["event"] == "started":
+            execution["calls"].append({**event, "durationSeconds": None, "exitCode": None})
+            _agent_job["log"].append("view_layout.py started:\n" + shlex.join(event["argv"]))
+        elif event["event"] == "finished" and call:
+            call.update({key: value for key, value in event.items() if key != "event"})
+            _agent_job["log"].append(f"view_layout.py finished ({event['durationSeconds']:.3f}s, exit {event['exitCode']}):\n"
+                                     + shlex.join(call["argv"]))
+        elif event["event"] == "validated" and event["arguments"] == execution["invocation"]["arguments"]:
+            execution["invocation"]["validated"] = True
+            _agent_job["log"].append("view-layout skill arguments validated (preview image, workspace id):\n"
+                                     + json.dumps(event["arguments"], ensure_ascii=False))
+
+
+def _run_layout(command: list[str], prompt: str, env: dict, game: Path, scratch: Path) -> None:
+    """Trace the helper while Claude runs, then compare view contents before marking the job finished."""
+    started = time.perf_counter()
+    stop = threading.Event()
+    audit = Path(env[AUDIT_ENV])
+
+    def warning(message):
         with _agent_lock:
+            _agent_job["execution"]["warnings"].append(message)
+            _agent_job["log"].append(message)
+
+    def collect():
+        offset = 0
+        while True:
+            try:
+                if audit.exists():
+                    with audit.open(encoding="utf-8") as stream:
+                        stream.seek(offset)
+                        while line := stream.readline():
+                            if not line.endswith("\n"):
+                                break  # A helper may still be writing this record.
+                            offset = stream.tell()
+                            _layout_event(json.loads(line))
+            except (OSError, ValueError, KeyError, TypeError) as error:
+                warning(f"Helper trace could not be read: {error}")
+                return
+            if stop.is_set():
+                return
+            stop.wait(0.1)
+
+    monitor = threading.Thread(target=collect, daemon=True)
+    before = None
+    try:
+        before = view_snapshot(game)
+        monitor.start()
+        _run_claude(command, prompt, full_output=True, env=env, finish_job=False)
+    except Exception as error:  # Keep failed sessions inspectable, including failures before Claude starts.
+        with _agent_lock:
+            _agent_job["error"] = f"View layout failed: {error}"
+    finally:
+        stop.set()
+        if monitor.ident is not None:
+            monitor.join()
+        try:
+            changes = changed_files(before, view_snapshot(game)) if before is not None else None
+        except OSError as error:
+            changes = None
+            warning(f"Changed files could not be compared: {error}")
+        with _agent_lock:
+            execution = _agent_job["execution"]
+            execution.update(durationSeconds=time.perf_counter() - started, changedFiles=changes)
+            if not execution["invocation"]["validated"] and not _agent_job["error"]:
+                _agent_job["error"] = "Claude Code ended without validating the view-layout skill's preview and workspace arguments."
+            incomplete = sum(call["durationSeconds"] is None for call in execution["calls"])
+            if incomplete:
+                execution["warnings"].append(f"{incomplete} helper call(s) did not report completion; their duration is unknown.")
+            _agent_job["log"].append(f"View layout total time: {execution['durationSeconds']:.3f}s\nChanged view files:\n"
+                                     + ("\n".join(f"{item['change']}: {item['path']}" for item in changes) or "None"
+                                        if changes is not None else "Could not determine changes"))
+            try:
+                (scratch / "execution.json").write_text(json.dumps(execution, indent=2), encoding="utf-8")
+            except OSError as error:
+                execution["warnings"].append(f"Execution summary could not be saved: {error}")
             _agent_job["running"] = False
 
 

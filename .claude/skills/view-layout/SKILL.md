@@ -1,11 +1,22 @@
 ---
 name: view-layout
-description: Lay a game's views out by a preview the user sends, a picture of how the screen should look (such as a designer's PNG from the GDA's DESIGN/09.Preview), placing and scaling the elements it shows and hiding the ones it leaves out, changing nothing but the elements lists of the game's v/<resolution>/*View.json files. Use when the user sends or names a preview and asks to place, move, scale or hide view elements to match it.
+description: Lay a game's views out by a preview the user sends, a picture of how the screen should look (such as a designer's PNG from the GDA's DESIGN/09.Preview), placing and scaling the elements it shows, showing the hidden ones it shows and hiding the ones it leaves out, changing nothing but the elements lists of the game's v/<resolution>/*View.json files. Use when the user sends or names a preview and asks to place, move, scale, show or hide view elements to match it.
 argument-hint: <preview image> [workspace id] [view names...]
 allowed-tools: Bash(.venv/bin/python -I .claude/skills/view-layout/view_layout.py:*)
 ---
 
 Lay the views out by the preview: `$ARGUMENTS`.
+
+The first positional argument is the preview image (`$ARGUMENTS[0]`), and the second is the workspace id
+(`$ARGUMENTS[1]`). When both are supplied, **before any layout work**, run:
+
+```
+.venv/bin/python -I .claude/skills/view-layout/view_layout.py validate-inputs "$ARGUMENTS[0]" "$ARGUMENTS[1]"
+```
+
+Stop if validation fails. In a View layout page session this also checks the arguments and image bytes against
+the application's selected workspace and uploaded preview. All helper calls are logged automatically with their
+complete argument lists, exit codes and durations; keep using the helper directly so the page can show that trace.
 
 A view is a `*.json` file of the game's `v` folder, such as `v/1920x1080/BetBarView.json` or
 `v/1920x1080/SwButtons/InfoSwButtonView.json`: its ElementsList, the elements the game draws in order (README.md,
@@ -32,12 +43,13 @@ $H move VIEW ID=X,Y '#INDEX=X,Y' ...      # writes positions
   `*Data.json` descriptors. A view that the game includes from elsewhere, such as
   `../common/features/responsible_gaming/v/...`, is shared with other games, so report what it needs instead.
 - **Change only where elements are, and whether they show:** `position`, always through `move`; `scale` where the
-  preview's image is larger or smaller (the Edit tool, laid out like the file's other members); and `"hidden": true`
-  on an element the preview leaves out (step 3, "Left out of the preview"). A `Text` element's `fitBox` changes only
-  where the preview's text area clearly differs.
-- **Ask first** before changing anything else of an element, adding, removing or reordering elements, or showing an
-  element that is hidden. The code finds elements by id, the order is the drawing order, and the code shows and hides
-  elements. A user's request, such as deleting the elements the preview leaves out, is the asking: do what it says
+  preview's image is larger or smaller (the Edit tool, laid out like the file's other members); and `hidden`, so that
+  the view shows what the preview shows: `"hidden": true` on an element the preview leaves out, and none on a hidden
+  element the preview shows (step 3, "Left out of the preview" and "Hidden, but in the preview"). A `Text` element's
+  `fitBox` changes only where the preview's text area clearly differs.
+- **Ask first** before changing anything else of an element, or adding, removing or reordering elements. The code
+  finds elements by id, the order is the drawing order, and the code shows and hides elements. A user's request, such
+  as creating the elements the views lack or deleting the ones the preview leaves out, is the asking: do what it says
   instead of the default. Never change ids, types, `rssKey`, `rssKeys`, `rssKeySound`, `rssStyleId`, `color` or
   `loopCount`.
 - **Never edit anything else:**
@@ -124,32 +136,55 @@ $H move VIEW ID=X,Y '#INDEX=X,Y' ...      # writes positions
      asks for something else for these elements, such as deleting them, do that instead (Scope). Before deleting one,
      grep its id in the code, as in step 4: when the code finds it by id, say so and ask, since the game can fail
      without it.
-4. **Check the code:** grep each element you move or hide for its id in the game's TypeScript
+   - **Hidden, but in the preview:** a hidden element whose image the preview shows, such as knobs that a commit
+     hid, is shown by default: its `"hidden": true` is removed, and it is moved if the preview has it elsewhere.
+     `locate` and `draw` leave hidden elements out, so run `$H locate <preview> <views> --skip ... --hidden` too, and
+     draw with `--hidden` to see them. `elements` marks which are `hidden`. Show one only when all of these hold:
+     - `locate --hidden` finds it reliably, as for a move;
+     - no shown element draws the same image at the same place: `elements` lists another with the same keys and box.
+       The preview shows that one, and the hidden one is its companion;
+     - it draws in the preview's state, as for hiding;
+     - the code does not use its id (step 4). A hidden element the code finds by id is a companion, such as the
+       credit's `image_label_min` and `image_label_max`, where the label's animation settles, or one the code shows
+       when it needs it;
+     - its view is in the game's folder.
+
+     A hidden Anim that decorates the element, at its position, such as a knob's sparkles, is shown with it.
+   - **In the preview, but in no view:** report it (Scope). When the user asks to create it, add an element of the
+     type its neighbours have, drawing an image the descriptors already have (`rssKey`), with an id the code does not
+     use; say where in the drawing order you put it. When no image of the descriptors is the preview's, report that
+     instead.
+4. **Check the code:** grep each element you move, hide or show for its id in the game's TypeScript
    (`frontend/src/game/alpha_family/plugins/<plugin>/`) and in `frontend/src/game/alpha_family/libs/`.
    - Report an element whose position the code sets or tweens: its JSON position is only where it starts.
-   - Leave an element whose visibility the code sets by id (`SetHidden`, `SetVisible` on the element) shown, and
+   - Leave an element whose visibility the code sets by id (`SetHidden`, `SetVisible` on the element) as it is, and
      report it. The code showing or hiding the whole view, such as `IKnobsView`'s `SetVisible(true)` in the main game,
      does not count: a hidden element stays hidden in a shown view, and Burning Crown's `ThemeLayout` keeps it hidden
-     in every theme.
+     in every theme. Removing its `hidden` is what shows it.
 5. **Apply:**
    - Use `$H move <view> <id>=<x>,<y> ...` for each view (`#<index>` for an id that repeats), and Edit a `scale` that
      changes. Keep whole numbers unless the element's other numbers have fractions.
    - Hide an element with the Edit tool: add `"hidden": true,` on the line after its `"type"`, as the views' other
      hidden elements have it.
+   - Show an element with the Edit tool: remove its `"hidden": true` line, and the comma before it when it was the
+     element's last member.
 6. **Verify:**
-   - Run `locate` again: each moved element should now stay, with `here` at its best score.
-   - Run `elements` on the views you hid elements in: each one should be listed as `hidden`.
-   - Draw `after.png` the same way as `before.png`, and Read it. A hidden element is no longer drawn.
+   - Run `locate` again: each moved element should now stay, with `here` at its best score. Each shown element should
+     now be listed without `--hidden`, and stay.
+   - Run `elements` on the views you hid or showed elements in: each hidden one should be listed as `hidden`, and each
+     shown one not.
+   - Draw `after.png` the same way as `before.png`, and Read it. A hidden element is no longer drawn, and a shown one
+     is drawn sharp over the preview.
    - For Burning Crown's panel views, also run `node tests/tetra-panel/run.mjs <game folder>/v/1920x1080` from
      `frontend`.
 7. **Report:**
    - the workspace, the preview, the state you laid out, and its origin and scale;
-   - for each view, each element changed (old → new position and scale), which were placed by eye, and each element
-     hidden because the preview leaves it out;
-   - the elements left unchanged, and why: a match you did not trust, an element outside the preview, or one the code
-     places, shows or hides;
+   - for each view, each element changed (old → new position and scale), which were placed by eye, each element
+     hidden because the preview leaves it out, and each one shown because the preview shows it;
+   - the elements left unchanged, and why: a match you did not trust, an element outside the preview, a companion, or
+     one the code places, shows or hides;
    - what the preview needs beyond the views: images, text styles, elements the views lack, included views, and
-     elements it leaves out that the code shows by id;
+     elements whose visibility the code sets by id that the preview shows otherwise;
    - `git -C $GAMES diff --stat -- <game folder>/v`.
 
    Tell the user how to see the result: the Play page shows changed views within a second, and the Asset library's

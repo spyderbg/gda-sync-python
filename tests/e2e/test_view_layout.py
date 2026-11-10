@@ -32,7 +32,10 @@ def test_layout_upload_shows_live_complete_output_and_recovers_it_after_reload(l
         body = route.request.post_data_json
         requests.append(body)
         state.update(running=True, kind="view-layout", files=[body["workspace"]],
-                     log=["assistant:\nFirst response.\n" + "x" * 1000 + "\nLast line."])
+                     log=["assistant:\nFirst response.\n" + "x" * 1000 + "\nLast line."],
+                     execution={"invocation": {"skill": "view-layout", "arguments": ["/tmp/layout with spaces/preview.png", body["workspace"]], "validated": False},
+                                "startedAt": 100, "durationSeconds": None, "gamePath": "/games/resources/example",
+                                "calls": [], "changedFiles": None, "warnings": []})
         route.fulfill(json=state)
 
     page.route("**/api/game/view-layout", start)
@@ -64,6 +67,15 @@ def test_layout_upload_shows_live_complete_output_and_recovers_it_after_reload(l
     navigation.screenshot(path=str(BUILD / 'view-layout-running.png'))
     assert requests[0]["instructions"] == "Main game, BetBarView."
     assert base64.b64decode(requests[0]["image"]) == image
+    summary = page.get_by_role("region", name="Execution summary")
+    expect(summary).to_contain_text("Awaiting skill validation…")
+    state["execution"]["invocation"]["validated"] = True
+    state["execution"]["calls"].append({"id": "call-1", "argv": [".venv/bin/python", "-I", ".claude/skills/view-layout/view_layout.py", "locate", "/tmp/layout with spaces/preview.png", "v/1920x1080/BetBarView.json", "--skip", "*_tetra", "--json"],
+                                        "cwd": "/app", "durationSeconds": None, "exitCode": None})
+    expect(summary).to_contain_text("Validated by the skill")
+    calls = page.get_by_role("list", name="Helper executions")
+    expect(calls).to_contain_text("--skip")
+    expect(calls).to_contain_text("Running…")
 
     state["log"].append("Successful tool output.\nFull second line.")
     expect(output).to_contain_text("Full second line.")
@@ -71,6 +83,8 @@ def test_layout_upload_shows_live_complete_output_and_recovers_it_after_reload(l
     navigation.get_by_role("button", name="Image studio", exact=True).click()
     expect(spinner).to_be_visible()
     state.update(running=False, result={"report": "Moved the bet bar.\nReview the layout in Play.", "turns": 3, "cost": 0.2})
+    state["execution"].update(durationSeconds=72.8, changedFiles=[{"path": "v/1920x1080/BetBarView.json", "change": "modified"}])
+    state["execution"]["calls"][0].update(durationSeconds=2.456, exitCode=0)
     state["log"].append("Final response: moved the bet bar.")
     expect(spinner).to_have_count(0)
     expect(layout_entry).not_to_have_attribute('aria-busy', 'true')
@@ -82,6 +96,10 @@ def test_layout_upload_shows_live_complete_output_and_recovers_it_after_reload(l
     expect(output).to_contain_text("Final response: moved the bet bar.")
     expect(page.get_by_text("Moved the bet bar.\nReview the layout in Play.", exact=True)).to_be_visible()
     expect(page.get_by_role("button", name="Run view-layout", exact=True)).to_be_enabled()
+    expect(summary).to_contain_text("1 min 12.8 s")
+    expect(summary).to_contain_text("Changed view files (1)")
+    expect(summary).to_contain_text("v/1920x1080/BetBarView.json · modified")
+    expect(calls).to_contain_text("2.456 s · exit 0")
     BUILD.mkdir(exist_ok=True)
     page.screenshot(path=str(BUILD / "view-layout-desktop.png"), full_page=True)
 

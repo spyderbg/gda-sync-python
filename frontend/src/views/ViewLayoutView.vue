@@ -11,6 +11,15 @@ interface AgentStatus {
   log: string[];
   result: { report: string; cost: number | null; turns: number | null } | null;
   error: string | null;
+  execution?: {
+    invocation: { skill: string; arguments: string[]; validated: boolean };
+    startedAt: number;
+    durationSeconds: number | null;
+    gamePath: string;
+    calls: { id: string; argv: string[]; cwd: string; durationSeconds: number | null; exitCode: number | null }[];
+    changedFiles: { path: string; change: string }[] | null;
+    warnings: string[];
+  } | null;
 }
 
 const MAX_IMAGE_BYTES = 16 * 1024 * 1024;
@@ -27,6 +36,9 @@ const followOutput = ref(true);
 const thisRun = computed(() => status.value?.kind === 'view-layout' && status.value.files[0] === workspace ? status.value : null);
 const transcript = computed(() => thisRun.value?.log.join('\n\n') ?? '');
 const locked = computed(() => starting.value || !!startingViewLayout.value || !status.value || !!pollingError.value || status.value.running);
+function duration(seconds: number) {
+  return seconds < 60 ? `${seconds.toFixed(3)} s` : `${Math.floor(seconds / 60)} min ${(seconds % 60).toFixed(1)} s`;
+}
 let timer = 0;
 let active = false;
 let generation = 0;
@@ -160,6 +172,35 @@ onBeforeUnmount(() => {
           </p>
           <p v-if="pollingError" class="alert alert-warning" role="alert">{{ pollingError }}</p>
           <p v-if="thisRun?.error" class="alert alert-danger" role="alert">{{ thisRun.error }}</p>
+          <section v-if="thisRun?.execution" class="layout-summary mb-3" aria-label="Execution summary">
+            <h3 class="h6">Execution summary</h3>
+            <p class="small mb-2"><strong>Total time:</strong> {{ thisRun.execution.durationSeconds == null ? 'In progress…' : duration(thisRun.execution.durationSeconds) }}</p>
+            <p class="small mb-2"><strong>Skill arguments:</strong> {{ thisRun.execution.invocation.validated ? 'Validated by the skill' : thisRun.running ? 'Awaiting skill validation…' : 'Not validated' }}</p>
+            <ol class="small layout-arguments">
+              <li><strong>Preview image:</strong> <code>{{ thisRun.execution.invocation.arguments[0] }}</code></li>
+              <li><strong>Workspace id:</strong> <code>{{ thisRun.execution.invocation.arguments[1] }}</code></li>
+            </ol>
+            <template v-if="!thisRun.running">
+              <h4 class="h6">Changed view files<span v-if="thisRun.execution.changedFiles"> ({{ thisRun.execution.changedFiles.length }})</span></h4>
+              <p class="small text-muted">{{ thisRun.execution.gamePath }}</p>
+              <p v-if="thisRun.execution.changedFiles == null" class="small">Changes could not be determined.</p>
+              <ul v-else-if="thisRun.execution.changedFiles.length" class="small">
+                <li v-for="file in thisRun.execution.changedFiles" :key="file.path"><code>{{ file.path }}</code> · {{ file.change }}</li>
+              </ul>
+              <p v-else class="small">No view files changed.</p>
+            </template>
+            <p v-for="warning in thisRun.execution.warnings" :key="warning" class="alert alert-warning small">{{ warning }}</p>
+            <details v-if="thisRun.execution.calls.length" open>
+              <summary class="small font-weight-bold">view_layout.py calls ({{ thisRun.execution.calls.length }})</summary>
+              <ol class="layout-calls small mt-2" aria-label="Helper executions">
+                <li v-for="call in thisRun.execution.calls" :key="call.id" class="mb-3">
+                  <p class="mb-1">{{ call.durationSeconds == null ? thisRun.running ? 'Running…' : 'Completion not reported' : duration(call.durationSeconds) }}<span v-if="call.exitCode != null"> · exit {{ call.exitCode }}</span></p>
+                  <pre>{{ JSON.stringify(call.argv, null, 2) }}</pre>
+                  <span class="text-muted">Working folder: {{ call.cwd }}</span>
+                </li>
+              </ol>
+            </details>
+          </section>
           <pre ref="output" class="layout-output" tabindex="0" aria-label="Complete Claude Code output">{{ transcript || 'Waiting for Claude Code…' }}</pre>
           <template v-if="thisRun?.result">
             <h3 class="h6 mt-4">Final report</h3>
@@ -177,4 +218,7 @@ onBeforeUnmount(() => {
 .layout-preview { display: block; width: 100%; max-height: 360px; object-fit: contain; background: #f5f5f5; border-radius: 6px; }
 .layout-output { min-height: 320px; max-height: 65vh; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; padding: 1rem; border-radius: 6px; background: #151b28; color: #e7edf7; font-size: 12px; line-height: 1.6; }
 .layout-report { white-space: pre-wrap; overflow-wrap: anywhere; }
+.layout-summary { padding: 1rem; border: 1px solid #dee2e6; border-radius: 6px; overflow-wrap: anywhere; }
+.layout-summary pre { white-space: pre-wrap; overflow-wrap: anywhere; color: inherit; font-size: inherit; }
+.layout-arguments, .layout-calls { padding-left: 1.25rem; }
 </style>

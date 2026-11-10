@@ -5,6 +5,7 @@ import io
 import json
 import re
 import shutil
+import shlex
 import time
 from pathlib import Path
 
@@ -347,10 +348,17 @@ def test_view_layout_validates_the_preview_workspace_and_installation(client, tm
 def test_view_layout_streams_all_responses_and_runs_the_skill_for_the_selected_workspace(client, tmp_path, monkeypatch):
     import sys
     from egt_gda_sync.game import project
+    view = client.game / "v" / "1920x1080" / "LayoutView.json"
+    view.parent.mkdir(parents=True, exist_ok=True)
+    view.write_text('{"elements": [{"id": "label", "type": "Dummy", "position": {"x": 1, "y": 2}}]}')
+    untouched = view.with_name("ExistingEditView.json")
+    untouched.write_text('{"name": "Already edited before this run"}')
+    deleted = view.with_name("DeletedView.json")
+    deleted.write_text('{}')
     record, release = tmp_path / "run.json", tmp_path / "release"
     claude = tmp_path / "claude"
     claude.write_text(f'''#!{sys.executable}
-import json, sys, time
+import json, shlex, subprocess, sys, time
 from pathlib import Path
 prompt = sys.stdin.read()
 Path({str(record)!r}).write_text(json.dumps({{"argv": sys.argv[1:], "prompt": prompt, "cwd": str(Path.cwd())}}))
@@ -360,6 +368,12 @@ emit({{"type": "assistant", "message": {{"content": [{{"type": "text", "text": "
 deadline = time.monotonic() + 10
 while not Path({str(release)!r}).exists() and time.monotonic() < deadline:
     time.sleep(0.01)
+helper = [sys.executable, "-I", ".claude/skills/view-layout/view_layout.py"]
+arguments = shlex.split(prompt)[1:]
+subprocess.run([*helper, "validate-inputs", *arguments], check=True)
+subprocess.run([*helper, "move", {str(view)!r}, "label=31,42"], check=True)
+Path({str(deleted)!r}).unlink()
+Path({str(view.with_name('AddedView.json'))!r}).write_text('{{}}')
 emit({{"type": "user", "message": {{"content": [{{"type": "tool_result", "content": "Successful tool output.\\nSecond line.", "is_error": False}}]}}}})
 for number in range(450):
     emit({{"type": "assistant", "message": {{"content": [{{"type": "text", "text": "Step " + str(number)}}]}}}})
@@ -374,7 +388,7 @@ emit({{"type": "result", "is_error": False, "result": "Layout updated. Full repo
         started = client.post("/api/game/view-layout", json=body)
         assert started.status_code == 200
         assert started.json()["kind"] == "view-layout" and started.json()["files"] == ["example"]
-        for _ in range(200):
+        for _ in range(2000):
             status = client.get("/api/game/agent/status").json()
             if status["log"]:
                 break
@@ -387,7 +401,7 @@ emit({{"type": "result", "is_error": False, "result": "Layout updated. Full repo
         assert len(list((client.home / "view-layouts").iterdir())) == 1
     finally:
         release.touch()
-        for _ in range(200):
+        for _ in range(2000):
             status = client.get("/api/game/agent/status").json()
             if not status["running"]:
                 break
@@ -401,15 +415,30 @@ emit({{"type": "result", "is_error": False, "result": "Layout updated. Full repo
     assert "Layout updated. Full report." in transcript
     run = json.loads(record.read_text())
     assert run["cwd"] == str(project.APP_SOURCES)
-    assert "`view-layout` skill" in run["prompt"] and str(project.VIEW_LAYOUT_SKILL) in run["prompt"]
-    assert str(client.game) in run["prompt"] and str(tmp_path / "workspace.json") in run["prompt"]
-    assert "Main game: BetBarView." in run["prompt"] and "stop before that action" in run["prompt"]
+    context = run["argv"][run["argv"].index("--append-system-prompt") + 1]
+    assert str(project.VIEW_LAYOUT_SKILL) in context
+    assert str(client.game) in context and str(tmp_path / "workspace.json") in context
+    assert "Main game: BetBarView." in context and "stop before that action" in context
     scratch = next((client.home / "view-layouts").iterdir())
     assert (scratch / "preview.png").read_bytes() == base64.b64decode(body["image"])
     assert str(scratch / "preview.png") in run["prompt"]
+    assert shlex.split(run["prompt"]) == ["/view-layout", str(scratch / "preview.png"), "example"]
     assert run["argv"][:6] == ["-p", "--output-format", "stream-json", "--verbose", "--permission-mode", "auto"]
     assert "Skill(view-layout)" in run["argv"]
     assert "Bash(.venv/bin/python -I .claude/skills/view-layout/view_layout.py:*)" in run["argv"]
+    execution = status["execution"]
+    assert execution["invocation"] == {"skill": "view-layout", "arguments": [str(scratch / "preview.png"), "example"], "validated": True}
+    assert len(execution["calls"]) == 2
+    assert execution["calls"][0]["arguments"] == ["validate-inputs", str(scratch / "preview.png"), "example"]
+    assert execution["calls"][1]["arguments"] == ["move", str(view), "label=31,42"]
+    assert all(call["durationSeconds"] > 0 and call["exitCode"] == 0 for call in execution["calls"])
+    assert execution["durationSeconds"] >= sum(call["durationSeconds"] for call in execution["calls"])
+    assert execution["changedFiles"] == [{"path": "v/1920x1080/AddedView.json", "change": "added"},
+                                         {"path": "v/1920x1080/DeletedView.json", "change": "deleted"},
+                                         {"path": "v/1920x1080/LayoutView.json", "change": "modified"}]
+    assert execution["warnings"] == []
+    assert json.loads((scratch / "execution.json").read_text()) == execution
+    assert "view_layout.py finished" in transcript and "View layout total time" in transcript
 
 
 def test_view_layout_keeps_failure_responses_and_the_final_error(client, tmp_path, monkeypatch):
@@ -435,6 +464,32 @@ sys.exit(1)
     transcript = "\n".join(status["log"])
     assert "Details remain visible." in transcript and "Authentication failed" in transcript
     assert next((client.home / "view-layouts").iterdir()).joinpath("preview.jpg").is_file()
+    assert status["execution"]["durationSeconds"] > 0
+    assert status["execution"]["changedFiles"] == []
+    assert status["execution"]["invocation"]["validated"] is False
+
+
+def test_view_layout_cannot_report_success_without_the_skill_validating_its_arguments(client, tmp_path, monkeypatch):
+    import sys
+    from egt_gda_sync.game import project
+    claude = tmp_path / "claude"
+    claude.write_text(f'''#!{sys.executable}
+import json, sys
+sys.stdin.read()
+print(json.dumps({{"type": "result", "is_error": False, "result": "Skipped the skill."}}))
+''')
+    claude.chmod(0o755)
+    monkeypatch.setattr(project, "find_claude", lambda: str(claude))
+    assert client.post("/api/game/view-layout", json=layout_preview()).status_code == 200
+    for _ in range(200):
+        status = client.get("/api/game/agent/status").json()
+        if not status["running"]:
+            break
+        time.sleep(0.01)
+    assert not status["running"]
+    assert "without validating" in status["error"]
+    assert status["result"]["report"] == "Skipped the skill."
+    assert status["execution"]["changedFiles"] == []
 
 
 @pytest.mark.skipif(not shutil.which("node"), reason="the export agent runs on Node.js")

@@ -72,7 +72,7 @@ const sections = computed(() => [
           <button type="button" class="nav-link" :aria-label="entry.label" :aria-busy="entry.running || undefined" :aria-current="entry.active ? 'page' : undefined" :title="entry.title" @click="entry.onSelect">
             <i aria-hidden="true" :class="['menu-icon', 'mdi', entry.icon]" /><span class="menu-title">{{ entry.label }}</span>
             <span v-if="entry.count !== undefined" :class="['badge', 'badge-pill', entry.badge]">{{ number(entry.count) }}</span>
-            <i v-if="entry.running" class="mdi mdi-loading mdi-spin sidebar-running" aria-hidden="true" />
+            <span v-if="entry.running" class="sidebar-running" aria-hidden="true" />
           </button>
         </li>
       </ul>
