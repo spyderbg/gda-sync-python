@@ -372,13 +372,15 @@ class GameProject:
             + "\n\n## Headless execution\n"
             "The View layout page started this session. No one can answer questions during execution. "
             "If the skill requires confirmation or clarification, stop before that action and put the question in your report. "
-            "Keep all the skill's scope restrictions, including checking for uncommitted view changes before editing. "
+            "Keep all the skill's scope restrictions. When its execute conditions fail, such as uncommitted changes in the "
+            "games repository, stop before any layout work, change nothing and report what failed. "
             "Only edit the selected game's views within the skill's permitted scope. "
             "Do not commit. Keep drawings in the supplied scratch folder. Report progress and the complete result.\n"
             f"\nUser's layout instructions:\n{instructions or 'Match the preview; infer the visible views and state using the skill.'}\n"
         )
         tools = ["Skill(view-layout)", "Read", "Grep", "Glob", "Edit",
                  "Bash(.venv/bin/python -I .claude/skills/view-layout/view_layout.py:*)",
+                 "Bash(.venv/bin/python -I .claude/skills/view-layout/execute_conditions.py:*)",
                  f"Bash(git -C {resources.parent} status:*)", f"Bash(git -C {resources.parent} diff:*)",
                  "Bash(node tests/tetra-panel/run.mjs:*)"]
         command = [claude, "-p", "--output-format", "stream-json", "--verbose", "--permission-mode", "auto",
@@ -386,16 +388,32 @@ class GameProject:
                    "--add-dir", str(scratch), str(resources.parent), "--allowedTools", *tools]
         execution = {"invocation": {"skill": "view-layout", "arguments": arguments, "validated": False},
                      "startedAt": time.time(), "durationSeconds": None, "calls": [], "changedFiles": None,
-                     "warnings": [], "gamePath": str(game)}
+                     "conditions": None, "result": None, "warnings": [], "gamePath": str(game)}
         env = _agent_env()
         env[AUDIT_ENV] = str(scratch / "helper-calls.jsonl")
-        env[CONTEXT_ENV] = json.dumps({"arguments": arguments, "previewSha256": fingerprint(preview_path)})
+        env[CONTEXT_ENV] = json.dumps({"arguments": arguments, "previewSha256": fingerprint(preview_path),
+                                       "config": self.library.config_path})
         try:
             return _start_agent("view-layout", command, [workspace], execution=execution,
                                 run=lambda: _run_layout(command, prompt, env, game, scratch))
         except AppError:
             shutil.rmtree(scratch)
             raise
+
+    def view_layout_preview_path(self, file: str) -> str:
+        """A saved layout preview, restricted to the application's layout run folders."""
+        root = str(Path(self.library.home) / "view-layouts")
+        target = os.path.abspath(file)
+        if not os.path.isabs(file) or not contained(root, target):
+            raise AppError("Only saved View layout previews can be opened", 403)
+        parts = Path(os.path.relpath(target, root)).parts
+        if (len(parts) != 2 or not re.fullmatch(r"layout-[A-Za-z0-9_-]+", parts[0])
+                or parts[1] not in {"preview.png", "preview.jpg", "preview.dds"}):
+            raise AppError("Only saved View layout previews can be opened", 403)
+        path = safe_path(root, os.path.join(*parts))
+        if not os.path.isfile(path):
+            raise AppError("The saved layout preview no longer exists", 404)
+        return path
 
     def game_imports(self) -> dict:
         """The C++ games of the family (games/game/alpha_family/plugins/<plugin>/src/Egt) and how much of each the browser
@@ -657,15 +675,40 @@ def _layout_event(event: dict) -> None:
         call = next((item for item in execution["calls"] if item["id"] == event["id"]), None)
         if event["event"] == "started":
             execution["calls"].append({**event, "durationSeconds": None, "exitCode": None})
-            _agent_job["log"].append("view_layout.py started:\n" + shlex.join(event["argv"]))
+            _agent_job["log"].append(f"{event.get('helper', 'view_layout.py')} started:\n" + shlex.join(event["argv"]))
         elif event["event"] == "finished" and call:
             call.update({key: value for key, value in event.items() if key != "event"})
-            _agent_job["log"].append(f"view_layout.py finished ({event['durationSeconds']:.3f}s, exit {event['exitCode']}):\n"
+            _agent_job["log"].append(f"{call.get('helper', 'view_layout.py')} finished ({event['durationSeconds']:.3f}s, "
+                                     f"exit {event['exitCode']}):\n"
                                      + shlex.join(call["argv"]))
+        elif event["event"] == "conditions":
+            execution["conditions"] = {"passed": event["passed"], "failed": event["failed"]}
+            _agent_job["log"].append(f"Execute conditions failed: {', '.join(event['failed'])}" if event["failed"]
+                                     else "Execute conditions hold: " + ", ".join(event["passed"]))
         elif event["event"] == "validated" and event["arguments"] == execution["invocation"]["arguments"]:
             execution["invocation"]["validated"] = True
             _agent_job["log"].append("view-layout skill arguments validated (preview image, workspace id):\n"
                                      + json.dumps(event["arguments"], ensure_ascii=False))
+
+
+def _layout_result(execution: dict, error: str | None) -> str:
+    """How a View layout run ended, in one sentence, for the page's execution summary."""
+    changes = execution["changedFiles"]
+    count = None if changes is None else len(changes)
+    files = f"{count} view file{'' if count == 1 else 's'}"
+    failed = (execution.get("conditions") or {}).get("failed") or []
+    if failed:
+        condition = f"the execute condition{'s' if len(failed) > 1 else ''} {', '.join(failed)} failed"
+        return (f"Stopped before any layout work: {condition}, so nothing changed." if count == 0
+                else f"Stopped: {condition}, but {files} changed." if count
+                else f"Stopped: {condition}; the changed view files could not be determined.")
+    if error:
+        return ("Failed with an error, and no view file changed." if count == 0
+                else f"Failed with an error after {files} changed." if count
+                else "Failed with an error; the changed view files could not be determined.")
+    return ("Finished without changing any view file." if count == 0
+            else f"Finished: {files} changed." if count
+            else "Finished, but the changed view files could not be determined.")
 
 
 def _run_layout(command: list[str], prompt: str, env: dict, game: Path, scratch: Path) -> None:
@@ -721,6 +764,7 @@ def _run_layout(command: list[str], prompt: str, env: dict, game: Path, scratch:
             execution.update(durationSeconds=time.perf_counter() - started, changedFiles=changes)
             if not execution["invocation"]["validated"] and not _agent_job["error"]:
                 _agent_job["error"] = "Claude Code ended without validating the view-layout skill's preview and workspace arguments."
+            execution["result"] = _layout_result(execution, _agent_job["error"])
             incomplete = sum(call["durationSeconds"] is None for call in execution["calls"])
             if incomplete:
                 execution["warnings"].append(f"{incomplete} helper call(s) did not report completion; their duration is unknown.")

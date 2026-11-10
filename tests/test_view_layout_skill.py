@@ -3,6 +3,7 @@ element's image, and writes the positions that put them there, keeping the rest 
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -14,6 +15,7 @@ from egt_gda_sync.assets.views import render_view
 from tests.test_views import write_json, write_png
 
 HELPER = Path(__file__).resolve().parents[1] / ".claude" / "skills" / "view-layout" / "view_layout.py"
+CONDITIONS = HELPER.with_name("execute_conditions.py")
 
 
 def test_helper_traces_exact_arguments_failures_and_validates_the_uploaded_inputs(tmp_path):
@@ -50,6 +52,69 @@ def test_helper_traces_exact_arguments_failures_and_validates_the_uploaded_input
     assert [event["exitCode"] for event in finishes] == [0, 2, 2, 2, 2]
     assert all(event["durationSeconds"] > 0 for event in finishes)
     assert [event["arguments"] for event in events if event["event"] == "validated"] == [arguments]
+
+
+def test_execute_conditions_stop_the_skill_while_the_games_branch_has_uncommitted_changes(tmp_path):
+    from egt_gda_sync.game.layout_trace import AUDIT_ENV, CONTEXT_ENV
+    games = tmp_path / "games"
+    game = games / "resources" / "example"
+    write_json(game / "v" / "1920x1080" / "LayoutView.json", {"name": "LayoutView", "elements": []})
+    (games / "other.txt").write_text("one\n")
+
+    def git(*args):
+        subprocess.run(["git", "-C", str(games), "-c", "user.name=Test", "-c", "user.email=test@example.com", *args],
+                       check=True, capture_output=True, timeout=30)
+
+    git("init", "-q", "-b", "layout")
+    git("add", "-A")
+    git("commit", "-q", "-m", "Views")
+    config = tmp_path / "config folder" / "workspace.json"
+    write_json(config, {"games_root_path": str(games), "defaultWorkspace": "example", "workspaces": [
+        {"id": "example", "game_name": "Example", "game_path": "{games_root_path}/resources/example", "gda_path": str(tmp_path)},
+        {"id": "gone", "game_name": "Gone", "game_path": "{games_root_path}/resources/gone", "gda_path": str(tmp_path)}]})
+    audit = tmp_path / "calls.jsonl"
+    # Git looks for the repository no higher than tmp_path, so the test's own surroundings never count.
+    env = {key: value for key, value in os.environ.items() if key != CONTEXT_ENV}
+    env.update({AUDIT_ENV: str(audit), "GIT_CEILING_DIRECTORIES": str(tmp_path)})
+
+    def run(*args, context=None):
+        return subprocess.run([sys.executable, "-I", str(CONDITIONS), *args], capture_output=True, text=True, check=False,
+                              timeout=30, env={**env, **({CONTEXT_ENV: json.dumps(context)} if context else {})})
+
+    clean = run("example", "--config", str(config))
+    assert clean.returncode == 0, clean.stdout + clean.stderr
+    assert f"workspace example ({config}): game folder {game}" in clean.stdout
+    assert "ok   no-uncommitted-changes" in clean.stdout and "All 1 execute conditions hold." in clean.stdout
+    # The default workspace of the configuration that the View layout page supplied; an empty id is no id.
+    supplied = run("", context={"arguments": [], "previewSha256": "", "config": str(config)})
+    assert supplied.returncode == 0 and f"workspace example ({config})" in supplied.stdout
+
+    # Anything uncommitted on the branch stops the skill, outside the game folder too, and every change is listed.
+    (games / "other.txt").write_text("two\n")
+    (game / "v" / "1920x1080" / "NewView.json").write_text("{}")
+    changed = run("example", "--config", str(config))
+    assert changed.returncode == 1, changed.stdout + changed.stderr
+    assert f"FAIL no-uncommitted-changes: {games} has 2 uncommitted change(s) on branch layout." in changed.stdout
+    assert " M other.txt" in changed.stdout and "?? resources/example/v/1920x1080/NewView.json" in changed.stdout
+    assert "1 of 1 execute conditions failed (no-uncommitted-changes): stop the skill" in changed.stdout
+    git("add", "other.txt")
+    (game / "v" / "1920x1080" / "NewView.json").unlink()
+    staged = run("example", "--config", str(config))
+    assert staged.returncode == 1 and "M  other.txt" in staged.stdout
+
+    # Without git, nothing backs the views up.
+    shutil.rmtree(games / ".git")
+    unversioned = run("example", "--config", str(config))
+    assert unversioned.returncode == 1 and "is not in a git repository" in unversioned.stdout
+
+    unknown = run("nope", "--config", str(config))
+    assert unknown.returncode == 2 and "has no workspace 'nope' (its workspaces: example, gone)" in unknown.stderr
+    gone = run("gone", "--config", str(config))
+    assert gone.returncode == 2 and "the game folder of the workspace gone does not exist" in gone.stderr
+
+    events = [json.loads(line) for line in audit.read_text().splitlines()]
+    assert {event["helper"] for event in events if event["event"] == "started"} == {"execute_conditions.py"}
+    assert [event["exitCode"] for event in events if event["event"] == "finished"] == [0, 0, 1, 1, 1, 2, 2]
 
 
 def noise(width: int, height: int, seed: int) -> np.ndarray:

@@ -818,6 +818,11 @@ def create_app(
             raise AppError("The layout preview must be an image in base64") from error
         return GameProject(library).start_view_layout(body.workspace, image, body.instructions)
 
+    @app.post("/api/game/view-layout/open-preview")
+    def open_view_layout_preview(body: ResourceFileBody) -> dict:
+        opener(GameProject(library).view_layout_preview_path(body.file))
+        return {"opened": True}
+
     @app.get("/api/game/import-game")
     def game_import_game_report(plugin: Annotated[str | None, Query(max_length=64)] = None) -> dict:
         project = GameProject(library)

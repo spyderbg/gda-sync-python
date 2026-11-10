@@ -62,12 +62,13 @@ class HelperTrace:
     The helper's stdout remains available for machine-readable results.
     """
 
-    def __init__(self):
+    def __init__(self, helper: str = "view_layout.py"):
         self.started = time.perf_counter()
         self.id = uuid.uuid4().hex
+        self.helper = helper
         self.exit_code = 1
         self.argv = list(getattr(sys, "orig_argv", [sys.executable, *sys.argv]))
-        self.event("started", argv=self.argv, arguments=sys.argv[1:], cwd=os.getcwd(), startedAt=time.time())
+        self.event("started", helper=helper, argv=self.argv, arguments=sys.argv[1:], cwd=os.getcwd(), startedAt=time.time())
         atexit.register(self.finish)
 
     def event(self, event: str, **fields) -> None:
@@ -100,5 +101,5 @@ class HelperTrace:
     def finish(self) -> None:
         duration = time.perf_counter() - self.started
         self.event("finished", durationSeconds=duration, finishedAt=time.time(), exitCode=self.exit_code)
-        print(f"view_layout.py: {shlex.join(self.argv)}\n"
-              f"view_layout.py: {duration:.3f}s · exit {self.exit_code}", file=sys.stderr)
+        print(f"{self.helper}: {shlex.join(self.argv)}\n"
+              f"{self.helper}: {duration:.3f}s · exit {self.exit_code}", file=sys.stderr)

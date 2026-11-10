@@ -4,7 +4,7 @@ info:
   description: The local HTTP API of EGT GDA Sync. It answers only requests to a loopback
     host; requests other than GET and HEAD need the session token that GET /api/session
     returns, in the X-GDA-Token header.
-  version: 2.0.1
+  version: 2.1.2
 components:
   schemas:
     Area:
@@ -330,6 +330,19 @@ components:
       title: GameImportGameBody
       description: 'A C++ game of the family to import (its plugin folder), and the
         TypeScript files of it to port (none: all).'
+    GameScreenshotBody:
+      properties:
+        image:
+          type: string
+          maxLength: 22369624
+          minLength: 1
+          title: Image
+      additionalProperties: false
+      type: object
+      required:
+      - image
+      title: GameScreenshotBody
+      description: 'A screenshot of the browser game''s screen: a PNG image, in base64.'
     GameSourceBody:
       properties:
         file:
@@ -973,6 +986,28 @@ components:
       title: TextFileBody
       description: The new text of a text file of the game's resources, and the revision
         of the file it was edited from.
+    ViewLayoutBody:
+      properties:
+        workspace:
+          type: string
+          maxLength: 4096
+          title: Workspace
+        image:
+          type: string
+          maxLength: 22369624
+          minLength: 1
+          title: Image
+        instructions:
+          type: string
+          maxLength: 8000
+          title: Instructions
+          default: ''
+      additionalProperties: false
+      type: object
+      required:
+      - workspace
+      - image
+      title: ViewLayoutBody
     ViewPosition:
       properties:
         index:
@@ -1698,6 +1733,64 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '413':
           $ref: '#/components/responses/ContentTooLarge'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - GDA sync
+  /api/rss-sync/open-file:
+    post:
+      summary: Open Resource File
+      operationId: open_resource_file_api_rss_sync_open_file_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResourceFileBody'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Open Resource File Api Rss Sync Open File Post
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '413':
+          $ref: '#/components/responses/ContentTooLarge'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - GDA sync
+  /api/rss-sync/declaration-path:
+    get:
+      summary: Declaration Path
+      operationId: declaration_path_api_rss_sync_declaration_path_get
+      parameters:
+      - name: descriptor
+        in: query
+        required: true
+        schema:
+          type: string
+          maxLength: 4096
+          title: Descriptor
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Declaration Path Api Rss Sync Declaration Path Get
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
         '500':
           $ref: '#/components/responses/ServerError'
       tags:
@@ -2876,6 +2969,69 @@ paths:
           $ref: '#/components/responses/ServerError'
       tags:
       - Browser game
+  /api/game/view-layout:
+    post:
+      summary: View Layout
+      operationId: view_layout_api_game_view_layout_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ViewLayoutBody'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response View Layout Api Game View Layout Post
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '413':
+          description: The request body is larger than 21973 KiB
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Browser game
+  /api/game/view-layout/open-preview:
+    post:
+      summary: Open View Layout Preview
+      operationId: open_view_layout_preview_api_game_view_layout_open_preview_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResourceFileBody'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Open View Layout Preview Api Game View Layout Open Preview
+                  Post
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '413':
+          $ref: '#/components/responses/ContentTooLarge'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Browser game
   /api/game/import-game:
     get:
       summary: Game Import Game Report
@@ -2968,15 +3124,25 @@ paths:
     get:
       summary: Game Agent Status
       operationId: game_agent_status_api_game_agent_status_get
+      parameters:
+      - name: summary
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Summary
       responses:
         '200':
           description: Successful Response
           content:
             application/json:
               schema:
-                additionalProperties: true
                 type: object
+                additionalProperties: true
                 title: Response Game Agent Status Api Game Agent Status Get
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
         '403':
           $ref: '#/components/responses/Forbidden'
         '500':
@@ -3066,6 +3232,49 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '413':
           description: The request body is larger than 49280 KiB
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Browser game
+  /api/game/screenshot:
+    post:
+      summary: Game Screenshot
+      operationId: game_screenshot_api_game_screenshot_post
+      parameters:
+      - name: workspace
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 200
+          - type: 'null'
+          title: Workspace
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GameScreenshotBody'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Game Screenshot Api Game Screenshot Post
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '413':
+          description: The request body is larger than 21973 KiB
           content:
             application/json:
               schema:

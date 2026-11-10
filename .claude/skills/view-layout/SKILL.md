@@ -2,7 +2,7 @@
 name: view-layout
 description: Lay a game's views out by a preview the user sends, a picture of how the screen should look (such as a designer's PNG from the GDA's DESIGN/09.Preview), placing and scaling the elements it shows, showing the hidden ones it shows and hiding the ones it leaves out, changing nothing but the elements lists of the game's v/<resolution>/*View.json files. Use when the user sends or names a preview and asks to place, move, scale, show or hide view elements to match it.
 argument-hint: <preview image> [workspace id] [view names...]
-allowed-tools: Bash(.venv/bin/python -I .claude/skills/view-layout/view_layout.py:*)
+allowed-tools: Bash(.venv/bin/python -I .claude/skills/view-layout/view_layout.py:*), Bash(.venv/bin/python -I .claude/skills/view-layout/execute_conditions.py:*)
 ---
 
 Lay the views out by the preview: `$ARGUMENTS`.
@@ -17,6 +17,46 @@ The first positional argument is the preview image (`$ARGUMENTS[0]`), and the se
 Stop if validation fails. In a View layout page session this also checks the arguments and image bytes against
 the application's selected workspace and uploaded preview. All helper calls are logged automatically with their
 complete argument lists, exit codes and durations; keep using the helper directly so the page can show that trace.
+
+Then, always, **before any layout work**, check the execute conditions, with the workspace id when one is supplied:
+
+```
+.venv/bin/python -I .claude/skills/view-layout/execute_conditions.py "$ARGUMENTS[1]"
+```
+
+**Stop if a condition fails** (its exit status is not 0): change nothing, do no layout work, and write the report
+below. Do not ask whether to go on, and do not work around a failure, such as by stashing or committing the changes
+yourself: the user decides. Today the one condition is that the games repository, the git repository that holds the
+game folder, has no uncommitted changes, untracked files included, on its branch. Git is the only backup of the views,
+since `move` writes no backups, and your changes would mix with the others. The script lists the conditions in its
+`--help`; a condition added there applies without changing this file.
+
+The report of a failed condition follows this example. Fill it in from what the script printed, in your own words:
+name each change in words (`M` modified, `A` added, `D` deleted, `R` renamed, `??` untracked) rather than pasting the
+output, and give each failed condition its own **What failed** paragraph. Write each paragraph on one line: the View
+layout page draws the report as Markdown, and shows a line break within a paragraph as one.
+
+```markdown
+**Result:** I stopped before any layout work and changed nothing, because the execute condition `no-uncommitted-changes` failed.
+
+**What failed**
+
+The games repository `/media/plamen/data/Egt/games` has 1 uncommitted change on branch `preview-fixes`:
+
+- `resources/burning_crown_tetra_spins_10/v/1920x1080/KnobsView.json`, modified
+
+Git is the only backup of the views, and the skill writes no backups, so a new layout would mix with this change.
+
+**What to do**
+
+Commit, stash or discard the change in `/media/plamen/data/Egt/games`, then run the layout again with the same preview. I did not stash or commit it, since that is your decision.
+
+**Inputs**
+
+- Workspace: `burning_crown_tetra_spins_10` (Burning Crown Tetra Spins 10)
+- Game folder: `/media/plamen/data/Egt/games/resources/burning_crown_tetra_spins_10`
+- Preview: `/home/plamen/.local/share/egt-gda-sync/view-layouts/layout-pc_fxuqm/preview.png`
+```
 
 A view is a `*.json` file of the game's `v` folder, such as `v/1920x1080/BetBarView.json` or
 `v/1920x1080/SwButtons/InfoSwButtonView.json`: its ElementsList, the elements the game draws in order (README.md,
@@ -84,9 +124,7 @@ $H move VIEW ID=X,Y '#INDEX=X,Y' ...      # writes positions
 
 ## Steps
 
-0. **Check the views are clean:** run `git -C $GAMES status --porcelain -- <game folder>/v`. If a view has uncommitted
-   changes, ask before editing: yours would mix with them, and git is the only backup, since `move` does not write the
-   app's backups.
+0. **Check the execute conditions** (above), before anything else: stop if `execute_conditions.py` fails.
 1. **Look at the preview** (Read it). Note what it shows:
    - its state;
    - its size against the resolution: the whole screen, a part of it (`--origin auto` finds where), or several screens
@@ -177,7 +215,9 @@ $H move VIEW ID=X,Y '#INDEX=X,Y' ...      # writes positions
      is drawn sharp over the preview.
    - For Burning Crown's panel views, also run `node tests/tetra-panel/run.mjs <game folder>/v/1920x1080` from
      `frontend`.
-7. **Report:**
+7. **Report**, in Markdown, as the View layout page draws it: open with a one-sentence **Result:** paragraph, then
+   short paragraphs, each with a bold title line, lists for elements and files, and `code` for ids, paths and
+   positions. Write each paragraph on one line, since a line break within a paragraph shows as one. Report:
    - the workspace, the preview, the state you laid out, and its origin and scale;
    - for each view, each element changed (old → new position and scale), which were placed by eye, each element
      hidden because the preview leaves it out, and each one shown because the preview shows it;

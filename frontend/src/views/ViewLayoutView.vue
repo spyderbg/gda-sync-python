@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, nextTick, onActivated, onBeforeUnmount, onDeactivated, ref } from 'vue';
+import MarkdownText from '../components/MarkdownText.vue';
 import PageHeader from '../components/PageHeader.vue';
 import { startingViewLayout, updateGameAgentActivity } from '../composables/useGameAgentActivity';
-import { api, config } from '../workspace';
+import { api, config, notify } from '../workspace';
 
 interface AgentStatus {
   running: boolean;
@@ -18,6 +19,8 @@ interface AgentStatus {
     gamePath: string;
     calls: { id: string; argv: string[]; cwd: string; durationSeconds: number | null; exitCode: number | null }[];
     changedFiles: { path: string; change: string }[] | null;
+    conditions?: { passed: string[]; failed: string[] } | null;
+    result?: string | null;
     warnings: string[];
   } | null;
 }
@@ -28,6 +31,7 @@ const image = ref<File | null>(null);
 const preview = ref('');
 const instructions = ref('');
 const starting = ref(false);
+const openingPreview = ref(false);
 const error = ref('');
 const pollingError = ref('');
 const status = ref<AgentStatus | null>(null);
@@ -98,6 +102,19 @@ async function poll() {
   if (active && request === generation) timer = window.setTimeout(poll, 1000);
 }
 
+async function openPreviewImage() {
+  const file = thisRun.value?.execution?.invocation.arguments[0];
+  if (!file || openingPreview.value) return;
+  openingPreview.value = true;
+  try {
+    await api('game/view-layout/open-preview', 'POST', { file });
+  } catch (failure) {
+    notify((failure as Error).message, true);
+  } finally {
+    openingPreview.value = false;
+  }
+}
+
 async function start() {
   if (!image.value || locked.value) return;
   starting.value = true;
@@ -163,10 +180,7 @@ onBeforeUnmount(() => {
     <div class="col-xl-8 mb-4">
       <section class="card" aria-label="Claude Code execution">
         <div class="card-body">
-          <div class="d-flex flex-wrap align-items-center justify-content-between mb-3">
-            <h2 class="h5 mb-2">Claude Code output</h2>
-            <label class="small mb-2"><input v-model="followOutput" type="checkbox" @change="scrollOutput"> Follow output</label>
-          </div>
+          <h2 class="h5 mb-3">Claude Code output</h2>
           <p role="status" class="small text-muted">
             {{ thisRun?.running ? 'Running view-layout… Responses appear as they arrive.' : thisRun?.error ? 'Execution failed.' : thisRun?.result ? 'Execution finished.' : 'Upload a preview to start. The complete execution output will appear here.' }}
           </p>
@@ -177,36 +191,44 @@ onBeforeUnmount(() => {
             <p class="small mb-2"><strong>Total time:</strong> {{ thisRun.execution.durationSeconds == null ? 'In progress…' : duration(thisRun.execution.durationSeconds) }}</p>
             <p class="small mb-2"><strong>Skill arguments:</strong> {{ thisRun.execution.invocation.validated ? 'Validated by the skill' : thisRun.running ? 'Awaiting skill validation…' : 'Not validated' }}</p>
             <ol class="small layout-arguments">
-              <li><strong>Preview image:</strong> <code>{{ thisRun.execution.invocation.arguments[0] }}</code></li>
+              <li>
+                <strong>Preview image:</strong> <code>{{ thisRun.execution.invocation.arguments[0] }}</code>
+                <button v-if="thisRun.execution.invocation.arguments[0]" type="button" class="btn btn-sm btn-outline-primary ml-2 py-0" aria-label="Open preview image" title="Open preview image in the default image viewer" :disabled="openingPreview" @click="openPreviewImage">{{ openingPreview ? 'Opening…' : 'Open' }}</button>
+              </li>
               <li><strong>Workspace id:</strong> <code>{{ thisRun.execution.invocation.arguments[1] }}</code></li>
             </ol>
-            <template v-if="!thisRun.running">
-              <h4 class="h6">Changed view files<span v-if="thisRun.execution.changedFiles"> ({{ thisRun.execution.changedFiles.length }})</span></h4>
-              <p class="small text-muted">{{ thisRun.execution.gamePath }}</p>
-              <p v-if="thisRun.execution.changedFiles == null" class="small">Changes could not be determined.</p>
-              <ul v-else-if="thisRun.execution.changedFiles.length" class="small">
-                <li v-for="file in thisRun.execution.changedFiles" :key="file.path"><code>{{ file.path }}</code> · {{ file.change }}</li>
-              </ul>
-              <p v-else class="small">No view files changed.</p>
-            </template>
+            <p v-if="thisRun.running || thisRun.execution.result" class="layout-result mb-2"><strong>Result:</strong> {{ thisRun.running ? 'In progress…' : thisRun.execution.result }}</p>
             <p v-for="warning in thisRun.execution.warnings" :key="warning" class="alert alert-warning small">{{ warning }}</p>
-            <details v-if="thisRun.execution.calls.length" open>
-              <summary class="small font-weight-bold">view_layout.py calls ({{ thisRun.execution.calls.length }})</summary>
-              <ol class="layout-calls small mt-2" aria-label="Helper executions">
-                <li v-for="call in thisRun.execution.calls" :key="call.id" class="mb-3">
-                  <p class="mb-1">{{ call.durationSeconds == null ? thisRun.running ? 'Running…' : 'Completion not reported' : duration(call.durationSeconds) }}<span v-if="call.exitCode != null"> · exit {{ call.exitCode }}</span></p>
-                  <pre>{{ JSON.stringify(call.argv, null, 2) }}</pre>
-                  <span class="text-muted">Working folder: {{ call.cwd }}</span>
-                </li>
-              </ol>
-            </details>
           </section>
-          <pre ref="output" class="layout-output" tabindex="0" aria-label="Complete Claude Code output">{{ transcript || 'Waiting for Claude Code…' }}</pre>
-          <template v-if="thisRun?.result">
-            <h3 class="h6 mt-4">Final report</h3>
-            <div class="layout-report">{{ thisRun.result.report }}</div>
+          <details v-if="thisRun?.result" class="layout-details mb-3">
+            <summary><h3 class="h6 d-inline">Claude Code report</h3></summary>
+            <MarkdownText class="layout-report" :text="thisRun.result.report" />
             <p v-if="thisRun.result.cost != null" class="small text-muted mt-3 mb-0">{{ thisRun.result.turns }} turns · ${{ thisRun.result.cost.toFixed(4) }}</p>
-          </template>
+          </details>
+          <details v-if="thisRun?.execution && !thisRun.running" class="layout-details mb-3">
+            <summary><h3 class="h6 d-inline">Changed view files<span v-if="thisRun.execution.changedFiles"> ({{ thisRun.execution.changedFiles.length }})</span></h3></summary>
+            <p class="small text-muted">{{ thisRun.execution.gamePath }}</p>
+            <p v-if="thisRun.execution.changedFiles == null" class="small">Changes could not be determined.</p>
+            <ul v-else-if="thisRun.execution.changedFiles.length" class="small">
+              <li v-for="file in thisRun.execution.changedFiles" :key="file.path"><code>{{ file.path }}</code> · {{ file.change }}</li>
+            </ul>
+            <p v-else class="small">No view files changed.</p>
+          </details>
+          <details v-if="thisRun?.execution?.calls.length" class="layout-details mb-3">
+            <summary><h3 class="h6 d-inline">view_layout.py calls ({{ thisRun.execution.calls.length }})</h3></summary>
+            <ol class="layout-calls small mt-2" aria-label="Helper executions">
+              <li v-for="call in thisRun.execution.calls" :key="call.id" class="mb-3">
+                <p class="mb-1">{{ call.durationSeconds == null ? thisRun.running ? 'Running…' : 'Completion not reported' : duration(call.durationSeconds) }}<span v-if="call.exitCode != null"> · exit {{ call.exitCode }}</span></p>
+                <pre>{{ JSON.stringify(call.argv, null, 2) }}</pre>
+                <span class="text-muted">Working folder: {{ call.cwd }}</span>
+              </li>
+            </ol>
+          </details>
+          <details class="layout-details mb-3" @toggle="scrollOutput">
+            <summary><h3 class="h6 d-inline">Claude Code logs</h3></summary>
+            <label class="small mb-2"><input v-model="followOutput" type="checkbox" @change="scrollOutput"> Follow output</label>
+            <pre ref="output" class="layout-output" tabindex="0" aria-label="Complete Claude Code output">{{ transcript || 'Waiting for Claude Code…' }}</pre>
+          </details>
         </div>
       </section>
     </div>
@@ -217,8 +239,11 @@ onBeforeUnmount(() => {
 .view-layout-page > div { min-width: 0; }
 .layout-preview { display: block; width: 100%; max-height: 360px; object-fit: contain; background: #f5f5f5; border-radius: 6px; }
 .layout-output { min-height: 320px; max-height: 65vh; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; padding: 1rem; border-radius: 6px; background: #151b28; color: #e7edf7; font-size: 12px; line-height: 1.6; }
-.layout-report { white-space: pre-wrap; overflow-wrap: anywhere; }
-.layout-summary { padding: 1rem; border: 1px solid #dee2e6; border-radius: 6px; overflow-wrap: anywhere; }
-.layout-summary pre { white-space: pre-wrap; overflow-wrap: anywhere; color: inherit; font-size: inherit; }
+.layout-report { line-height: 1.6; }
+.layout-result { font-size: 0.95rem; }
+.layout-summary, .layout-details { padding: 1rem; border: 1px solid #dee2e6; border-radius: 6px; overflow-wrap: anywhere; }
+.layout-details > summary { cursor: pointer; margin-bottom: 0.75rem; }
+.layout-details:not([open]) > summary { margin-bottom: 0; }
+.layout-calls pre { white-space: pre-wrap; overflow-wrap: anywhere; color: inherit; font-size: inherit; }
 .layout-arguments, .layout-calls { padding-left: 1.25rem; }
 </style>

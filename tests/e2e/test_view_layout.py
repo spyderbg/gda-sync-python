@@ -26,7 +26,14 @@ def test_layout_upload_shows_live_complete_output_and_recovers_it_after_reload(l
     page.on("pageerror", lambda error: errors.append(str(error)))
     state = {"running": False, "kind": None, "files": [], "log": [], "result": None, "error": None}
     requests = []
+    opened_previews = []
     page.route("**/api/game/agent/status*", lambda route: route.fulfill(json=state))
+
+    def open_preview(route):
+        opened_previews.append(route.request.post_data_json)
+        route.fulfill(json={"opened": True})
+
+    page.route("**/api/game/view-layout/open-preview", open_preview)
 
     def start(route):
         body = route.request.post_data_json
@@ -58,6 +65,7 @@ def test_layout_upload_shows_live_complete_output_and_recovers_it_after_reload(l
     page.get_by_label("Layout instructions (optional)").fill("Main game, BetBarView.")
     expect(run).to_be_enabled()
     run.click()
+    page.get_by_role("heading", name="Claude Code logs", exact=True).click()
     output = page.get_by_label("Complete Claude Code output")
     expect(output).to_contain_text("First response.\n" + "x" * 1000 + "\nLast line.")
     expect(page.get_by_role("button", name="Claude Code is running…", exact=True)).to_be_disabled()
@@ -69,10 +77,15 @@ def test_layout_upload_shows_live_complete_output_and_recovers_it_after_reload(l
     assert base64.b64decode(requests[0]["image"]) == image
     summary = page.get_by_role("region", name="Execution summary")
     expect(summary).to_contain_text("Awaiting skill validation…")
+    expect(summary).to_contain_text("Result: In progress…")
+    with page.expect_response("**/api/game/view-layout/open-preview"):
+        summary.get_by_role("button", name="Open preview image", exact=True).click()
+    assert opened_previews == [{"file": "/tmp/layout with spaces/preview.png"}]
     state["execution"]["invocation"]["validated"] = True
     state["execution"]["calls"].append({"id": "call-1", "argv": [".venv/bin/python", "-I", ".claude/skills/view-layout/view_layout.py", "locate", "/tmp/layout with spaces/preview.png", "v/1920x1080/BetBarView.json", "--skip", "*_tetra", "--json"],
                                         "cwd": "/app", "durationSeconds": None, "exitCode": None})
     expect(summary).to_contain_text("Validated by the skill")
+    page.get_by_role("heading", name="view_layout.py calls (1)", exact=True).click()
     calls = page.get_by_role("list", name="Helper executions")
     expect(calls).to_contain_text("--skip")
     expect(calls).to_contain_text("Running…")
@@ -82,8 +95,11 @@ def test_layout_upload_shows_live_complete_output_and_recovers_it_after_reload(l
     # Leave the page while the task works; returning resumes its output.
     navigation.get_by_role("button", name="Image studio", exact=True).click()
     expect(spinner).to_be_visible()
-    state.update(running=False, result={"report": "Moved the bet bar.\nReview the layout in Play.", "turns": 3, "cost": 0.2})
-    state["execution"].update(durationSeconds=72.8, changedFiles=[{"path": "v/1920x1080/BetBarView.json", "change": "modified"}])
+    report = ("**Result:** I moved the bet bar.\n\n**Changed**\n\n- `text_bet_amount`: 1420,1003 → 1400,1003\n"
+              "- placed *by eye*\n\nReview the layout in Play.\nThe <b>tags</b> stay text.")
+    state.update(running=False, result={"report": report, "turns": 3, "cost": 0.2})
+    state["execution"].update(durationSeconds=72.8, changedFiles=[{"path": "v/1920x1080/BetBarView.json", "change": "modified"}],
+                              result="Finished: 1 view file changed.")
     state["execution"]["calls"][0].update(durationSeconds=2.456, exitCode=0)
     state["log"].append("Final response: moved the bet bar.")
     expect(spinner).to_have_count(0)
@@ -92,19 +108,34 @@ def test_layout_upload_shows_live_complete_output_and_recovers_it_after_reload(l
     expect(output).to_contain_text("First response.")
     expect(preview).to_be_visible()
     expect(page.get_by_text("Execution finished.", exact=True)).to_be_visible()
-    expect(page.get_by_role("heading", name="Final report")).to_be_visible()
+    expect(page.get_by_role("heading", name="Claude Code report", exact=True)).to_be_visible()
+    page.get_by_role("heading", name="Claude Code report", exact=True).click()
     expect(output).to_contain_text("Final response: moved the bet bar.")
-    expect(page.get_by_text("Moved the bet bar.\nReview the layout in Play.", exact=True)).to_be_visible()
+    # The report is drawn as Markdown: paragraphs, bold titles, lists and code, with its text kept as text.
+    drawn = page.locator(".layout-report")
+    expect(drawn.locator("> p")).to_have_count(3)
+    expect(drawn.locator("> p").first).to_have_text("Result: I moved the bet bar.")
+    expect(drawn.locator("> p strong").first).to_have_text("Result:")
+    expect(drawn.locator("li")).to_have_text(["text_bet_amount: 1420,1003 → 1400,1003", "placed by eye"])
+    expect(drawn.locator("li code")).to_have_text("text_bet_amount")
+    expect(drawn.locator("li em")).to_have_text("by eye")
+    expect(drawn.locator("> p").last.locator("br")).to_have_count(1)
+    expect(drawn).to_contain_text("The <b>tags</b> stay text.")
+    expect(drawn.locator("b")).to_have_count(0)
+    expect(drawn).not_to_contain_text("**")
+    expect(summary).to_contain_text("Result: Finished: 1 view file changed.")
     expect(page.get_by_role("button", name="Run view-layout", exact=True)).to_be_enabled()
     expect(summary).to_contain_text("1 min 12.8 s")
-    expect(summary).to_contain_text("Changed view files (1)")
-    expect(summary).to_contain_text("v/1920x1080/BetBarView.json · modified")
+    expect(page.get_by_role("heading", name="Changed view files (1)", exact=True)).to_be_visible()
+    page.get_by_role("heading", name="Changed view files (1)", exact=True).click()
+    expect(page.get_by_text("v/1920x1080/BetBarView.json · modified", exact=True)).to_be_visible()
     expect(calls).to_contain_text("2.456 s · exit 0")
     BUILD.mkdir(exist_ok=True)
     page.screenshot(path=str(BUILD / "view-layout-desktop.png"), full_page=True)
 
     page.reload()
     navigation.get_by_role("button", name="View layout", exact=True).click()
+    page.get_by_role("heading", name="Claude Code logs", exact=True).click()
     expect(output).to_contain_text("First response.")
     expect(output).to_contain_text("Final response: moved the bet bar.")
     page.set_viewport_size({"width": 375, "height": 900})

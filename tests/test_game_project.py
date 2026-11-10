@@ -326,6 +326,28 @@ def layout_preview(format="PNG"):
     return {"workspace": "example", "image": base64.b64encode(image.getvalue()).decode("ascii")}
 
 
+def test_view_layout_opens_only_saved_preview_images(client, tmp_path):
+    import sys
+    preview = client.home / "view-layouts" / "layout-example" / "preview.png"
+    preview.parent.mkdir(parents=True)
+    preview.write_bytes(base64.b64decode(layout_preview()["image"]))
+    endpoint = "/api/game/view-layout/open-preview"
+    response = client.post(endpoint, json={"file": str(preview)})
+    assert response.status_code == 200 and response.json() == {"opened": True}
+    assert client.folders == [str(preview)] and client.opened == []
+    outside = tmp_path / "preview.png"
+    outside.write_bytes(preview.read_bytes())
+    assert client.post(endpoint, json={"file": str(outside)}).status_code == 403
+    assert client.post(endpoint, json={"file": str(preview.with_name("execution.json"))}).status_code == 403
+    assert client.post(endpoint, json={"file": "view-layouts/layout-example/preview.png"}).status_code == 403
+    preview.unlink()
+    assert client.post(endpoint, json={"file": str(preview)}).status_code == 404
+    if sys.platform != "win32":
+        preview.symlink_to(outside)
+        assert client.post(endpoint, json={"file": str(preview)}).status_code == 400
+    assert client.folders == [str(preview)]
+
+
 def test_view_layout_validates_the_preview_workspace_and_installation(client, tmp_path, monkeypatch):
     from egt_gda_sync.game import project
     body = layout_preview()
@@ -426,6 +448,7 @@ emit({{"type": "result", "is_error": False, "result": "Layout updated. Full repo
     assert run["argv"][:6] == ["-p", "--output-format", "stream-json", "--verbose", "--permission-mode", "auto"]
     assert "Skill(view-layout)" in run["argv"]
     assert "Bash(.venv/bin/python -I .claude/skills/view-layout/view_layout.py:*)" in run["argv"]
+    assert "Bash(.venv/bin/python -I .claude/skills/view-layout/execute_conditions.py:*)" in run["argv"]
     execution = status["execution"]
     assert execution["invocation"] == {"skill": "view-layout", "arguments": [str(scratch / "preview.png"), "example"], "validated": True}
     assert len(execution["calls"]) == 2
@@ -437,8 +460,62 @@ emit({{"type": "result", "is_error": False, "result": "Layout updated. Full repo
                                          {"path": "v/1920x1080/DeletedView.json", "change": "deleted"},
                                          {"path": "v/1920x1080/LayoutView.json", "change": "modified"}]
     assert execution["warnings"] == []
+    assert execution["conditions"] is None and execution["result"] == "Finished: 3 view files changed."
     assert json.loads((scratch / "execution.json").read_text()) == execution
     assert "view_layout.py finished" in transcript and "View layout total time" in transcript
+
+
+def test_view_layout_records_failed_execute_conditions_and_the_result(client, tmp_path, monkeypatch):
+    import sys
+    from egt_gda_sync.game import project
+    claude = tmp_path / "claude"
+    # The game folder is in no git repository, so the conditions fail and the skill stops after validating its inputs.
+    claude.write_text(f'''#!{sys.executable}
+import json, os, shlex, subprocess, sys
+arguments = shlex.split(sys.stdin.read())[1:]
+env = {{**os.environ, "GIT_CEILING_DIRECTORIES": {str(tmp_path)!r}}}
+subprocess.run([sys.executable, "-I", ".claude/skills/view-layout/view_layout.py", "validate-inputs", *arguments], check=True)
+checked = subprocess.run([sys.executable, "-I", ".claude/skills/view-layout/execute_conditions.py", arguments[1]], env=env)
+assert checked.returncode == 1
+print(json.dumps({{"type": "result", "is_error": False, "result": "**Result:** I stopped before any layout work.", "num_turns": 2}}))
+''')
+    claude.chmod(0o755)
+    monkeypatch.setattr(project, "find_claude", lambda: str(claude))
+    assert client.post("/api/game/view-layout", json=layout_preview()).status_code == 200
+    for _ in range(2000):
+        status = client.get("/api/game/agent/status").json()
+        if not status["running"]:
+            break
+        time.sleep(0.01)
+    assert status["error"] is None and status["result"]["report"] == "**Result:** I stopped before any layout work."
+    execution = status["execution"]
+    assert execution["invocation"]["validated"] is True
+    assert execution["conditions"] == {"passed": [], "failed": ["no-uncommitted-changes"]}
+    assert execution["result"] == ("Stopped before any layout work: the execute condition no-uncommitted-changes failed, "
+                                   "so nothing changed.")
+    assert [(call["helper"], call["exitCode"]) for call in execution["calls"]] == [("view_layout.py", 0),
+                                                                                 ("execute_conditions.py", 1)]
+    transcript = "\n".join(status["log"])
+    assert "execute_conditions.py finished" in transcript and "exit 1" in transcript
+    assert "Execute conditions failed: no-uncommitted-changes" in transcript
+
+
+def test_view_layout_result_says_how_the_run_ended_in_one_sentence():
+    from egt_gda_sync.game.project import _layout_result
+
+    def result(changed, error=None, failed=None):
+        files = None if changed is None else [{"path": f"v/{number}.json", "change": "modified"} for number in range(changed)]
+        return _layout_result({"changedFiles": files, "conditions": failed and {"passed": [], "failed": failed}}, error)
+
+    assert result(0) == "Finished without changing any view file."
+    assert result(1) == "Finished: 1 view file changed."
+    assert result(2) == "Finished: 2 view files changed."
+    assert result(None) == "Finished, but the changed view files could not be determined."
+    assert result(0, "Claude Code failed") == "Failed with an error, and no view file changed."
+    assert result(2, "Claude Code failed") == "Failed with an error after 2 view files changed."
+    assert result(None, "Claude Code failed") == "Failed with an error; the changed view files could not be determined."
+    assert result(0, failed=["a", "b"]) == "Stopped before any layout work: the execute conditions a, b failed, so nothing changed."
+    assert result(1, failed=["a"]) == "Stopped: the execute condition a failed, but 1 view file changed."
 
 
 def test_view_layout_keeps_failure_responses_and_the_final_error(client, tmp_path, monkeypatch):
