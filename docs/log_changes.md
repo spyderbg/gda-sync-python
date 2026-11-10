@@ -7,6 +7,8 @@ Versions follow the project's single-digit major.minor.build scheme.
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-11-10
+
 ### Added
 
 - Add an Open file in VS Code action beside file paths in the Asset library and Sync details.
@@ -14,6 +16,25 @@ Versions follow the project's single-digit major.minor.build scheme.
 - Move resource keys and their rename actions into a Resource Key section above Loaded by in asset details.
 - Add View layout after Tools: upload a preview, run Claude Code's view-layout skill for the selected workspace, and follow its complete execution output and final report.
 - Show a spinner beside View layout while it runs, including when another page is open.
+- Add rescan action to workspace cards
+- Add view-layout skill for placing game views from a preview
+- Add multi-select to the image studio asset list
+- Add screenshots of the browser game's screen
+- Add View layout page and declaration file actions
+
+### Changed
+
+- Split game stats from the developer panel
+- Run /game-sync headlessly from the Play page's Port with Claude Code
+- Sync hold and spin outro, free round rewards, and Burning Crown tetra theme
+- Write amounts and cut image fonts as the C++ game does
+- Sync Burning Crown's theme element suffixes from ThemeType
+- Rework image studio layout with folder picker and animation player
+- Rework image studio layout, navigation, and folder picker
+- Move image metadata to the app-data store and rename analysis to Describe
+- Put render scale label on its own row in image studio
+- Show the game clock's speed on the Play page panel
+- Use OffscreenCanvas for movie frame WebGL
 
 ### Fixed
 
@@ -159,5 +180,7 @@ Versions follow the project's single-digit major.minor.build scheme.
 
 [2.0.0]: https://github.com/spyderbg/gda-sync-python/compare/bcc8e72fbea42ef9f2734ac4f19449a58a181f26...releases%2Fv2.0.0
 
-[Unreleased]: https://github.com/spyderbg/gda-sync-python/compare/releases%2Fv2.0.1...HEAD
 [2.0.1]: https://github.com/spyderbg/gda-sync-python/compare/37fde72c2901ec00705046600289159176ef672a...releases%2Fv2.0.1
+
+[Unreleased]: https://github.com/spyderbg/gda-sync-python/compare/releases%2Fv2.1.0...HEAD
+[2.1.0]: https://github.com/spyderbg/gda-sync-python/compare/dad723a9d3be93ab740d559bc4e65994b9634ece...releases%2Fv2.1.0
