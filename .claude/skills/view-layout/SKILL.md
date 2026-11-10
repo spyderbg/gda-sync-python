@@ -1,6 +1,6 @@
 ---
 name: view-layout
-description: Lay a game's views out by a preview the user sends, a picture of how the screen should look (such as a designer's PNG from the GDA's DESIGN/09.Preview), changing nothing but the elements lists of the game's v/<resolution>/*View.json files. Use when the user sends or names a preview and asks to place, move or scale view elements to match it.
+description: Lay a game's views out by a preview the user sends, a picture of how the screen should look (such as a designer's PNG from the GDA's DESIGN/09.Preview), placing and scaling the elements it shows and hiding the ones it leaves out, changing nothing but the elements lists of the game's v/<resolution>/*View.json files. Use when the user sends or names a preview and asks to place, move, scale or hide view elements to match it.
 argument-hint: <preview image> [workspace id] [view names...]
 allowed-tools: Bash(.venv/bin/python -I .claude/skills/view-layout/view_layout.py:*)
 ---
@@ -31,19 +31,22 @@ $H move VIEW ID=X,Y '#INDEX=X,Y' ...      # writes positions
 - **Write only the views of the workspace's game folder:** its `v/<resolution>/**/*.json` files, but not its
   `*Data.json` descriptors. A view that the game includes from elsewhere, such as
   `../common/features/responsible_gaming/v/...`, is shared with other games, so report what it needs instead.
-- **Change only where elements are:** `position`, always through `move`, and `scale` where the preview's image is
-  larger or smaller (the Edit tool, laid out like the file's other members). A `Text` element's `fitBox` changes only
+- **Change only where elements are, and whether they show:** `position`, always through `move`; `scale` where the
+  preview's image is larger or smaller (the Edit tool, laid out like the file's other members); and `"hidden": true`
+  on an element the preview leaves out (step 3, "Left out of the preview"). A `Text` element's `fitBox` changes only
   where the preview's text area clearly differs.
-- **Ask first** before changing anything else of an element, adding, removing or reordering elements, or changing
-  `hidden`. The code finds elements by id, the order is the drawing order, and the code shows and hides elements.
-  Never change ids, types, `rssKey`, `rssKeys`, `rssKeySound`, `rssStyleId`, `color` or `loopCount`.
+- **Ask first** before changing anything else of an element, adding, removing or reordering elements, or showing an
+  element that is hidden. The code finds elements by id, the order is the drawing order, and the code shows and hides
+  elements. A user's request, such as deleting the elements the preview leaves out, is the asking: do what it says
+  instead of the default. Never change ids, types, `rssKey`, `rssKeys`, `rssKeySound`, `rssStyleId`, `color` or
+  `loopCount`.
 - **Never edit anything else:**
   - the descriptors (`*Data.json`), images, text styles (a font's size is in `RssTextStylesData.json`) or IData
     (`idata/`);
   - the TypeScript, the C++, this repository's code, or other games.
 
-  When the preview needs any of these, such as an image that differs, a missing element or another font size, report
-  it.
+  When the preview needs any of these, such as an image that differs, an element the views lack or another font size,
+  report it.
 - Do not commit, in either repository, unless the user asks.
 
 ## Inputs
@@ -104,22 +107,49 @@ $H move VIEW ID=X,Y '#INDEX=X,Y' ...      # writes positions
      a position, such as a knob's sparkles. Otherwise place it by eye.
    - **Dummies and companions** move with their element by the same amount. These are points the code places things
      by, such as the credit's `text_amount_min` and `text_amount_max`, where its animation settles.
-4. **Check the code:** grep each element you move for its id in the game's TypeScript
-   (`frontend/src/game/alpha_family/plugins/<plugin>/`) and in `frontend/src/game/alpha_family/libs/`. Report an
-   element whose position the code sets or tweens: its JSON position is only where it starts.
-5. **Apply:** use `$H move <view> <id>=<x>,<y> ...` for each view (`#<index>` for an id that repeats), and Edit a
-   `scale` that changes. Keep whole numbers unless the element's other numbers have fractions.
+   - **Left out of the preview:** an element that the preview's state shows, but whose image is nowhere in the
+     preview, such as knobs a designer took away, is hidden by default. The view then draws what the preview shows.
+     Hide it only when all of these hold:
+     - `locate` finds `no good match` with `--search 0` and `--scales` too, and a zoomed `draw --crop` shows the
+       background or other art where it would be, not an element that covers it. Judge a `Text` by eye: hide it only
+       when the preview has no text where it would be;
+     - it draws in the preview's state. An element of another theme or round, left out with `--skip`, is not left out
+       of the preview;
+     - the code does not show or hide it by id (step 4). The code picks one of the status line's messages, a volume
+       level or a button state, and the preview shows only the one it picked. A `hidden` in the JSON would hide the
+       element where the code needs it, or not stick;
+     - its view is in the game's folder. Report what an included view needs (Scope).
+
+     An Anim that decorates the element, at its position, such as a knob's sparkles, is hidden with it. When the user
+     asks for something else for these elements, such as deleting them, do that instead (Scope). Before deleting one,
+     grep its id in the code, as in step 4: when the code finds it by id, say so and ask, since the game can fail
+     without it.
+4. **Check the code:** grep each element you move or hide for its id in the game's TypeScript
+   (`frontend/src/game/alpha_family/plugins/<plugin>/`) and in `frontend/src/game/alpha_family/libs/`.
+   - Report an element whose position the code sets or tweens: its JSON position is only where it starts.
+   - Leave an element whose visibility the code sets by id (`SetHidden`, `SetVisible` on the element) shown, and
+     report it. The code showing or hiding the whole view, such as `IKnobsView`'s `SetVisible(true)` in the main game,
+     does not count: a hidden element stays hidden in a shown view, and Burning Crown's `ThemeLayout` keeps it hidden
+     in every theme.
+5. **Apply:**
+   - Use `$H move <view> <id>=<x>,<y> ...` for each view (`#<index>` for an id that repeats), and Edit a `scale` that
+     changes. Keep whole numbers unless the element's other numbers have fractions.
+   - Hide an element with the Edit tool: add `"hidden": true,` on the line after its `"type"`, as the views' other
+     hidden elements have it.
 6. **Verify:**
    - Run `locate` again: each moved element should now stay, with `here` at its best score.
-   - Draw `after.png` the same way as `before.png`, and Read it.
+   - Run `elements` on the views you hid elements in: each one should be listed as `hidden`.
+   - Draw `after.png` the same way as `before.png`, and Read it. A hidden element is no longer drawn.
    - For Burning Crown's panel views, also run `node tests/tetra-panel/run.mjs <game folder>/v/1920x1080` from
      `frontend`.
 7. **Report:**
    - the workspace, the preview, the state you laid out, and its origin and scale;
-   - for each view, each element changed (old → new position and scale), and which were placed by eye;
+   - for each view, each element changed (old → new position and scale), which were placed by eye, and each element
+     hidden because the preview leaves it out;
    - the elements left unchanged, and why: a match you did not trust, an element outside the preview, or one the code
-     places;
-   - what the preview needs beyond the views: images, text styles, elements, hidden states, included views;
+     places, shows or hides;
+   - what the preview needs beyond the views: images, text styles, elements the views lack, included views, and
+     elements it leaves out that the code shows by id;
    - `git -C $GAMES diff --stat -- <game folder>/v`.
 
    Tell the user how to see the result: the Play page shows changed views within a second, and the Asset library's
