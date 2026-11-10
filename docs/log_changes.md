@@ -7,6 +7,18 @@ Versions follow the project's single-digit major.minor.build scheme.
 
 ## [Unreleased]
 
+## [2.1.3] - 2026-11-10
+
+### Added
+
+- Add model selection to View layout runs
+
+### Changed
+
+- Stop view-layout runs when execute conditions fail, and draw its report as Markdown
+- Replace view-layout follow toggle with logs switch
+- Show the model Claude Code reports for view-layout runs
+
 ## [2.1.2] - 2026-11-10
 
 ### Changed
@@ -198,5 +210,7 @@ Versions follow the project's single-digit major.minor.build scheme.
 
 [2.1.1]: https://github.com/spyderbg/gda-sync-python/compare/1756283f6b40e3f9ffee3d0064a871284e0845ab...releases%2Fv2.1.1
 
-[Unreleased]: https://github.com/spyderbg/gda-sync-python/compare/releases%2Fv2.1.2...HEAD
 [2.1.2]: https://github.com/spyderbg/gda-sync-python/compare/cbd2d0ea24898107ff7b0c73bfcca7980a56718f...releases%2Fv2.1.2
+
+[Unreleased]: https://github.com/spyderbg/gda-sync-python/compare/releases%2Fv2.1.3...HEAD
+[2.1.3]: https://github.com/spyderbg/gda-sync-python/compare/1eb00518a15d1689470da5aa7f30b123de52d0d2...releases%2Fv2.1.3
