@@ -390,6 +390,7 @@ Path({str(record)!r}).write_text(json.dumps({{"argv": sys.argv[1:], "prompt": pr
 def emit(event):
     print(json.dumps(event), flush=True)
 emit({{"type": "assistant", "message": {{"content": [{{"type": "text", "text": "First response.\\n" + "x" * 1000 + "\\nLast line."}}]}}}})
+emit({{"type": "system", "subtype": "init", "model": "claude-reported-initial-model"}})
 deadline = time.monotonic() + 10
 while not Path({str(release)!r}).exists() and time.monotonic() < deadline:
     time.sleep(0.01)
@@ -404,6 +405,8 @@ for number in range(450):
     emit({{"type": "assistant", "message": {{"content": [{{"type": "text", "text": "Step " + str(number)}}]}}}})
 print("Diagnostic from stderr", file=sys.stderr, flush=True)
 emit({{"type": "system", "subtype": "status", "status": "complete"}})
+emit({{"type": "assistant", "message": {{"model": "claude-reported-runtime-model", "content": []}}}})
+emit({{"type": "assistant", "parent_tool_use_id": "child-agent", "message": {{"model": "child-model", "content": []}}}})
 emit({{"type": "result", "is_error": False, "result": "Layout updated. Full report.", "num_turns": 4, "total_cost_usd": 0.12}})
 ''')
     claude.chmod(0o755)
@@ -417,10 +420,11 @@ emit({{"type": "result", "is_error": False, "result": "Layout updated. Full repo
         assert started.json()["kind"] == "view-layout" and started.json()["files"] == ["example"]
         for _ in range(2000):
             status = client.get("/api/game/agent/status").json()
-            if status["log"]:
+            if status["log"] and status["execution"]["model"]:
                 break
             time.sleep(0.01)
         assert status["running"] and "First response.\n" + "x" * 1000 + "\nLast line." in status["log"][0]
+        assert status["execution"]["model"] == "claude-reported-initial-model"
         assert client.get("/api/game/agent/status", params={"summary": True}).json() == {
             "running": True, "kind": "view-layout", "files": ["example"]}
         # No second run or discarded preview while this session is still working.
@@ -456,7 +460,8 @@ emit({{"type": "result", "is_error": False, "result": "Layout updated. Full repo
     assert "Bash(.venv/bin/python -I .claude/skills/view-layout/view_layout.py:*)" in run["argv"]
     assert "Bash(.venv/bin/python -I .claude/skills/view-layout/execute_conditions.py:*)" in run["argv"]
     execution = status["execution"]
-    assert execution["model"] == (model or "opus")
+    assert execution["requestedModel"] == (model or "opus")
+    assert execution["model"] == "claude-reported-runtime-model"
     assert execution["invocation"] == {"skill": "view-layout", "arguments": [str(scratch / "preview.png"), "example"], "validated": True}
     assert len(execution["calls"]) == 2
     assert execution["calls"][0]["arguments"] == ["validate-inputs", str(scratch / "preview.png"), "example"]
@@ -551,6 +556,7 @@ sys.exit(1)
     assert status["execution"]["durationSeconds"] > 0
     assert status["execution"]["changedFiles"] == []
     assert status["execution"]["invocation"]["validated"] is False
+    assert status["execution"]["model"] is None
 
 
 def test_view_layout_cannot_report_success_without_the_skill_validating_its_arguments(client, tmp_path, monkeypatch):
@@ -560,7 +566,7 @@ def test_view_layout_cannot_report_success_without_the_skill_validating_its_argu
     claude.write_text(f'''#!{sys.executable}
 import json, sys
 sys.stdin.read()
-print(json.dumps({{"type": "result", "is_error": False, "result": "Skipped the skill."}}))
+print(json.dumps({{"type": "result", "is_error": False, "result": "Skipped the skill.", "modelUsage": {{"cli-reported-result-model": {{}}}}}}))
 ''')
     claude.chmod(0o755)
     monkeypatch.setattr(project, "find_claude", lambda: str(claude))
@@ -574,6 +580,7 @@ print(json.dumps({{"type": "result", "is_error": False, "result": "Skipped the s
     assert "without validating" in status["error"]
     assert status["result"]["report"] == "Skipped the skill."
     assert status["execution"]["changedFiles"] == []
+    assert status["execution"]["model"] == "cli-reported-result-model"
 
 
 @pytest.mark.skipif(not shutil.which("node"), reason="the export agent runs on Node.js")

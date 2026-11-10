@@ -16,7 +16,7 @@ interface AgentStatus {
   result: { report: string; cost: number | null; turns: number | null } | null;
   error: string | null;
   execution?: {
-    model?: ClaudeModel;
+    model?: string | null;
     invocation: { skill: string; arguments: string[]; validated: boolean };
     startedAt: number;
     durationSeconds: number | null;
@@ -201,7 +201,7 @@ onBeforeUnmount(() => {
           <p v-if="thisRun?.error" class="alert alert-danger" role="alert">{{ thisRun.error }}</p>
           <section v-if="thisRun?.execution" class="layout-summary mb-3" aria-label="Execution summary">
             <h3 class="h6">Execution summary</h3>
-            <p v-if="thisRun.execution.model" class="small mb-2"><strong>Model:</strong> {{ modelNames[thisRun.execution.model] }}</p>
+            <p class="small mb-2"><strong>Model:</strong> {{ thisRun.execution.model || (thisRun.running ? 'Awaiting Claude Code…' : 'Not reported by Claude Code') }}</p>
             <p class="small mb-2"><strong>Skill arguments:</strong> {{ thisRun.execution.invocation.validated ? 'Validated by the skill' : thisRun.running ? 'Awaiting skill validation…' : 'Not validated' }}</p>
             <ol class="small layout-arguments">
               <li>

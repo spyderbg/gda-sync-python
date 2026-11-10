@@ -42,7 +42,7 @@ def test_layout_upload_shows_live_complete_output_and_recovers_it_after_reload(l
                      log=["assistant:\nFirst response.\n" + "x" * 1000 + "\nLast line."],
                      execution={"invocation": {"skill": "view-layout", "arguments": ["/tmp/layout with spaces/preview.png", body["workspace"]], "validated": False},
                                 "startedAt": 100, "durationSeconds": None, "gamePath": "/games/resources/example",
-                                "calls": [], "changedFiles": None, "warnings": [], "model": body["model"]})
+                                "calls": [], "changedFiles": None, "warnings": [], "model": None})
         route.fulfill(json=state)
 
     page.route("**/api/game/view-layout", start)
@@ -94,7 +94,9 @@ def test_layout_upload_shows_live_complete_output_and_recovers_it_after_reload(l
     summary = page.get_by_role("region", name="Execution summary")
     expect(summary).to_contain_text("Awaiting skill validation…")
     expect(summary).to_contain_text("Result: In progress…")
-    expect(summary).to_contain_text("Model: Sonnet")
+    expect(summary).to_contain_text("Model: Awaiting Claude Code…")
+    state["execution"]["model"] = "claude-reported-runtime-model"
+    expect(summary).to_contain_text("Model: claude-reported-runtime-model")
     with page.expect_response("**/api/game/view-layout/open-preview"):
         summary.get_by_role("button", name="Open preview image", exact=True).click()
     assert opened_previews == [{"file": "/tmp/layout with spaces/preview.png"}]

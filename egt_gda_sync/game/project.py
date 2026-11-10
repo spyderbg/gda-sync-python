@@ -390,7 +390,8 @@ class GameProject:
                    "--add-dir", str(scratch), str(resources.parent), "--allowedTools", *tools]
         execution = {"invocation": {"skill": "view-layout", "arguments": arguments, "validated": False},
                      "startedAt": time.time(), "durationSeconds": None, "calls": [], "changedFiles": None,
-                     "conditions": None, "result": None, "warnings": [], "gamePath": str(game), "model": model}
+                     "conditions": None, "result": None, "warnings": [], "gamePath": str(game),
+                     "requestedModel": model, "model": None}
         env = _agent_env()
         env[AUDIT_ENV] = str(scratch / "helper-calls.jsonl")
         env[CONTEXT_ENV] = json.dumps({"arguments": arguments, "previewSha256": fingerprint(preview_path),
@@ -650,7 +651,13 @@ def _run_claude(command: list[str], prompt: str, *, full_output: bool = False, e
                     if not full_output:
                         continue
                 entries = (_session_output(event) if full_output else _session_log(event)) if isinstance(event, dict) else [line.rstrip("\n")]
+                reported_model = _session_model(event) if isinstance(event, dict) else None
                 with _agent_lock:
+                    if full_output and _agent_job["kind"] == "view-layout" and reported_model:
+                        execution = _agent_job["execution"]
+                        # Result usage may include helper models; only use it when the main session never reported one.
+                        if event.get("type") != "result" or not execution["model"]:
+                            execution["model"] = reported_model
                     _agent_job["log"].extend(entry for entry in entries if entry)
                     if not full_output:
                         del _agent_job["log"][:-AGENT_LOG_LINES]
@@ -668,6 +675,22 @@ def _run_claude(command: list[str], prompt: str, *, full_output: bool = False, e
         if finish_job:
             with _agent_lock:
                 _agent_job["running"] = False
+
+
+def _session_model(event: dict) -> str | None:
+    """The model Claude reports for the main session, excluding nested agents' models."""
+    if event.get("parent_tool_use_id"):
+        return None
+    model = None
+    if event.get("type") == "system" and event.get("subtype") == "init":
+        model = event.get("model")
+    elif event.get("type") == "assistant" and isinstance(event.get("message"), dict):
+        model = event["message"].get("model")
+    elif event.get("type") == "result":
+        usage = event.get("modelUsage")
+        if isinstance(usage, dict) and len(usage) == 1:
+            model = next(iter(usage))
+    return model.strip() if isinstance(model, str) and model.strip() and not model.startswith("<") else None
 
 
 def _layout_event(event: dict) -> None:
