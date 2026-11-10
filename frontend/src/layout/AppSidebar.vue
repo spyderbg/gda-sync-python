@@ -1,10 +1,18 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { gameAgentActivity, startingViewLayout, useGameAgentActivity } from '../composables/useGameAgentActivity';
 import { ASSET_SECTIONS, number, sectionIcons, sectionNames } from '../format';
 import type { AssetSection, View } from '../types';
 import { activeSyncCount, assetCount, config, countSection, navigate, rssSync, ui } from '../workspace';
 
-interface Entry { key: string; label: string; icon: string; count?: number; badge?: string; title?: string; active: boolean; onSelect: () => void }
+interface Entry { key: string; label: string; icon: string; count?: number; badge?: string; title?: string; running?: boolean; active: boolean; onSelect: () => void }
+
+useGameAgentActivity();
+const layoutRunning = computed(() => {
+  const workspace = config.value.defaultWorkspace || 'current';
+  const activity = gameAgentActivity.value;
+  return startingViewLayout.value === workspace || (activity?.running && activity.kind === 'view-layout' && activity.files[0] === workspace);
+});
 
 // The library sections with an entry of their own: textures as Images and ImagesSeq (image sequences), then the other
 // types. Models and materials have none: they are listed in the Asset library.
@@ -42,6 +50,7 @@ const assetEntries = computed<Entry[]>(() => [...ASSET_CATEGORIES, ...(countSect
 const gameEntries = computed<Entry[]>(() => [
   { key: 'game', label: 'Play', icon: 'mdi-slot-machine-outline', title: 'Play the game in the browser', active: ui.view === 'game', onSelect: () => navigate('game') },
   { key: 'gameTools', label: 'Tools', icon: 'mdi-tools', title: 'RNG tools and automation', active: ui.view === 'gameTools', onSelect: () => navigate('gameTools') },
+  { key: 'viewLayout', label: 'View layout', icon: 'mdi-image-size-select-large', title: layoutRunning.value ? 'View layout is running' : 'Lay out views from a preview with Claude Code', running: layoutRunning.value, active: ui.view === 'viewLayout', onSelect: () => navigate('viewLayout') },
   { key: 'imageStudio', label: 'Image studio', icon: 'mdi-image-edit-outline', title: 'Describe images, edit metadata and generate artwork', active: ui.view === 'imageStudio', onSelect: () => navigate('imageStudio') },
 ]);
 
@@ -60,9 +69,10 @@ const sections = computed(() => [
       </h2>
       <ul class="nav" :aria-labelledby="`sidebar-${section.key}-heading`">
         <li v-for="entry in section.entries" :key="entry.key" :class="['nav-item', { active: entry.active }]">
-          <button type="button" class="nav-link" :aria-label="entry.label" :aria-current="entry.active ? 'page' : undefined" :title="entry.title" @click="entry.onSelect">
+          <button type="button" class="nav-link" :aria-label="entry.label" :aria-busy="entry.running || undefined" :aria-current="entry.active ? 'page' : undefined" :title="entry.title" @click="entry.onSelect">
             <i aria-hidden="true" :class="['menu-icon', 'mdi', entry.icon]" /><span class="menu-title">{{ entry.label }}</span>
             <span v-if="entry.count !== undefined" :class="['badge', 'badge-pill', entry.badge]">{{ number(entry.count) }}</span>
+            <i v-if="entry.running" class="mdi mdi-loading mdi-spin sidebar-running" aria-hidden="true" />
           </button>
         </li>
       </ul>

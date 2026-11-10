@@ -138,6 +138,15 @@ wheel, or a win.
   instance and game runtime: switching pages keeps the game, queue and automation intact. Normal game shortcuts
   are inactive on Tools, so Enter/Space and arrows can be used in the tools without operating the cabinet.
   Existing `/game-tools` bookmarks open this navigation page. No tool opens a popup window.
+- **Game › View layout**, directly after Tools, accepts a PNG, JPEG or DDS preview up to 16 MB and optional layout
+  instructions. It runs Claude Code's `view-layout` skill for the selected workspace through `POST /api/game/view-layout`.
+  The uploaded file and the skill's scratch drawings live in the app data folder's `view-layouts`, outside the game.
+  The page polls `/api/game/agent/status` every second and shows all assistant messages, tool calls, successful and
+  failed tool results, diagnostics and the final report, without shortening messages or dropping older lines. Output
+  remains available after navigating away or reloading the page, until another agent task starts or the backend stops.
+  It shares the import/export agent runner, so only one task runs at a time. Claude Code and the app's sources are
+  required. Where the skill needs clarification or confirmation (including dirty views), the headless run stops and
+  reports the question. Changes are made directly to the selected game's views, without committing; Play reloads them.
 - The game goes on while another page of the app shows (App.vue keeps the Play page, `KeepAlive`), as a game left
   open does: its rounds, autoplay and sounds play on, and only its screen is not drawn. Back on **Play**, it is where it
   is, with the resources changed meanwhile, which reload as below. It starts anew after its Exit button, which ends it,

@@ -75,6 +75,13 @@ def test_open_declaration_uses_file_and_line_and_rejects_unsafe_paths(library, t
     with TestClient(app, base_url="http://127.0.0.1") as client:
         endpoint = "/api/rss-sync/open-declaration"
         body = {"descriptor": descriptor.name, "line": 163}
+        path_endpoint = "/api/rss-sync/declaration-path"
+        assert client.get(path_endpoint, params={"descriptor": descriptor.name}).json() == {"file": str(descriptor)}
+        # Included shared descriptors resolve relative to the game, with the same checks as opening them.
+        shared = descriptor.parent.parent / "shared" / "RssData.json"
+        shared.parent.mkdir(exist_ok=True)
+        shared.write_text('{}')
+        assert client.get(path_endpoint, params={"descriptor": "../shared/RssData.json"}).json() == {"file": str(shared)}
         assert client.post(endpoint, json=body).status_code == 403
         headers = session_headers(client)
         assert client.post(endpoint, headers=headers, json=body).json() == {"opened": True}
@@ -84,6 +91,7 @@ def test_open_declaration_uses_file_and_line_and_rejects_unsafe_paths(library, t
             refused.append("linked.json")
         for name in refused:
             assert client.post(endpoint, headers=headers, json={**body, "descriptor": name}).status_code in (400, 404)
+            assert client.get(path_endpoint, params={"descriptor": name}).status_code in (400, 404)
         for line in (0, -1, True, "163"):
             assert client.post(endpoint, headers=headers, json={**body, "line": line}).status_code == 400
         assert opened == [(str(descriptor), 163)]

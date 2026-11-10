@@ -2,12 +2,13 @@
 import { computed, ref, watch } from 'vue';
 import { TEXT_EXTENSIONS, assetBadges, assetFrames, assetSection, baseName, codePoint, extensionOf, fileType, firstRtfPage, movieTable, number, plural, sectionIcons, sectionSingular, sequenceName, size, splitPath, stackedAlpha, time, typeIcons, viewTable } from '../format';
 import type { AssetDeclaration, FileFacts, ReportAsset } from '../types';
-import { copy, openDeclaration, openResourceFolder } from '../workspace';
+import { copy, openResourceFile, openResourceFolder } from '../workspace';
 import AppModal from './AppModal.vue';
 import AudioPreview from './AudioPreview.vue';
 import MoveAssets from './MoveAssets.vue';
 import RenameKey from './RenameKey.vue';
 import DeclareAsset from './DeclareAsset.vue';
+import DeclarationFileActions from './DeclarationFileActions.vue';
 import FontPreview from './FontPreview.vue';
 import MoviePreview from './MoviePreview.vue';
 import ReportThumbnail from './ReportThumbnail.vue';
@@ -49,6 +50,9 @@ const sequence = computed(() => props.row.sequence);
 const name = computed(() => splitPath(props.row.resource).name);
 const readable = computed(() => props.row.category === 'available' || props.row.category === 'supplementary');
 const section = computed(() => assetSection(props.row));
+// Several descriptors or resolutions can declare the same key; rename it once for all of its variants.
+const resourceKeys = computed(() => [...new Map(props.row.requiredBy.filter(use => use.id)
+  .map(use => [JSON.stringify([use.type, use.id]), use])).values()]);
 // The asset's type, and the format of its files.
 const typeLabel = computed(() => {
   const format = props.row.type === 'rtf' || props.row.type === 'view' ? '' : extensionOf(baseName(props.row.sequence?.frames[0]?.resourcePath ?? props.row.resourcePath)).toUpperCase();
@@ -232,6 +236,16 @@ const scope = computed(() => ({ game: 'Belongs to this game only.', common: 'A c
           <p v-if="row.rtfError" class="details-scope text-muted"><i aria-hidden="true" class="mdi mdi-book-alert-outline" /> {{ row.rtfError }}</p>
           <p v-if="row.viewError" class="details-scope text-muted"><i aria-hidden="true" class="mdi mdi-alert-outline" /> {{ row.viewError }}</p>
 
+          <section v-if="resourceKeys.length" aria-label="Resource Key">
+            <h6 class="details-heading">Resource Key</h6>
+            <ul class="details-list">
+              <li v-for="use in resourceKeys" :key="JSON.stringify([use.type, use.id])" class="details-resource-key">
+                <span class="details-code">{{ use.id }}</span>
+                <button v-if="use.type" type="button" class="details-icon" :aria-label="`Rename RssKey ${use.id}`" title="Rename RssKey" @click="renaming = use"><i aria-hidden="true" class="mdi mdi-rename-box" /></button>
+              </li>
+            </ul>
+          </section>
+
           <h6 class="details-heading">Loaded by</h6>
           <p v-if="!row.requiredBy.length" class="details-small details-undeclared">
             <span class="text-muted">No JSON descriptor</span>
@@ -240,9 +254,8 @@ const scope = computed(() => ({ game: 'Belongs to this game only.', common: 'A c
           <ul v-else class="details-list">
             <li v-for="use in row.requiredBy" :key="`${use.descriptor}:${use.line}`" class="details-declaration">
               <span class="details-code">{{ use.descriptor }}:{{ use.line }}</span>
-              <span class="badge badge-light">{{ use.type }}</span><span v-if="use.id" class="details-code">{{ use.id }}</span>
-              <button type="button" class="details-icon" :aria-label="`Open ${use.descriptor} at line ${use.line} in VS Code`" :title="`Open in VS Code: ${use.descriptor}:${use.line}`" @click="openDeclaration(use.descriptor, use.line)"><i aria-hidden="true" class="mdi mdi-code-braces" /></button>
-              <button v-if="use.id && use.type" type="button" class="details-icon" :aria-label="`Rename RssKey ${use.id}`" title="Rename RssKey" @click="renaming = use"><i aria-hidden="true" class="mdi mdi-rename-box" /></button>
+              <span class="badge badge-light">{{ use.type }}</span>
+              <DeclarationFileActions :descriptor="use.descriptor" :line="use.line" />
               <span v-if="use.size" class="text-muted">{{ use.size }} px</span>
               <span v-if="use.coverage" :class="['details-coverage', use.coverage.missingCount ? 'text-danger' : 'text-success']">
                 <i aria-hidden="true" :class="['mdi', use.coverage.missingCount ? 'mdi-alert-outline' : 'mdi-check']" />{{ number(use.coverage.covered) }} of {{ number(use.coverage.declared) }} declared characters
@@ -259,6 +272,7 @@ const scope = computed(() => ({ game: 'Belongs to this game only.', common: 'A c
             <span class="details-code" :title="row.resourcePath">{{ row.resource }}</span>
             <button type="button" class="details-icon" :aria-label="`Copy the game path ${row.resourcePath}`" title="Copy the game path" @click="copy(row.resourcePath)"><i aria-hidden="true" class="mdi mdi-content-copy" /></button>
             <button type="button" class="details-icon" :aria-label="`Open the game folder of ${name}`" title="Open the game folder" @click="openResourceFolder(file)"><i aria-hidden="true" class="mdi mdi-folder-open-outline" /></button>
+            <button v-if="!sequence && !directory && row.size !== undefined" type="button" class="details-icon" :aria-label="`Open ${name} in VS Code`" title="Open file in VS Code" @click="openResourceFile(file)"><i aria-hidden="true" class="mdi mdi-code-braces" /></button>
           </div>
         </section>
 
@@ -372,6 +386,8 @@ const scope = computed(() => ({ game: 'Belongs to this game only.', common: 'A c
 .details-undeclared { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .details-undeclared .btn { padding: 2px 10px; }
 .details-declaration { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; margin-bottom: 8px; }
+.details-resource-key { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.details-resource-key .details-code { flex: 1; min-width: 0; }
 .details-coverage { font-size: 12px; }
 .details-coverage i { margin-right: 3px; }
 .details-missing { display: flex; flex-wrap: wrap; gap: 4px; width: 100%; max-height: 96px; overflow-y: auto; }

@@ -1,0 +1,180 @@
+<script setup lang="ts">
+import { computed, nextTick, onActivated, onBeforeUnmount, onDeactivated, ref } from 'vue';
+import PageHeader from '../components/PageHeader.vue';
+import { startingViewLayout, updateGameAgentActivity } from '../composables/useGameAgentActivity';
+import { api, config } from '../workspace';
+
+interface AgentStatus {
+  running: boolean;
+  kind: string | null;
+  files: string[];
+  log: string[];
+  result: { report: string; cost: number | null; turns: number | null } | null;
+  error: string | null;
+}
+
+const MAX_IMAGE_BYTES = 16 * 1024 * 1024;
+const workspace = config.value.defaultWorkspace || 'current';
+const image = ref<File | null>(null);
+const preview = ref('');
+const instructions = ref('');
+const starting = ref(false);
+const error = ref('');
+const pollingError = ref('');
+const status = ref<AgentStatus | null>(null);
+const output = ref<HTMLElement | null>(null);
+const followOutput = ref(true);
+const thisRun = computed(() => status.value?.kind === 'view-layout' && status.value.files[0] === workspace ? status.value : null);
+const transcript = computed(() => thisRun.value?.log.join('\n\n') ?? '');
+const locked = computed(() => starting.value || !!startingViewLayout.value || !status.value || !!pollingError.value || status.value.running);
+let timer = 0;
+let active = false;
+let generation = 0;
+
+async function chooseImage(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  error.value = '';
+  preview.value = '';
+  image.value = null;
+  if (!file) return;
+  if (!/\.(png|jpe?g|dds)$/i.test(file.name) || !file.size || file.size > MAX_IMAGE_BYTES) {
+    error.value = 'Choose a PNG, JPEG or DDS image up to 16 MB.';
+    input.value = '';
+    return;
+  }
+  image.value = file;
+  if (!/\.dds$/i.test(file.name)) {
+    try {
+      const encoded = await readImage(file);
+      if (image.value === file) preview.value = `data:image/${/\.png$/i.test(file.name) ? 'png' : 'jpeg'};base64,${encoded}`;
+    } catch (failure) {
+      if (image.value === file) error.value = (failure as Error).message;
+    }
+  }
+}
+
+function readImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(',')[1] ?? '');
+    reader.onerror = () => reject(new Error('The preview image could not be read.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function scrollOutput() {
+  if (!followOutput.value) return;
+  await nextTick();
+  if (output.value) output.value.scrollTop = output.value.scrollHeight;
+}
+
+async function poll() {
+  window.clearTimeout(timer);
+  const request = ++generation;
+  try {
+    const value = await api<AgentStatus>('game/agent/status', 'GET');
+    if (!active || request !== generation) return;
+    status.value = value;
+    updateGameAgentActivity(value);
+    pollingError.value = '';
+    void scrollOutput();
+  } catch (failure) {
+    if (!active || request !== generation) return;
+    pollingError.value = `Could not refresh Claude Code output: ${(failure as Error).message}. Retrying…`;
+  }
+  if (active && request === generation) timer = window.setTimeout(poll, 1000);
+}
+
+async function start() {
+  if (!image.value || locked.value) return;
+  starting.value = true;
+  startingViewLayout.value = workspace;
+  error.value = '';
+  window.clearTimeout(timer);
+  generation++;
+  try {
+    const encoded = await readImage(image.value);
+    status.value = await api<AgentStatus>('game/view-layout', 'POST', { workspace, image: encoded, instructions: instructions.value });
+    updateGameAgentActivity(status.value);
+    followOutput.value = true;
+    void scrollOutput();
+  } catch (failure) {
+    error.value = (failure as Error).message;
+  } finally {
+    starting.value = false;
+    if (startingViewLayout.value === workspace) startingViewLayout.value = null;
+    if (active) void poll();
+  }
+}
+
+onActivated(() => { active = true; void poll(); });
+onDeactivated(() => { active = false; generation++; window.clearTimeout(timer); });
+onBeforeUnmount(() => {
+  active = false;
+  generation++;
+  window.clearTimeout(timer);
+});
+</script>
+
+<template>
+  <PageHeader title="View layout">
+    <template #links><li><span>Match {{ config.name }}’s views to a preview with Claude Code’s <code>view-layout</code> skill.</span></li></template>
+  </PageHeader>
+  <div class="row view-layout-page">
+    <div class="col-xl-4 mb-4">
+      <form class="card" @submit.prevent="start">
+        <div class="card-body">
+          <h2 class="h5">Preview image</h2>
+          <p class="text-muted small">Choose the layout you want for this workspace. Claude Code updates the game’s view files; Play reloads the changes automatically.</p>
+          <div class="form-group">
+            <label for="layout-preview">Upload preview</label>
+            <input id="layout-preview" type="file" class="form-control-file" accept=".png,.jpg,.jpeg,.dds" :disabled="starting || status?.running" aria-describedby="layout-image-help" @change="chooseImage">
+            <small id="layout-image-help" class="form-text text-muted">PNG, JPEG or DDS, up to 16 MB.</small>
+          </div>
+          <img v-if="preview" :src="preview" class="layout-preview mb-3" alt="Selected layout preview">
+          <p v-if="image" class="small text-muted">{{ image.name }} · {{ (image.size / 1024 / 1024).toFixed(2) }} MB</p>
+          <div class="form-group">
+            <label for="layout-instructions">Layout instructions (optional)</label>
+            <textarea id="layout-instructions" v-model="instructions" class="form-control" rows="4" maxlength="8000" :disabled="starting || status?.running" placeholder="For example: main game, BetBarView and CreditsWinBarView." />
+          </div>
+          <p class="small text-muted">If the skill needs clarification or permission, Claude Code stops and includes its question in the output.</p>
+          <p v-if="error" class="alert alert-danger" role="alert">{{ error }}</p>
+          <button type="submit" class="btn btn-primary" :disabled="!image || locked">
+            <i :class="['mdi', starting || thisRun?.running ? 'mdi-loading mdi-spin' : 'mdi-robot-outline']" aria-hidden="true" />
+            {{ starting ? 'Uploading preview…' : thisRun?.running ? 'Claude Code is running…' : 'Run view-layout' }}
+          </button>
+          <p v-if="status?.running && !thisRun" class="small mt-3 mb-0" role="status">Another Claude Code task is running. Wait for it to finish before starting.</p>
+        </div>
+      </form>
+    </div>
+    <div class="col-xl-8 mb-4">
+      <section class="card" aria-label="Claude Code execution">
+        <div class="card-body">
+          <div class="d-flex flex-wrap align-items-center justify-content-between mb-3">
+            <h2 class="h5 mb-2">Claude Code output</h2>
+            <label class="small mb-2"><input v-model="followOutput" type="checkbox" @change="scrollOutput"> Follow output</label>
+          </div>
+          <p role="status" class="small text-muted">
+            {{ thisRun?.running ? 'Running view-layout… Responses appear as they arrive.' : thisRun?.error ? 'Execution failed.' : thisRun?.result ? 'Execution finished.' : 'Upload a preview to start. The complete execution output will appear here.' }}
+          </p>
+          <p v-if="pollingError" class="alert alert-warning" role="alert">{{ pollingError }}</p>
+          <p v-if="thisRun?.error" class="alert alert-danger" role="alert">{{ thisRun.error }}</p>
+          <pre ref="output" class="layout-output" tabindex="0" aria-label="Complete Claude Code output">{{ transcript || 'Waiting for Claude Code…' }}</pre>
+          <template v-if="thisRun?.result">
+            <h3 class="h6 mt-4">Final report</h3>
+            <div class="layout-report">{{ thisRun.result.report }}</div>
+            <p v-if="thisRun.result.cost != null" class="small text-muted mt-3 mb-0">{{ thisRun.result.turns }} turns · ${{ thisRun.result.cost.toFixed(4) }}</p>
+          </template>
+        </div>
+      </section>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.view-layout-page > div { min-width: 0; }
+.layout-preview { display: block; width: 100%; max-height: 360px; object-fit: contain; background: #f5f5f5; border-radius: 6px; }
+.layout-output { min-height: 320px; max-height: 65vh; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; padding: 1rem; border-radius: 6px; background: #151b28; color: #e7edf7; font-size: 12px; line-height: 1.6; }
+.layout-report { white-space: pre-wrap; overflow-wrap: anywhere; }
+</style>

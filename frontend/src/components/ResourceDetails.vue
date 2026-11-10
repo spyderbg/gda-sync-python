@@ -2,8 +2,9 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { PREVIEW_EXTENSIONS, algorithmValues, baseName, viewTable, type GdaCandidate, declarationLabel, directoryOf, extensionOf, fileType, matchBadge, matchText, number, plural, previewFrames, relativePath, rssBadges, rtfChangeBadges, rtfChangeNames, rtfChangeSummary, sequenceName, size, splitPath, stackedAlpha, time } from '../format';
 import type { RssFileDetails, RssResource, RtfFacts } from '../types';
-import { busy, copy, data, openDeclaration, openResourceFolder, requestResourceSync, resourceDetails, rssSync } from '../workspace';
+import { busy, copy, data, openResourceFile, openResourceFolder, requestResourceSync, resourceDetails, rssSync } from '../workspace';
 import AppModal from './AppModal.vue';
+import DeclarationFileActions from './DeclarationFileActions.vue';
 import AudioPreview from './AudioPreview.vue';
 import FontPreview from './FontPreview.vue';
 import MoviePreview from './MoviePreview.vue';
@@ -382,7 +383,7 @@ function sync() {
           <ul v-else class="details-list">
             <li v-for="use in row.requiredBy" :key="`${use.descriptor}:${use.line}`" class="details-path">
               <span class="details-code">{{ declarationLabel(use) }}</span>
-              <button type="button" class="details-icon" :aria-label="`Open ${use.descriptor} at line ${use.line} in VS Code`" :title="`Open in VS Code: ${use.descriptor}:${use.line}`" @click="openDeclaration(use.descriptor, use.line)"><i aria-hidden="true" class="mdi mdi-code-braces" /></button>
+              <DeclarationFileActions :descriptor="use.descriptor" :line="use.line" />
             </li>
           </ul>
 
@@ -391,6 +392,7 @@ function sync() {
             <span class="details-code" :title="row.resourcePath">{{ gamePath(row.resourcePath) }}</span>
             <button type="button" class="details-icon" :aria-label="`Copy the game path ${row.resourcePath}`" title="Copy the game path" @click="copy(row.resourcePath)"><i aria-hidden="true" class="mdi mdi-content-copy" /></button>
             <button type="button" class="details-icon" :aria-label="`Open the game folder of ${name}`" title="Open the game folder" @click="openResourceFolder(directory?.project ?? row.resourcePath)"><i aria-hidden="true" class="mdi mdi-folder-open-outline" /></button>
+            <button v-if="!sequence && !directory && details[row.resourcePath]?.size !== undefined" type="button" class="details-icon" :aria-label="`Open ${name} in VS Code`" title="Open file in VS Code" @click="openResourceFile(row.resourcePath)"><i aria-hidden="true" class="mdi mdi-code-braces" /></button>
           </div>
           <template v-if="sequence && gdaFolders.length">
             <h6 class="details-heading">GDA folder{{ plural(gdaFolders.length) }}</h6>
@@ -416,6 +418,7 @@ function sync() {
                 <span class="details-code" :title="file.absolutePath">{{ gdaPath(file.absolutePath) }}</span>
                 <button type="button" class="details-icon" :aria-label="`Copy the GDA path ${file.path}`" title="Copy the GDA path" @click="copy(file.absolutePath)"><i aria-hidden="true" class="mdi mdi-content-copy" /></button>
                 <button type="button" class="details-icon" :aria-label="`Open the GDA folder of ${file.path}`" title="Open the GDA folder" @click="openResourceFolder(directory ? `${file.absolutePath}/${baseName(directory.project)}` : file.absolutePath)"><i aria-hidden="true" class="mdi mdi-folder-open-outline" /></button>
+                <button v-if="!directory && details[file.absolutePath]?.size !== undefined" type="button" class="details-icon" :aria-label="`Open GDA file ${file.path} in VS Code`" title="Open file in VS Code" @click="openResourceFile(file.absolutePath)"><i aria-hidden="true" class="mdi mdi-code-braces" /></button>
               </div>
               <span v-if="row.category === 'different'" :class="['badge', index ? 'badge-light' : 'badge-primary']">{{ index ? 'Other match' : 'Copied on sync' }}</span>
             </div>

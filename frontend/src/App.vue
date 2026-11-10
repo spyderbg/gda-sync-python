@@ -11,6 +11,7 @@ import DashboardView from './views/DashboardView.vue';
 import AssetsLibraryView from './views/AssetsLibraryView.vue';
 import SettingsView from './views/SettingsView.vue';
 import ImageStudioView from './views/ImageStudioView.vue';
+import ViewLayoutView from './views/ViewLayoutView.vue';
 import BackupsView from './views/BackupsView.vue';
 import SyncHistoryView from './views/SyncHistoryView.vue';
 import SyncInProgressView from './views/SyncInProgressView.vue';
@@ -69,6 +70,9 @@ onBeforeUnmount(() => {
           <SettingsView v-else-if="ui.view === 'settings'" />
           <KeepAlive :key="config.defaultWorkspace">
             <ImageStudioView v-if="ui.view === 'imageStudio'" />
+          </KeepAlive>
+          <KeepAlive :key="`layout-${config.defaultWorkspace}`">
+            <ViewLayoutView v-if="ui.view === 'viewLayout'" />
           </KeepAlive>
           <KeepAlive>
             <GameView v-if="ui.view === 'game' || ui.view === 'gameTools'" :tools-page="ui.view === 'gameTools'" />

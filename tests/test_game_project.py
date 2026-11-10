@@ -319,6 +319,124 @@ def test_the_game_sync_runs_the_game_sync_command_for_the_workspaces_game_headle
     assert not any("commit" in tool or "push" in tool for tool in tools)
 
 
+def layout_preview(format="PNG"):
+    image = io.BytesIO()
+    Image.new("RGB", (32, 24), "red").save(image, format=format)
+    return {"workspace": "example", "image": base64.b64encode(image.getvalue()).decode("ascii")}
+
+
+def test_view_layout_validates_the_preview_workspace_and_installation(client, tmp_path, monkeypatch):
+    from egt_gda_sync.game import project
+    body = layout_preview()
+    monkeypatch.setattr(project, "find_claude", lambda: None)
+    assert client.post("/api/game/view-layout", json=body).status_code == 501
+    monkeypatch.setattr(project, "find_claude", lambda: "/unused/claude")
+    assert client.post("/api/game/view-layout", json={**body, "workspace": "another"}).status_code == 409
+    for invalid in ("not base64!", base64.b64encode(b"not an image").decode("ascii")):
+        response = client.post("/api/game/view-layout", json={**body, "image": invalid})
+        assert response.status_code == 400
+    assert client.post("/api/game/view-layout", json=layout_preview("GIF")).status_code == 400
+    monkeypatch.setattr(project, "MAX_LAYOUT_IMAGE_BYTES", 10)
+    assert client.post("/api/game/view-layout", json=body).status_code == 413
+    monkeypatch.setattr(project, "MAX_LAYOUT_IMAGE_BYTES", 16 * 1024 * 1024)
+    monkeypatch.setattr(project, "VIEW_LAYOUT_SKILL", tmp_path / "missing-skill.md")
+    assert client.post("/api/game/view-layout", json=body).status_code == 501
+    assert not (client.home / "view-layouts").exists()
+
+
+def test_view_layout_streams_all_responses_and_runs_the_skill_for_the_selected_workspace(client, tmp_path, monkeypatch):
+    import sys
+    from egt_gda_sync.game import project
+    record, release = tmp_path / "run.json", tmp_path / "release"
+    claude = tmp_path / "claude"
+    claude.write_text(f'''#!{sys.executable}
+import json, sys, time
+from pathlib import Path
+prompt = sys.stdin.read()
+Path({str(record)!r}).write_text(json.dumps({{"argv": sys.argv[1:], "prompt": prompt, "cwd": str(Path.cwd())}}))
+def emit(event):
+    print(json.dumps(event), flush=True)
+emit({{"type": "assistant", "message": {{"content": [{{"type": "text", "text": "First response.\\n" + "x" * 1000 + "\\nLast line."}}]}}}})
+deadline = time.monotonic() + 10
+while not Path({str(release)!r}).exists() and time.monotonic() < deadline:
+    time.sleep(0.01)
+emit({{"type": "user", "message": {{"content": [{{"type": "tool_result", "content": "Successful tool output.\\nSecond line.", "is_error": False}}]}}}})
+for number in range(450):
+    emit({{"type": "assistant", "message": {{"content": [{{"type": "text", "text": "Step " + str(number)}}]}}}})
+print("Diagnostic from stderr", file=sys.stderr, flush=True)
+emit({{"type": "system", "subtype": "status", "status": "complete"}})
+emit({{"type": "result", "is_error": False, "result": "Layout updated. Full report.", "num_turns": 4, "total_cost_usd": 0.12}})
+''')
+    claude.chmod(0o755)
+    monkeypatch.setattr(project, "find_claude", lambda: str(claude))
+    body = {**layout_preview(), "instructions": "Main game: BetBarView."}
+    try:
+        started = client.post("/api/game/view-layout", json=body)
+        assert started.status_code == 200
+        assert started.json()["kind"] == "view-layout" and started.json()["files"] == ["example"]
+        for _ in range(200):
+            status = client.get("/api/game/agent/status").json()
+            if status["log"]:
+                break
+            time.sleep(0.01)
+        assert status["running"] and "First response.\n" + "x" * 1000 + "\nLast line." in status["log"][0]
+        assert client.get("/api/game/agent/status", params={"summary": True}).json() == {
+            "running": True, "kind": "view-layout", "files": ["example"]}
+        # No second run or discarded preview while this session is still working.
+        assert client.post("/api/game/view-layout", json=body).status_code == 409
+        assert len(list((client.home / "view-layouts").iterdir())) == 1
+    finally:
+        release.touch()
+        for _ in range(200):
+            status = client.get("/api/game/agent/status").json()
+            if not status["running"]:
+                break
+            time.sleep(0.01)
+    assert status["error"] is None and not status["running"]
+    assert status["result"] == {"report": "Layout updated. Full report.", "turns": 4, "cost": 0.12}
+    transcript = "\n".join(status["log"])
+    assert len(status["log"]) > 450 and "First response." in transcript and "Step 449" in transcript
+    assert "Successful tool output." in transcript and "Second line." in transcript
+    assert "Diagnostic from stderr" in transcript and '"status": "complete"' in transcript
+    assert "Layout updated. Full report." in transcript
+    run = json.loads(record.read_text())
+    assert run["cwd"] == str(project.APP_SOURCES)
+    assert "`view-layout` skill" in run["prompt"] and str(project.VIEW_LAYOUT_SKILL) in run["prompt"]
+    assert str(client.game) in run["prompt"] and str(tmp_path / "workspace.json") in run["prompt"]
+    assert "Main game: BetBarView." in run["prompt"] and "stop before that action" in run["prompt"]
+    scratch = next((client.home / "view-layouts").iterdir())
+    assert (scratch / "preview.png").read_bytes() == base64.b64decode(body["image"])
+    assert str(scratch / "preview.png") in run["prompt"]
+    assert run["argv"][:6] == ["-p", "--output-format", "stream-json", "--verbose", "--permission-mode", "auto"]
+    assert "Skill(view-layout)" in run["argv"]
+    assert "Bash(.venv/bin/python -I .claude/skills/view-layout/view_layout.py:*)" in run["argv"]
+
+
+def test_view_layout_keeps_failure_responses_and_the_final_error(client, tmp_path, monkeypatch):
+    import sys
+    from egt_gda_sync.game import project
+    claude = tmp_path / "claude"
+    claude.write_text(f'''#!{sys.executable}
+import json, sys
+sys.stdin.read()
+print(json.dumps({{"type": "user", "message": {{"content": [{{"type": "tool_result", "is_error": True, "content": "Could not read the view.\\nDetails remain visible."}}]}}}}))
+print(json.dumps({{"type": "result", "is_error": True, "errors": ["Authentication failed"], "result": "Please sign in to Claude Code."}}))
+sys.exit(1)
+''')
+    claude.chmod(0o755)
+    monkeypatch.setattr(project, "find_claude", lambda: str(claude))
+    assert client.post("/api/game/view-layout", json=layout_preview("JPEG")).status_code == 200
+    for _ in range(200):
+        status = client.get("/api/game/agent/status").json()
+        if not status["running"]:
+            break
+        time.sleep(0.01)
+    assert status["result"] is None and "Please sign in" in status["error"]
+    transcript = "\n".join(status["log"])
+    assert "Details remain visible." in transcript and "Authentication failed" in transcript
+    assert next((client.home / "view-layouts").iterdir()).joinpath("preview.jpg").is_file()
+
+
 @pytest.mark.skipif(not shutil.which("node"), reason="the export agent runs on Node.js")
 def test_an_exports_changes_the_translator_left_are_ported_by_an_agent_in_the_background(client, tmp_path, monkeypatch):
     from egt_gda_sync.game import project

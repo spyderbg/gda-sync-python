@@ -7,6 +7,18 @@ Versions follow the project's single-digit major.minor.build scheme.
 
 ## [Unreleased]
 
+### Added
+
+- Add an Open file in VS Code action beside file paths in the Asset library and Sync details.
+- Give declaration entries Copy path, Open folder and Open file actions, and use the same order for file paths.
+- Move resource keys and their rename actions into a Resource Key section above Loaded by in asset details.
+- Add View layout after Tools: upload a preview, run Claude Code's view-layout skill for the selected workspace, and follow its complete execution output and final report.
+- Show a spinner beside View layout while it runs, including when another page is open.
+
+### Fixed
+
+- Preserve the expired-session response for large screenshot uploads so the browser can renew its session and save the image after a backend restart.
+
 ## [2.0.1] - 2026-11-05
 
 ### Changed

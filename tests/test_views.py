@@ -234,6 +234,33 @@ def client(tmp_path):
         yield api, game, tmp_path
 
 
+def test_the_api_opens_the_view_file_itself_in_the_editor(client):
+    api, game, root = client
+    endpoint = "/api/rss-sync/open-file"
+    main = game / "v" / "1920x1080" / "MainView.json"
+    headers = session_headers(api)
+    assert api.post(endpoint, json={"file": str(main)}).status_code == 403
+    assert api.post(endpoint, headers=headers, json={"file": str(main)}).json() == {"opened": True}
+    assert api.opened == [(str(main), 1)]
+    # Broken JSON can still be opened to repair it; no parsing is needed to open a file.
+    broken = main.with_name("Broken.json")
+    assert api.post(endpoint, headers=headers, json={"file": str(broken)}).status_code == 200
+    gda = root / "gda" / "Preview.json"
+    gda.write_text("{}")
+    assert api.post(endpoint, headers=headers, json={"file": str(gda)}).status_code == 200
+    outside = root / "elsewhere" / "v" / "OtherView.json"
+    for file in (outside, main.parent, main.with_name("Missing.json"), Path("v/1920x1080/MainView.json")):
+        assert api.post(endpoint, headers=headers, json={"file": str(file)}).status_code in (400, 404)
+    linked = main.with_name("Linked.json")
+    try:
+        linked.symlink_to(main)
+    except OSError:
+        pass
+    else:
+        assert api.post(endpoint, headers=headers, json={"file": str(linked)}).status_code == 400
+    assert api.opened == [(str(main), 1), (str(broken), 1), (str(gda), 1)]
+
+
 def test_the_api_draws_a_view_and_lists_its_elements(client):
     api, game, root = client
     main = str((game / "v" / "1920x1080" / "MainView.json").resolve())

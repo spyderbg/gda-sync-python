@@ -51,7 +51,9 @@ def frames_shown(anim, milliseconds: int = 600) -> list[str]:
 
 
 def test_views_are_drawn_in_the_asset_library_and_on_the_sync_page(new_context, view_backend):
-    page = new_context().new_page()
+    context = new_context()
+    context.grant_permissions(["clipboard-read", "clipboard-write"], origin=view_backend.url)
+    page = context.new_page()
     errors = []
     page.on("pageerror", lambda error: errors.append(str(error)))
     page.goto(view_backend.url)
@@ -73,6 +75,45 @@ def test_views_are_drawn_in_the_asset_library_and_on_the_sync_page(new_context, 
     # The details draw the view at its size, outline its text areas, and outline every element on request.
     main.locator(".asset-hit-target").click()
     dialog = page.get_by_role("dialog")
+    resource_key = dialog.get_by_role("region", name="Resource Key", exact=True)
+    expect(resource_key).to_contain_text("MainView")
+    expect(resource_key.get_by_role("button", name="Rename RssKey MainView", exact=True)).to_have_count(1)
+    expect(dialog.locator(".details-declaration").get_by_role("button", name="Rename RssKey MainView", exact=True)).to_have_count(0)
+    opened_files = []
+    def open_file(route):
+        opened_files.append(route.request.post_data_json)
+        route.fulfill(json={"opened": True})
+    page.route("**/api/rss-sync/open-file", open_file)
+    dialog.get_by_role("button", name="Open MainView.json in VS Code", exact=True).click()
+    game_path = view_backend.get("/api/library")["config"]["destination"]
+    assert opened_files == [{"file": f"{game_path}/v/1920x1080/MainView.json"}]
+    assert dialog.locator(".details-summary > .details-path button").evaluate_all(
+        "buttons => buttons.map(button => button.getAttribute('aria-label'))"
+    ) == [f"Copy the game path {game_path}/v/1920x1080/MainView.json", "Open the game folder of MainView.json", "Open MainView.json in VS Code"]
+    declaration = dialog.locator(".details-declaration").filter(has=page.get_by_role("button", name="Copy path of RssElementsListData.json", exact=True))
+    actions = declaration.locator(".declaration-file-actions button")
+    action_names = actions.evaluate_all("buttons => buttons.map(button => button.getAttribute('aria-label'))")
+    assert action_names[:2] == ["Copy path of RssElementsListData.json", "Open the folder of RssElementsListData.json"]
+    assert action_names[2].startswith("Open RssElementsListData.json at line ")
+    actions.nth(0).click()
+    poll(lambda: page.evaluate("navigator.clipboard.readText()"), f"{game_path}/RssElementsListData.json")
+    opened_folders, opened_declarations = [], []
+    def open_folder(route):
+        opened_folders.append(route.request.post_data_json)
+        route.fulfill(json={"opened": True})
+    def open_declaration(route):
+        opened_declarations.append(route.request.post_data_json)
+        route.fulfill(json={"opened": True})
+    page.route("**/api/rss-sync/open-folder", open_folder)
+    page.route("**/api/rss-sync/open-declaration", open_declaration)
+    with page.expect_response("**/api/rss-sync/open-folder"):
+        actions.nth(1).click()
+    assert opened_folders == [{"file": f"{game_path}/RssElementsListData.json", "isFolder": False}]
+    with page.expect_response("**/api/rss-sync/open-declaration"):
+        actions.nth(2).click()
+    line = int(re.search(r"at line (\d+)", action_names[2]).group(1))
+    assert opened_declarations == [{"descriptor": "RssElementsListData.json", "line": line}]
+    expect(dialog).to_be_visible()
     poll(lambda: drawn(dialog.locator(".view-stage-image")), True)
     # The Anim plays its three frames, repeating forever, between the still elements drawn before and after it.
     stage = dialog.locator(".view-stage-image")

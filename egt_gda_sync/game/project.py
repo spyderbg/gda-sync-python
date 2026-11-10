@@ -21,14 +21,18 @@ game lists, so that an export is a whole plugin: the C++ files the browser game 
 
 from __future__ import annotations
 
+import io
 import json
 import os
 import re
 import shutil
 import subprocess
+import tempfile
 import threading
 import time
 from pathlib import Path
+
+from PIL import Image, UnidentifiedImageError
 
 from egt_gda_sync.app.errors import AppError
 from egt_gda_sync.sync.rss_sync import expand_path, load_documents
@@ -80,6 +84,8 @@ CLAUDE_MISSING = "Porting with an agent needs Claude Code (the claude command), 
 APP_SOURCES = GAME_SOURCES.parents[2]
 GAME_SYNC_COMMAND = APP_SOURCES / ".claude" / "commands" / "game-sync.md"
 GAME_SYNCS_FOLDER = "game-syncs"
+VIEW_LAYOUT_SKILL = APP_SOURCES / ".claude" / "skills" / "view-layout" / "SKILL.md"
+MAX_LAYOUT_IMAGE_BYTES = 16 * 1024 * 1024
 GAME_SYNC_HEADLESS = """
 
 ## Headless
@@ -322,6 +328,63 @@ class GameProject:
                    "--add-dir", str(scratch), "--allowedTools", *game_sync_tools(games)]
         return _start_agent("game-sync", command, [plugin], run=lambda: _run_claude(command, prompt))
 
+    def start_view_layout(self, workspace: str, image: bytes, instructions: str = "") -> dict:
+        """Run view-layout with an uploaded preview and retain every session response for the layout page."""
+        workspace_id, entry, resources, game = self._folders()
+        if workspace != workspace_id:
+            raise AppError("The workspace changed. Select the preview again for the current workspace.", 409)
+        claude = find_claude()
+        if not claude:
+            raise AppError("View layout needs Claude Code (the claude command) installed on this computer", 501)
+        if not VIEW_LAYOUT_SKILL.is_file():
+            raise AppError("View layout needs the app's sources (.claude/skills/view-layout/SKILL.md)", 501)
+        if not image or len(image) > MAX_LAYOUT_IMAGE_BYTES:
+            raise AppError("A layout preview must be between 1 byte and 16 MB", 413)
+        try:
+            with Image.open(io.BytesIO(image)) as preview:
+                suffix = {"PNG": ".png", "JPEG": ".jpg", "DDS": ".dds"}.get(preview.format)
+                if not suffix:
+                    raise AppError("Choose a PNG, JPEG or DDS preview")
+                preview.verify()
+        except (OSError, ValueError, UnidentifiedImageError, Image.DecompressionBombError) as error:
+            raise AppError("The layout preview is not a valid PNG, JPEG or DDS image") from error
+        if not game.is_dir():
+            raise AppError("The game folder of this workspace does not exist", 404)
+        # Reject concurrent starts before saving a preview; _start_agent also checks under its lock.
+        if agent_status()["running"]:
+            raise AppError("An agent is running", 409)
+        parent = Path(self.library.home) / "view-layouts"
+        parent.mkdir(parents=True, exist_ok=True)
+        scratch = Path(tempfile.mkdtemp(prefix="layout-", dir=parent))
+        preview_path = scratch / f"preview{suffix}"
+        preview_path.write_bytes(image)
+        prompt = (
+            f"Use the `view-layout` skill with preview {json.dumps(str(preview_path))} and workspace {json.dumps(workspace)}.\n"
+            f"Read and follow {json.dumps(str(VIEW_LAYOUT_SKILL))}.\n"
+            "The application supplied these authoritative inputs; use them instead of another workspace configuration:\n"
+            + json.dumps({"workspace": workspace, "name": entry.get("game_name", workspace), "game_path": str(game),
+                          "games_root_path": str(resources.parent), "config": self.library.config_path,
+                          "preview": str(preview_path), "scratch": str(scratch)}, indent=2)
+            + "\n\n## Headless execution\n"
+            "The View layout page started this session. No one can answer questions during execution. "
+            "If the skill requires confirmation or clarification, stop before that action and put the question in your report. "
+            "Keep all the skill's scope restrictions, including checking for uncommitted view changes before editing. "
+            "Only edit the selected game's view element positions, scales and permitted fitBox fields. "
+            "Do not commit. Keep drawings in the supplied scratch folder. Report progress and the complete result.\n"
+            f"\nUser's layout instructions:\n{instructions or 'Match the preview; infer the visible views and state using the skill.'}\n"
+        )
+        tools = ["Skill(view-layout)", "Read", "Grep", "Glob", "Edit",
+                 "Bash(.venv/bin/python -I .claude/skills/view-layout/view_layout.py:*)",
+                 f"Bash(git -C {resources.parent} status:*)", f"Bash(git -C {resources.parent} diff:*)",
+                 "Bash(node tests/tetra-panel/run.mjs:*)"]
+        command = [claude, "-p", "--output-format", "stream-json", "--verbose", "--permission-mode", "auto",
+                   "--add-dir", str(scratch), str(resources.parent), "--allowedTools", *tools]
+        try:
+            return _start_agent("view-layout", command, [workspace], run=lambda: _run_claude(command, prompt, full_output=True))
+        except AppError:
+            shutil.rmtree(scratch)
+            raise
+
     def game_imports(self) -> dict:
         """The C++ games of the family (games/game/alpha_family/plugins/<plugin>/src/Egt) and how much of each the browser
         game has: its TypeScript files (frontend/src/game/alpha_family/plugins/<plugin>), and the active workspace's."""
@@ -456,11 +519,12 @@ class GameProject:
         raise AppError("Too many screenshots in one second", 429)
 
 
-def agent_status() -> dict:
+def agent_status(*, summary: bool = False) -> dict:
     """The running or last agent: what it does (import, export), whether it runs, its progress log, and its report
     (ported, failed) when it ended."""
     with _agent_lock:
-        return {key: (list(value) if isinstance(value, list) else value) for key, value in _agent_job.items()}
+        keys = ("running", "kind", "files") if summary else _agent_job.keys()
+        return {key: (list(_agent_job[key]) if isinstance(_agent_job[key], list) else _agent_job[key]) for key in keys}
 
 
 def _ported(file: str) -> bool:
@@ -535,7 +599,7 @@ def _start_agent(kind: str, command: list[str], files: list[str], run=None) -> d
     return agent_status()
 
 
-def _run_claude(command: list[str], prompt: str) -> None:
+def _run_claude(command: list[str], prompt: str, *, full_output: bool = False) -> None:
     """A headless Claude Code session (claude -p, stream-json): each of its steps in the log as it comes, and its last
     message, the report, as the result."""
     final = None
@@ -551,11 +615,13 @@ def _run_claude(command: list[str], prompt: str) -> None:
                     event = None
                 if isinstance(event, dict) and event.get("type") == "result":
                     final = event
-                    continue
-                entries = _session_log(event) if isinstance(event, dict) else [line.rstrip("\n")]
+                    if not full_output:
+                        continue
+                entries = (_session_output(event) if full_output else _session_log(event)) if isinstance(event, dict) else [line.rstrip("\n")]
                 with _agent_lock:
                     _agent_job["log"].extend(entry for entry in entries if entry)
-                    del _agent_job["log"][:-AGENT_LOG_LINES]
+                    if not full_output:
+                        del _agent_job["log"][:-AGENT_LOG_LINES]
         with _agent_lock:
             if final and not final.get("is_error") and not process.returncode:
                 _agent_job["result"] = {"report": final.get("result") or "", "cost": final.get("total_cost_usd"),
@@ -569,6 +635,21 @@ def _run_claude(command: list[str], prompt: str) -> None:
     finally:
         with _agent_lock:
             _agent_job["running"] = False
+
+
+def _session_output(event: dict) -> list[str]:
+    """Readable complete output, including successful tools and unfamiliar response types, without truncation."""
+    message = event.get("message")
+    content = message.get("content") if isinstance(message, dict) else None
+    if isinstance(content, list):
+        lines = []
+        for block in content:
+            if isinstance(block, dict) and block.get("type") == "text":
+                lines.append(f"{event.get('type', 'message')}:\n{block.get('text', '')}")
+            else:
+                lines.append(json.dumps(block, ensure_ascii=False, indent=2))
+        return lines or [json.dumps(event, ensure_ascii=False, indent=2)]
+    return [json.dumps(event, ensure_ascii=False, indent=2)]
 
 
 def _session_log(event: dict) -> list[str]:

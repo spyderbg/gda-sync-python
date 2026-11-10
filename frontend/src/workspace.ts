@@ -8,7 +8,7 @@ const RSS_POLL_MS = 1000;
 export const LIBRARY_VIEWS: View[] = ['library', 'pending'];
 export const PAGE_NAMES: Record<View, string> = {
   dashboard: 'Dashboard', library: 'Asset library', pending: 'Sync', rssSync: 'Sync in progress', history: 'Sync history', backups: 'Backups',
-  settings: 'Workspace settings', game: 'Play', gameTools: 'Tools', imageStudio: 'Image studio',
+  settings: 'Workspace settings', game: 'Play', gameTools: 'Tools', viewLayout: 'View layout', imageStudio: 'Image studio',
 };
 
 export const data = ref<LibraryResponse | null>(null);
@@ -131,14 +131,17 @@ export async function api<T>(path: string, method = 'POST', body?: unknown): Pro
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   });
   let response = await send(session.token);
-  let value = await response.json();
+  const readResponse = (reply: Response) => reply.json().catch(() => {
+    throw new Error(`The server returned an invalid or empty response (HTTP ${reply.status} ${reply.statusText}).`);
+  });
+  let value = await readResponse(response);
   if (response.status === 403 && value.error === INVALID_SESSION) {
     // A backend restart rotates its token. Retry only a rejected, unapplied request.
     const sessionResponse = await fetch('/api/session', { cache: 'no-store' });
     if (sessionResponse.ok) {
       applySession(await sessionResponse.json());
       response = await send(session.token);
-      value = await response.json();
+      value = await readResponse(response);
     }
   }
   if (!response.ok) throw new Error(value.error || 'Request failed');
@@ -376,6 +379,29 @@ export async function removeAsset(asset: string, confirmUsed = false) {
     notify((e as Error).message, true);
     return false;
   } finally { busy.value = ''; }
+}
+
+export async function openResourceFile(file: string) {
+  try {
+    await api('rss-sync/open-file', 'POST', { file });
+    notify('Opened file in VS Code.');
+  } catch (e) { notify((e as Error).message, true); }
+}
+
+async function declarationPath(descriptor: string) {
+  return (await api<{ file: string }>(`rss-sync/declaration-path?descriptor=${encodeURIComponent(descriptor)}`, 'GET')).file;
+}
+
+export async function copyDeclarationPath(descriptor: string) {
+  try {
+    await copy(await declarationPath(descriptor));
+  } catch (e) { notify((e as Error).message, true); }
+}
+
+export async function openDeclarationFolder(descriptor: string) {
+  try {
+    await openResourceFolder(await declarationPath(descriptor));
+  } catch (e) { notify((e as Error).message, true); }
 }
 
 export async function openDeclaration(descriptor: string, line: number) {

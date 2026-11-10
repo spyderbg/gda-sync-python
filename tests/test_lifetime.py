@@ -1,12 +1,17 @@
+import base64
+import io
 import json
 import os
 import re
 import socket
 import threading
 import time
+import urllib.error
 import urllib.request
+from pathlib import Path
 
 import pytest
+from PIL import Image
 
 from egt_gda_sync.workspace.library import Library
 from egt_gda_sync.app.runtime import AppServer, bind_local_socket
@@ -119,6 +124,44 @@ def test_lifecycle_is_authenticated_and_waits_for_the_first_page_before_scheduli
     time.sleep(0.15)
     assert server.pages() == 0
     assert server.shutdowns == 0
+
+
+def test_a_large_screenshot_with_an_expired_session_returns_json_and_can_be_retried_once(live):
+    server = live()
+    # A detailed game screen is several MB; tiny solid-color PNGs do not expose an early-response socket reset.
+    output = io.BytesIO()
+    Image.frombytes("RGB", (1920, 1080), os.urandom(1920 * 1080 * 3)).save(output, "PNG")
+    png = output.getvalue()
+    body = json.dumps({"image": base64.b64encode(png).decode("ascii")}).encode()
+    url = f"http://127.0.0.1:{server.port}/api/game/screenshot"
+    request = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json", "x-gda-token": "expired"})
+    with pytest.raises(urllib.error.HTTPError) as caught:
+        LOOPBACK.open(request, timeout=5)
+    with caught.value as response:
+        assert response.code == 403
+        assert json.load(response) == {"error": "Invalid session. Reload the application."}
+    folder = Path(server.library.home) / "screenshots"
+    assert not folder.exists()
+    request.add_header("x-gda-token", server.token)
+    with LOOPBACK.open(request, timeout=5) as response:
+        saved = json.load(response)
+    assert Path(saved["file"]).read_bytes() == png
+    assert list(folder.rglob("*.png")) == [Path(saved["file"])]
+
+
+def test_an_expired_session_does_not_wait_indefinitely_for_a_stalled_upload(live, monkeypatch):
+    from egt_gda_sync.app import server as api_server
+    monkeypatch.setattr(api_server, "REJECTED_BODY_TIMEOUT", 0.05)
+    server = live()
+    with socket.create_connection(("127.0.0.1", server.port), timeout=2) as connection:
+        connection.sendall((f"POST /api/game/screenshot HTTP/1.1\r\nHost: 127.0.0.1:{server.port}\r\n"
+                            "Content-Length: 1024\r\nx-gda-token: expired\r\nConnection: close\r\n\r\n").encode())
+        response = b""
+        while chunk := connection.recv(65536):
+            response += chunk
+    headers, body = response.split(b"\r\n\r\n", 1)
+    assert headers.startswith(b"HTTP/1.1 403")
+    assert json.loads(body) == {"error": "Invalid session. Reload the application."}
 
 
 def test_closing_one_page_keeps_the_backend_alive_and_closing_the_last_page_shuts_it_down_once(live):

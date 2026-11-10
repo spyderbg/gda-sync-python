@@ -26,7 +26,7 @@ from egt_gda_sync.app.desktop import choose_folder, open_in_code, open_on_deskto
 from egt_gda_sync.app.errors import AppError
 from egt_gda_sync.assets.fonts import FONT_EXTENSIONS, facts_header
 from egt_gda_sync.assets.movies import is_movie
-from egt_gda_sync.game.project import (MAX_EXPORT_BYTES, MAX_SCREENSHOT_BYTES, GameProject,
+from egt_gda_sync.game.project import (MAX_EXPORT_BYTES, MAX_LAYOUT_IMAGE_BYTES, MAX_SCREENSHOT_BYTES, GameProject,
                                        agent_status, game_source_path)
 from egt_gda_sync.game.rng_server import MAX_QUEUE, MAX_RANDOMS, MAX_SEQUENCE, UINT32, GameServer
 from egt_gda_sync.workspace.library import MAX_TEXT_BYTES, Library
@@ -42,8 +42,10 @@ TEXT_BODY_LIMIT = 6 * MAX_TEXT_BYTES + BODY_LIMIT
 # A game export's files come whole, each byte of which JSON escapes as at most six bytes; a
 # screenshot's PNG comes in base64, four characters for each three bytes.
 SCREENSHOT_BASE64 = (MAX_SCREENSHOT_BYTES + 2) // 3 * 4
+LAYOUT_IMAGE_BASE64 = (MAX_LAYOUT_IMAGE_BYTES + 2) // 3 * 4
 BODY_LIMITS = {"/api/asset-report/text": TEXT_BODY_LIMIT, "/api/game/export": 6 * MAX_EXPORT_BYTES + BODY_LIMIT,
                "/api/game/screenshot": SCREENSHOT_BASE64 + BODY_LIMIT,
+               "/api/game/view-layout": LAYOUT_IMAGE_BASE64 + BODY_LIMIT,
                '/api/image-studio/metadata': 6 * MAX_METADATA + BODY_LIMIT,
                '/api/image-studio/settings': 6 * MAX_METADATA + BODY_LIMIT}
 LOCAL_HOSTS = {"127.0.0.1", "localhost", "[::1]"}
@@ -53,6 +55,7 @@ APP_CSP = (
 )
 PREVIEW_CSP = "default-src 'none'; sandbox"
 INVALID_SESSION = "Invalid session. Reload the application."
+REJECTED_BODY_TIMEOUT = 5.0
 SERVER_ERROR = "The operation could not be completed. Check folder permissions and try again."
 SECURITY_HEADERS = (
     (b"cache-control", b"no-store"),
@@ -225,6 +228,12 @@ class GameScreenshotBody(_Body):
     image: Annotated[str, StringConstraints(min_length=1, max_length=SCREENSHOT_BASE64)]
 
 
+class ViewLayoutBody(_Body):
+    workspace: Text4K
+    image: Annotated[str, StringConstraints(min_length=1, max_length=LAYOUT_IMAGE_BASE64)]
+    instructions: Annotated[str, StringConstraints(max_length=8000)] = ""
+
+
 class GameSourceBody(_Body):
     """A line of a TypeScript or Vue file of the browser game, by its path in frontend/src/game."""
     file: Text4K
@@ -385,6 +394,26 @@ class LocalGuard:
         rejection = self._rejection(scope)
         if rejection:
             status, text = rejection
+            if text == INVALID_SESSION:
+                # Finish a bounded local upload before replying. Otherwise uvicorn can close the connection while
+                # the browser/proxy is still sending a PNG, losing the 403 that lets the frontend renew its session.
+                limit = BODY_LIMITS.get(scope["path"], BODY_LIMIT)
+                length = Headers(scope=scope).get("content-length", "")
+                if not length.isdigit() or int(length) <= limit:
+                    async def discard_body() -> None:
+                        remaining = limit
+                        while remaining >= 0:
+                            message = await receive()
+                            if message["type"] == "http.disconnect":
+                                return
+                            remaining -= len(message.get("body", b""))
+                            if not message.get("more_body", False):
+                                return
+
+                    try:
+                        await asyncio.wait_for(discard_body(), REJECTED_BODY_TIMEOUT)
+                    except asyncio.TimeoutError:
+                        pass
             await JSONResponse({"error": text}, status)(scope, receive, send_secured)
         else:
             await self.app(scope, receive, send_secured)
@@ -584,6 +613,15 @@ def create_app(
         opener(library.resource_folder(body.file, body.isFolder))
         return {"opened": True}
 
+    @app.post("/api/rss-sync/open-file")
+    def open_resource_file(body: ResourceFileBody) -> dict:
+        code_opener(library.resource_file(body.file), 1)
+        return {"opened": True}
+
+    @app.get("/api/rss-sync/declaration-path")
+    def declaration_path(descriptor: Annotated[str, Query(max_length=4096)]) -> dict:
+        return {"file": library.descriptor_path(descriptor)}
+
     @app.post("/api/rss-sync/open-declaration")
     def open_declaration(body: OpenDeclarationBody) -> dict:
         code_opener(library.descriptor_path(body.descriptor), body.line)
@@ -772,6 +810,14 @@ def create_app(
     def game_sync() -> dict:
         return GameProject(library).start_game_sync()
 
+    @app.post("/api/game/view-layout")
+    def view_layout(body: ViewLayoutBody) -> dict:
+        try:
+            image = base64.b64decode(body.image, validate=True)
+        except (ValueError, binascii.Error) as error:
+            raise AppError("The layout preview must be an image in base64") from error
+        return GameProject(library).start_view_layout(body.workspace, image, body.instructions)
+
     @app.get("/api/game/import-game")
     def game_import_game_report(plugin: Annotated[str | None, Query(max_length=64)] = None) -> dict:
         project = GameProject(library)
@@ -786,8 +832,8 @@ def create_app(
         return GameProject(library).start_export_agent(body.id)
 
     @app.get("/api/game/agent/status")
-    def game_agent_status() -> dict:
-        return agent_status()
+    def game_agent_status(summary: bool = False) -> dict:
+        return agent_status(summary=summary)
 
     @app.post("/api/game/open-source")
     def game_open_source(body: GameSourceBody) -> dict:

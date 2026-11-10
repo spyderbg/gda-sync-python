@@ -62,7 +62,8 @@ def test_library_shows_the_generated_asset_report_and_opens_an_asset_in_a_dialog
     page.get_by_role('button', name='Inspect banner.dds', exact=True).click()
     details = page.get_by_role('dialog', name='banner.dds')
     expect(details.get_by_text('Loaded by the game.')).to_be_visible()
-    expect(details.locator('.details-declaration')).to_have_text(['RssImagesData.json:5ImageBANNER'])
+    expect(details.locator('.details-declaration')).to_have_text(['RssImagesData.json:5Image'])
+    expect(details.get_by_role('region', name='Resource Key', exact=True)).to_contain_text('BANNER')
     expect(details.get_by_role('row').filter(has_text='Resolution')).to_have_text('Resolution8 × 4')
     poll(lambda: details.get_by_role('img', name='banner.dds preview', exact=True).evaluate('image => image.naturalWidth'), 8)
     # The game path is shown relative to the game folder, with the full path as its tooltip.
@@ -190,7 +191,8 @@ def test_an_asset_that_no_descriptor_declares_is_declared_from_its_details(new_c
     expect(page.get_by_role('status')).to_contain_text('Declared IMAGE_LEFTOVER in RssImagesData.json:15.')
     expect(declare).to_have_count(0)
     expect(details.get_by_text('Loaded by the game.')).to_be_visible()
-    expect(details.locator('.details-declaration')).to_have_text(['RssImagesData.json:15ImageIMAGE_LEFTOVER'])
+    expect(details.locator('.details-declaration')).to_have_text(['RssImagesData.json:15Image'])
+    expect(details.get_by_role('region', name='Resource Key', exact=True)).to_contain_text('IMAGE_LEFTOVER')
     assert json.loads((game / 'RssImagesData.json').read_text())['images'][-1] == {
         'id': 'IMAGE_LEFTOVER', 'path': 'leftover.png', 'resolution': '1920x1080'}
     page.keyboard.press('Escape')

@@ -1837,6 +1837,13 @@ class Library:
             raise AppError("Folder does not exist", 404)
         return folder
 
+    def resource_file(self, file: str) -> str:
+        """An existing regular file inside the active workspace's resource or GDA roots, for opening in an editor."""
+        path = self._resource_path(file)
+        if not os.path.isfile(path):
+            raise AppError("File not found", 404)
+        return path
+
     def resource_details(self, files: list[str], chars: list[str] = ()) -> dict:
         """The size, modification time and image dimensions of files the GDA sync report names, by path, and a font's
         names and glyph count, with its coverage of each of the given declared character lists. Only files inside the

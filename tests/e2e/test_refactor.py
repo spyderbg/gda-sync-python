@@ -76,7 +76,7 @@ def test_rename_dialog_allows_excluding_value_matches(new_context, refactor_back
     page = new_context().new_page()
     open_library(page, backend)
     page.get_by_role('button', name='Inspect loading.png', exact=True).click()
-    page.get_by_role('button', name='Rename RssKey LOADING', exact=True).click()
+    page.get_by_role('region', name='Resource Key', exact=True).get_by_role('button', name='Rename RssKey LOADING', exact=True).click()
     dialog = page.get_by_role('dialog', name='Rename LOADING', exact=True)
     dialog.get_by_label('New RssKey').fill('NEW_LOADING')
     expect(dialog.get_by_role('button', name='Apply', exact=True)).to_be_enabled()
