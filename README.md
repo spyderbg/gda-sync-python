@@ -65,7 +65,7 @@ On Windows, use PowerShell:
 Copy-Item config/workspace.json.template config/workspace.json
 ```
 
-Edit each workspace in `config/workspace.json` with your project name and the absolute paths of two separate folders. Configure or remove the template's example entries; until you do, the app still starts, lists no assets for them and warns in **Workspace settings** that the folders do not exist. Windows paths can use forward slashes, for example `C:/Users/you/assets/source`. Invalid JSON or invalid settings (for example a relative path, nested folders, or a path that is a file) stop startup with an explanation. Folders that do not exist, such as an unplugged drive, do not. **`config/workspace.json` is Git ignored** so each user's paths stay local; `config/workspace.json.template` is shared as the starting point.
+Edit each workspace in `config/workspace.json` with your project name and the absolute Game folder path; add a separate GDA folder when you want sync. Configure or remove the template's example entries; until you do, the app still starts, lists no assets for them and warns in **Workspace settings** that the folders do not exist. Windows paths can use forward slashes, for example `C:/Users/you/assets/source`. Invalid JSON or invalid settings (for example a relative path, nested folders, or a path that is a file) stop startup with an explanation. Folders that do not exist, such as an unplugged drive, do not. **`config/workspace.json` is Git ignored** so each user's paths stay local; `config/workspace.json.template` is shared as the starting point.
 
 The template includes multiple workspaces and a `defaultWorkspace` ID:
 
@@ -101,7 +101,15 @@ Workspaces often share the folder their games or GDA folders are in. A top-level
 
 Only fields whose names end with `_path` are expanded; other fields keep a `{…}` as written. A global path can also be in the `config` section, and can use another global path, but not itself. A global path that is not defined, defined both at the top level and in `config`, or that uses itself stops startup with an explanation. The app saves each workspace's paths as they are written, with their placeholders. In **Workspace settings**, the folder fields show the paths as `workspace.json` writes them, with what a path that uses a global path expands to, a button to copy that full expanded path, and the global paths themselves. A folder entered as an absolute path inside a global path is saved with it (`/assets/games/resources/nordic_rush` is saved as `{games_root_path}/resources/nordic_rush`, the longest global path first), and a folder can be entered with a global path too.
 
-Each workspace needs a unique, non-empty ID and two separate folders. Restart after editing the list. The Dashboard's workspace cards load this list and save the active selection; Workspace settings edits only the selected entry. Older files using `name`, `source`, `destination`, `activeWorkspace`, and top-level ports still load. In those files `source` is the folder files are copied from and `destination` the folder they are copied to, so they keep their direction. Saving a workspace list writes the new field names and nested `config` section.
+Each workspace needs a unique, non-empty ID and a Game folder. The GDA folder is optional; when configured, it must be separate from the Game folder. Restart after editing the list. The Dashboard's workspace cards load this list and save the active selection; Workspace settings edits only the selected entry. Older files using `name`, `source`, `destination`, `activeWorkspace`, and top-level ports still load. In those files `source` is the folder files are copied from and `destination` the folder they are copied to, so they keep their direction. Saving a workspace list writes the new field names and nested `config` section.
+
+Omit `gda_path`, set it to `null`, or leave it empty for a workspace that only uses game assets. The sidebar hides
+its entire **Sync** section; Asset library, Play, game tools, and Image studio remain available. Asset reports can be
+generated without GDA. Workspace settings can add or clear the optional GDA path later. A specified GDA path that
+is temporarily unavailable still shows Sync and the existing missing-folder warnings.
+
+The template includes **Burning Crown Tetra Spins 10 (No GDA)** (`burning_crown_tetra_spins_10_no_gda`), which uses
+the same game folder as the normal Burning Crown workspace and omits `gda_path` for initial tests.
 
 The optional `config.port` field sets the backend's listening port, for example `"config": { "port": 4567 }`. The template uses `3457`; files without this field use `3456`. The `PORT` environment variable supplied when launching the app overrides the value in `workspace.json`, for example `PORT=5678 ./dist/egt-gda-sync`. Ports must be integers between `1` and `65535`. Launch overrides apply for that run and leave the configured port intact; saving Workspace settings also preserves it. Restart the app after changing its configured port.
 

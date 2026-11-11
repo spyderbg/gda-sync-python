@@ -15,6 +15,12 @@
       "gda_path": "{gda_root_path}/10_burning_crown_tetra_spins_italy/10_burning_crown_tetra_spins_italy/DEV"
     },
     {
+      "id": "burning_crown_tetra_spins_10_no_gda",
+      "demo": false,
+      "game_name": "Burning Crown Tetra Spins 10 (No GDA)",
+      "game_path": "{games_root_path}/resources/burning_crown_tetra_spins_10"
+    },
+    {
       "id": "burning_hot_coins",
       "demo": false,
       "game_name": "Burning Hot Coins",

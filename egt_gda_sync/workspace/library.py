@@ -426,11 +426,13 @@ class Library:
                 for entry in entries:
                     if not isinstance(entry, dict) or not isinstance(entry.get("id"), str) or not entry["id"].strip():
                         raise TypeError("Each workspace needs a non-empty text id")
-                    source = entry.get("gda_path", entry.get("source"))
+                    source = entry.get("gda_path", entry.get("source", ""))
+                    if source is None:
+                        source = ""
                     destination = entry.get("game_path", entry.get("destination"))
                     name = entry.get("game_name", entry.get("name"))
                     if not all(isinstance(value, str) for value in (name, source, destination)):
-                        raise TypeError("Each workspace needs game_name, game_path and gda_path text fields")
+                        raise TypeError("Each workspace needs game_name and game_path text fields; gda_path must be text when specified")
                     if not isinstance(entry.get("demo", False), bool):
                         raise TypeError("demo must be true or false")
                     # Every *_path field must expand; the folders are used expanded, and written back as they are.
@@ -470,16 +472,17 @@ class Library:
     def _validated_settings(self, name: str, source: str, destination: str) -> dict[str, str]:
         if not name.strip() or len(name) > 80:
             raise AppError("Enter a project name of 1–80 characters")
-        if not os.path.isabs(source) or not os.path.isabs(destination):
+        source = source.strip()
+        if (source and not os.path.isabs(source)) or not os.path.isabs(destination):
             raise AppError("Use absolute folder paths")
         # A folder may not exist yet, or its drive may be unplugged: the app starts anyway and warns about it.
-        real_source = os.path.realpath(source)
+        real_source = os.path.realpath(source) if source else ""
         real_destination = os.path.realpath(destination)
-        if any(os.path.exists(path) and not os.path.isdir(path) for path in (real_source, real_destination)):
+        if any(path and os.path.exists(path) and not os.path.isdir(path) for path in (real_source, real_destination)):
             raise AppError("Both paths must be folders")
-        if contained(real_source, real_destination) or contained(real_destination, real_source):
+        if real_source and (contained(real_source, real_destination) or contained(real_destination, real_source)):
             raise AppError("GDA and Game folders must be separate, without nesting")
-        if contained(real_source, self.home) or contained(real_destination, self.home):
+        if (real_source and contained(real_source, self.home)) or contained(real_destination, self.home):
             raise AppError("Choose folders outside the application data directory’s parents")
         if (os.path.isdir(real_source) and not os.access(real_source, os.R_OK)) or \
                 (os.path.isdir(real_destination) and not os.access(real_destination, os.W_OK)):
@@ -488,9 +491,11 @@ class Library:
 
     def missing_folders(self) -> list[str]:
         """The active workspace's folders ("source", "destination") that are not folders on disk right now."""
-        return [key for key in FOLDER_NAMES if not os.path.isdir(self.config[key])]
+        return [key for key in FOLDER_NAMES if self.config[key] and not os.path.isdir(self.config[key])]
 
     def require_folders(self, *keys: str) -> None:
+        if "source" in keys and not self.config["source"]:
+            raise AppError("No GDA folder is configured for this workspace. Add a GDA path in Workspace settings to sync.")
         missing = [key for key in self.missing_folders() if key in keys]
         if missing:
             names = " and ".join(FOLDER_NAMES[key] for key in missing)
@@ -523,7 +528,7 @@ class Library:
                 "workspaces": [
                     {**{key: value for key, value in entry.items() if key not in ("name", "source", "destination", "templates")},
                      "game_name": entry["name"], "game_path": entry.get("templates", {}).get("destination", entry["destination"]),
-                     "gda_path": entry.get("templates", {}).get("source", entry["source"])}
+                     **({"gda_path": entry.get("templates", {}).get("source", entry["source"])} if entry["source"] else {})}
                     for entry in config["workspaces"]
                 ],
             }
@@ -606,8 +611,8 @@ class Library:
                 except Exception as error:
                     warnings.append(f"{relative}: {error_message(error)}")
 
-        missing = [key for key in FOLDER_NAMES if not os.path.isdir(config[key])]
-        if "source" not in missing:
+        missing = [key for key in FOLDER_NAMES if config[key] and not os.path.isdir(config[key])]
+        if config["source"] and "source" not in missing:
             walk("")
         # Give the demo an intentional order; real workspaces are sorted by recent changes.
         assets.sort(key=lambda asset: asset["modifiedAt"], reverse=True)
@@ -620,7 +625,7 @@ class Library:
         assets, workspaces, warnings = [], [], []
         for entry in entries:
             workspace = {key: entry[key] for key in ("id", "name", "source", "destination", "demo")}
-            workspace["missingFolders"] = [key for key in FOLDER_NAMES if not os.path.isdir(entry[key])]
+            workspace["missingFolders"] = [key for key in FOLDER_NAMES if entry[key] and not os.path.isdir(entry[key])]
             try:
                 scanned = self._scan_workspace(entry)
             except (AppError, OSError) as error:
@@ -810,6 +815,8 @@ class Library:
         return report
 
     def start_comparison(self) -> None:
+        if not self.config["source"]:
+            self.require_folders("source")
         workspace_id, entry = self._active_workspace()
         self.reports.start(workspace_id, *self._comparison(workspace_id, entry))
 
@@ -825,6 +832,8 @@ class Library:
         entry = dict(self.workspace_entries()).get(workspace_id)
         if entry is None:
             raise AppError(f"Workspace not found: {workspace_id}", 404)
+        if not entry["source"]:
+            raise AppError("No GDA folder is configured for this workspace. Add a GDA path to sync.")
         return self.reports.run(workspace_id, *self._comparison(workspace_id, entry, overrides), progress)
 
     def close(self) -> None:
@@ -1503,7 +1512,7 @@ class Library:
             except ValueError as error:
                 raise AppError(str(error)) from error
             settings = self._validated_settings(name, folders["source"], folders["destination"])
-            settings["templates"] = {key: contract(value if PLACEHOLDER.search(value) else os.path.normpath(value), paths)
+            settings["templates"] = {key: contract(value if PLACEHOLDER.search(value) else os.path.normpath(value), paths) if value else ""
                                      for key, value in (("source", source.strip()), ("destination", destination.strip()))}
             previous = self.config
             demo = settings["source"] == previous["source"] and settings["destination"] == previous["destination"] and previous["demo"]

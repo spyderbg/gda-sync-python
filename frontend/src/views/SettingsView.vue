@@ -44,7 +44,7 @@ async function save() {
 <template>
   <PageHeader title="Workspace settings">
     <template #links-right>
-      <li><a href="#" @click.prevent="navigate('history')">Sync history</a></li>
+      <li v-if="config.source"><a href="#" @click.prevent="navigate('history')">Sync history</a></li>
     </template>
   </PageHeader>
 
@@ -55,6 +55,7 @@ async function save() {
           <div class="d-flex align-items-center">
             <h4 class="card-title mb-0">Workspace Connection</h4>
             <span v-if="anyMissing" class="badge badge-warning ml-auto"><i aria-hidden="true" class="mdi mdi-folder-alert-outline" />Folder not found</span>
+            <span v-else-if="!config.source" class="badge badge-info ml-auto">Game assets only</span>
             <span v-else class="badge badge-success ml-auto"><i aria-hidden="true" class="mdi mdi-lan-connect" />Connected</span>
           </div>
           <p class="card-description mt-2">Connect your GDA assets to their home in the game.</p>
@@ -75,22 +76,22 @@ async function save() {
             </div>
             <div class="form-group">
               <label for="source-folder" class="settings-folder-label">
-                <a href="#" class="settings-folder-link" :title="`Open GDA folder: ${config.source}`" @click.prevent="openFolder('source')">
+                <a href="#" class="settings-folder-link" :aria-disabled="!config.source" :title="config.source ? `Open GDA folder: ${config.source}` : 'No GDA folder configured'" @click.prevent="config.source && openFolder('source')">
                   <span class="settings-folder-name"><i aria-hidden="true" class="mdi mdi-harddisk text-success" />GDA path</span>
                   <i aria-hidden="true" class="mdi mdi-open-in-new" />
                 </a>
               </label>
-              <input id="source-folder" v-model="form.source" class="form-control" :aria-describedby="missing('source') ? 'source-help source-missing' : 'source-help'" required :placeholder="windows ? 'C:\\Users\\you\\project\\gda' : '/home/you/project/gda'">
+              <input id="source-folder" v-model="form.source" class="form-control" :aria-describedby="missing('source') ? 'source-help source-missing' : 'source-help'" :placeholder="windows ? 'C:\\Users\\you\\project\\gda' : '/home/you/project/gda'">
               <div v-if="pathHint('source')" class="settings-path-hint-row">
                 <small :class="['form-text', 'settings-path-hint', pathHint('source')?.error ? 'text-danger' : 'text-muted']" role="status">{{ pathHint('source')?.text }}</small>
                 <button v-if="pathHint('source')?.expanded" type="button" class="settings-path-copy" :aria-label="`Copy full GDA path ${pathHint('source')?.expanded}`" title="Copy full GDA path" @click="copy(pathHint('source')!.expanded!)"><i aria-hidden="true" class="mdi mdi-content-copy" /></button>
               </div>
-              <small id="source-help" class="form-text text-muted">The originals you’re working with. All subfolders are included.</small>
+              <small id="source-help" class="form-text text-muted">Optional. Leave empty to work with game assets without GDA sync.</small>
               <div v-if="missing('source')" id="source-missing" class="alert alert-warning folder-missing" role="status">
                 <i aria-hidden="true" class="mdi mdi-alert-outline" />The GDA folder does not exist. No assets can be listed until it does.
               </div>
             </div>
-            <div class="flow-hint"><i aria-hidden="true" class="mdi mdi-arrow-down" />Assets flow from GDA to Game</div>
+            <div v-if="form.source.trim()" class="flow-hint"><i aria-hidden="true" class="mdi mdi-arrow-down" />Assets flow from GDA to Game</div>
             <div class="form-group">
               <label for="destination-folder" class="settings-folder-label">
                 <a href="#" class="settings-folder-link" :title="`Open Game folder: ${config.destination}`" @click.prevent="openFolder('destination')">

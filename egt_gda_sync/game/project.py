@@ -145,7 +145,7 @@ class GameProject:
             "gamePath": str(game),
             "resourcesPath": str(resources),
             "cppPath": str(self._cpp_root(resources)),
-            "modules": (modules := self._modules(workspace_id, resources)),
+            "modules": (modules := self._modules(workspace_id, resources) or self._modules(game.name, resources)),
             "familyModules": self._family_modules(modules, resources),
             "descriptors": descriptors,
             # the descriptor files, relative to the game folder: the browser game watches them, and reads them again

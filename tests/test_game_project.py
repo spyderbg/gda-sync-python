@@ -657,3 +657,18 @@ def test_a_cpp_game_of_the_family_is_planned_and_imported_in_the_background(clie
             break
         time.sleep(0.05)
     assert status["result"]["args"] == ["--agent", "--json", "alpha_family/plugins/example/ExampleView/ExampleView.ts"]
+
+
+def test_game_only_workspace_alias_uses_the_shared_game_modules(client):
+    original = client.get('/api/game/project').json()
+    path = client.home.parent / 'workspace.json'
+    settings = json.loads(path.read_text())
+    settings['workspaces'].append({'id': 'example_no_gda', 'game_name': 'Example (No GDA)', 'game_path': str(client.game)})
+    path.write_text(json.dumps(settings))
+    switched = client.put('/api/workspace', json={'id': 'example_no_gda'})
+    assert switched.status_code == 200, switched.text
+    assert switched.json()['config']['source'] == ''
+    project = client.get('/api/game/project').json()
+    assert project['workspace']['id'] == 'example_no_gda'
+    assert project['modules'] == original['modules']
+    assert project['familyModules'] == original['familyModules']

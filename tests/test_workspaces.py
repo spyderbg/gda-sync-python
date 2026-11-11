@@ -82,7 +82,7 @@ def test_rejects_invalid_workspace_lists(tmp_path, change):
     elif change == 'invalid_config':
         config['config'] = []
     else:
-        del config['workspaces'][1]['gda_path']
+        del config['workspaces'][1]['game_path']
     path.write_text(json.dumps(config))
     with pytest.raises(RuntimeError, match='Could not read workspace.json'):
         library.init()
@@ -210,3 +210,56 @@ def test_dashboard_refreshes_file_status_after_a_workspace_copy(tmp_path):
     assert {asset['workspaceId']: asset['status'] for asset in dashboard['assets']} == {'first': 'new', 'second': 'synced'}
     assert len(dashboard['activity']) == 1 and dashboard['activity'][0]['files'] == ['second.txt']
     assert library.config['defaultWorkspace'] == 'second'
+
+
+@pytest.mark.parametrize('gda', ['omitted', '', None, '   '])
+def test_game_only_workspace_loads_and_keeps_gda_empty_after_saving(tmp_path, gda):
+    library, path = configured_library(tmp_path)
+    config = json.loads(path.read_text())
+    entry = config['workspaces'][1]
+    if gda == 'omitted':
+        del entry['gda_path']
+    else:
+        entry['gda_path'] = gda
+    path.write_text(json.dumps(config))
+    library.select_workspace('second')
+    assert library.config['source'] == ''
+    assert library.missing_folders() == []
+    dashboard = library.dashboard()
+    game_only = next(w for w in dashboard['workspaces'] if w['id'] == 'second')
+    assert game_only['missingFolders'] == []
+    assert not any(asset['workspaceId'] == 'second' for asset in dashboard['assets'])
+    # Empty source paths must stay empty, rather than resolving to '.' or the project directory.
+    library.update_config('Game only', '', str(tmp_path / 'second/game'))
+    saved = json.loads(path.read_text())['workspaces'][1]
+    assert 'gda_path' not in saved
+    assert library.config['templates']['source'] == ''
+    library.init()
+    assert library.config['source'] == ''
+
+
+def test_game_only_workspace_assets_settings_and_sync_guards(tmp_path):
+    library, path = configured_library(tmp_path)
+    library.update_config('Game only', '', str(tmp_path / 'first/game'))
+    game = tmp_path / 'first/game'
+    (game / 'asset.csv').write_text('Game asset')
+    with TestClient(create_app(library, dev=True), base_url='http://127.0.0.1') as client:
+        headers = session_headers(client)
+        assert client.get('/api/library').json()['missingFolders'] == []
+        report = client.post('/api/asset-report', headers=headers)
+        assert report.status_code == 200, report.text
+        assert client.get('/api/asset-report').json()['summary']['assets'] >= 1
+        assert client.get('/api/game/project').status_code == 200
+        for endpoint, body in (('/api/scan', {}), ('/api/sync', {'ids': ['test-asset']}), ('/api/open-folder', {'folder': 'source'})):
+            response = client.post(endpoint, headers=headers, json=body)
+            assert response.status_code == 400, (endpoint, response.text)
+            assert 'No GDA folder' in response.json()['error']
+        # An optional GDA path can be added and removed again in Workspace settings.
+        for source in (str(tmp_path / 'first/gda'), ''):
+            response = client.put('/api/settings', headers=headers, json={
+                'name': 'Game only', 'source': source, 'destination': str(game),
+            })
+            assert response.status_code == 200, response.text
+            assert response.json()['config']['source'] == source
+    library.init()
+    assert library.config['source'] == ''

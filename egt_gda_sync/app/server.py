@@ -94,7 +94,7 @@ class ResourceActionsBody(_Body):
 
 class SettingsBody(_Body):
     name: Annotated[str, StringConstraints(max_length=80)]
-    source: Text4K
+    source: Text4K = ''
     destination: Text4K
 
 
