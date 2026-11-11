@@ -331,7 +331,7 @@ class GameProject:
                    "--add-dir", str(scratch), "--allowedTools", *game_sync_tools(games)]
         return _start_agent("game-sync", command, [plugin], run=lambda: _run_claude(command, prompt))
 
-    def start_view_layout(self, workspace: str, image: bytes, instructions: str = "", *, model: str = "opus") -> dict:
+    def start_view_layout(self, workspace: str, image: bytes, instructions: str = "", *, model: str = "haiku") -> dict:
         """Run view-layout with an uploaded preview and retain every session response for the layout page."""
         if model not in {"opus", "sonnet", "haiku"}:
             raise AppError("Choose Opus, Sonnet or Haiku for View layout")

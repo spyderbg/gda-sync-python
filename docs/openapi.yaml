@@ -4,7 +4,7 @@ info:
   description: The local HTTP API of EGT GDA Sync. It answers only requests to a loopback
     host; requests other than GET and HEAD need the session token that GET /api/session
     returns, in the X-GDA-Token header.
-  version: 2.1.2
+  version: 2.1.3
 components:
   schemas:
     Area:
@@ -1009,7 +1009,7 @@ components:
           - sonnet
           - haiku
           title: Model
-          default: opus
+          default: haiku
       additionalProperties: false
       type: object
       required:

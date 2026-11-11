@@ -455,12 +455,12 @@ emit({{"type": "result", "is_error": False, "result": "Layout updated. Full repo
     assert str(scratch / "preview.png") in run["prompt"]
     assert shlex.split(run["prompt"]) == ["/view-layout", str(scratch / "preview.png"), "example"]
     assert run["argv"][:6] == ["-p", "--output-format", "stream-json", "--verbose", "--permission-mode", "auto"]
-    assert run["argv"][run["argv"].index("--model") + 1] == (model or "opus")
+    assert run["argv"][run["argv"].index("--model") + 1] == (model or "haiku")
     assert "Skill(view-layout)" in run["argv"]
     assert "Bash(.venv/bin/python -I .claude/skills/view-layout/view_layout.py:*)" in run["argv"]
     assert "Bash(.venv/bin/python -I .claude/skills/view-layout/execute_conditions.py:*)" in run["argv"]
     execution = status["execution"]
-    assert execution["requestedModel"] == (model or "opus")
+    assert execution["requestedModel"] == (model or "haiku")
     assert execution["model"] == "claude-reported-runtime-model"
     assert execution["invocation"] == {"skill": "view-layout", "arguments": [str(scratch / "preview.png"), "example"], "validated": True}
     assert len(execution["calls"]) == 2

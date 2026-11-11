@@ -1,21 +1,27 @@
 """The view-layout skill's helper (.claude/skills/view-layout/view_layout.py): it finds where a preview shows each view
 element's image, and writes the positions that put them there, keeping the rest of the view's text."""
 
+import hashlib
+import importlib.util
 import json
 import os
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import cv2
 import numpy as np
 
 from egt_gda_sync.assets.views import render_view
+from egt_gda_sync.images.image_compare import decode_image
+from tests.fixtures.bc7_dds import create_bc7_dds
 from tests.test_views import write_json, write_png
 
 HELPER = Path(__file__).resolve().parents[1] / ".claude" / "skills" / "view-layout" / "view_layout.py"
 CONDITIONS = HELPER.with_name("execute_conditions.py")
+IMAGE_CACHE_ENV = "GDA_VIEW_LAYOUT_IMAGE_CACHE"
 
 
 def test_helper_traces_exact_arguments_failures_and_validates_the_uploaded_inputs(tmp_path):
@@ -123,8 +129,128 @@ def noise(width: int, height: int, seed: int) -> np.ndarray:
     return np.dstack([rgb, np.full((height, width), 255, np.uint8)])
 
 
-def helper(*args: str) -> subprocess.CompletedProcess:
-    return subprocess.run([sys.executable, "-I", str(HELPER), *args], capture_output=True, text=True, check=False, timeout=120)
+def helper(*args: str, image_cache: Path | None = None) -> subprocess.CompletedProcess:
+    """Runs the helper, without its image cache unless a folder is given: a test never writes the app's data folder."""
+    env = {**os.environ, IMAGE_CACHE_ENV: str(image_cache) if image_cache else "off"}
+    return subprocess.run([sys.executable, "-I", str(HELPER), *args], capture_output=True, text=True, check=False, timeout=120,
+                          env=env)
+
+
+def helper_module():
+    """The helper as a module, to call its functions; its trace starts only when it runs as a script."""
+    spec = importlib.util.spec_from_file_location("view_layout_helper", HELPER)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module  # its dataclasses look their module up
+    try:
+        spec.loader.exec_module(module)
+    finally:
+        del sys.modules[spec.name]
+    return module
+
+
+def test_decoded_dds_images_are_kept_between_calls_and_decoded_again_when_they_change(tmp_path):
+    game = tmp_path / "resources" / "game"
+    image = game / "art" / "red.dds"
+    image.parent.mkdir(parents=True)
+    image.write_bytes(create_bc7_dds(8, 8))
+    write_png(game / "art" / "label.png", noise(8, 8, 2))
+    write_json(game / "RssImagesData.json", {"images": [{"id": "IMAGE_RED", "path": "art/red.dds"},
+                                                        {"id": "IMAGE_LABEL", "path": "art/label.png"}]})
+    view = game / "v" / "1920x1080" / "PanelView.json"
+    write_json(view, {"name": "PanelView", "elements": [
+        {"id": "image_red", "type": "Image", "rssKey": "IMAGE_RED", "position": {"x": 100, "y": 100}},
+        {"id": "image_label", "type": "Image", "rssKey": "IMAGE_LABEL", "position": {"x": 200, "y": 100}}]})
+    cache = tmp_path / "data" / "image cache"
+    pixels = decode_image(image)
+    red = tuple(int(value) for value in pixels[0, 0, 2::-1])  # the fixture's color, in OpenCV's blue, green, red
+    assert (pixels == pixels[0, 0]).all() and red != (255, 0, 0)
+
+    def drawn(name: str, image_cache: Path | None = cache) -> np.ndarray:
+        result = helper("draw", str(tmp_path / name), str(view), "--crop", "96,96,16,16", "--zoom", "1", image_cache=image_cache)
+        assert result.returncode == 0, result.stderr
+        return cv2.imread(str(tmp_path / name))
+
+    # Without the cache nothing is written; with it, only the DDS image is kept, as its RGBA pixels.
+    uncached = drawn("off.png", None)
+    assert not cache.exists()
+    assert (uncached[4:12, 4:12] == red).all()
+    assert np.array_equal(drawn("first.png"), uncached)
+    entries = list(cache.iterdir())
+    assert len(entries) == 1 and entries[0].suffix == ".npy"
+    kept = np.load(entries[0])
+    assert kept.dtype == np.uint8 and np.array_equal(kept, pixels)
+
+    # The next call draws the entry's pixels, not the file's: shown by an entry changed to blue.
+    np.save(entries[0], np.full((8, 8, 4), (0, 0, 255, 255), np.uint8))
+    assert (drawn("second.png")[4:12, 4:12] == (255, 0, 0)).all()
+    assert list(cache.iterdir()) == entries
+
+    # An entry that cannot be read, or holds something else than pixels, is decoded again and replaced.
+    for broken in (b"not an array", b""):
+        entries[0].write_bytes(broken)
+        assert np.array_equal(drawn("repaired.png"), uncached)
+        assert np.array_equal(np.load(entries[0]), kept)
+    np.save(entries[0], np.zeros((8, 8), np.float32))
+    assert np.array_equal(drawn("repaired.png"), uncached)
+    assert np.array_equal(np.load(entries[0]), kept)
+
+    # A changed image is another entry: the old one is never drawn for it.
+    np.save(entries[0], np.full((8, 8, 4), (0, 0, 255, 255), np.uint8))
+    image.write_bytes(create_bc7_dds(12, 8))
+    assert (drawn("changed.png")[4:12, 4:12] == red).all()
+    assert len(list(cache.iterdir())) == 2
+
+    # A folder that cannot be made costs only the decoding.
+    blocked = tmp_path / "file"
+    blocked.write_text("")
+    assert (drawn("blocked.png", blocked / "cache")[4:12, 4:12] == red).all()
+
+
+def test_image_cache_is_pruned_to_its_size_by_last_use_and_keeps_other_files(tmp_path, monkeypatch):
+    module = helper_module()
+    cache = tmp_path / "cache"
+    cache.mkdir()
+    monkeypatch.setenv(IMAGE_CACHE_ENV, str(cache))
+    assert module.image_cache_folder() == cache
+    now = time.time()
+
+    def entry(name: str, size: int, age: float) -> Path:
+        file = cache / name
+        file.write_bytes(b"x" * size)
+        os.utime(file, (now - age, now - age))
+        return file
+
+    oldest, older, newest = entry("a" * 40 + ".npy", 400, 300), entry("b" * 40 + ".npy", 400, 200), entry("c" * 40 + ".npy", 400, 100)
+    stopped = entry("d" * 40 + ".npy.12.34.tmp", 10, module.STALE_SECONDS + 60)
+    writing = entry("e" * 40 + ".npy.56.78.tmp", 10, 5)
+    others = [entry("notes.npy", 5000, 900), entry("f" * 40 + ".txt", 5000, 900)]
+    monkeypatch.setattr(module, "IMAGE_CACHE_BYTES", 900)
+    module.prune_image_cache()
+    assert not oldest.exists() and older.exists() and newest.exists()
+    assert not stopped.exists() and writing.exists()
+    assert all(file.exists() for file in others)
+
+    # Reading an entry is using it: the one read is kept, and the other goes.
+    np.save(older, np.zeros((2, 2, 4), np.uint8))  # numpy keeps the name, which ends in .npy
+    os.utime(older, (now - 200, now - 200))
+    source = tmp_path / "image.dds"
+    source.write_bytes(create_bc7_dds(4, 4))
+    key = hashlib.sha256(f"{module.IMAGE_CACHE_VERSION}\0{source.resolve()}\0{source.stat().st_mtime_ns}\0{source.stat().st_size}".encode())
+    older = older.rename(cache / f"{key.hexdigest()[:40]}.npy")
+    assert module.cached_decode(source).shape == (2, 2, 4)
+    assert older.stat().st_mtime > now - 100
+    monkeypatch.setattr(module, "IMAGE_CACHE_BYTES", older.stat().st_size)
+    module.prune_image_cache()
+    assert older.exists() and not newest.exists()
+
+    monkeypatch.setenv(IMAGE_CACHE_ENV, "off")
+    assert module.image_cache_folder() is None
+    assert module.cached_decode(source).shape == (4, 4, 4)
+    module.prune_image_cache()
+    assert older.exists()
+    monkeypatch.delenv(IMAGE_CACHE_ENV)
+    monkeypatch.setenv("EGT_GDA_SYNC_HOME", str(tmp_path / "home"))
+    assert module.image_cache_folder() == tmp_path / "home" / "view-layout-image-cache"
 
 
 def write_game(root: Path) -> Path:

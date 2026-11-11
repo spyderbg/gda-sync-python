@@ -21,16 +21,24 @@ Run it with the app's Python, from the repository: .venv/bin/python -I .claude/s
 The preview is laid on the screen of the views' resolution. A preview of the views' aspect ratio covers the screen;
 another is laid at --origin X,Y (the screen point its top-left shows; 0,0 by default) at --scale S (preview pixels per
 screen pixel; 1 by default). --part X,Y,W,H takes a part of the preview first, such as one screen of a picture of two.
+
+The pixels of the DDS images it decodes are kept between calls, in the app data folder's view-layout-image-cache, or in
+the folder GDA_VIEW_LAYOUT_IMAGE_CACHE names ("off" for none): decoding them takes most of a call's time, and every call
+is a new process. An image that changes is decoded again. The folder is safe to delete.
 """
 
 from __future__ import annotations
 
 import argparse
 import fnmatch
+import hashlib
 import json
 import math
 import os
+import re
 import sys
+import threading
+import time
 from collections import Counter
 from collections.abc import Callable, Iterable
 from concurrent.futures import ThreadPoolExecutor
@@ -46,6 +54,8 @@ _trace = HelperTrace() if __name__ == "__main__" else None
 import cv2
 import numpy as np
 
+import egt_gda_sync.assets.views as library
+from egt_gda_sync.app.desktop import application_data_home
 from egt_gda_sync.assets.view_text import DEFAULT_SAMPLE
 from egt_gda_sync.assets.views import _color, _point, _scaled_image, read_view, render_view, transform, view_layout, view_resolution, view_root
 from egt_gda_sync.images.image_compare import decode_image
@@ -63,6 +73,12 @@ COLORS = [(255, 64, 64), (64, 200, 255), (255, 200, 0), (120, 255, 120), (255, 1
 # Threads that decode, match and draw at once. OpenCV and NumPy's large operations release Python's lock, so the work
 # runs in parallel; past 8 threads, memory bandwidth limits it and the gain is small.
 WORKERS = min(8, os.cpu_count() or 1)
+IMAGE_CACHE_ENV = "GDA_VIEW_LAYOUT_IMAGE_CACHE"  # names the folder decoded images are kept in between calls; "off" for none
+IMAGE_CACHE_FOLDER = "view-layout-image-cache"  # that folder in the app's data folder, when the variable names none
+IMAGE_CACHE_BYTES = 1024 ** 3  # the folder is pruned to this size, the images used longest ago first
+IMAGE_CACHE_VERSION = 1  # of what an entry holds: after a change, the older entries are not read, and are pruned in time
+IMAGE_CACHE_ENTRY = re.compile(r"[0-9a-f]{40}\.npy(\.[0-9]+\.[0-9]+\.tmp)?")  # an entry, or one being written
+STALE_SECONDS = 3600  # an entry still being written after this long was left by a call that stopped
 
 
 def parallel(function: Callable, items: Iterable) -> list:
@@ -72,6 +88,90 @@ def parallel(function: Callable, items: Iterable) -> list:
         return [function(item) for item in items]
     with ThreadPoolExecutor(WORKERS) as pool:
         return list(pool.map(function, items))
+
+
+def image_cache_folder() -> Path | None:
+    """Where decoded images are kept between calls; None when IMAGE_CACHE_ENV turns the cache off."""
+    named = os.environ.get(IMAGE_CACHE_ENV, "").strip()
+    if named.lower() == "off":
+        return None
+    return Path(named) if named else Path(application_data_home()) / IMAGE_CACHE_FOLDER
+
+
+_cache_written = threading.Event()  # this call added an entry, so it prunes the folder before it ends
+
+
+def cached_decode(path: Path) -> np.ndarray:
+    """decode_image, with a DDS file's pixels kept in the image cache folder. The app's DDS decoders take most of a call's
+    time, and each call is a new process, which the library's own cache does not outlive. An entry holds the image's RGBA
+    pixels, and is named by the file's path, modification time and size, which is how the library tells that an image
+    changed: a changed image is decoded again. Other formats decode fast, and are not kept. A cache that cannot be read or
+    written costs only the decoding."""
+    folder = image_cache_folder() if path.suffix.lower() == ".dds" else None
+    if folder is None:
+        return decode_image(path)
+    info = path.stat()
+    key = f"{IMAGE_CACHE_VERSION}\0{path.resolve()}\0{info.st_mtime_ns}\0{info.st_size}"
+    entry = folder / f"{hashlib.sha256(key.encode()).hexdigest()[:40]}.npy"
+    try:
+        with entry.open("rb") as stream:
+            rgba = np.lib.format.read_array(stream, allow_pickle=False)
+    except (OSError, ValueError, EOFError):
+        rgba = None
+    if rgba is not None and rgba.dtype == np.uint8 and rgba.ndim == 3 and rgba.shape[2] == 4 and rgba.size:
+        try:
+            os.utime(entry)  # used now: the folder is pruned by this time
+        except OSError:
+            pass
+        return rgba
+    rgba = decode_image(path)
+    # Written beside the entry and renamed, so that another call or thread never reads half of it.
+    partial = entry.with_name(f"{entry.name}.{os.getpid()}.{threading.get_ident()}.tmp")
+    try:
+        folder.mkdir(parents=True, exist_ok=True)
+        with partial.open("wb") as stream:
+            np.lib.format.write_array(stream, np.ascontiguousarray(rgba), allow_pickle=False)
+        os.replace(partial, entry)
+        _cache_written.set()
+    except OSError:
+        try:
+            partial.unlink(missing_ok=True)
+        except OSError:
+            pass
+    return rgba
+
+
+def prune_image_cache() -> None:
+    """Keeps the image cache folder within IMAGE_CACHE_BYTES, removing the entries used longest ago, and the ones a call
+    that stopped left half written. Only the cache's own files: the folder can be one the user named."""
+    folder = image_cache_folder()
+    if folder is None:
+        return
+    now = time.time()
+    entries = []
+    try:
+        with os.scandir(folder) as found:
+            for file in found:
+                if not IMAGE_CACHE_ENTRY.fullmatch(file.name):
+                    continue
+                try:
+                    info = file.stat()
+                except OSError:
+                    continue
+                if file.name.endswith(".npy"):
+                    entries.append((info.st_mtime, info.st_size, file.path))
+                elif now - info.st_mtime > STALE_SECONDS:
+                    entries.append((-math.inf, 0, file.path))  # removed whatever the folder's size
+    except OSError:
+        return
+    kept = 0
+    for used, size, file in sorted(entries, reverse=True):
+        kept += size
+        if kept > IMAGE_CACHE_BYTES or used == -math.inf:
+            try:
+                os.unlink(file)
+            except OSError:
+                pass
 
 
 def decode_images(items: Iterable[dict]) -> None:
@@ -165,7 +265,7 @@ def masked_sqdiff(planes: Planes, window: tuple[int, int, int, int], rgb: np.nda
 def load_preview(path: str, resolution: tuple[int, int], part: str | None, origin: str | None, scale: str | None,
                  files: list[Path], skip: list[str]) -> Preview:
     try:
-        image = decode_image(Path(path))
+        image = cached_decode(Path(path))
     except (OSError, ValueError) as error:
         fail(f"the preview cannot be read: {error}")
     if part:
@@ -697,7 +797,13 @@ def main() -> None:
     command.set_defaults(run=move)
 
     args = parser.parse_args()
-    args.run(args)
+    # The library decodes the images it draws through the image cache folder too, in this process only.
+    library.decode_image = cached_decode
+    try:
+        args.run(args)
+    finally:
+        if _cache_written.is_set():
+            prune_image_cache()
 
 
 if __name__ == "__main__":

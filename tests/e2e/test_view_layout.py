@@ -58,7 +58,7 @@ def test_layout_upload_shows_live_complete_output_and_recovers_it_after_reload(l
     run = page.get_by_role("button", name="Run view-layout", exact=True)
     expect(run).to_be_disabled()
     model = page.get_by_role("combobox", name="Claude Code model", exact=True)
-    expect(model).to_have_value("opus")
+    expect(model).to_have_value("haiku")
     assert model.locator("option").all_text_contents() == ["Opus", "Sonnet", "Haiku"]
     model.select_option("haiku")
     model.select_option("sonnet")

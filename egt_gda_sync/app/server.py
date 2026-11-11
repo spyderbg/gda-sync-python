@@ -232,7 +232,7 @@ class ViewLayoutBody(_Body):
     workspace: Text4K
     image: Annotated[str, StringConstraints(min_length=1, max_length=LAYOUT_IMAGE_BASE64)]
     instructions: Annotated[str, StringConstraints(max_length=8000)] = ""
-    model: Literal["opus", "sonnet", "haiku"] = "opus"
+    model: Literal["opus", "sonnet", "haiku"] = "haiku"
 
 
 class GameSourceBody(_Body):
