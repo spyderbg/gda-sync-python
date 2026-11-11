@@ -703,6 +703,55 @@ def test_applying_report_rows_checks_the_status_the_caller_saw_and_that_the_repo
         assert not Path(library.backup_path).exists() or not any(Path(library.backup_path).rglob("*.json"))
 
 
+def test_file_previews_have_entity_tags_so_the_browser_keeps_them_until_the_file_changes(tmp_path, monkeypatch):
+    game, gda = write_example(tmp_path)
+    texture = (game / "art.dds").resolve()
+    texture.write_bytes(create_bc7_dds(8, 4))
+    (tmp_path / "secret.png").write_bytes(b"secret")
+    entry = {"id": "example", "game_name": "Example", "game_path": str(game), "gda_path": str(gda), "extensions": [".dds"]}
+    config = tmp_path / "workspace.json"
+    config.write_text(json.dumps({"config": {"port": 3457}, "defaultWorkspace": "example", "workspaces": [entry]}))
+    library = Library(str(tmp_path / "app"), config_path=str(config))
+    library.init()
+    with TestClient(create_app(library, dev=True), base_url="http://127.0.0.1") as client:
+        def preview(file, if_none_match=None):
+            return client.get("/api/rss-sync/preview", params={"file": str(file)},
+                              headers={"if-none-match": if_none_match} if if_none_match else {})
+
+        first = preview(texture)
+        tag = first.headers["etag"]
+        assert first.headers["cache-control"] == "private, no-cache" and read_png(first.content)[:2] == (8, 4)
+        # While the file is unchanged the browser's copy stands: nothing is decoded or sent again.
+        monkeypatch.setattr(library, "resource_preview", lambda _file: pytest.fail("the preview was made again"))
+        for header in (tag, f"W/{tag}", f'"other", {tag}', "*"):
+            kept = preview(texture, header)
+            assert (kept.status_code, kept.content, kept.headers["etag"]) == (304, b"", tag)
+            assert kept.headers["cache-control"] == "private, no-cache" and "sandbox" in kept.headers["content-security-policy"]
+        monkeypatch.undo()
+        assert preview(texture, '"other"').status_code == 200
+        # A changed file has a new tag, and the browser gets its new preview.
+        texture.write_bytes(create_bc7_dds(16, 4))
+        changed = preview(texture, tag)
+        assert changed.status_code == 200 and changed.headers["etag"] != tag and read_png(changed.content)[:2] == (16, 4)
+        # A file outside the workspace's folders, or one that is gone, is refused whatever the browser keeps.
+        assert preview(tmp_path / "secret.png", "*").status_code == 404
+        assert preview((game / "absent.png").resolve(), "*").status_code == 404
+    # A view's and an RTF's previews draw other files too, so they have no tag.
+    assert library.preview_tag(str((game / "v" / "1920x1080" / "MainView.json").resolve())) is None
+    assert library.preview_tag(str((game / "help" / "project.rtf").resolve())) is None
+
+
+def test_reports_are_saved_as_compact_json(tmp_path):
+    write_example(tmp_path)
+    jobs = SyncJobs(str(tmp_path / "reports"))
+    settings = {"resources_dir": str(tmp_path / "resources"), "gda_dir": str(tmp_path / "gda"), "game": "example", "extensions": [".dds"]}
+    jobs.run("example", {**WORKSPACE, "game_name": "Ëxample"}, settings)
+    raw = jobs.report("example")
+    # json.dumps without an indent encodes in C: an indented report is 2.5 times larger and about seven times slower.
+    assert raw == json.dumps(json.loads(raw), ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    assert "Ëxample".encode("utf-8") in raw
+
+
 def test_previews_files_of_the_workspace_folders_that_the_report_names(tmp_path):
     game, gda = write_example(tmp_path)
     (game / "art.dds").write_bytes(create_bc7_dds(8, 4))

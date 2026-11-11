@@ -351,6 +351,11 @@ class ResourceFilesBody(_Body):
     chars: Annotated[list[Text4K], Field(max_length=20)] = []
 
 
+def _etag_matches(if_none_match: str | None, tag: str) -> bool:
+    """Whether an If-None-Match header names an entity tag, compared weakly as RFC 9110 does for GET, or is *."""
+    return bool(if_none_match) and any(candidate.strip() in ("*", tag, f"W/{tag}") for candidate in if_none_match.split(","))
+
+
 def _hostname(host: str) -> str:
     if host.startswith("["):
         return host[:host.find("]") + 1].lower()
@@ -558,7 +563,7 @@ def create_app(
         return library.sync(body.ids)
 
     @app.get("/api/rss-sync/preview")
-    def rss_sync_preview(file: Annotated[str, Query(max_length=4096)], width: Annotated[int | None, Query(ge=16, le=8192)] = None,
+    def rss_sync_preview(request: Request, file: Annotated[str, Query(max_length=4096)], width: Annotated[int | None, Query(ge=16, le=8192)] = None,
                          hidden: bool = False, crop: bool = False, segment: Annotated[int | None, Query(ge=0, le=100000)] = None,
                          cuts: Annotated[str | None, Query(max_length=8192, pattern=r"^(\d{1,6}(,\d{1,6})*)?$")] = None,
                          text: Annotated[str | None, Query(max_length=200)] = None) -> Response:
@@ -573,8 +578,14 @@ def create_app(
         if is_movie(file):
             path, mime = library.movie_file(file)
             return FileResponse(path, media_type=mime, headers={"Content-Security-Policy": PREVIEW_CSP})
-        data, mime = library.resource_preview(file)
+        # A preview that depends on its file alone has an entity tag: the browser keeps it, and asks again only whether
+        # the file changed, which needs no decoding (the browser game loads every texture this way).
         headers = {"Content-Security-Policy": PREVIEW_CSP}
+        if tag := library.preview_tag(file):
+            headers.update({"Cache-Control": "private, no-cache", "ETag": tag})
+            if _etag_matches(request.headers.get("if-none-match"), tag):
+                return Response(status_code=304, headers=headers)
+        data, mime = library.resource_preview(file)
         # A font comes with its names and the samples it can draw, for the page that draws text with it.
         if mime in FONT_EXTENSIONS.values() and (facts := facts_header(data)):
             headers["X-Font-Facts"] = facts

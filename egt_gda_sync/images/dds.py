@@ -4,6 +4,7 @@ import struct
 from typing import TypedDict
 
 import numpy as np
+from PIL import Image
 
 from egt_gda_sync.images.bc7 import decode_bc7_blocks
 from egt_gda_sync.images.png import encode_png
@@ -12,6 +13,9 @@ MAX_PIXELS = 16_777_216
 SUPPORTED_DDS_FORMATS = frozenset({"DXT1", "DXT3", "DXT5", "RGB24", "RGB32", "BC7_UNORM", "BC7_UNORM_SRGB"})
 HEADER_SIZE = 128
 DX10_HEADER_SIZE = 148
+# The zlib level of preview PNGs. The local browser loads a larger file faster than the server compresses a smaller
+# one: a 3840 × 2160 texture took 0.40 s at level 1, against 1.05 s at level 6, for a file a fifth larger.
+PREVIEW_PNG_LEVEL = 1
 
 
 class DDSInfo(TypedDict):
@@ -128,9 +132,26 @@ def _decode_rgb(data: bytes, width: int, height: int) -> np.ndarray:
     return image
 
 
-def decode_dds(data: bytes) -> bytes:
-    """Decode the first surface/mip of a DXT1/3/5, RGB or DX10 BC7 DDS file as a PNG."""
-    return encode_png(decode_dds_rgba(data))
+def _decode_bc7(data: bytes, width: int, height: int) -> np.ndarray:
+    """BC7 pixel data decoded by Pillow's C decoder, which gives decode_bc7_blocks's pixels about eight times faster.
+    Blocks of the reserved mode are the exception: Direct3D decodes them as transparent black, and Pillow as opaque
+    black, so they are cleared. When Pillow cannot decode them, the NumPy decoder does."""
+    blocks = _blocks(data, DX10_HEADER_SIZE, width, height, 16)
+    try:
+        pixels = Image.frombytes("RGBA", (width, height), memoryview(data)[DX10_HEADER_SIZE:DX10_HEADER_SIZE + blocks.size], "bcn", 7)
+    except (OSError, ValueError):
+        return _assemble(decode_bc7_blocks(blocks), width, height)
+    image = np.array(pixels)  # A writable copy, like the NumPy decoder's.
+    reserved = blocks[:, 0] == 0  # A block's mode is its count of zero bits before the first set one: 8 is reserved.
+    if reserved.any():
+        by_block = reserved.reshape(-(-height // 4), -(-width // 4))
+        image[np.kron(by_block, np.ones((4, 4), bool))[:height, :width]] = 0
+    return image
+
+
+def decode_dds(data: bytes, level: int = PREVIEW_PNG_LEVEL) -> bytes:
+    """Decode the first surface/mip of a DXT1/3/5, RGB or DX10 BC7 DDS file as a PNG, compressed at a zlib level."""
+    return encode_png(decode_dds_rgba(data), level)
 
 
 def decode_dds_rgba(data: bytes) -> np.ndarray:
@@ -140,9 +161,9 @@ def decode_dds_rgba(data: bytes) -> np.ndarray:
     if format in ("BC7_UNORM", "BC7_UNORM_SRGB"):
         if _u32(data, 132) != 3 or _u32(data, 140) == 0:
             raise ValueError("BC7 previews require a valid 2D DDS texture")
-        blocks = _blocks(data, DX10_HEADER_SIZE, width, height, 16)
-        image = _assemble(decode_bc7_blocks(blocks), width, height)
+        image = _decode_bc7(data, width, height)
     elif format in ("DXT1", "DXT3", "DXT5"):
+        # Not Pillow's decoder: it rounds the interpolated colors differently, by up to 2.
         image = _decode_dxt(data, format, width, height)
     elif format in ("RGB24", "RGB32"):
         image = _decode_rgb(data, width, height)

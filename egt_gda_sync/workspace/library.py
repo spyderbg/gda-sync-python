@@ -24,6 +24,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import TypeVar
 
+from egt_gda_sync import __version__
 from egt_gda_sync.images.dds import SUPPORTED_DDS_FORMATS, decode_dds, read_dds_info
 from egt_gda_sync.workspace.demo import seed_demo
 from egt_gda_sync.app.errors import AppError, error_message
@@ -49,7 +50,9 @@ from egt_gda_sync.assets.rtf import RTF_EXTENSION, rtf_layout
 
 MAX_ASSETS = 10_000
 MAX_PREVIEW_BYTES = 64 * 1024 * 1024
-PREVIEW_CACHE_SIZE = 16
+# The decoded DDS textures and movie thumbnails kept in memory, the least recently used dropped first: a game's texture
+# PNGs, which the browser game loads all at once, are up to about 12 MB each.
+PREVIEW_CACHE_BYTES = 256 * 1024 * 1024
 HISTORY_LIMIT = 100
 IMAGE_PREVIEWS = {
     "png": "image/png", "jpg": "image/jpeg", "jpeg": "image/jpeg", "webp": "image/webp", "svg": "image/svg+xml", "bmp": "image/bmp",
@@ -377,8 +380,9 @@ class Library:
         self.config: dict = {}
         self.activity: list[dict] = []
         self._operation = threading.Lock()
-        # Decoded DDS textures, and movie thumbnails with their type.
+        # Decoded DDS textures, and movie thumbnails with their type, least recently used first, and their bytes.
         self._previews: OrderedDict[str, bytes | tuple[bytes, str]] = OrderedDict()
+        self._previews_bytes = 0
         self._previews_lock = threading.Lock()
         self.reports = SyncJobs(os.path.join(self.home, "sync-reports"))
         self.asset_reports = AssetReports(os.path.join(self.home, "asset-reports"))
@@ -1527,8 +1531,7 @@ class Library:
             except BaseException:
                 self.config = previous
                 raise
-            with self._previews_lock:
-                self._previews.clear()
+            self._clear_previews()
             self._record("settings", f"Connected {self.config['name']} workspace")
             return self.scan()
 
@@ -1548,8 +1551,7 @@ class Library:
             except BaseException:
                 self.config = previous
                 raise
-            with self._previews_lock:
-                self._previews.clear()
+            self._clear_previews()
             return self.scan()
 
         return self._exclusive(operation)
@@ -2076,6 +2078,48 @@ class Library:
         except FileNotFoundError as error:
             raise AppError("File not found", 404) from error
 
+    def preview_tag(self, file: str) -> str | None:
+        """The HTTP entity tag of a file's preview (resource_preview), which the browser can keep while the tag stays the
+        same: the app's version and the file's modification time and size. Only an image, a DDS texture, an audio file or a
+        font has one, since its preview depends on that file alone; a view and an RTF draw other files too. A file outside
+        the active workspace's folders, or one that does not exist, raises AppError as resource_preview does."""
+        if view_root(Path(file)) is not None:
+            return None
+        path = self._resource_path(file)
+        extension = os.path.splitext(path)[1][1:].lower()
+        if extension != "dds" and extension not in {**IMAGE_PREVIEWS, **AUDIO_PREVIEWS, **FONT_EXTENSIONS}:
+            return None
+        try:
+            info = os.stat(path)
+        except FileNotFoundError as error:
+            raise AppError("File not found", 404) from error
+        return f'"{__version__}-{info.st_mtime_ns:x}-{info.st_size:x}"'
+
+    def _cached_preview(self, key: str) -> bytes | tuple[bytes, str] | None:
+        with self._previews_lock:
+            value = self._previews.get(key)
+            if value is not None:
+                self._previews.move_to_end(key)
+            return value
+
+    def _keep_preview(self, key: str, value: bytes | tuple[bytes, str]) -> None:
+        """Keep a preview in memory, dropping the least recently used ones beyond PREVIEW_CACHE_BYTES."""
+        def size(item: bytes | tuple[bytes, str]) -> int:
+            return len(item if isinstance(item, bytes) else item[0])
+
+        with self._previews_lock:
+            if key in self._previews:
+                self._previews_bytes -= size(self._previews.pop(key))
+            self._previews[key] = value
+            self._previews_bytes += size(value)
+            while self._previews_bytes > PREVIEW_CACHE_BYTES and len(self._previews) > 1:
+                self._previews_bytes -= size(self._previews.popitem(last=False)[1])
+
+    def _clear_previews(self) -> None:
+        with self._previews_lock:
+            self._previews.clear()
+            self._previews_bytes = 0
+
     def movie_file(self, file: str) -> tuple[str, str]:
         """A movie inside the active workspace's resources and GDA folders, to stream as it is, and the type the browser
         plays it as."""
@@ -2093,18 +2137,14 @@ class Library:
         path, _mime = self.movie_file(file)
         info = os.stat(path)
         key = f"{path}:{info.st_mtime_ns}:{info.st_size}:{'stacked' if stacked else 'frame'}"
-        with self._previews_lock:
-            cached = self._previews.get(key)
+        cached = self._cached_preview(key)
         if cached is not None:
             return cached
         try:
             result = movie_thumbnail(path, stacked)
         except ValueError as error:
             raise AppError(error_message(error), 415) from error
-        with self._previews_lock:
-            while len(self._previews) >= PREVIEW_CACHE_SIZE:
-                self._previews.popitem(last=False)
-            self._previews[key] = result
+        self._keep_preview(key, result)
         return result
 
     def _media(self, file: str, extension: str) -> tuple[bytes, str]:
@@ -2121,18 +2161,14 @@ class Library:
             return json.dumps(layout, ensure_ascii=False, separators=(",", ":")).encode("utf-8"), "application/json"
         if extension == "dds":
             key = f"{file}:{info.st_mtime_ns}:{info.st_size}"
-            with self._previews_lock:
-                data = self._previews.get(key)
+            data = self._cached_preview(key)
             if data is None:
                 try:
                     with open(file, "rb") as handle:
                         data = decode_dds(handle.read())
                 except Exception as error:
                     raise AppError(error_message(error), 415) from error
-                with self._previews_lock:
-                    while len(self._previews) >= PREVIEW_CACHE_SIZE:
-                        self._previews.popitem(last=False)
-                    self._previews[key] = data
+                self._keep_preview(key, data)
             return data, "image/png"
         with open(file, "rb") as handle:
             return handle.read(), {**IMAGE_PREVIEWS, **AUDIO_PREVIEWS, **FONT_EXTENSIONS}.get(extension, "application/octet-stream")

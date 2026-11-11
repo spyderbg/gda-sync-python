@@ -30,6 +30,22 @@ def test_demo_dashboard_compares_the_gda_folder_and_the_asset_report_lists_the_g
     assert read_png(preview)[:2] == (512, 512)
 
 
+def test_previews_are_kept_up_to_a_size_the_least_recently_used_dropped_first(library, monkeypatch):
+    monkeypatch.setattr("egt_gda_sync.workspace.library.PREVIEW_CACHE_BYTES", 10)
+    library._keep_preview("a", b"1234")
+    library._keep_preview("b", b"1234")
+    assert library._cached_preview("a") == b"1234"  # Now the most recently used.
+    library._keep_preview("c", (b"1234", "image/png"))  # A movie thumbnail counts its bytes too: b goes.
+    assert list(library._previews) == ["a", "c"] and library._previews_bytes == 8
+    library._keep_preview("a", b"12")  # Replaced, not counted twice.
+    assert list(library._previews) == ["c", "a"] and library._previews_bytes == 6
+    library._keep_preview("large", b"x" * 20)  # Larger than the limit, it is kept alone.
+    assert list(library._previews) == ["large"] and library._previews_bytes == 20
+    assert library._cached_preview("a") is None
+    library._clear_previews()
+    assert not library._previews and library._previews_bytes == 0
+
+
 def test_sync_copies_originals_keeps_folder_structure_and_backs_up_replaced_gda_files(library):
     pending = [asset for asset in library.dashboard()["assets"] if asset["status"] != "synced"]
     changed = next(asset for asset in pending if asset["status"] == "modified")

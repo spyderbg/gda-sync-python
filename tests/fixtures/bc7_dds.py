@@ -1,8 +1,8 @@
 import struct
 
 
-def create_bc7_dds(width: int = 4, height: int = 4, dxgi_format: int = 98) -> bytes:
-    """Synthetic solid-red mode-5 BC7 DDS; no user assets are bundled into tests."""
+def create_bc7_dds(width: int = 4, height: int = 4, dxgi_format: int = 98, blocks: bytes | None = None) -> bytes:
+    """Synthetic solid-red mode-5 BC7 DDS, or one of the given blocks, row by row; no user assets are bundled into tests."""
     block, cursor = 0, 0
 
     def write(value: int, count: int) -> None:
@@ -33,4 +33,8 @@ def create_bc7_dds(width: int = 4, height: int = 4, dxgi_format: int = 98) -> by
         (108, 0x1000), (128, dxgi_format), (132, 3), (140, 1),
     ):
         struct.pack_into("<I", header, offset, value)
+    if blocks is not None:
+        if len(blocks) != count * 16:
+            raise AssertionError(f"{width} × {height} pixels need {count} blocks")
+        return bytes(header) + blocks
     return bytes(header) + block.to_bytes(16, "little") * count
