@@ -332,6 +332,35 @@ def test_locate_finds_where_the_preview_moved_and_scaled_elements(tmp_path):
     assert found["image_knob"]["scale"] == [1.2, 1.2] and found["image_knob"]["new"] == [430, 860]
 
 
+def test_draw_lays_the_views_over_the_preview_without_the_elements_left_out(tmp_path):
+    view = write_game(tmp_path)
+    preview = tmp_path / "preview.png"
+    screen = preview_of(view, preview, {}, skip=("image_label_tetra",))
+
+    def drawn(*args: str) -> np.ndarray:
+        result = helper("draw", str(tmp_path / "out.png"), str(view), *args)
+        assert result.returncode == 0, result.stderr
+        return cv2.imread(str(tmp_path / "out.png")).astype(int)
+
+    # Over a preview that the views themselves drew, at full opacity, the picture is the preview.
+    assert np.abs(drawn("--over", str(preview), "--skip", "*_tetra", "--opacity", "1") - screen).max() <= 1
+    # An element left out is not drawn: what is under it shows, here the background, and the elements around it stay.
+    back, label, knob = (noise(width, height, seed)[..., 2::-1].astype(int) for width, height, seed in ((400, 200, 1), (40, 24, 2), (30, 30, 3)))
+    twin = (slice(900, 924), slice(280, 320))  # where image_label_tetra draws the label, on the background from 100,800
+    whole, without = drawn(), drawn("--skip", "*_tetra")
+    assert np.array_equal(whole[twin], label) and np.array_equal(without[twin], back[100:124, 180:220])
+    assert np.array_equal(without[900:924, 180:220], label) and np.array_equal(without[835:865, 435:465], knob)
+    assert np.array_equal(whole[:800], without[:800]) and set(np.unique(whole[:800])) == {64, 96}  # the screen without a preview
+    # Over a preview the views are half transparent by default, so a doubled element shows that it is off its place.
+    black = tmp_path / "black.png"
+    cv2.imwrite(str(black), np.zeros((1080, 1920, 3), np.uint8))
+    half = drawn("--over", str(black))
+    assert np.abs(half[835:865, 435:465] - knob / 2).max() <= 1 and not half[:800].any()
+    # A part of the screen, zoomed.
+    crop = drawn("--skip", "*_tetra", "--crop", "435,835,30,30", "--zoom", "2")
+    assert crop.shape == (60, 60, 3) and np.array_equal(crop[::2, ::2], knob)
+
+
 def test_move_writes_only_the_positions_and_keeps_the_files_layout(tmp_path):
     view = write_game(tmp_path)
     before = view.read_bytes().decode()

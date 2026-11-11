@@ -22,7 +22,8 @@ is drawn only on request. *Data.json files in the v folder are descriptors, not 
 
 describe_view gives the facts a report keeps, view_layout the place of every element, and render_view the view composed
 as a PNG image, or one segment of it: the elements between two that the page draws itself, such as the Anims that
-play and the elements being moved.
+play and the elements being moved. view_layers gives the same picture as pixels, over only the part of the screen the
+view draws on, for a caller that lays the view over another picture itself, as the view-layout skill's helper does.
 """
 
 from __future__ import annotations
@@ -556,6 +557,97 @@ def _premultiplied(rgba: np.ndarray, scale: float) -> np.ndarray:
     return image
 
 
+def _drawn_elements(layout: dict, hidden: bool) -> list[dict]:
+    """The elements of a view's layout that a render draws, in order: the ones with an image or a sample text, without
+    the hidden ones unless they are asked for."""
+    return [element for element in layout["elements"]
+            if (element["drawn"] or "text" in element) and (hidden or not element["hidden"]) and element["type"] != "Dummy"]
+
+
+def _compose(path: Path, shown: list[dict], resolution: dict, game_dir: Path | None, text: str | None, scale: float = 1.0,
+             origin: tuple[float, float] = (0.0, 0.0), size: tuple[int, int] | None = None) -> tuple[np.ndarray, int, int] | None:
+    """Elements of a view's layout drawn one over another, in order, as premultiplied float32 RGBA, on the screen scaled
+    by scale. With a size, over that many pixels from origin, a point of the screen: a render's canvas. Without one, over
+    the box that the elements cover on the scaled screen, returned with the box's left and top; None when they draw
+    nothing on it. An element whose image or font cannot be read is left out."""
+    source_elements = read_view(path)["elements"]
+    resources = _resources_for(path, game_dir)
+    left, top = origin
+    # Each element's image, its matrix from the scaled image's pixels to the scaled screen, and the box it covers there.
+    placements = []
+    for element in shown:
+        data = source_elements[element["index"]]
+        try:
+            if "text" in element:
+                # A text is drawn at its own size, then shrunk into its fit box by its matrix.
+                parts = _text_parts(data, resources, (resolution["width"], resolution["height"]), text or "")
+                if parts is None:
+                    continue
+                image = _premultiplied(parts[0], scale)
+            else:
+                image = _scaled_image(Path(element["file"]), tuple(element["source"]) if "source" in element else None, scale)
+        except (OSError, ValueError, ImportError, cv2.error):
+            continue
+        if not image.size:
+            continue
+        red, green, blue, alpha = _color(data.get("color"))
+        if (red, green, blue, alpha) != (255, 255, 255, 255):
+            image = image * np.array([red / 255, green / 255, blue / 255, 1.0], np.float32) * (alpha / 255)
+        if "text" in element:
+            extent = (element["text"]["width"], element["text"]["height"])
+            a, b, c, d, e, f = element["text"]["matrix"]
+            matrix = np.array([[a, c, e], [b, d, f]])
+        else:
+            extent = (element["size"][0], element["size"][1])
+            matrix = transform(data, extent)
+        to_image = np.diag([image.shape[1] / extent[0] if extent[0] else 1.0, image.shape[0] / extent[1] if extent[1] else 1.0])
+        linear = scale * matrix[:, :2] @ np.linalg.inv(to_image)
+        translation = scale * (matrix[:, 2] - [left, top])
+        box = np.array(corners(np.hstack([linear, translation[:, None]]), (image.shape[1], image.shape[0])))
+        placements.append((image, linear, translation, (math.floor(box[:, 0].min()), math.floor(box[:, 1].min()),
+                                                        math.ceil(box[:, 0].max()), math.ceil(box[:, 1].max()))))
+    # The canvas on the scaled screen: the one asked for, or the part of the screen that the elements cover.
+    if size is not None:
+        x_start, y_start, x_end, y_end = 0, 0, size[0], size[1]
+    else:
+        if not placements:
+            return None
+        x_start, y_start = max(0, min(box[0] for *_, box in placements)), max(0, min(box[1] for *_, box in placements))
+        x_end = min(round(resolution["width"] * scale), max(box[2] for *_, box in placements))
+        y_end = min(round(resolution["height"] * scale), max(box[3] for *_, box in placements))
+        if x_end <= x_start or y_end <= y_start:
+            return None
+    canvas = np.zeros((y_end - y_start, x_end - x_start, 4), np.float32)
+    for image, linear, translation, box in placements:
+        x0, y0, x1, y1 = max(x_start, box[0]), max(y_start, box[1]), min(x_end, box[2]), min(y_end, box[3])
+        if x1 <= x0 or y1 <= y0:
+            continue
+        placed = np.hstack([linear, (translation - [x0, y0])[:, None]])
+        layer = cv2.warpAffine(image, placed, (x1 - x0, y1 - y0), flags=cv2.INTER_LINEAR,
+                               borderMode=cv2.BORDER_CONSTANT, borderValue=(0, 0, 0, 0))
+        area = canvas[y0 - y_start:y1 - y_start, x0 - x_start:x1 - x_start]
+        area[:] = layer + area * (1.0 - layer[..., 3:4])
+    return canvas, x_start, y_start
+
+
+def view_layers(path: Path, cuts: tuple[int, ...] = (), hidden: bool = False, game_dir: Path | None = None,
+                roots: tuple[Path, ...] = (), text: str | None = None) -> list[tuple[np.ndarray, int, int]]:
+    """The view composed to lay over another picture, at its own size: what render_view draws, as pixels instead of a PNG
+    image. Each layer is premultiplied float32 RGBA over the box that its elements cover, with the box's left and top on
+    the screen. The elements left out (cuts, by element index) split the view into the runs of elements between them,
+    as render_view's segments, each run a layer, in order; without cuts the view is one layer. A run that draws nothing
+    has no layer. Layers are composed on every call: unlike renders, they are not kept."""
+    layout = view_layout(path, game_dir, roots, text)
+    runs: list[list[dict]] = [[]]
+    for element in _drawn_elements(layout, hidden):
+        if element["index"] in cuts:
+            runs.append([])
+        else:
+            runs[-1].append(element)
+    layers = (_compose(path, run, layout["resolution"], game_dir, text) for run in runs if run)
+    return [layer for layer in layers if layer is not None]
+
+
 def render_view(path: Path, width: int | None = None, hidden: bool = False, game_dir: Path | None = None,
                 roots: tuple[Path, ...] = (), crop: bool = False, segment: int | None = None,
                 cuts: tuple[int, ...] | None = None, text: str | None = None) -> bytes:
@@ -568,8 +660,7 @@ def render_view(path: Path, width: int | None = None, hidden: bool = False, game
     it draws changes."""
     layout = view_layout(path, game_dir, roots, text)
     resolution = layout["resolution"]
-    elements = [element for element in layout["elements"]
-                if (element["drawn"] or "text" in element) and (hidden or not element["hidden"]) and element["type"] != "Dummy"]
+    elements = _drawn_elements(layout, hidden)
     shown = elements
     if segment is not None:
         split = [position for position, element in enumerate(elements)
@@ -595,49 +686,8 @@ def render_view(path: Path, width: int | None = None, hidden: bool = False, game
         if signature in _renders:
             _renders.move_to_end(signature)
             return _renders[signature]
-    canvas_width, canvas_height = max(1, round((right - left) * scale)), max(1, round((bottom - top) * scale))
-    canvas = np.zeros((canvas_height, canvas_width, 4), np.float32)
-    source_elements = read_view(path)["elements"]
-    resources = _resources_for(path, game_dir)
-    for element in shown:
-        data = source_elements[element["index"]]
-        try:
-            if "text" in element:
-                # A text is drawn at its own size, then shrunk into its fit box by its matrix.
-                parts = _text_parts(data, resources, (resolution["width"], resolution["height"]), text or "")
-                if parts is None:
-                    continue
-                image = _premultiplied(parts[0], scale)
-            else:
-                image = _scaled_image(Path(element["file"]), tuple(element["source"]) if "source" in element else None, scale)
-        except (OSError, ValueError, ImportError, cv2.error):
-            continue
-        if not image.size:
-            continue
-        red, green, blue, alpha = _color(data.get("color"))
-        if (red, green, blue, alpha) != (255, 255, 255, 255):
-            image = image * np.array([red / 255, green / 255, blue / 255, 1.0], np.float32) * (alpha / 255)
-        # The element's matrix in the scaled image's pixels and on the scaled screen.
-        if "text" in element:
-            size = (element["text"]["width"], element["text"]["height"])
-            a, b, c, d, e, f = element["text"]["matrix"]
-            matrix = np.array([[a, c, e], [b, d, f]])
-        else:
-            size = (element["size"][0], element["size"][1])
-            matrix = transform(data, size)
-        to_image = np.diag([image.shape[1] / size[0] if size[0] else 1.0, image.shape[0] / size[1] if size[1] else 1.0])
-        linear = scale * matrix[:, :2] @ np.linalg.inv(to_image)
-        translation = scale * (matrix[:, 2] - [left, top])
-        box = np.array(corners(np.hstack([linear, translation[:, None]]), (image.shape[1], image.shape[0])))
-        x0, y0 = max(0, math.floor(box[:, 0].min())), max(0, math.floor(box[:, 1].min()))
-        x1, y1 = min(canvas_width, math.ceil(box[:, 0].max())), min(canvas_height, math.ceil(box[:, 1].max()))
-        if x1 <= x0 or y1 <= y0:
-            continue
-        placed = np.hstack([linear, (translation - [x0, y0])[:, None]])
-        layer = cv2.warpAffine(image, placed, (x1 - x0, y1 - y0), flags=cv2.INTER_LINEAR,
-                               borderMode=cv2.BORDER_CONSTANT, borderValue=(0, 0, 0, 0))
-        area = canvas[y0:y1, x0:x1]
-        area[:] = layer + area * (1.0 - layer[..., 3:4])
+    size = (max(1, round((right - left) * scale)), max(1, round((bottom - top) * scale)))
+    canvas, _left, _top = _compose(path, shown, resolution, game_dir, text, scale, (left, top), size)
     alpha = canvas[..., 3:4]
     rgb = np.divide(canvas[..., :3], alpha, out=np.zeros_like(canvas[..., :3]), where=alpha > 1e-6)
     pixels = np.clip(np.dstack([rgb, alpha]) * 255 + 0.5, 0, 255).astype(np.uint8)

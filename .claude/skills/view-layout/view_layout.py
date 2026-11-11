@@ -57,7 +57,7 @@ import numpy as np
 import egt_gda_sync.assets.views as library
 from egt_gda_sync.app.desktop import application_data_home
 from egt_gda_sync.assets.view_text import DEFAULT_SAMPLE
-from egt_gda_sync.assets.views import _color, _point, _scaled_image, read_view, render_view, transform, view_layout, view_resolution, view_root
+from egt_gda_sync.assets.views import _color, _point, _scaled_image, read_view, transform, view_layers, view_layout, view_resolution, view_root
 from egt_gda_sync.images.image_compare import decode_image
 from egt_gda_sync.sync.rss_edit import number_text, set_view_positions
 
@@ -176,7 +176,7 @@ def prune_image_cache() -> None:
 
 def decode_images(items: Iterable[dict]) -> None:
     """Decodes the images of laid out elements, each once and all at once, into the library's image cache, which placed
-    and render_view then take them from. An image that cannot be decoded fails where it is drawn, as before."""
+    and view_layers then take them from. An image that cannot be decoded fails where it is drawn, as before."""
     def decode(key: tuple[str, tuple[int, ...] | None]) -> None:
         try:
             _scaled_image(Path(key[0]), key[1], 1.0)
@@ -311,41 +311,27 @@ def skipped(element_id: str, skip: list[str]) -> bool:
     return any(fnmatch.fnmatchcase(element_id, pattern) for pattern in skip)
 
 
-def rendered(files: list[Path], hidden: bool, text: str, skip: list[str]) -> list[bytes]:
-    """The views drawn as the app draws them, as PNG images to lay one over another, the first view's first: each whole
-    view, or without the elements left out, the segments of the view between them. All are drawn at once."""
+def layers(files: list[Path], hidden: bool, text: str, skip: list[str]) -> list[tuple[np.ndarray, int, int]]:
+    """The views drawn as the app draws them, as layers to lay one over another, the first view's first: each whole
+    view, or without the elements left out, the runs of its elements between them. A layer is premultiplied float32 RGBA
+    over the box its elements cover, with the box's left and top on the screen: the library composes it, and nothing is
+    encoded between. The views are composed at once."""
     # Laid out here first, so the threads find the game's resources loaded, and its images decoded.
     decode_images(item for file in files for item in view_layout(file)["elements"]
                   if (hidden or not item["hidden"]) and item["type"] != "Dummy" and not skipped(item["id"], skip))
-    jobs = []
-    for number, file in enumerate(files):
+
+    def compose(file: Path) -> list[tuple[np.ndarray, int, int]]:
         cuts = tuple(index for index, element in enumerate(read_view(file)["elements"]) if skipped(str(element.get("id") or ""), skip))
-        # A view has a segment more than the cuts it draws, so at most one more than its cuts.
-        jobs += [(number, file, cuts, segment) for segment in range(len(cuts) + 1)]
+        return view_layers(file, cuts, hidden, text=text)
 
-    def render(job: tuple[int, Path, tuple[int, ...], int]) -> bytes | None:
-        _number, file, cuts, segment = job
-        if not cuts:
-            return render_view(file, None, hidden, text=text)
-        try:
-            return render_view(file, None, hidden, segment=segment, cuts=cuts, text=text)
-        except ValueError:  # past the view's last segment
-            return None
-
-    layers, ended = [], set()
-    for (number, *_job), png in zip(jobs, parallel(render, jobs)):
-        if png is None:
-            ended.add(number)
-        elif number not in ended:
-            layers.append(png)
-    return layers
+    return [layer for view in parallel(compose, files) for layer in view]
 
 
 def composed(files: list[Path], resolution: tuple[int, int], skip: list[str]) -> np.ndarray:
     """The views drawn together on the gray screen, without their texts, as float32 RGB."""
     screen = np.full((resolution[1], resolution[0], 3), BACKGROUND, np.float32)
-    for png in rendered(files, False, "", skip):
-        blend(screen, png, 1.0)
+    for layer in layers(files, False, "", skip):
+        blend(screen, layer, 1.0)
     return screen
 
 
@@ -610,16 +596,12 @@ def locate(args: argparse.Namespace) -> None:
 # Drawing
 
 
-def blend(base: np.ndarray, png: bytes, opacity: float) -> None:
-    pixels = cv2.imdecode(np.frombuffer(png, np.uint8), cv2.IMREAD_UNCHANGED)
-    # Only where the layer draws: elsewhere it is transparent, and leaves the base as it is.
-    x, y, width, height = cv2.boundingRect(cv2.extractChannel(pixels, 3))
-    if not width or not height:
-        return
-    layer = cv2.cvtColor(pixels[y:y + height, x:x + width], cv2.COLOR_BGRA2RGBA).astype(np.float32)
-    alpha = layer[..., 3:4] / 255.0 * opacity
-    area = base[y:y + height, x:x + width]
-    area[:] = layer[..., :3] * alpha + area * (1 - alpha)
+def blend(base: np.ndarray, layer: tuple[np.ndarray, int, int], opacity: float) -> None:
+    """Lays a layer over the screen, at an opacity. Only where the layer is: elsewhere the screen stays as it is."""
+    pixels, x, y = layer
+    area = base[y:y + pixels.shape[0], x:x + pixels.shape[1]]
+    # Its colors are premultiplied by its alpha, 0..1, and the screen's are 0..255.
+    area[:] = pixels[..., :3] * (255.0 * opacity) + area * (1.0 - pixels[..., 3:4] * opacity)
 
 
 def draw(args: argparse.Namespace) -> None:
@@ -633,8 +615,8 @@ def draw(args: argparse.Namespace) -> None:
         tiles = (np.indices((height, width)) // 16).sum(axis=0) % 2
         base = np.where(tiles[..., None] == 1, 96.0, 64.0).astype(np.float32).repeat(3, axis=2)
     opacity = args.opacity if args.opacity is not None else (0.5 if args.over else 1.0)
-    for png in rendered(files, args.hidden, sample, skip) if opacity > 0 else []:
-        blend(base, png, opacity)
+    for layer in layers(files, args.hidden, sample, skip) if opacity > 0 else []:
+        blend(base, layer, opacity)
     left, top, crop_width, crop_height = (int(value) for value in numbers(args.crop, 4, "--crop")) if args.crop else (0, 0, width, height)
     left, top = max(0, left), max(0, top)
     right, bottom = min(width, left + crop_width), min(height, top + crop_height)

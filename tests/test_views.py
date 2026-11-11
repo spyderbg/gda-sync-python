@@ -14,7 +14,7 @@ from egt_gda_sync.workspace.library import Library, asset_facts
 from egt_gda_sync.images.png import encode_png
 from egt_gda_sync.sync.rss_sync import DEFAULT_EXTENSIONS, Config, compare
 from egt_gda_sync.app.server import create_app
-from egt_gda_sync.assets.views import describe_view, is_view, render_view, view_layout, view_resolution, view_root
+from egt_gda_sync.assets.views import describe_view, is_view, render_view, view_layers, view_layout, view_resolution, view_root
 from tests.conftest import session_headers
 
 RED, GREEN, BLUE = (255, 0, 0, 255), (0, 255, 0, 255), (0, 0, 255, 255)
@@ -189,6 +189,47 @@ def test_an_anim_lists_how_its_frames_play_and_its_view_is_drawn_in_segments_aro
     assert tuple(whole[50, 100]) == RED and tuple(before[50, 100]) == RED and after[50, 100, 3] == 0
     with pytest.raises(ValueError, match="the view has 2 segments"):
         render_view(main, 1920, segment=2)
+
+
+def test_a_view_is_composed_as_layers_over_the_boxes_its_elements_cover(tmp_path):
+    game = write_game(tmp_path)
+    main = game / "v" / "1920x1080" / "MainView.json"
+
+    def laid(layers: list[tuple[np.ndarray, int, int]]) -> np.ndarray:
+        """The layers one over another on a transparent screen, as the pixels of a render."""
+        screen = np.zeros((1080, 1920, 4), np.float32)
+        for pixels, left, top in layers:
+            assert pixels.dtype == np.float32 and left >= 0 and top >= 0
+            area = screen[top:top + pixels.shape[0], left:left + pixels.shape[1]]
+            assert area.shape == pixels.shape  # a layer is all on the screen
+            area[:] = pixels + area * (1 - pixels[..., 3:4])
+        alpha = screen[..., 3:4]
+        rgb = np.divide(screen[..., :3], alpha, out=np.zeros_like(screen[..., :3]), where=alpha > 1e-6)
+        return np.clip(np.dstack([rgb, alpha]) * 255 + 0.5, 0, 255).astype(np.uint8)
+
+    # The whole view is one layer, over the box from its first image's corner to the turned image's: what a render draws.
+    whole = view_layers(main)
+    assert [(pixels.shape, left, top) for pixels, left, top in whole] == [((340, 836, 4), 80, 40)]
+    assert np.array_equal(laid(whole), decode(render_view(main)))
+    assert np.array_equal(laid(view_layers(main, hidden=True, text="88")), decode(render_view(main, hidden=True, text="88")))
+    # The elements left out split it into the runs between them, as a render's segments: here the first image, then the
+    # faded one. The run after the Anim draws nothing without a sample text, so it has no layer.
+    runs = view_layers(main, cuts=(1, 4))
+    assert [(pixels.shape, left, top) for pixels, left, top in runs] == [((20, 40, 4), 80, 40), ((10, 10, 4), 500, 100)]
+    for segment, run in enumerate(runs):
+        assert np.array_equal(laid([run]), decode(render_view(main, segment=segment, cuts=(1, 4))))
+    assert len(view_layers(main, cuts=(1, 4), text="88")) == 3
+    # An element that is not drawn, as the hidden one here, splits nothing.
+    assert [(pixels.shape, left, top) for pixels, left, top in view_layers(main, cuts=(3,))] == [((340, 836, 4), 80, 40)]
+    assert len(view_layers(main, cuts=(3,), hidden=True)) == 2
+    # A layer is cut to the screen, and a view that draws nothing on it has none.
+    edge = game / "v" / "1920x1080" / "EdgeView.json"
+    write_json(edge, {"name": "EdgeView", "elements": [
+        {"id": "image_corner", "type": "Image", "rssKey": "IMAGE_RED", "position": {"x": 1900, "y": 1070}},
+        {"id": "image_outside", "type": "Image", "rssKey": "IMAGE_RED", "position": {"x": 3000, "y": 3000}}]})
+    assert [(pixels.shape, left, top) for pixels, left, top in view_layers(edge)] == [((10, 20, 4), 1900, 1070)]
+    assert np.array_equal(laid(view_layers(edge)), decode(render_view(edge)))
+    assert view_layers(edge, cuts=(0,)) == [] and view_layers(game / "v" / "1920x1080" / "LooseView.json") == []
 
 
 def test_the_gda_sync_compares_views_and_the_asset_report_lists_them_as_their_own_type(tmp_path):
