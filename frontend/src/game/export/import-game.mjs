@@ -73,7 +73,7 @@ function WriteFile(path, text) {
   writeFileSync(path, text);
 }
 
-/** A game's C++ name, from its modules: the folder of its state machine module without Fsm (NordicRushFsm). */
+/** A game's C++ name, from its modules: the folder of its state machine module without Fsm (NordicTaleFsm). */
 function GameNameOf(folder) {
   const fsm = existsSync(folder) ? readdirSync(folder).find(name => /Fsm$/.test(name) && statSync(join(folder, name)).isDirectory()) : null;
   return fsm ? fsm.replace(/Fsm$/, '') : null;

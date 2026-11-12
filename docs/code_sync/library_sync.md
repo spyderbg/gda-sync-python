@@ -262,3 +262,4 @@ when the user asks. A `hat_libs` sync has no manifest entry, so this record is t
 | `def1924e4` | 2026-10-29 | `faa5f19a0` (2026-10-29) | checked 2026-11-05 | The views' theme overrides sync (games `eb1fd4f35`): the pin has not moved |
 | `def1924e4` | 2026-10-29 | `faa5f19a0` (2026-10-29) | checked 2026-11-05 | Burning Crown's sync with Nordic Rush's hold and spin outro (games `2882fd0e7`, branch `main-new-panel`): the pin has not moved |
 | `def1924e4` | 2026-10-29 | `faa5f19a0` (2026-10-29) | checked 2026-11-06 | Burning Crown's theme suffixes sync (games `0317b4fa7`): the pin has not moved |
+| `def1924e4` | 2026-10-29 | `faa5f19a0` (2026-10-29) | checked 2026-11-12 | Nordic Rush's rename to Nordic Tale (games `beab58632`, synced at `d65ca5b45`): the pin has not moved |

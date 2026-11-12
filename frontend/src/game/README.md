@@ -9,7 +9,7 @@ by hand: the main round, the tetra round (four sub screens, sticky and copied cr
 award (capping) splash, autoplay, the bet and language menus, English and Italian, the cabinet's info screen (the help
 pages of the game's RTF) and its topper screen; **Burning Hot Coins**, imported from its C++ (2026-10-28): the main
 round, whose wins are coins, the coins round, the coins (exchange) wheel and the red or black gamble; and the games
-imported from C++ (below, **Import: a new game from C++**), such as **Nordic Rush** (2026-10-28): the main and free
+imported from C++ (below, **Import: a new game from C++**), such as **Nordic Tale** (2026-10-28, as Nordic Rush, its name until the C++ renamed it): the main and free
 rounds, hold and spin (with its info screen), the coins round and its free spins, and the coins wheel; and **Joker Reels
 Coins 10** (2026-10-29), Burning Hot Coins' rounds with its own reels: its symbols centred in their cells, a joker over a
 winning stack of wilds, which fades in over the single wilds, and the scatter's and the wild's reel stop sounds. It has
@@ -187,7 +187,7 @@ wheel, or a win.
     what they show, as when their elements list loads (the info screen once no page slides in);
   - the reels' (`ReelsView.json`, and the tetra round's `TetraRoundView.json`): their symbols' images, step per tick and
     stop ticks, and the tetra sub screens' dimming, once the reels have stopped;
-  - the win figures' (`WinFiguresView.json`): the figures shown, from their loops (Nordic Rush's once no comets fly);
+  - the win figures' (`WinFiguresView.json`): the figures shown, from their loops (Nordic Tale's once no comets fly);
   - the wheel's (`WheelRoundView.json`): the sectors' wins' texts; the gamble's (`GambleRoundView.json`): the cards'
     slides and its history, once none of its animations runs.
 

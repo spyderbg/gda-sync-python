@@ -421,7 +421,7 @@ repository, when the user asks.
 
 - **A two-sided change.** If the C++ of a file changed since its port as well (step 0), this sync would overwrite it.
   Sync the C++ into the TypeScript first.
-- **Copies across games.** Burning Hot Coins, Nordic Rush and Joker Reels Coins 10 share copied views. A change in one
+- **Copies across games.** Burning Hot Coins, Nordic Tale and Joker Reels Coins 10 share copied views. A change in one
   game's TypeScript is not a change in the others' C++. Tell the user if the same TypeScript change looks needed
   elsewhere.
 - **TypeScript arrays have holes, `Map`s key objects by identity.** C++ `resize` default-constructs elements, and a

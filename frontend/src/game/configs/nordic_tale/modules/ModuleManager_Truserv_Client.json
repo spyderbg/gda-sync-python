@@ -1,0 +1,77 @@
+{
+  "include": [
+    "../../alpha_family/modules/AlphaTruservClientModules.json",
+    "NordicTaleModules.json"
+  ],
+  "plugins": [],
+  "modules": [
+    {
+      "override": true,
+      "name": "TruservClientVideo",
+      "config": {
+        "mainWidth": 1920,
+        "mainHeight": 1080,
+        "infoWidth": 1920,
+        "infoHeight": 1080
+      }
+    },
+    {
+      "override": true,
+      "name": "VideoManager",
+      "config": {
+        "loadingScreensPaths": {
+          "main": "./loading_screen.dds",
+          "info": "./loading_screen.dds",
+          "topper": "./loading_screen.dds"
+        }
+      }
+    },
+    {
+      "override": true,
+      "name": "ResourceManager",
+      "config": {
+        "resolutionWidth": 1920,
+        "resolutionHeight": 1080
+      }
+    },
+    {
+      "override": true,
+      "name": "NordicTaleInfoView",
+      "config": {
+        "rssRtfId": "rtf_common"
+      }
+    },
+    {
+      "name": "TruservClientAlphaFamilyBridge",
+      "space": "Egt::Integration::Truserv::AlphaFamily",
+      "header": "Egt/TruservClientAlphaFamilyBridge/TruservClientAlphaFamilyBridge.h",
+      "config": {
+        "bypassMessageIds": [
+          "Egt::Game::AlphaFamily::ICreditsWinBarView::Events::animatingInstantDone",
+          "Egt::Game::AlphaFamily::ICreditBarView::Events::animatingInstantDone",
+          "Egt::Game::AlphaFamily::ICoinsWinBarView::Events::animatingInstantDone",
+          "Egt::Game::AlphaFamily::IBetBarView::Events::animatingInstantDone",
+          "Egt::Game::AlphaFamily::IInfoSwButtonView::Events::buttonPressedEvent",
+          "Egt::Game::AlphaFamily::ILanguageSwButtonView::Events::buttonPressedEvent",
+          "Egt::Game::AlphaFamily::ILanguageMenuView::Events::menuOpening",
+          "Egt::Game::AlphaFamily::ILanguageMenuView::Events::menuOpened",
+          "Egt::Game::AlphaFamily::ILanguageMenuView::Events::menuClosing",
+          "Egt::Game::AlphaFamily::ILanguageMenuView::Events::menuClosed",
+          "Egt::Game::AlphaFamily::IBetUpSwButtonView::Events::buttonPressedEvent",
+          "Egt::Game::AlphaFamily::IBetDownSwButtonView::Events::buttonPressedEvent",
+          "Egt::Game::AlphaFamily::IBetMenuView::Events::menuOpening",
+          "Egt::Game::AlphaFamily::IBetMenuView::Events::menuOpened",
+          "Egt::Game::AlphaFamily::IBetMenuView::Events::requestBetChanged",
+          "Egt::Game::AlphaFamily::IBetMenuView::Events::requestIncreaseBetEvent",
+          "Egt::Game::AlphaFamily::IBetMenuView::Events::requestDecreaseBetEvent",
+          "Egt::Game::AlphaFamily::IBetMenuView::Events::menuClosing",
+          "Egt::Game::AlphaFamily::IBetMenuView::Events::menuClosed",
+          "Egt::Game::AlphaFamily::IStatusLineView::Events::statusShown",
+          "Egt::Game::AlphaFamily::IStatusLineView::Events::leftStatusShown",
+          "Egt::Game::AlphaFamily::IStatusLineView::Events::rightStatusShown",
+          "Egt::Game::AlphaFamily::IStatusLineView::Events::combinationsShown"
+        ]
+      }
+    }
+  ]
+}

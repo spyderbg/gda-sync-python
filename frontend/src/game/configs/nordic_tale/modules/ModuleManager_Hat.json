@@ -1,0 +1,27 @@
+{
+  "include": [
+    "../../alpha_family/modules/AlphaHatModules.json",
+    "NordicTaleModules.json"
+  ],
+  "plugins": [],
+  "modules": [
+    {
+      "override": true,
+      "name": "VideoManager",
+      "config": {
+        "loadingScreensPaths": {
+          "main": "./loading_screen.dds",
+          "info": "./loading_screen.dds",
+          "topper": "./loading_screen.dds"
+        }
+      }
+    },
+    {
+      "override": true,
+      "name": "NordicTaleInfoView",
+      "config": {
+        "rssRtfId": "rtf_common"
+      }
+    }
+  ]
+}

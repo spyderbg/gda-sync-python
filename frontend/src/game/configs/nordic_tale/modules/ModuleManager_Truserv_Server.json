@@ -1,0 +1,24 @@
+{
+  "include": [
+    "../../alpha_family/modules/AlphaTruservServerModules.json"
+  ],
+  "plugins": [],
+  "modules": [
+    {
+      "name": "NordicTaleMath",
+      "space": "Egt::Game::AlphaFamily",
+      "header": "Egt/NordicTaleMath/NordicTaleMath.h",
+      "config": {
+        "setups": [
+          {
+            "id": "v15_8400",
+            "simRtp": 0.8423168805,
+            "minCap": null,
+            "maxCap": 500000,
+            "mathFileId": "MathRulesConfig_8400"
+          }
+        ]
+      }
+    }
+  ]
+}

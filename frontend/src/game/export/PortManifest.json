@@ -4981,772 +4981,772 @@
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Visuals/WinFiguresVisual.cpp": "c7c1f4e995b5279d07feaec7ce3aedf5125ba01de12b6dbac48e5ee0c13a817c"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushFsm/NordicRushFsm.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleFsm/NordicTaleFsm.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushFsm/NordicRushFsm.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushFsm/NordicRushFsm.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleFsm/NordicTaleFsm.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleFsm/NordicTaleFsm.cpp"
   ],
-  "sha256": "443d01df5c51463612adc3e9a26b8835da79aeee2b858ecd6829b9425d674b58",
-  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "sha256": "ea418089b061c8fcf4553dfcb9ff393c6f13e474a5aff21a1d6919d09316a9c4",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushFsm/NordicRushFsm.h": "a85459adfa18dec590439589ba88534d9e29fe97e7456cd3f4c8546153a64cad",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushFsm/NordicRushFsm.cpp": "cbc212d975412f0e6b0ce70cdc6dbd2e259ca10945117fb30262885cdb2c4af2"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleFsm/NordicTaleFsm.h": "1dafa8cba3f98555aa6955d601eb4550ca6f98e58c8cceb32dba205ff11c7fdc",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleFsm/NordicTaleFsm.cpp": "896c65e25970ad436db313c712577e44a4f825d56c809df5c8ba499f1a239575"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushInfoView/BigWinInfoView.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleInfoView/BigWinInfoView.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/BigWinInfoView.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/BigWinInfoView.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleInfoView/BigWinInfoView.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleInfoView/BigWinInfoView.cpp"
   ],
-  "sha256": "56c53db6b3fbc1228bef068716e7d23e6007b0dede0a18f23e2e54a8f90a8f9e",
-  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "sha256": "7d69321a4b0019ce74f18a45c582663082370efa3014ebc01f96981ef8f16a9b",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/BigWinInfoView.h": "33e4584b7c56a4fcc666da1bd02a5bcf6b93f8bc219f651403a1f35c44e8ca77",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/BigWinInfoView.cpp": "5594a7a943f1ab0d9d1701a2a87572d365823c5db4d6d5a9300f2e56092d0570"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleInfoView/BigWinInfoView.h": "33e4584b7c56a4fcc666da1bd02a5bcf6b93f8bc219f651403a1f35c44e8ca77",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleInfoView/BigWinInfoView.cpp": "5594a7a943f1ab0d9d1701a2a87572d365823c5db4d6d5a9300f2e56092d0570"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushInfoView/HoldAndSpinRoundInfoView.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleInfoView/HoldAndSpinRoundInfoView.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/HoldAndSpinRoundInfoView.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/HoldAndSpinRoundInfoView.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleInfoView/HoldAndSpinRoundInfoView.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleInfoView/HoldAndSpinRoundInfoView.cpp"
   ],
-  "sha256": "71bfabaf837c43b1c14cce824d8b5078e7498e385619a21fbbf28faaa7c3609f",
-  "cppCommit": "2882fd0e74f433262f7b8d47046d24083b154984",
+  "sha256": "16206f3609e70dfe0b04f61b65f483f7cbf7f080e842d35cece2d44d0c241fac",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/HoldAndSpinRoundInfoView.h": "ca5cd894239e2a42bb1002f71c2552878d57d6f87fa91d47f6f08923aad33146",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/HoldAndSpinRoundInfoView.cpp": "afc7ef42aa8cce6a23917c3cfb2ac3d93fae3d8f420116fad421f65411911d2f"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleInfoView/HoldAndSpinRoundInfoView.h": "ca5cd894239e2a42bb1002f71c2552878d57d6f87fa91d47f6f08923aad33146",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleInfoView/HoldAndSpinRoundInfoView.cpp": "a2193dd901683e9915d98a9782bda6f220ebb2b6679b8fe6b0d5932da105880a"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushInfoView/InfoView.data.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleInfoView/InfoView.data.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/InfoView.data.h"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleInfoView/InfoView.data.h"
   ],
-  "sha256": "161141aa7676a5ab80ac7089ae723abbc32310e3ebd473c43e69af10f37ee072",
-  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "sha256": "cc1784b076ae7c66dc172b84ecbfd77eb2a0ec69a230bde378d0766c7d300f2e",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/InfoView.data.h": "a10423b91f9c3bccd8584a9c18dd7a414b43a1331610d9fb7b8754e92899ee48"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleInfoView/InfoView.data.h": "a10423b91f9c3bccd8584a9c18dd7a414b43a1331610d9fb7b8754e92899ee48"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushInfoView/InfoView.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleInfoView/InfoView.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/InfoView.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/InfoView.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleInfoView/InfoView.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleInfoView/InfoView.cpp"
   ],
-  "sha256": "03109dbd2acd64d5e5a4560a863f780b5b623fbb84f04b20a48f745b268b80e7",
-  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "sha256": "eed11a60e70b73de67148ac631bad4d54a4d5ba7dca1033465c2e5fd4b5db233",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/InfoView.h": "f45cabb0d20097b220a84e29aa34d65692452b8de62682574dcaa4024fcbc15f",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/InfoView.cpp": "443b8f5fd609f1f7518af3f2eec172e3acef9e5d5e5e042bc836eff598681258"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleInfoView/InfoView.h": "b71bb380eeea184b1d70df01365e3e931059ab102879f62368668998704351cf",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleInfoView/InfoView.cpp": "443b8f5fd609f1f7518af3f2eec172e3acef9e5d5e5e042bc836eff598681258"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushInfoView/NordicRushInfoView.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleInfoView/NordicTaleInfoView.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/NordicRushInfoView.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/NordicRushInfoView.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleInfoView/NordicTaleInfoView.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleInfoView/NordicTaleInfoView.cpp"
   ],
-  "sha256": "062934c88e7fa525f62197e0ef9714887773ffdf28c045b51ddaf794372d7e24",
-  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
+  "sha256": "f8a44c85232d74e62ba4d1cb40e0ba34874b7ddd286e8c93e3ca248fda6bdb14",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/NordicRushInfoView.h": "7cd60b5ce03e2e302d867549a2c69c632f5a297d4ad4ea73b4fd9f46b0f44931",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushInfoView/NordicRushInfoView.cpp": "bbfc3c5f3c7261f01062443f7cbf25b90e8dfa18cb0b00bc9b01d65d026cc039"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleInfoView/NordicTaleInfoView.h": "e364fb5a3dbcb6e059f75e4c3f06581ebd0b05e9492319a9bdf8868267cbb1b6",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleInfoView/NordicTaleInfoView.cpp": "c72127d57a20e5f5f4191afca589afd0de06f080416dddc7c0e5710a09a07933"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushMath/MathRules.data.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleMath/MathRules.data.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushMath/MathRules.data.h"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleMath/MathRules.data.h"
   ],
-  "sha256": "429efa59da276d3d7003e417414eb6497cc08be320b56233e7e1473c0c6e825d",
-  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "sha256": "0e61e6553e74b350ddf94a6b0da65dec71131036635f96c76766fd66796cc0cc",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushMath/MathRules.data.h": "f580c72ba08c896ca90c8da06fc51221ffb1cecfb0587fed775e7179e9910020"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleMath/MathRules.data.h": "f580c72ba08c896ca90c8da06fc51221ffb1cecfb0587fed775e7179e9910020"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushMath/MathRules.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleMath/MathRules.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushMath/MathRules.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushMath/MathRules.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleMath/MathRules.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleMath/MathRules.cpp"
   ],
-  "sha256": "263321c3183b01d6a315b06969743ce201541edafc467faeafdb7412cc782b88",
-  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
+  "sha256": "cbbee1f5a84214ddd3321f51b49185a6493d7fe364add9377feb9602a6d08cc7",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushMath/MathRules.h": "39ff34dfefa2454a78eddaed08acffe751efae5e380b6c7eea3e4cdbc4b8b47f",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushMath/MathRules.cpp": "4491fff2d1822e7eca96b1ebc3ed79cdfdd86b32cbc7a44886dee37942f64fdd"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleMath/MathRules.h": "f818454cd44b0f94e75201cff91d6811600bb0ec8ecbb677cda3d65671c4436d",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleMath/MathRules.cpp": "cae99996cc7ae491ae4e91069cbafd4087ba29d44f0a300233f6941bb6fb5569"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushMath/MathTypes.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleMath/MathTypes.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushMath/MathTypes.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushMath/MathTypes.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleMath/MathTypes.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleMath/MathTypes.cpp"
   ],
-  "sha256": "11b8ae3d3fd83b0f4554fbb62d6a2c1fdb8512f4d819a95521bf1247c93b88c6",
-  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
+  "sha256": "e0ffe5756694105266ee941cb553be790f249093fcf9b9134cd4b56a2ee3fa7a",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushMath/MathTypes.h": "3d9179c8921700e8803bae86a663b4fbbab6294e0648796643f23151f0fa4f0a",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushMath/MathTypes.cpp": "3ac13f145a0bc01a283240f34f8ceaa2b0f8feed5533b6996525993cf640b0db"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleMath/MathTypes.h": "9c347e5ac5dd6a1b9250dece36c31233c6e38050f648c2aa47012717ad5fdea5",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleMath/MathTypes.cpp": "2715e148caa3d5a731f645622c623d6ae5682bd18f9fbc7f30804476515d66ba"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushMath/NordicRushMath.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleMath/NordicTaleMath.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushMath/NordicRushMath.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushMath/NordicRushMath.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleMath/NordicTaleMath.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleMath/NordicTaleMath.cpp"
   ],
-  "sha256": "746e34eb60b653a49d117aa3b008a2e78c0b14ba2aab43814d3fb35fc3a45252",
-  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
+  "sha256": "bd95aaf6ce8b91d5a3d009c7e89a8d0d323622daa180883f7457541d2ac589e8",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushMath/NordicRushMath.h": "aa5cd74cf6ba2695087186d1bf1fca16233d695a8eea1b87fe96e9c04b62acd3",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushMath/NordicRushMath.cpp": "ef54d0475d448b67b3ac434037d8f263671e4b40777266df28c5f8ef6b6647c6"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleMath/NordicTaleMath.h": "e45c1712ac195932f66ab38263260b045672094387455f2be7b3225a190428ec",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleMath/NordicTaleMath.cpp": "a1d5323fd8ce55f035494e673c841bebd156e18aa6b4375f112216798a9789a3"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushMath/SimulatorConfig/NordicRushMath.data.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleMath/SimulatorConfig/NordicTaleMath.data.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushMath/SimulatorConfig/NordicRushMath.data.h"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleMath/SimulatorConfig/NordicTaleMath.data.h"
   ],
-  "sha256": "fd728b20bd190665d19cb35cb0be8833b803357d484d911ca8e83a3484c43f8c",
-  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "sha256": "4b34533b056a65c5891c1a15b77ef0a98dfd317958a4ad4bcd47317397d4956b",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushMath/SimulatorConfig/NordicRushMath.data.h": "7e24db6ccfad2182309d29abfe65cfdeee402ba088e860488a0cabef90b661f4"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleMath/SimulatorConfig/NordicTaleMath.data.h": "0a31358492602006476d9da91040cbbf3ebf7d1ddd304da04925d72b0ffc6de6"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushTopperView/NordicRushTopperView.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleTopperView/NordicTaleTopperView.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushTopperView/NordicRushTopperView.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushTopperView/NordicRushTopperView.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleTopperView/NordicTaleTopperView.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleTopperView/NordicTaleTopperView.cpp"
   ],
-  "sha256": "b1b19812ac55f43daf91246ece87061757c46a0506c63f6f44bff3519dfb1d63",
-  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
+  "sha256": "d04acc15aef61ce615c92d103f9c9ab352525393884296ec47a4bdda09882eb2",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushTopperView/NordicRushTopperView.h": "9b5c712c3750b0ac51a9b13a820230a859912fc658564bc5d35d2751a64fd59a",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushTopperView/NordicRushTopperView.cpp": "9c2a3aee0e9beee0ea81437252dede0670db23a6caa4affc517d066471465a4a"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleTopperView/NordicTaleTopperView.h": "958f88288bfd2634e2b444730587b5d749f9240f17bd522060b029b5b474a50f",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleTopperView/NordicTaleTopperView.cpp": "bddaa37749c1b18c38dc3ff292de13a88d1d36fd04bd292bef73b034dc2ff37d"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushTopperView/TopperView.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleTopperView/TopperView.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushTopperView/TopperView.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushTopperView/TopperView.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleTopperView/TopperView.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleTopperView/TopperView.cpp"
   ],
-  "sha256": "2cf6179935c2cfd1284224e3361131fb651cbf5c9a1c2f61e82e472052819635",
-  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "sha256": "b1355211d53504206607d689beb546412b1b372216cac4a1c28b6d2f789a22c9",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushTopperView/TopperView.h": "0fa9d04a7fa507289b7b8fc1382ff56e7b69b2ce2ba88b5a7a86f96180bfad99",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushTopperView/TopperView.cpp": "43c08d0a4b78f1865a1a4b59c5c241862cc9fbb2ed8b9e24956c48f247f106d2"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleTopperView/TopperView.h": "1a48ef32b2f6ec399170e4f345bfe13c36fa77cde5c80ef03b361356f9e6d029",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleTopperView/TopperView.cpp": "43c08d0a4b78f1865a1a4b59c5c241862cc9fbb2ed8b9e24956c48f247f106d2"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/NordicRushView.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/NordicTaleView.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/NordicRushView.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/NordicRushView.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/NordicTaleView.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/NordicTaleView.cpp"
   ],
-  "sha256": "e552dd1d15189e54ab6122f8a65b2131493bb87895bf284ea4321ba34ada3cb7",
-  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
+  "sha256": "4c2e94ff7b9b6ed8f69e50e72df9231995ad2e1c25087d99fb2628e724b504a8",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/NordicRushView.h": "fa37817a469f1d06e68ca33c7c4eb3dbd6320bbf6af0c605f8e8ef1b4c9dfccc",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/NordicRushView.cpp": "2591811a5a5edfde7992bedb150a18eefdec71a4960453fe5b7a1709ec1ab4e3"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/NordicTaleView.h": "f86c366dd7316facc405063f964f8ef6b8a34b74767b9783845c5006ee0286bd",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/NordicTaleView.cpp": "44a3876a8cf07824918d7441dac2ca410801aad16e86653b53283c45e8dea6a5"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/SwButtons/BetDownSwButtonView.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/SwButtons/BetDownSwButtonView.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/BetDownSwButtonView.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/BetDownSwButtonView.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/BetDownSwButtonView.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/BetDownSwButtonView.cpp"
   ],
-  "sha256": "fa11eb4106b794ea38252cbcb0cd87f0dabf21e03252ec27e51a1b8e282cb7ba",
-  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "sha256": "9a8ee0c6b38e20b42c0322518927e361faa90f87009f01dff4c5d92513f0dc5e",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/BetDownSwButtonView.h": "c6de9941a6db1d9f99f9d947c774a46612b632b425331dc90a61cd098014a075",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/BetDownSwButtonView.cpp": "fa08db26195ff85084e98170d492ae0124b15cb1a4884010a93e2f6fad18315b"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/BetDownSwButtonView.h": "c6de9941a6db1d9f99f9d947c774a46612b632b425331dc90a61cd098014a075",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/BetDownSwButtonView.cpp": "fa08db26195ff85084e98170d492ae0124b15cb1a4884010a93e2f6fad18315b"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/SwButtons/BetUpSwButtonView.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/SwButtons/BetUpSwButtonView.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/BetUpSwButtonView.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/BetUpSwButtonView.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/BetUpSwButtonView.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/BetUpSwButtonView.cpp"
   ],
-  "sha256": "3f5a0a6985d8a56314cc94c7a8fe18ed1120c4bd6f6d97529e367f7650657f65",
-  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "sha256": "91f1fc5893c7a106b2661cbd09a85e53241c6036986e87eed2c99c8fe6496522",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/BetUpSwButtonView.h": "f168f2c83d003f8ef2f170f9b1d8492fbebf0eb43175b727e1a122d5c081f6a3",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/BetUpSwButtonView.cpp": "d5c9b67a031ddd2f62103f944d97d978d3dd789872e2b3c2f4cafa025e9376d2"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/BetUpSwButtonView.h": "f168f2c83d003f8ef2f170f9b1d8492fbebf0eb43175b727e1a122d5c081f6a3",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/BetUpSwButtonView.cpp": "d5c9b67a031ddd2f62103f944d97d978d3dd789872e2b3c2f4cafa025e9376d2"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/SwButtons/ExitGameSwButtonView.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/SwButtons/ExitGameSwButtonView.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/ExitGameSwButtonView.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/ExitGameSwButtonView.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/ExitGameSwButtonView.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/ExitGameSwButtonView.cpp"
   ],
-  "sha256": "640d5bf1195855d57dd9f58a4ee1bf09d22338693e136cfa73f279a0c4d865d3",
-  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "sha256": "cd9bc775ad6eec8be4ebf8ed6e8cdeae3caf01fabd00bfd4557a6435e70e5d9a",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/ExitGameSwButtonView.h": "2e17506a7ffb063cd79c40b411662b7360ca6db9d327b51c153f770742e5f030",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/ExitGameSwButtonView.cpp": "bbea18ed857bb4ab209209d447925736b5955f3010bf38127d4aec5b6fcd53d5"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/ExitGameSwButtonView.h": "2e17506a7ffb063cd79c40b411662b7360ca6db9d327b51c153f770742e5f030",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/ExitGameSwButtonView.cpp": "bbea18ed857bb4ab209209d447925736b5955f3010bf38127d4aec5b6fcd53d5"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/SwButtons/InfoSwButtonView.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/SwButtons/InfoSwButtonView.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/InfoSwButtonView.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/InfoSwButtonView.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/InfoSwButtonView.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/InfoSwButtonView.cpp"
   ],
-  "sha256": "e18445d8d18073c6bf905e9d35a5295091c453127afec6b13ce813363230517d",
-  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "sha256": "105ef819ab56cc121f58c3b83719487ae63bf90e5671dcd1e5255af6584fbeeb",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/InfoSwButtonView.h": "1e2a2dc990756091df53f2b94c8be04f51c11928f911753af87dbb82d4815e64",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/InfoSwButtonView.cpp": "69055e58493c0bb76ea0da774c2923d4bc2a32d820f0f23f40daa56e7168e7ad"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/InfoSwButtonView.h": "1e2a2dc990756091df53f2b94c8be04f51c11928f911753af87dbb82d4815e64",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/InfoSwButtonView.cpp": "69055e58493c0bb76ea0da774c2923d4bc2a32d820f0f23f40daa56e7168e7ad"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/SwButtons/LanguageSwButtonView.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/SwButtons/LanguageSwButtonView.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/LanguageSwButtonView.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/LanguageSwButtonView.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/LanguageSwButtonView.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/LanguageSwButtonView.cpp"
   ],
-  "sha256": "9a42d844df4f2ad2804fcf06bff2d6fba5d80237509e3e5315b38a7fe815da67",
-  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
+  "sha256": "3a9411dad8dd79605b66799a0ae10bae0f26605d3d8f0f64f5fdde8315a87495",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/LanguageSwButtonView.h": "c19c5ac3285aaad9ef6d9d6b68a3fabe6fbe999976407b5a9ac16f88db53570a",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/LanguageSwButtonView.cpp": "32ab0ac65f5808e65b8090313b0922f4fd261c9631c9ded7e32cd3f9044b9851"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/LanguageSwButtonView.h": "c19c5ac3285aaad9ef6d9d6b68a3fabe6fbe999976407b5a9ac16f88db53570a",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/LanguageSwButtonView.cpp": "32ab0ac65f5808e65b8090313b0922f4fd261c9631c9ded7e32cd3f9044b9851"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/SwButtons/LineDownSwButtonView.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/SwButtons/LineDownSwButtonView.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/LineDownSwButtonView.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/LineDownSwButtonView.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/LineDownSwButtonView.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/LineDownSwButtonView.cpp"
   ],
-  "sha256": "b17dd45de9dd2a87db56f7722df21e86abba0e0f7104b9e962c7c1779463b825",
-  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "sha256": "46c6ae862f4894000d1af7fef674df0e8b26a4eca1628b0f1d9c304014536b8c",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/LineDownSwButtonView.h": "ed36c2dc248887532c0ee6a1dc30f5796152b8d8a66426bb6016757ffbc77c2e",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/LineDownSwButtonView.cpp": "fbd3bd28c127e42ad8a0dd283d96bf192a6de7e00077804a92d8608fb91805d2"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/LineDownSwButtonView.h": "ed36c2dc248887532c0ee6a1dc30f5796152b8d8a66426bb6016757ffbc77c2e",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/LineDownSwButtonView.cpp": "fbd3bd28c127e42ad8a0dd283d96bf192a6de7e00077804a92d8608fb91805d2"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/SwButtons/LineUpSwButtonView.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/SwButtons/LineUpSwButtonView.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/LineUpSwButtonView.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/LineUpSwButtonView.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/LineUpSwButtonView.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/LineUpSwButtonView.cpp"
   ],
-  "sha256": "5771b87abff44e1b6f77f6c5213fb97cf529ee45809fcd5440c3736071abee64",
-  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "sha256": "9872b7bb4feef71049b4008081790431c842ea30821e38f10be06db93bcef318",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/LineUpSwButtonView.h": "c9c6bf945c0668da53fc580255679d34d5326e111681482b316ebf9f398aafda",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/LineUpSwButtonView.cpp": "1baf5fda12427eda42bbf4c806a816e566c7cf8fe7897d6b08d01293991346fa"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/LineUpSwButtonView.h": "c9c6bf945c0668da53fc580255679d34d5326e111681482b316ebf9f398aafda",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/LineUpSwButtonView.cpp": "1baf5fda12427eda42bbf4c806a816e566c7cf8fe7897d6b08d01293991346fa"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/SwButtons/ResponsibleSwButtonView.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/SwButtons/ResponsibleSwButtonView.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/ResponsibleSwButtonView.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/ResponsibleSwButtonView.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/ResponsibleSwButtonView.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/ResponsibleSwButtonView.cpp"
   ],
-  "sha256": "281618ec66c26a662bce3ecf994df2ca94adb2533b899c06b4f66d6e1d49513b",
-  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "sha256": "73478aac518643075ea5b4f879febde47b231893f2039557188c02f619243b27",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/ResponsibleSwButtonView.h": "819fea3716e98c70c109d3413131c1f5e9d7dca802a826d09b1b022001bd45b9",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/ResponsibleSwButtonView.cpp": "1bdf165e032576de177b182f8b34041341a2d87e63e45ff572c29baa8043d861"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/ResponsibleSwButtonView.h": "819fea3716e98c70c109d3413131c1f5e9d7dca802a826d09b1b022001bd45b9",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/ResponsibleSwButtonView.cpp": "1bdf165e032576de177b182f8b34041341a2d87e63e45ff572c29baa8043d861"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/SwButtons/SoundVolumeSwButtonView.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/SwButtons/SoundVolumeSwButtonView.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/SoundVolumeSwButtonView.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/SoundVolumeSwButtonView.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/SoundVolumeSwButtonView.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/SoundVolumeSwButtonView.cpp"
   ],
-  "sha256": "a85cb0b1b1ab9815c832556ed844c5ab95b82686b06dfaa04fee102a64c8181d",
-  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
+  "sha256": "f288de6201e2285b9979391c8ddf8566cdd8187cc97a5cc88eb6b56b0a890633",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/SoundVolumeSwButtonView.h": "3caf05f98acb6fedb7321afd7bd3e5730c615590af11a702cdf1ceba5a6e645f",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/SoundVolumeSwButtonView.cpp": "60736d8f3486218b032ed461f613c8c9362066f910304246c34ce44ddfbb9239"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/SoundVolumeSwButtonView.h": "3caf05f98acb6fedb7321afd7bd3e5730c615590af11a702cdf1ceba5a6e645f",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/SoundVolumeSwButtonView.cpp": "60736d8f3486218b032ed461f613c8c9362066f910304246c34ce44ddfbb9239"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/SwButtons/StopSingleReelSwButtonView.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/SwButtons/StopSingleReelSwButtonView.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/StopSingleReelSwButtonView.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/StopSingleReelSwButtonView.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/StopSingleReelSwButtonView.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/StopSingleReelSwButtonView.cpp"
   ],
-  "sha256": "04d38488296a43eee49fa4c276787fc317f2d4ca77c31f3bc4ae4e5587613a4c",
-  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "sha256": "4fbc81f634e070e0f3887ca9394d1649f6ca926492378a60146744f907bca541",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/StopSingleReelSwButtonView.h": "05ccc121ad03f4698da15b9f26363571b0a8e7282ed3834a32f7a548ac7b2763",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/StopSingleReelSwButtonView.cpp": "15f64543e87f42db9617eb745bba196bbdc55033aec3fd1cf1f2150959d85b55"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/StopSingleReelSwButtonView.h": "05ccc121ad03f4698da15b9f26363571b0a8e7282ed3834a32f7a548ac7b2763",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/StopSingleReelSwButtonView.cpp": "15f64543e87f42db9617eb745bba196bbdc55033aec3fd1cf1f2150959d85b55"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/SwButtons/TakeCoinsSwButtonView.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/SwButtons/TakeCoinsSwButtonView.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/TakeCoinsSwButtonView.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/TakeCoinsSwButtonView.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/TakeCoinsSwButtonView.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/TakeCoinsSwButtonView.cpp"
   ],
-  "sha256": "8908edc2ba25712ac0140fc28dd82cc9a692224b6adc29be0c58b04395111585",
-  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "sha256": "b4f1d6b31dcaed22e9540b9abe43e798542941f5a64ecc94da45ad96400a3e9f",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/TakeCoinsSwButtonView.h": "0dd64a6aa6a53463dca325983beabe71dc42990dc0c3c5b6a38ae54861759457",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/TakeCoinsSwButtonView.cpp": "a2bdf1179df7fb8dd0a95bca8a4e79e0a536953125924d1c2ff45ceca5caa332"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/TakeCoinsSwButtonView.h": "0dd64a6aa6a53463dca325983beabe71dc42990dc0c3c5b6a38ae54861759457",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/TakeCoinsSwButtonView.cpp": "a2bdf1179df7fb8dd0a95bca8a4e79e0a536953125924d1c2ff45ceca5caa332"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/SwButtons/WheelCancelSwButtonView.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/SwButtons/WheelCancelSwButtonView.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/WheelCancelSwButtonView.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/WheelCancelSwButtonView.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/WheelCancelSwButtonView.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/WheelCancelSwButtonView.cpp"
   ],
-  "sha256": "a7f5fe25b763849de54a7ac16000635e95f39dde8b63eec58f4df89f97196a88",
-  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "sha256": "ba441ea24f82de044220b8f750bc82304729a4b9e6314723958a39a7566b75e7",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/WheelCancelSwButtonView.h": "c9c1758f13bfd98ea71d0083945dbbfd0d11dc84b940eaa158b2be927f3f3180",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/WheelCancelSwButtonView.cpp": "ef810a8bf7b585a5bb74f4e844fb8a5bdfe9e35c6332f5fc8900a1f605489de0"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/WheelCancelSwButtonView.h": "c9c1758f13bfd98ea71d0083945dbbfd0d11dc84b940eaa158b2be927f3f3180",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/WheelCancelSwButtonView.cpp": "ef810a8bf7b585a5bb74f4e844fb8a5bdfe9e35c6332f5fc8900a1f605489de0"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/SwButtons/WheelStartSwButtonView.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/SwButtons/WheelStartSwButtonView.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/WheelStartSwButtonView.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/WheelStartSwButtonView.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/WheelStartSwButtonView.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/WheelStartSwButtonView.cpp"
   ],
-  "sha256": "f40d1c92ab52c86caa96a081f83ca9675277e0d4d033a3c28c9d9686bad0d1ad",
-  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "sha256": "ff1f22128e654808e57e2ff5f4393f5c90ebcae2783f523f0a42a95675880a04",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/WheelStartSwButtonView.h": "71476a72932d72849aa5b5fe966741125d84370fc8499fa8d1b54f8bbecff579",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/SwButtons/WheelStartSwButtonView.cpp": "bef2dceb81b8ce24b4ca981bf1dffb0600486d66c0b075dee68552dde89a8565"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/WheelStartSwButtonView.h": "71476a72932d72849aa5b5fe966741125d84370fc8499fa8d1b54f8bbecff579",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/SwButtons/WheelStartSwButtonView.cpp": "bef2dceb81b8ce24b4ca981bf1dffb0600486d66c0b075dee68552dde89a8565"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/Views/AutoPlayView.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/Views/AutoPlayView.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/AutoPlayView.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/AutoPlayView.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/AutoPlayView.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/AutoPlayView.cpp"
   ],
-  "sha256": "c1088786190f2ddea1e752649af1536f95fe3df21b4f25ecb111e0e25fdf050d",
-  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "sha256": "60f43f697c7ff408a56b4945df33b2a426540681bf31ad7df5ace313088d646d",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/AutoPlayView.h": "068149360635f708b521445b1db188ff1bf08e8588bad218f5179a1e7229ae9d",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/AutoPlayView.cpp": "118dc1430c4a04e4946e79c3d35ef7fa69b64e83e620f12e19c22be2f5ec3643"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/AutoPlayView.h": "068149360635f708b521445b1db188ff1bf08e8588bad218f5179a1e7229ae9d",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/AutoPlayView.cpp": "118dc1430c4a04e4946e79c3d35ef7fa69b64e83e620f12e19c22be2f5ec3643"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/Views/BaseReelsView.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/Views/BaseReelsView.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/BaseReelsView.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/BaseReelsView.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/BaseReelsView.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/BaseReelsView.cpp"
   ],
-  "sha256": "1bbbe72464d4992b9900f7e4ece53a16af1b2662f3f4c969c6a96d1f02bf7237",
-  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "sha256": "657c837aabdeca0c5fa567a7a7adb42da428e20ff5bf828bb6911360f7f7305c",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/BaseReelsView.h": "48cfe209da3150b78ad081849e7548f464fc80245b4dcf0cd0c68c3a282d7018",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/BaseReelsView.cpp": "cca3fc2cca8fa8169b63f9bac6e15e97445a971d71c8e77c1b1cb058071a7a6a"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/BaseReelsView.h": "7215e2b8546e7500cd28415bf962f5798fcd357ecf6fb3cfc9dc9d6ae0a476ea",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/BaseReelsView.cpp": "cca3fc2cca8fa8169b63f9bac6e15e97445a971d71c8e77c1b1cb058071a7a6a"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/Views/BetBarView.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/Views/BetBarView.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/BetBarView.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/BetBarView.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/BetBarView.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/BetBarView.cpp"
   ],
-  "sha256": "2bcc92eb7f2511ee532e426128d640926e069f9505b7a690d720e828200a4d37",
-  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "sha256": "2ae076be6c039d97a93b56fbb44e7eddfe532779e4cae8a03658b4f73e1c68a6",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/BetBarView.h": "f9760616c225d6ec8e83b92645c944e5ac1c23e999e744b49981b8bcbc469389",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/BetBarView.cpp": "8ac9c8a0d4d8d125aba970bc8c7edc2af79515a0fc1f10f720b2afe50a3c3d82"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/BetBarView.h": "f9760616c225d6ec8e83b92645c944e5ac1c23e999e744b49981b8bcbc469389",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/BetBarView.cpp": "8ac9c8a0d4d8d125aba970bc8c7edc2af79515a0fc1f10f720b2afe50a3c3d82"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/Views/BetMenuView.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/Views/BetMenuView.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/BetMenuView.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/BetMenuView.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/BetMenuView.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/BetMenuView.cpp"
   ],
-  "sha256": "a7cf2b4d86c208af346d58262a9db1980bbd64055bede6a138636f497adc2c18",
-  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "sha256": "c2c37ae1096a2cd143621acf4b6ffcfd08f829530f858df5f7766722f07231a5",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/BetMenuView.h": "2a8c2f24bb2765df41425662286bcfc41b0687e9fb95e6d7063b0e1359f419dd",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/BetMenuView.cpp": "e3ff512efee1e6dd3e2e7c6ca1c39edcf5cfd07e8a87bbcc739b99c471a0961a"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/BetMenuView.h": "2a8c2f24bb2765df41425662286bcfc41b0687e9fb95e6d7063b0e1359f419dd",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/BetMenuView.cpp": "e3ff512efee1e6dd3e2e7c6ca1c39edcf5cfd07e8a87bbcc739b99c471a0961a"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/Views/BigWinView.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/Views/BigWinView.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/BigWinView.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/BigWinView.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/BigWinView.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/BigWinView.cpp"
   ],
-  "sha256": "99bb17671ed8069ef15679b8944a72e509a0a389844da7f56964dade7e8cd7cf",
-  "cppCommit": "2882fd0e74f433262f7b8d47046d24083b154984",
+  "sha256": "b7ee0c9967fc3ab179674193e6162928db8c33b1d930588edff3b55673caeec4",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/BigWinView.h": "909c3bb72ed23ea5af2ff373ceb660e6f0dd68781d9d8fff819567762b90144f",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/BigWinView.cpp": "a75e1cda0524527f0bc340b568c26bbe35cff21ed4568be59a872c0a0620c2e6"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/BigWinView.h": "909c3bb72ed23ea5af2ff373ceb660e6f0dd68781d9d8fff819567762b90144f",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/BigWinView.cpp": "a75e1cda0524527f0bc340b568c26bbe35cff21ed4568be59a872c0a0620c2e6"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/Views/CoinsBarView.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/Views/CoinsBarView.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/CoinsBarView.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/CoinsBarView.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/CoinsBarView.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/CoinsBarView.cpp"
   ],
-  "sha256": "36b54bf2a0a0c577f4d0b312c27668d2e3eee6290eb1b0e150efc092396ec83a",
-  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "sha256": "cca6bfd435cf6ff4711ec142fc39175602ba4d6b0c088e9d2fbabb3faea2310e",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/CoinsBarView.h": "32cd19ff28f3d4d8ed6037e5d2d5bb637232fd1d8cbbee69ba7991bdbdd0fa1b",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/CoinsBarView.cpp": "c4596dea5a9e35599f9d39de149598f30bda52d1f503c912f2809838715b2120"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/CoinsBarView.h": "32cd19ff28f3d4d8ed6037e5d2d5bb637232fd1d8cbbee69ba7991bdbdd0fa1b",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/CoinsBarView.cpp": "c4596dea5a9e35599f9d39de149598f30bda52d1f503c912f2809838715b2120"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/Views/CoinsRoundOverlayView.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/Views/CoinsRoundOverlayView.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/CoinsRoundOverlayView.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/CoinsRoundOverlayView.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/CoinsRoundOverlayView.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/CoinsRoundOverlayView.cpp"
   ],
-  "sha256": "8d7d5d3e29509658f942c1f6e7bcdc845859ae1c8d3d0f282b6842124fc972cb",
-  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "sha256": "088e354e4a13ad6ed2c93521a55c3a1cf1043089c586d738f4dd3877f2080319",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/CoinsRoundOverlayView.h": "5080e0d0d3949424c94760586148f17ab0238deab4d7aaed35e324a88866de4d",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/CoinsRoundOverlayView.cpp": "fbf94d74dab1bf49ba2bfb63aac692f98793288d2b14e389349faad3eb9d0fa7"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/CoinsRoundOverlayView.h": "5080e0d0d3949424c94760586148f17ab0238deab4d7aaed35e324a88866de4d",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/CoinsRoundOverlayView.cpp": "fbf94d74dab1bf49ba2bfb63aac692f98793288d2b14e389349faad3eb9d0fa7"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/Views/CreditBarView.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/Views/CreditBarView.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/CreditBarView.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/CreditBarView.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/CreditBarView.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/CreditBarView.cpp"
   ],
-  "sha256": "ee028db2883b86fd37481deea196d31784c726b9d8cb0af51fe5c62059ee4cce",
-  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "sha256": "1e5bcb3ce61ff783fb256462f47a620da8fc2f828aeb1eb02da40985749b01af",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/CreditBarView.h": "b939aff8314d5f762605653e32365aedf051903e72a309a14985620bd1e83fe0",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/CreditBarView.cpp": "3a46b6878376625494f493f40b99261a4aefef89df9d9d751d9d5f34c53156ae"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/CreditBarView.h": "b939aff8314d5f762605653e32365aedf051903e72a309a14985620bd1e83fe0",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/CreditBarView.cpp": "3a46b6878376625494f493f40b99261a4aefef89df9d9d751d9d5f34c53156ae"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/Views/CreditsWinBarView.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/Views/CreditsWinBarView.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/CreditsWinBarView.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/CreditsWinBarView.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/CreditsWinBarView.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/CreditsWinBarView.cpp"
   ],
-  "sha256": "5a6547566f33203dc8b1d209fc4860d8926888a6250ab8a9e04a6b72f03859a9",
-  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "sha256": "477f5c15f86b7e0df768d906aef73da760ee30a445d10243abf791635d6ee694",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/CreditsWinBarView.h": "fc5a6b4fc4e0be157932416ec61200a0e209a5a2ba42fa11dc6330269ec6217b",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/CreditsWinBarView.cpp": "0123a4c7fab54132d67a0764683dbfbbd74e250851e2445d929dad22d6accafd"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/CreditsWinBarView.h": "fc5a6b4fc4e0be157932416ec61200a0e209a5a2ba42fa11dc6330269ec6217b",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/CreditsWinBarView.cpp": "0123a4c7fab54132d67a0764683dbfbbd74e250851e2445d929dad22d6accafd"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/Views/FreeRoundOverlayView.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/Views/FreeRoundOverlayView.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/FreeRoundOverlayView.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/FreeRoundOverlayView.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/FreeRoundOverlayView.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/FreeRoundOverlayView.cpp"
   ],
-  "sha256": "e50bdebd71ed9973e3b55189b42abfdffa840c0991aa106eb6ebe2c096354720",
-  "cppCommit": "2882fd0e74f433262f7b8d47046d24083b154984",
+  "sha256": "0a7df111a1aca6780c1587f15a9281654bc732e55613084544c5ef99ef5afe80",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/FreeRoundOverlayView.h": "cf697fe16d03de5785b76b1056b58bc42b20d7665499e04491b74c6d1b0ccec7",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/FreeRoundOverlayView.cpp": "bca5d49864200772dc911a5d325ae503b89732986a242a4beaaf68b470e4c58d"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/FreeRoundOverlayView.h": "cf697fe16d03de5785b76b1056b58bc42b20d7665499e04491b74c6d1b0ccec7",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/FreeRoundOverlayView.cpp": "bca5d49864200772dc911a5d325ae503b89732986a242a4beaaf68b470e4c58d"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/Views/FreeRoundRetriggerView.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/Views/FreeRoundRetriggerView.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/FreeRoundRetriggerView.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/FreeRoundRetriggerView.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/FreeRoundRetriggerView.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/FreeRoundRetriggerView.cpp"
   ],
-  "sha256": "f59aac88bdfe0342030975c73608f0af0b1944bc941c5d341f92d9742f231ebe",
-  "cppCommit": "2882fd0e74f433262f7b8d47046d24083b154984",
+  "sha256": "a93022fd02748a309cc88b7d494cd862f6d3a27de93d5c21d51643407004ee5d",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/FreeRoundRetriggerView.h": "a8a793b97cb723095d085f4b240c1b26348bf8123cd427efff79efd59af88ab4",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/FreeRoundRetriggerView.cpp": "c85f1a2317e268814d6ef715ce89462c640897b0fbcc6debf5f7c57933fe1924"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/FreeRoundRetriggerView.h": "a8a793b97cb723095d085f4b240c1b26348bf8123cd427efff79efd59af88ab4",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/FreeRoundRetriggerView.cpp": "c85f1a2317e268814d6ef715ce89462c640897b0fbcc6debf5f7c57933fe1924"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/Views/FreeSpinBarView.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/Views/FreeSpinBarView.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/FreeSpinBarView.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/FreeSpinBarView.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/FreeSpinBarView.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/FreeSpinBarView.cpp"
   ],
-  "sha256": "cb5d05105d07b762f8fd74df2537ae7413feff6003d590584dd6c4cba07cba3b",
-  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "sha256": "89118ab8e4e0b43f9cc481eaf0b47a597a8b73c38a088d9becf474171c7891da",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/FreeSpinBarView.h": "7c2333a2de18f435b709b24d5f5e1650d6ef0f8340de7bc7b16b7080f4fd8d28",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/FreeSpinBarView.cpp": "afbcca726dea4a4a504095d2f8f2a471992cabb7e0eb561d139f5c7d4a66f030"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/FreeSpinBarView.h": "7c2333a2de18f435b709b24d5f5e1650d6ef0f8340de7bc7b16b7080f4fd8d28",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/FreeSpinBarView.cpp": "afbcca726dea4a4a504095d2f8f2a471992cabb7e0eb561d139f5c7d4a66f030"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/Views/GameBackgroundView.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/Views/GameBackgroundView.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/GameBackgroundView.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/GameBackgroundView.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/GameBackgroundView.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/GameBackgroundView.cpp"
   ],
-  "sha256": "ccff1b3fb0a648983d54b53e2a4da5e26b6bd11de64478eafbf68d9175ccfdd3",
-  "cppCommit": "eb1fd4f35f38500dadc7293d356050918b0b7af4",
+  "sha256": "4e0fd0893f6ee4fa6db60ffb98072aa5c74ac875c10021ce22a5dc6f79d89fa1",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/GameBackgroundView.h": "1a936e1d3f2aee040d485db3575520fb5702342cbd736e89a334e32338d1c607",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/GameBackgroundView.cpp": "1aad5bf79ff13a1c0c7eae117983ee68f415eae8521e56a7d7a0097cc0747120"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/GameBackgroundView.h": "1a936e1d3f2aee040d485db3575520fb5702342cbd736e89a334e32338d1c607",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/GameBackgroundView.cpp": "1aad5bf79ff13a1c0c7eae117983ee68f415eae8521e56a7d7a0097cc0747120"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/Views/HoldAndSpinBarView.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/Views/HoldAndSpinBarView.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/HoldAndSpinBarView.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/HoldAndSpinBarView.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/HoldAndSpinBarView.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/HoldAndSpinBarView.cpp"
   ],
-  "sha256": "42b0c4198a661e17ec103777b94e0801e4ce08bed6c35a96850a78a0bc8703f8",
-  "cppCommit": "2882fd0e74f433262f7b8d47046d24083b154984",
+  "sha256": "b726017d1fdc3d5fef5bde467344c9baf77811ce6cbcfca7021e65dc8abe3d62",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/HoldAndSpinBarView.h": "cf113ef974041f3edb7ba04874481d4b68146edc4a00b53b666963e03f9a7957",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/HoldAndSpinBarView.cpp": "aa64caeaf0e54d68461753303a0cb137c07e2906fad08a62fafafd51b9b7b7e2"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/HoldAndSpinBarView.h": "cf113ef974041f3edb7ba04874481d4b68146edc4a00b53b666963e03f9a7957",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/HoldAndSpinBarView.cpp": "aa64caeaf0e54d68461753303a0cb137c07e2906fad08a62fafafd51b9b7b7e2"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/Views/HoldAndSpinRoundOverlayView.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/Views/HoldAndSpinRoundOverlayView.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/HoldAndSpinRoundOverlayView.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/HoldAndSpinRoundOverlayView.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/HoldAndSpinRoundOverlayView.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/HoldAndSpinRoundOverlayView.cpp"
   ],
-  "sha256": "cac1fa9320756269f12a1e91ab70eb6add0b874191034f533512e8df5d20e267",
-  "cppCommit": "2882fd0e74f433262f7b8d47046d24083b154984",
+  "sha256": "0c7b1358f0dff0543cdfaa81cd97cd39f3654c4eedd7cbd5f4e9a9df0f0171a8",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/HoldAndSpinRoundOverlayView.h": "4aae2a4c8e75e64c397265fe415c25847b5ebeaa52846ad1a13b774a4cc0b804",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/HoldAndSpinRoundOverlayView.cpp": "bae43dfdd5013a0ab1c28f269f7f5697dc913c26e7dfef2417616471603c0122"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/HoldAndSpinRoundOverlayView.h": "4aae2a4c8e75e64c397265fe415c25847b5ebeaa52846ad1a13b774a4cc0b804",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/HoldAndSpinRoundOverlayView.cpp": "bae43dfdd5013a0ab1c28f269f7f5697dc913c26e7dfef2417616471603c0122"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/Views/KnobsView.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/Views/KnobsView.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/KnobsView.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/KnobsView.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/KnobsView.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/KnobsView.cpp"
   ],
-  "sha256": "acb2c900409b53015fdc8406d5772dcc0b8414c4a555c99438817ff9d8a70f7f",
-  "cppCommit": "eb1fd4f35f38500dadc7293d356050918b0b7af4",
+  "sha256": "73277640ffa42b3b9f01ba2ea3b529f5985cc8dfe2b30210bac6e8fe087eccc2",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/KnobsView.h": "f0ae7ee9d5e1f70eb91e7862b1ca8376c8809964090de30e698466b7b20e19f0",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/KnobsView.cpp": "1dbb2cb3087bf3080aa48d4929a6d8ee122cd5ad2d652f6caa6be85695d04417"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/KnobsView.h": "f0ae7ee9d5e1f70eb91e7862b1ca8376c8809964090de30e698466b7b20e19f0",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/KnobsView.cpp": "1dbb2cb3087bf3080aa48d4929a6d8ee122cd5ad2d652f6caa6be85695d04417"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/Views/LanguageMenuView.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/Views/LanguageMenuView.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/LanguageMenuView.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/LanguageMenuView.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/LanguageMenuView.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/LanguageMenuView.cpp"
   ],
-  "sha256": "7fd3b71f857771d78a7afe4338613f7c8abd4f713fdd4aca2f3355ac9a4b73cb",
-  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "sha256": "e256d89db4c1275541e0a15a007de4e1c2df6e077c67ee3c9e64e8b16e7bd7c3",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/LanguageMenuView.h": "20b3ecdb1fb1ebb87e260d4ff17894dbf1d5b8e149fde5c52645d054f3270c40",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/LanguageMenuView.cpp": "8f75b1a5e934329a1b0aa81c0d53c749be32648e99fd29079f4a24acff02d80a"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/LanguageMenuView.h": "20b3ecdb1fb1ebb87e260d4ff17894dbf1d5b8e149fde5c52645d054f3270c40",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/LanguageMenuView.cpp": "8f75b1a5e934329a1b0aa81c0d53c749be32648e99fd29079f4a24acff02d80a"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/Views/LinesView.data.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/Views/LinesView.data.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/LinesView.data.h"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/LinesView.data.h"
   ],
-  "sha256": "6d4b74bc9d46752e50671203b35004975b5410d2e5c1d6ee82133f7755fa7954",
-  "cppCommit": "2882fd0e74f433262f7b8d47046d24083b154984",
+  "sha256": "5727a1fc9097b39a4c0a4414582f1bdcebf5ab65c26ab7121b710ae903fc7f3d",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/LinesView.data.h": "2ead27913abbc69a9d6a15e436857bc1143dfe86454b3e47169b90fb11b4c0a2"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/LinesView.data.h": "fd54b382b9b447400e448bcad41fcb3f34b36d58e9a40d7c86dce4db9b460e6e"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/Views/LinesView.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/Views/LinesView.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/LinesView.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/LinesView.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/LinesView.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/LinesView.cpp"
   ],
-  "sha256": "d7172f1f68c514f855e6aaac1d7c58697748de8d89c8b35bb9b0a6d97c04082d",
-  "cppCommit": "2882fd0e74f433262f7b8d47046d24083b154984",
+  "sha256": "89be6bca362656fc2cdd68d4f118a7b27574b392b528bf21d988b863b8c0735b",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/LinesView.h": "c9510dcf2b0d8bc56490440059e1d9f789558ef45cbd9140694a00e6c0915395",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/LinesView.cpp": "e22546b6ac156445b0d0339465683e6e58fc40ec6117845a7f22d58c8446cc58"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/LinesView.h": "b5d7294ee032f349da662721f433eb63d4166d826d18e098ce038dee7b76d634",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/LinesView.cpp": "136b5a4f6cf2568427c6d3c5d0a33efb794e3709531d485245165051777a4dcf"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/Views/ReelsOverlayView.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/Views/ReelsOverlayView.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/ReelsOverlayView.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/ReelsOverlayView.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/ReelsOverlayView.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/ReelsOverlayView.cpp"
   ],
-  "sha256": "b4c162afd3f0519c6573a905ce319f93b51073ca2bce14a17e254a6538ced112",
-  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "sha256": "8fb6ad8860ecf59eb07995ad4c13debc6effa37ac4b52f465a7473a09f4c19ee",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/ReelsOverlayView.h": "260d0a6ec26b6046e2f6147f2008e945dd35832d006b6b538ad512d3cefbb37e",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/ReelsOverlayView.cpp": "0b835cd11dff5140d75becc2117355acbabbfcd1f484f491d7f6ffd3cc682be6"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/ReelsOverlayView.h": "260d0a6ec26b6046e2f6147f2008e945dd35832d006b6b538ad512d3cefbb37e",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/ReelsOverlayView.cpp": "0b835cd11dff5140d75becc2117355acbabbfcd1f484f491d7f6ffd3cc682be6"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/Views/ReelSubScreen.data.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/Views/ReelSubScreen.data.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/ReelSubScreen.data.h"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/ReelSubScreen.data.h"
   ],
-  "sha256": "d6dd2d33d1414a2062ab734ff39321acbfe113abd5c92f9dc81dac09f99e6f95",
-  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "sha256": "a4fc3378d33cf1506c0f42af309f44fca37f17173b695262a4c4111abf561c67",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/ReelSubScreen.data.h": "60b687633a9db66347203356a01851b28fc40629b0a02d3695f097693e7fc48f"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/ReelSubScreen.data.h": "60b687633a9db66347203356a01851b28fc40629b0a02d3695f097693e7fc48f"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/Views/ReelsView.data.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/Views/ReelsView.data.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/ReelsView.data.h"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/ReelsView.data.h"
   ],
-  "sha256": "fd95d2524e096e76f21da4c909ddcd813d6b4c02cd4fbc4e86edcd4b6388c398",
-  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "sha256": "2aebaa4d4bbef6398c3a7b78540cbe9066951a4eeb8fe235e98e4578c7360aca",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/ReelsView.data.h": "e5eaff373ce6271c9f4431897b8cb2f7cb93d37a496a709964cb01b677913de3"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/ReelsView.data.h": "fb33ad7a6930f21941f3f52fef8b6d871c271368fa4daef69ff9ca15b2cb9177"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/Views/ReelsView.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/Views/ReelsView.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/ReelsView.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/ReelsView.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/ReelsView.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/ReelsView.cpp"
   ],
-  "sha256": "cc8b0db8293bc0b48ba70abefb3d8bfc7369dbe43d3128a5cf2931a5e17322ef",
-  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "sha256": "5f6d91718feaf598a9e2f9a111c5ad709b104339cf8b2c50232cb5fd55af30e2",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/ReelsView.h": "c6b1160c67e11971aa34f75062aec703cc1bddb4fbacf19f75b25536a93ae999",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/ReelsView.cpp": "8f457693f36b14b3a437376924757d59de186e9cc841803a894e61e8ab3f75cb"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/ReelsView.h": "a59b992f6f06c0b317d9dddda034c25228ab953762395506645d530d6141819e",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/ReelsView.cpp": "8f457693f36b14b3a437376924757d59de186e9cc841803a894e61e8ab3f75cb"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/Views/SoundMenuView.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/Views/SoundMenuView.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/SoundMenuView.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/SoundMenuView.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/SoundMenuView.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/SoundMenuView.cpp"
   ],
-  "sha256": "db9d878f2bd4c30a875f239d807e96ebb8bde5a10410cc0c0736f2ee3e4c1a36",
-  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "sha256": "f2a3bc2620c4bc10d6c1e699280f7b63f1eb2ff96bb59b477de8f0fada5ba081",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/SoundMenuView.h": "d93aed09a9d31ef532cc0fd6bce024c2b25d1388d17852762579cfafda80c858",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/SoundMenuView.cpp": "dec1be1f6fc1e262b446283b94e3f7a15f5214d6ddd0b1b7075fb9a3e1ecd1e5"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/SoundMenuView.h": "d93aed09a9d31ef532cc0fd6bce024c2b25d1388d17852762579cfafda80c858",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/SoundMenuView.cpp": "dec1be1f6fc1e262b446283b94e3f7a15f5214d6ddd0b1b7075fb9a3e1ecd1e5"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/Views/StatusLineView.data.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/Views/StatusLineView.data.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/StatusLineView.data.h"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/StatusLineView.data.h"
   ],
-  "sha256": "8f973e826f7c5ddcec5f7c55ff91d4f1ab6601040e5297d92a7f81333643c86e",
-  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "sha256": "2b5d807958707b8742fe46cf00895fdfab5cbfe118ce74d0bd69174a73223b4b",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/StatusLineView.data.h": "74bd7e44e569452e1b418b554874946f5d1a48ca52b1f8e898c4a6e1f70fe203"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/StatusLineView.data.h": "b7ca0ccb2ead4bc9bbbed0cd2edbbb661821fbc3547bcf8655ea0e8cad8d33c8"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/Views/StatusLineView.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/Views/StatusLineView.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/StatusLineView.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/StatusLineView.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/StatusLineView.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/StatusLineView.cpp"
   ],
-  "sha256": "58c72fa6483bc14ab252d893ec218d9abaaaf74b5ce9dc528c96b332cc814d95",
-  "cppCommit": "2882fd0e74f433262f7b8d47046d24083b154984",
+  "sha256": "6c7b6bc8ef4fc9e80111e9c1b639bb74389a9da18d3aa10fdd0ff0c0c2587674",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/StatusLineView.h": "d78370e225301828318b2ec5aa39f908964793c9b0bf43ab9a217b9e9ab71cf4",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/StatusLineView.cpp": "958836590e85c1a84332cceae1a63e11c6f2a26dcd5e5179cd673a0c06220186"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/StatusLineView.h": "507acdd287e331a0a2dc5cd61817db61796189824439f95c2994689d5c460a77",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/StatusLineView.cpp": "958836590e85c1a84332cceae1a63e11c6f2a26dcd5e5179cd673a0c06220186"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/Views/WheelRoundOverlayView.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/Views/WheelRoundOverlayView.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/WheelRoundOverlayView.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/WheelRoundOverlayView.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/WheelRoundOverlayView.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/WheelRoundOverlayView.cpp"
   ],
-  "sha256": "a8033c3e3c169f02305e2da2d50d6904cefc2b6cce5fd48c60a0b87c5e358c49",
-  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "sha256": "80bc23272a0e200e0e08bc3989a6b010950169d9fdf48ae3eed3c055db719650",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/WheelRoundOverlayView.h": "69188f62306e0ff3842cccd618ab9421c5af4c957bd69171eb27c06a415b9d6d",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/WheelRoundOverlayView.cpp": "cd635f4f34326c0d75346c2ca72397b3e1c7910180569b58dc4cb5fefd0ec709"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/WheelRoundOverlayView.h": "69188f62306e0ff3842cccd618ab9421c5af4c957bd69171eb27c06a415b9d6d",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/WheelRoundOverlayView.cpp": "cd635f4f34326c0d75346c2ca72397b3e1c7910180569b58dc4cb5fefd0ec709"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/Views/WheelRoundView.data.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/Views/WheelRoundView.data.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/WheelRoundView.data.h"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/WheelRoundView.data.h"
   ],
-  "sha256": "b84ed82bdc59db40658dd9e6497693d2164738dda51cddf36af1a61f66ce6c8c",
-  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "sha256": "18639af629d6931217eceeab0c932e733d047afb6c205f3624f73d6acfb1f62d",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/WheelRoundView.data.h": "97429909134621748c09dc493d41ed1c791ddfb2f6bd5dedaeb998add5da2045"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/WheelRoundView.data.h": "97429909134621748c09dc493d41ed1c791ddfb2f6bd5dedaeb998add5da2045"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/Views/WheelRoundView.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/Views/WheelRoundView.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/WheelRoundView.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/WheelRoundView.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/WheelRoundView.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/WheelRoundView.cpp"
   ],
-  "sha256": "5c76c0fa03c9ec1919f066fa13e09a3ea4e2fa3317ca1a1f9c8f9246652cae74",
-  "cppCommit": "2882fd0e74f433262f7b8d47046d24083b154984",
+  "sha256": "d3ccbc950d501c5e60840c99b9c08c7a1a24d827cd4946a2f1bbd100e01806c2",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/WheelRoundView.h": "bbb240eebd2ad010cbc4610fae5e47c0bb9ca5a56c005ba504920c695dccf12d",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/WheelRoundView.cpp": "9a131784d0080baa71cae6b15de2d7bb7e2991f39508c36645e583dfa483972c"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/WheelRoundView.h": "cbec6361b03f76b3e6512081177e26bd107f344e1762541a120e3c84e4f81070",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/WheelRoundView.cpp": "9a131784d0080baa71cae6b15de2d7bb7e2991f39508c36645e583dfa483972c"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/Views/WinFiguresView.data.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/Views/WinFiguresView.data.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/WinFiguresView.data.h"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/WinFiguresView.data.h"
   ],
-  "sha256": "3b91149e85c9440e0d36cf36a4cdfd13fb8c89d9e56874d70fe4786fe85cb5e3",
-  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "sha256": "d4220d5cdfb689b265132af2a914d84c6d4ceb7275197c49ad82cbdb246b7894",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/WinFiguresView.data.h": "4bdaac9341ad709cfe3474f1f3241034146682ab4dfb1de8c66b1bbf03eea195"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/WinFiguresView.data.h": "b97a7916e149f377d844d6ff372906600928f468b7fab7c825c8f938189fcf60"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/Views/WinFiguresView.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/Views/WinFiguresView.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/WinFiguresView.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/WinFiguresView.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/WinFiguresView.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/WinFiguresView.cpp"
   ],
-  "sha256": "0dd467df0ddae9605b60c0a0fadc6d414a3697d9603b1fb9adc8b3820ab440ad",
-  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "sha256": "d9c0e46d23965b26b5ca95e0388a17ac1bc3b42cb54bb2b3c551e4e7c44c504e",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/WinFiguresView.h": "5a8684a3c90304cee0c00b22a995425b64843395cffc82b26b3319cc7877ab5d",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Views/WinFiguresView.cpp": "f0b172661d5a896e3d669c096d27f929989192b3a55d5468e92ff367d6a669a5"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/WinFiguresView.h": "e25ee749cdb12291f9c871a343a7fd7d01fab25ba2c6998b06d3f93c7f54ca2d",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/WinFiguresView.cpp": "f0b172661d5a896e3d669c096d27f929989192b3a55d5468e92ff367d6a669a5"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/Visuals/BaseVisual.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/Visuals/BaseVisual.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/BaseVisual.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/BaseVisual.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Visuals/BaseVisual.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Visuals/BaseVisual.cpp"
   ],
-  "sha256": "c10adc269ddf362af7466cf286c3d79cfb82abacf63e0cd71e7f66a6b1bc9dec",
-  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "sha256": "6313511bc41a0a7ae5e3e88e891f4993347c47ec6a4bc473725b70241c865090",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/BaseVisual.h": "d327da7d28bf460656fd99c63538d792eec545ec67c9779aa964f4e17264b112",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/BaseVisual.cpp": "6c72f0ff52a87cc93b4e810102b0155058633053189f1e05bf86cd5ead882264"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Visuals/BaseVisual.h": "d327da7d28bf460656fd99c63538d792eec545ec67c9779aa964f4e17264b112",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Visuals/BaseVisual.cpp": "6c72f0ff52a87cc93b4e810102b0155058633053189f1e05bf86cd5ead882264"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/Visuals/LinesVisual.data.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/Visuals/LinesVisual.data.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/LinesVisual.data.h"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Visuals/LinesVisual.data.h"
   ],
-  "sha256": "01e784905d2739a6a767667772d5b5406bbe260d754a14d25a1b98d61ac60e0a",
-  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "sha256": "32834d3b6ad606b88a0f3386af7700cc41bd0746b2222e246b468e61ab1cb430",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/LinesVisual.data.h": "13c2d9b522ed2aea0d66ed0c90112cad2cca353942b24538ca70b05cda104d2c"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Visuals/LinesVisual.data.h": "13c2d9b522ed2aea0d66ed0c90112cad2cca353942b24538ca70b05cda104d2c"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/Visuals/LinesVisual.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/Visuals/LinesVisual.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/LinesVisual.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/LinesVisual.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Visuals/LinesVisual.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Visuals/LinesVisual.cpp"
   ],
-  "sha256": "c28e1023ed37a8196d9e33d1a8afdbd4769c40a1b4734f4fefd3186bab1473dd",
-  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "sha256": "6ac8aef0029d3d6f417245c8a3861421579f0cb0870b6c60377144dfed022fa0",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/LinesVisual.h": "212629199f15ece5d58a7d1ebef07da3922238d4bc2b1e4ec94ec3ac6cd9be6b",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/LinesVisual.cpp": "22f2b4b14e102682cbe598c973ec73e6c88141a346c0cb368c94acabab013d64"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Visuals/LinesVisual.h": "6c75979e77fb39637584b980e558fc8c1168697b9870f01e6731ecd7a89e7f90",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Visuals/LinesVisual.cpp": "22f2b4b14e102682cbe598c973ec73e6c88141a346c0cb368c94acabab013d64"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/Visuals/ReelVisual.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/Visuals/ReelVisual.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/ReelVisual.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/ReelVisual.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Visuals/ReelVisual.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Visuals/ReelVisual.cpp"
   ],
-  "sha256": "f892816e01c550a70821b87aad1fe13b37b2050632d4cd63287f9619eb4c71a5",
-  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "sha256": "75fe8408eaa1fc1737231a0385e63b5e617e0dca13fe8c237cb974d1ac1c0977",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/ReelVisual.h": "ff23d02bb61c1c3c68e284c317e219a7aca123fca850f02f9dca405874d49302",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/ReelVisual.cpp": "d2cf8365d2684a826a2c0c7301c4e340c89f51660e1b35a73a7a5214507272b5"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Visuals/ReelVisual.h": "73bc8da5772d1a5733c2e28fdabb636782b8e9054c8685ce273dd74242b58862",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Visuals/ReelVisual.cpp": "0c16cded500d6ee5899e538c19c302b024f84ccd23084c92259fd0a5617abe7c"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/Visuals/StatusLineVisual.data.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/Visuals/StatusLineVisual.data.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/StatusLineVisual.data.h"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Visuals/StatusLineVisual.data.h"
   ],
-  "sha256": "c25207fef315af2860ac442f6a1a754c33fa8390e3e5aeb0e386aa3eb9847aa8",
-  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "sha256": "a33c1b72d2b688db8ed3e6eb1157fd3ef66792625bc6a9d0afe663e38b899cf0",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/StatusLineVisual.data.h": "1f465c42640d9706a8d6da1237d3062a464cfd1eba65668673f24244e1e43441"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Visuals/StatusLineVisual.data.h": "1f465c42640d9706a8d6da1237d3062a464cfd1eba65668673f24244e1e43441"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/Visuals/StatusLineVisual.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/Visuals/StatusLineVisual.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/StatusLineVisual.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/StatusLineVisual.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Visuals/StatusLineVisual.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Visuals/StatusLineVisual.cpp"
   ],
-  "sha256": "de00ecaa7d85fa1df9d8a4337dae99516572fd61e48a033fbbc71c8e0ffa7951",
-  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "sha256": "8807a433b96e09edd17fce07bdb588b4ad10a534d6951d8475f2aa2be9173a80",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/StatusLineVisual.h": "f183e8bb703a5f5517e14a249579e445a24624c0a5b253e7b70308ed67eae52b",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/StatusLineVisual.cpp": "d7237182db2b7b8b1ccba6f60cee15a9c04a66c86180d23b668247ae197f68fd"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Visuals/StatusLineVisual.h": "994a721713ed45ecda4c97873240fb00644390783daf94844d20c8031450f3ce",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Visuals/StatusLineVisual.cpp": "0061131d5add81b358965452555b9058212acda4e4dee77efca6f3595d087e61"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/Visuals/WinFiguresVisual.data.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/Visuals/WinFiguresVisual.data.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/WinFiguresVisual.data.h"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Visuals/WinFiguresVisual.data.h"
   ],
-  "sha256": "a0482397553afba3cafb9f4fd9d588eb274e89cb3cb1d0b92fd76e075d36613e",
-  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "sha256": "ac8674cc07b2f91fcc8629f1431ab560bb726625b3499db6cf26a140833ff97d",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/WinFiguresVisual.data.h": "60913607701eb0ee8a885a99bc1d2e989d009a2744ab03f12dd27a9d4fe93733"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Visuals/WinFiguresVisual.data.h": "60913607701eb0ee8a885a99bc1d2e989d009a2744ab03f12dd27a9d4fe93733"
   }
  },
- "alpha_family/plugins/nordic_rush/NordicRushView/Visuals/WinFiguresVisual.ts": {
+ "alpha_family/plugins/nordic_tale/NordicTaleView/Visuals/WinFiguresVisual.ts": {
   "cpp": [
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/WinFiguresVisual.h",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/WinFiguresVisual.cpp"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Visuals/WinFiguresVisual.h",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Visuals/WinFiguresVisual.cpp"
   ],
-  "sha256": "f85f9204c08b21ecdfcc6f7074ff88d5c4e4a36cb8a3549a0a5fd963cdcb855d",
-  "cppCommit": "574275b3f8d3c591872c1284fe43845f71295810",
+  "sha256": "156428adfeef86b71d19e5eecaf879271aa0684cbbadb74690c076570a9b8d14",
+  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
   "cppSha256": {
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/WinFiguresVisual.h": "c378e0c77c669ad0deb90d0b184a93b8e7d2211fe8d678127dee58fe440402c2",
-   "alpha_family/plugins/nordic_rush/src/Egt/NordicRushView/Visuals/WinFiguresVisual.cpp": "e63ff9b199561be7cc4ebf269ecb9eb25c5a689dc1aab88d5f6b5995ee739d59"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Visuals/WinFiguresVisual.h": "2f5d0cbf492b7dd4ef55e46f37981be10d5f79eabd785236f6e9b29aa4268764",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Visuals/WinFiguresVisual.cpp": "e63ff9b199561be7cc4ebf269ecb9eb25c5a689dc1aab88d5f6b5995ee739d59"
   }
  },
  "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsFsm/ZodiacWheelCoinsFsm.ts": {

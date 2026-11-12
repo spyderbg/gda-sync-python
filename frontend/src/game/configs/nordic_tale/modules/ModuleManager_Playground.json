@@ -1,0 +1,112 @@
+{
+  "include": [
+    "../../alpha_family/modules/AlphaPlaygroundModules.json",
+    "NordicTaleModules.json"
+  ],
+  "plugins": [],
+  "modules": [
+    {
+      "override": true,
+      "name": "PlaygroundVideo",
+      "config": {
+        "viewports": [
+          {
+            "type": "main",
+            "resolutionWidth": 1920,
+            "resolutionHeight": 1080
+          },
+          {
+            "type": "info",
+            "resolutionWidth": 1920,
+            "resolutionHeight": 1080
+          },
+          {
+            "type": "topper",
+            "resolutionWidth": 1920,
+            "resolutionHeight": 1080,
+            "flexGrow": 1
+          }
+        ]
+      }
+    },
+    {
+      "override": true,
+      "name": "VideoManager",
+      "config": {
+        "loadingScreensPaths": {
+          "main": "./loading_screen.dds",
+          "info": "./loading_screen.dds",
+          "topper": "./loading_screen.dds"
+        }
+      }
+    },
+    {
+      "override": true,
+      "name": "ResourceManager",
+      "config": {
+        "resolutionWidth": 1920,
+        "resolutionHeight": 1080
+      }
+    },
+    {
+      "name": "MessageBoardView",
+      "space": "Egt::Integration",
+      "header": "Egt/MessageBoardView/MessageBoardView.h",
+      "config": {
+        "layerId": 1000,
+        "centerYRatio": 0.401388,
+        "textStyleId": "STYLE_BOLD",
+        "backgroundSize": {
+          "x": 720,
+          "y": 450
+        },
+        "backgroundPadding": {
+          "x": 10,
+          "y": 10
+        },
+        "initialBackgroundColor": {
+          "r": 255,
+          "g": 0,
+          "b": 0,
+          "a": 255
+        },
+        "undefinedBackgroundColor": {
+          "r": 128,
+          "g": 128,
+          "b": 128,
+          "a": 255
+        },
+        "overlayBackgroundColor": {
+          "r": 0,
+          "g": 255,
+          "b": 0,
+          "a": 255
+        },
+        "waitingInputBackgroundColor": {
+          "r": 0,
+          "g": 0,
+          "b": 255,
+          "a": 255
+        },
+        "blockingInputBackgroundColor": {
+          "r": 255,
+          "g": 0,
+          "b": 0,
+          "a": 255
+        }
+      },
+      "initAfter": [
+        "VideoManager",
+        "ResourceManager",
+        "NordicTaleView"
+      ]
+    },
+    {
+      "override": true,
+      "name": "NordicTaleInfoView",
+      "config": {
+        "rssRtfId": "rtf_common"
+      }
+    }
+  ]
+}

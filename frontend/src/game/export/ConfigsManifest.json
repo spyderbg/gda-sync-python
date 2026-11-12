@@ -207,6 +207,54 @@
   "sha256": "a10230cb4738c4d0bc0e103b12fa41200ac1d4c8c9156941fcbe320c256b8322",
   "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
  },
+ "nordic_tale/modules/ModuleManager_Ares.json": {
+  "sha256": "6b861363e74c2bdfb3fd595bfe585866a3f188c3216c1d110698820201934872",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "nordic_tale/modules/ModuleManager_Astro.json": {
+  "sha256": "f8a58c2217d76e8a9747e86e398be8feb2635e87537b85d3cdf67b438b2feafd",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "nordic_tale/modules/ModuleManager_Hat.json": {
+  "sha256": "c021323640e47043d20427adfdc7716c419bead8a03bda48957909df34d071a4",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "nordic_tale/modules/ModuleManager_Inspired.json": {
+  "sha256": "14c1bf0c17a5c3118d5ba2aff1f0216f1679817b484465825f440b530ad9b1cb",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "nordic_tale/modules/ModuleManager_Playground.json": {
+  "sha256": "10c5bb2f68fcc08055a7cc1734d2fdc5a365564cfab2bfc3c963f4c36af41ff0",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "nordic_tale/modules/ModuleManager_Truserv_Bot.json": {
+  "sha256": "c81941911b495757a60c416a7c4542bfee4e6b67cea889917c6871dabc4d1f49",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "nordic_tale/modules/ModuleManager_Truserv_Client.json": {
+  "sha256": "40ef29960cbf421968994345eeb662452b30acaf7f8dd3d2fcf1579381b688ab",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "nordic_tale/modules/ModuleManager_Truserv_Server.json": {
+  "sha256": "35d10c604d99d013781cc6bad949aba3298bcfac65f9a9c09d1a9ae33e4d8faa",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "nordic_tale/modules/NordicTaleDebugModules.json": {
+  "sha256": "a1ec40b8eb7bdbd98a5d232712bbcfec08e01fd44c93aeec0730876637447524",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "nordic_tale/modules/NordicTaleModules_Partner.json": {
+  "sha256": "e6a23d2de876b41e4246c19dfdb2494761d5ca4a8c91bd7970c7500520ce2c24",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "nordic_tale/modules/NordicTaleModules_QA.json": {
+  "sha256": "dac72751057a85b4c6798e025563e091767952c0a51b3f9d36bd76ac8a0fd6fb",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "nordic_tale/modules/NordicTaleModules.json": {
+  "sha256": "098dd8c305ab4aaad6bd7147cd48b8b7bc07425d5ec58aa1a287f51954b857a6",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
  "zodiac_wheel_coins/modules/ModuleManager_Ares.json": {
   "sha256": "bd65ba24242466343f14d5afd5ba2306d80095e8132c28292251ddafb015a4b7",
   "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"

@@ -1,0 +1,44 @@
+{
+  "plugins": [],
+  "modules": [
+    {
+      "name": "NordicTaleMath",
+      "space": "Egt::Game::AlphaFamily",
+      "header": "Egt/NordicTaleMath/NordicTaleMath.h",
+      "config": {
+        "setups": [
+          {
+            "id": "v15_8400",
+            "simRtp": 0.8423168805,
+            "minCap": null,
+            "maxCap": 500000,
+            "mathFileId": "MathRulesConfig_8400"
+          }
+        ]
+      }
+    },
+    {
+      "name": "NordicTaleView",
+      "space": "Egt::Game::AlphaFamily",
+      "header": "Egt/NordicTaleView/NordicTaleView.h"
+    },
+    {
+      "name": "NordicTaleInfoView",
+      "space": "Egt::Game::AlphaFamily",
+      "header": "Egt/NordicTaleInfoView/NordicTaleInfoView.h"
+    },
+    {
+      "name": "NordicTaleFsm",
+      "space": "Egt::Game::AlphaFamily",
+      "header": "Egt/NordicTaleFsm/NordicTaleFsm.h"
+    },
+    {
+      "name": "NordicTaleTopperView",
+      "space": "Egt::Game::AlphaFamily",
+      "header": "Egt/NordicTaleTopperView/NordicTaleTopperView.h",
+      "initAfter": [
+        "ResourceManager"
+      ]
+    }
+  ]
+}

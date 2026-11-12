@@ -1,0 +1,43 @@
+{
+  "include": [
+    "../../alpha_family/modules/AlphaAstroModules.json",
+    "NordicTaleModules.json"
+  ],
+  "plugins": [],
+  "modules": [
+    {
+      "override": true,
+      "name": "AstroVideo",
+      "config": {
+        "mainWidth": 1920,
+        "mainHeight": 1080
+      }
+    },
+    {
+      "override": true,
+      "name": "VideoManager",
+      "config": {
+        "loadingScreensPaths": {
+          "main": "./loading_screen.dds",
+          "info": "./loading_screen.dds",
+          "topper": "./loading_screen.dds"
+        }
+      }
+    },
+    {
+      "override": true,
+      "name": "ResourceManager",
+      "config": {
+        "resolutionWidth": 1920,
+        "resolutionHeight": 1080
+      }
+    },
+    {
+      "override": true,
+      "name": "NordicTaleInfoView",
+      "config": {
+        "rssRtfId": "rtf_common"
+      }
+    }
+  ]
+}

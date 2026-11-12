@@ -66,8 +66,9 @@ All commands run from the repository root (`/media/plamen/data/Python/gda-sync`)
 ## Step 0: Preconditions
 
 1. **The game is ported on this branch.** Run `ls frontend/src/game/alpha_family/plugins`. As of 2026-11-05, `dev` has
-   `burning_crown_tetra_spins_10`, `burning_hot_coins` (all its rounds: main, coins, wheel, gamble), `nordic_rush`
-   (all its rounds: main, free, hold and spin, coins, coins free, wheel), `joker_reels_coins_10` and
+   `burning_crown_tetra_spins_10`, `burning_hot_coins` (all its rounds: main, coins, wheel, gamble), `nordic_tale`
+   (Nordic Rush until 2026-11-12; all its rounds: main, free, hold and spin, coins, coins free, wheel),
+   `joker_reels_coins_10` and
    `zodiac_wheel_coins` (Burning Hot Coins' rounds), with the tools to import a new game
    (`export/import-game.mjs`, the module registry that finds a game's modules by glob), every round's states but the
    extra rounds', and the full `ViewManager`. A game that is not ported is an import, not a sync: stop and tell the
@@ -131,8 +132,9 @@ Step 5 copies them. Before that, read each change for what the TypeScript must f
 | The family's `AlphaGameModules.json` | It is every game's. Check a new module against `app/ModuleRegistry.ts`, and say in the report that the other games get it too. |
 | A variant (`*_QA.json`, `*_Partner.json`, `*DebugModules.json`) or an integration's `ModuleManager_*.json` | Nothing to port: the browser game does not read them. They are copied to keep the folder whole. |
 
-When it says `The games repository has no configs/<plugin>/modules`, the game's folder has another name there (Nordic
-Rush is `nordic_tale` since VLT-26750) or is on another branch. Nothing is copied or deleted: say so in the report.
+When it says `The games repository has no configs/<plugin>/modules`, the game's folder has another name there or is on
+another branch. Nothing is copied or deleted: say so in the report. A game that the C++ renamed is renamed here first
+("A game renamed in the C++", below).
 
 Classify each untracked change:
 
@@ -194,7 +196,7 @@ Most of the states library is a statement-for-statement port. Some files are old
 - Burning Hot Coins' views copied from Burning Crown's (`LinesView`, `ReelsView`, `StatusLineView`, the bars and menus),
   which are as far from their C++ as Burning Crown's. Its views new to the family (the wheel, the gamble, the coins bar,
   the overlays, the buttons) are statement-for-statement ports;
-- Nordic Rush's views copied from Burning Hot Coins' (the same files, and the compact ones among them). Its views new to
+- Nordic Tale's views copied from Burning Hot Coins' (the same files, and the compact ones among them). Its views new to
   the family (the free round's overlays and counter, the hold and spin bar, overlays and info screen, the reels' frame
   fire) are statement-for-statement ports;
 - Joker Reels Coins 10's files copied from Burning Hot Coins' (42 of its 62, with the same C++), the compact ones among
@@ -278,11 +280,16 @@ node frontend/src/game/export/translator/compare.mjs $GAMES/game --compile $GAME
 ```
 
 Expect `0 of N translated .cpp files do not compile`. It was 66 files on 2026-10-28. On 2026-11-05 it is 2 of 276:
-Nordic Rush's `InfoView.cpp` and `ReelVisual.cpp` ("Two games' files of the same name", below).
+Nordic Tale's `InfoView.cpp` and `ReelVisual.cpp` ("Two games' files of the same name", below). It is the same on
+2026-11-12, after the game's rename.
 
 A game the games build does not compile has no compile commands, and each of its files reports `no compile command`.
-On 2026-11-05 `user-dbg-clang` has none for Zodiac Wheel Coins. Its files compile with Burning Hot Coins' commands, its
-paths and names changed, in a copy of `compile_commands.json` in the scratchpad (never the build folder's):
+On 2026-11-05 `user-dbg-clang` has none for Zodiac Wheel Coins, and on 2026-11-12 none for Nordic Tale either (83 files
+between them). Its files compile with Burning Hot Coins' commands, its paths and names changed, in a copy of
+`compile_commands.json` in the scratchpad (never the build folder's). A game with files that Burning Hot Coins lacks,
+as Nordic Tale's free round and hold and spin views, needs a command for each of its own `.cpp` files instead: take one
+of Burning Hot Coins' commands of the same module (`BurningHotCoinsView` for `NordicTaleView`), change the names, and
+put the file's path in place of the template's.
 
 ```sh
 node -e '
@@ -417,7 +424,7 @@ question. Its scratch folder is the app data folder's `game-syncs/<plugin>-<time
   must say the plugin's own paths and C++ names (`BurningHotCoinsView/...`). The compile check takes a quoted include
   (`"BaseReelsView.h"`) from the compiled file's own plugin first, and the translator a class's own declarations
   (`CppIndex.Class`) from its own plugin's header first: until 2026-10-29 it took the first game's, so Joker Reels
-  Coins 10's `WinFigureVisual` translated against Burning Crown's. With that fixed, Nordic Rush's `InfoView` and
+  Coins 10's `WinFigureVisual` translated against Burning Crown's. With that fixed, Nordic Tale's `InfoView` and
   `ReelVisual` translate (before, they did not), but they do not compile yet: their TypeScript is not written as their
   C++ is.
 - **TypeScript arrays have holes.** C++ `resize` default-constructs elements, but a TypeScript array whose `length` was
@@ -437,6 +444,14 @@ question. Its scratch folder is the app data folder's `game-syncs/<plugin>-<time
   modules config from `frontend/src/game/configs`, not from the games repository's `configs` folder. A change there
   shows on the Play page after step 5 copies it and step 6 builds. `sync-configs.mjs --check` tells whether the two
   differ.
+- **A game renamed in the C++.** `import-cpp.mjs` then lists every file of the game, with warnings that its C++ folders
+  cannot be opened, and `compare.mjs` stops on the first missing file. Rename the game here the same way before
+  anything else: `git mv` the plugin's folder, its module folders and files, and change the names inside them. Check
+  that nothing else changed: each C++ file at its entry's `cppCommit`, with the names changed, should be the renamed
+  file at HEAD. Then record the files with `port-manifest.mjs --only` (the old entries go away with their files),
+  sync the game's configs under its new name, and delete the old configs folder with its `ConfigsManifest.json`
+  entries, if this repository has one. The workspace's id follows the game's folder. Nordic Rush became Nordic Tale
+  this way on 2026-11-12 (games `beab58632`, VLT-26750): 66 files, no change but the names.
 - **An import's cycles.** `import-game.mjs --copies` copies a file only once what it includes is there, and type-checks
   the batch with every other file of the game. A file ported by hand that imports a copy not made yet fails that check
   for the whole batch, so move it aside while the copies are made. A copy that includes a file ported by hand, which
