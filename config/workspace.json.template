@@ -35,10 +35,10 @@
       "gda_path": "{gda_root_path}/10_joker_reels_coins_italy/10_joker_reels_coins_italy/DEV"
     },
     {
-      "id": "nordic_rush",
+      "id": "nordic_tale",
       "demo": false,
-      "game_name": "Nordic Rush",
-      "game_path": "{games_root_path}/resources/nordic_rush",
+      "game_name": "Nordic Tale",
+      "game_path": "{games_root_path}/resources/nordic_tale",
       "gda_path": "{gda_root_path}/nordic_rush_flash_spins/nordic_rush_flash_spins/DEV"
     },
     {

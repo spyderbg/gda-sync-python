@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { WorkspaceEntry } from '../types';
+import WorkspaceIcon from './WorkspaceIcon.vue';
 
 defineProps<{ workspace: WorkspaceEntry; current?: boolean; disabled?: boolean; opening?: boolean }>();
 const emit = defineEmits<{ select: []; rescan: [] }>();
@@ -10,7 +11,7 @@ const emit = defineEmits<{ select: []; rescan: [] }>();
     <button type="button" class="workspace-card-select" :aria-label="workspace.name"
             :aria-current="current ? 'true' : undefined" :disabled="disabled" @click="emit('select')">
       <span class="workspace-card-heading">
-        <span class="workspace-card-icon"><i aria-hidden="true" class="mdi mdi-gamepad-variant-outline" /></span>
+        <WorkspaceIcon :workspace-id="workspace.id" />
         <span class="workspace-card-identity"><strong>{{ workspace.name }}</strong><small>{{ workspace.id }}</small></span>
         <span v-if="current" class="workspace-card-current">Current</span>
       </span>
@@ -36,7 +37,6 @@ const emit = defineEmits<{ select: []; rescan: [] }>();
 .workspace-card button:disabled { cursor: wait; }
 .workspace-card.is-current { border-color: #2277cf; }
 .workspace-card-heading { display: flex; align-items: center; gap: 12px; }
-.workspace-card-icon { display: grid; place-items: center; flex-shrink: 0; width: 42px; height: 42px; border-radius: 10px; background: #edf4fe; color: #2277cf; font-size: 25px; }
 .workspace-card-identity { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .workspace-card-identity strong { display: block; font-size: 16px; line-height: 1.4; font-weight: 600; }
 .workspace-card-identity small { display: block; margin-top: 3px; font-size: 12px; color: #6c757d; }

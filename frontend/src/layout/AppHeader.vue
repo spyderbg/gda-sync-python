@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { config, navigate, ui } from '../workspace';
+import WorkspaceIcon from '../components/WorkspaceIcon.vue';
 
 const title = computed(() => ui.view === 'dashboard' ? 'Dashboard' : config.value.name);
 </script>
@@ -18,7 +19,10 @@ const title = computed(() => ui.view === 'dashboard' ? 'Dashboard' : config.valu
     <div class="navbar-menu-wrapper d-flex align-items-center">
       <div class="navbar-heading">
         <a class="mobile-home" href="#" :aria-current="ui.view === 'dashboard' ? 'page' : undefined" @click.prevent="navigate('dashboard')">EGT GDA Sync</a>
-        <span class="navbar-game-title" :title="title">{{ title }}</span>
+        <span class="navbar-workspace-title">
+          <WorkspaceIcon v-if="ui.view !== 'dashboard'" :workspace-id="config.defaultWorkspace" :size="36" />
+          <span class="navbar-game-title" :title="title">{{ title }}</span>
+        </span>
       </div>
       <!-- Settings belong to one workspace, so the dashboard does not offer them. -->
       <button v-if="ui.view !== 'dashboard'" type="button" :class="['header-settings', { active: ui.view === 'settings' }]" aria-label="Workspace settings" title="Workspace settings" :aria-current="ui.view === 'settings' ? 'page' : undefined" @click="navigate('settings')">
@@ -27,3 +31,7 @@ const title = computed(() => ui.view === 'dashboard' ? 'Dashboard' : config.valu
     </div>
   </header>
 </template>
+
+<style scoped>
+.navbar-workspace-title { display: flex; align-items: center; gap: 10px; min-width: 0; }
+</style>
