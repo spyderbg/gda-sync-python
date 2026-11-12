@@ -1,0 +1,24 @@
+{
+  "include": [
+    "../../alpha_family/modules/AlphaTruservBotModules.json"
+  ],
+  "plugins": [],
+  "modules": [
+    {
+      "name": "JokerReelsCoins10Math",
+      "space": "Egt::Game::AlphaFamily",
+      "header": "Egt/JokerReelsCoins10Math/JokerReelsCoins10Math.h",
+      "config": {
+        "setups": [
+          {
+            "id": "var_8438",
+            "simRtp": 0.8438,
+            "minCap": null,
+            "maxCap": 500000,
+            "mathFileId": "MathRulesConfig_8438"
+          }
+        ]
+      }
+    }
+  ]
+}

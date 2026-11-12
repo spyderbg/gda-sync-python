@@ -600,8 +600,11 @@ onBeforeUnmount(() => {
   <div v-else-if="state === 'unsupported'" class="card">
     <div class="card-body">
       <h5 class="card-title">This game cannot be played in the browser yet</h5>
-      <p class="mb-2">The browser game has none of the game modules this workspace's modules config
-        <code v-if="project?.modules">{{ project.modules.file }}</code><span v-else>(configs/{{ project?.workspace.id }}/modules)</span> names:</p>
+      <p v-if="project?.modules" class="mb-2">The browser game does not have every game module this workspace's modules config
+        <code>{{ project.modules.file }}</code> names:</p>
+      <p v-else class="mb-2">No modules config was found for this workspace: neither the browser game's own
+        (<code>frontend/src/game/configs/{{ project?.workspace.id }}/modules</code>, which a game sync copies) nor one beside the
+        workspace's resources folder (<code>configs/{{ project?.workspace.id }}/modules</code>).</p>
       <ul class="mb-0"><li v-for="module in project?.modules?.config.modules ?? []" :key="module.name"><code>{{ module.name }}</code></li></ul>
       <h6 class="mt-3">Import from C++</h6>
       <p class="small mb-2">The game's C++ folder (<code>games/game/alpha_family/plugins/{{ project?.workspace.id }}</code>) imports into the

@@ -1,0 +1,7 @@
+{
+  "include": [
+    "../../alpha_family/modules/AlphaGameModules_Partner.json"
+  ],
+  "plugins": [],
+  "modules": []
+}

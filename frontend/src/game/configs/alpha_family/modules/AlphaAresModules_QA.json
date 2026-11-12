@@ -1,0 +1,10 @@
+{
+  "plugins": [],
+  "modules": [
+    {
+      "name": "AresQaCabinetKeys",
+      "space": "Egt::Integration::Ares",
+      "header": "Egt/AresQaCabinetKeys/AresQaCabinetKeys.h"
+    }
+  ]
+}

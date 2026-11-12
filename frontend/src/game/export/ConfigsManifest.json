@@ -1,0 +1,246 @@
+{
+ "alpha_family/modules/AlphaAresModules_QA.json": {
+  "sha256": "3138e5667255132939c4022b61e247f97b6f34b054ddd3f2ed4a001875ef92bf",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "alpha_family/modules/AlphaAresModules.json": {
+  "sha256": "51591c1162c2b9593712e6d85312575208a304c6aac12b934520fe1d3b8aafa0",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "alpha_family/modules/AlphaAstroModules_Production.json": {
+  "sha256": "79306cf477e80f219dd27f59cf148f47f25b18b94794ab1f221f24b17dd84137",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "alpha_family/modules/AlphaAstroModules_QA.json": {
+  "sha256": "357eab1542b7b2121930b6798babbe9ccd29e9aa6817b2de576f0da2a4ef1e47",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "alpha_family/modules/AlphaAstroModules.json": {
+  "sha256": "8c32fcc534aaedc3d558cf4d95241dac7f6046a17865f8822ff0f11aff8b31f4",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "alpha_family/modules/AlphaGameModules_Partner.json": {
+  "sha256": "7aafbbe613d6a6461af4a7f545f6cd5f4fa67fc4b1e0f99ed2cdb83effe60b85",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "alpha_family/modules/AlphaGameModules_QA.json": {
+  "sha256": "8d8b9734f18fb1d83a6ee13034d7007cf394fd1adfc98bfacf11b77d8944299e",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "alpha_family/modules/AlphaGameModules.json": {
+  "sha256": "8b19b25d614fdd6ed7eae155e6642d85b585714423921f623c7c23d2e8ed7941",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "alpha_family/modules/AlphaHatModules.json": {
+  "sha256": "b868c98ed397e5f0e71305ef14085deb23b2ed127256e9922dfe52fb732df852",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "alpha_family/modules/AlphaInspiredModules.json": {
+  "sha256": "e6b4069e925aaef521e1aa72d405b78eb7b9922281ecaa3f247ccb27774084ef",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "alpha_family/modules/AlphaPlaygroundModules_QA.json": {
+  "sha256": "19ab04150b1d0b1fa51213f1d49fc10ee0c037c77492b9f80af557ca860374b6",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "alpha_family/modules/AlphaPlaygroundModules.json": {
+  "sha256": "865d4e3c4973ebe6c046c712e8a48ff32568e8b2cf1613705b29eff66303227c",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "alpha_family/modules/AlphaTruservBotModules.json": {
+  "sha256": "c6f7f8b69751ed8bc1c2f6148b6f75580f464a08a4b4424cc05a1cc9dbd83aca",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "alpha_family/modules/AlphaTruservClientModules.json": {
+  "sha256": "1f7ac78fd5ea60edd62ce98953719a27260bf9efeb5f9404bd57cbe76f6bff26",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "alpha_family/modules/AlphaTruservServerModules_Partner.json": {
+  "sha256": "4f64b0946337b4b266ebc1c70aa7e6b3844d7a2fcb1165473008376da4b2ace8",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "alpha_family/modules/AlphaTruservServerModules_QA.json": {
+  "sha256": "4f64b0946337b4b266ebc1c70aa7e6b3844d7a2fcb1165473008376da4b2ace8",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "alpha_family/modules/AlphaTruservServerModules.json": {
+  "sha256": "593a7acad42e32a251905387ef3fa5d03b981c4e565dc3e4f009f82ce6090802",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "burning_crown_tetra_spins_10/modules/BurningCrownTetraSpins10DebugModules.json": {
+  "sha256": "a1ec40b8eb7bdbd98a5d232712bbcfec08e01fd44c93aeec0730876637447524",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "burning_crown_tetra_spins_10/modules/BurningCrownTetraSpins10Modules_Partner.json": {
+  "sha256": "e6a23d2de876b41e4246c19dfdb2494761d5ca4a8c91bd7970c7500520ce2c24",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "burning_crown_tetra_spins_10/modules/BurningCrownTetraSpins10Modules_QA.json": {
+  "sha256": "dac72751057a85b4c6798e025563e091767952c0a51b3f9d36bd76ac8a0fd6fb",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "burning_crown_tetra_spins_10/modules/BurningCrownTetraSpins10Modules.json": {
+  "sha256": "e150d96854009d1c8a430c9541d8fc93ff3b98bf0ae7d200654d853a6b61e573",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "burning_crown_tetra_spins_10/modules/ModuleManager_Ares.json": {
+  "sha256": "ffbd6c767050599497556cfa5a67b632be4a765c5e335b0e63b3ebe5e261a7d0",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "burning_crown_tetra_spins_10/modules/ModuleManager_Astro.json": {
+  "sha256": "2a9bae189fc6018f88da36ec2c0c8b726f01f080537c914de6d1c7004b2ff13a",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "burning_crown_tetra_spins_10/modules/ModuleManager_Hat.json": {
+  "sha256": "aa18b64ace09ecd32b474f1d057b3d7f491529203b985883b8433f459726b5e2",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "burning_crown_tetra_spins_10/modules/ModuleManager_Inspired.json": {
+  "sha256": "9fb09aaa7668ea96519f30fabfd72ee99586e5b718f60d8f6f9c269ce09359d7",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "burning_crown_tetra_spins_10/modules/ModuleManager_Playground.json": {
+  "sha256": "4f91aa95c2d9ca2ab889804cd646b9a7523bdb73e47ae76bd6030b6f2991e341",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "burning_crown_tetra_spins_10/modules/ModuleManager_Truserv_Bot.json": {
+  "sha256": "31722afae31731fbf6ece8121a67b98c8f86cb440347543f9fb20b5218d8eacf",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "burning_crown_tetra_spins_10/modules/ModuleManager_Truserv_Client.json": {
+  "sha256": "04850f6d8d8f2fdc5f3945558c32d993009002e45901ae4a472a652040928fef",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "burning_crown_tetra_spins_10/modules/ModuleManager_Truserv_Server.json": {
+  "sha256": "74f100bffdcc3539383df00a46c35fa3004c75017f2f7ef9d85d642bf3a22dd2",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "burning_hot_coins/modules/BurningHotCoinsModules_Partner.json": {
+  "sha256": "e6a23d2de876b41e4246c19dfdb2494761d5ca4a8c91bd7970c7500520ce2c24",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "burning_hot_coins/modules/BurningHotCoinsModules_QA.json": {
+  "sha256": "dac72751057a85b4c6798e025563e091767952c0a51b3f9d36bd76ac8a0fd6fb",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "burning_hot_coins/modules/BurningHotCoinsModules.json": {
+  "sha256": "560090a15a9eb5f3aea928c9be408d35b93f02ef099c118b2ea094f45881c051",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "burning_hot_coins/modules/ModuleManager_Ares.json": {
+  "sha256": "00941f0c7dcbbb49d89d314a17413b4ced9a63399a1d1f33adf34b22746fa040",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "burning_hot_coins/modules/ModuleManager_Astro.json": {
+  "sha256": "a1810447272a028fb2cdc354167c989b41c2f5d07b1977df2ef2e0ead0cfe5f0",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "burning_hot_coins/modules/ModuleManager_Hat.json": {
+  "sha256": "d61f67631176d982df995442e21f55b311d7bd15230bb745aaf853baa73eb66b",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "burning_hot_coins/modules/ModuleManager_Inspired.json": {
+  "sha256": "8ab113f798f07fe276177d048233dc28e9e4aedb6a5980d2b31cf466ae34c25e",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "burning_hot_coins/modules/ModuleManager_Playground.json": {
+  "sha256": "e5435a0282dac4d31899eaebb34c4066a6c07ad31b726bf29fe9fe6b3a2aabc3",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "burning_hot_coins/modules/ModuleManager_Truserv_Bot.json": {
+  "sha256": "6d19d51a656cc0ec7e78a9ce0ecf7895525de4f58a51f1ff020074db3f0f2947",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "burning_hot_coins/modules/ModuleManager_Truserv_Client.json": {
+  "sha256": "f397c3b07f63e6e8f7170ee4452ac709ead52c2c3b8aef40fa83cae2e1ae51ff",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "burning_hot_coins/modules/ModuleManager_Truserv_Server.json": {
+  "sha256": "e8b323dbbc8cb97e04079606201e44b8eb93bac785d80d5a3c4ea7a60f3fc577",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "joker_reels_coins_10/modules/JokerReelsCoins10DebugModules.json": {
+  "sha256": "a1ec40b8eb7bdbd98a5d232712bbcfec08e01fd44c93aeec0730876637447524",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "joker_reels_coins_10/modules/JokerReelsCoins10Modules_Partner.json": {
+  "sha256": "e6a23d2de876b41e4246c19dfdb2494761d5ca4a8c91bd7970c7500520ce2c24",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "joker_reels_coins_10/modules/JokerReelsCoins10Modules_QA.json": {
+  "sha256": "dac72751057a85b4c6798e025563e091767952c0a51b3f9d36bd76ac8a0fd6fb",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "joker_reels_coins_10/modules/JokerReelsCoins10Modules.json": {
+  "sha256": "02d15170344c4015ec8bedfaa7bb91fcf5ef53f54c56585b6e1a10ef9dda1761",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "joker_reels_coins_10/modules/ModuleManager_Ares.json": {
+  "sha256": "68928ffb7fb54df535185613e7549b05e4e852da3f8ec51dc27f82ed6fecca9e",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "joker_reels_coins_10/modules/ModuleManager_Astro.json": {
+  "sha256": "56614762f508576014324f2ae4f91d4fabd4b76d06ebea9b3f8d390b287a6051",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "joker_reels_coins_10/modules/ModuleManager_Hat.json": {
+  "sha256": "24d9704898fa2d944fc93922bfa53cf2e04b3c8d5e37a0b048e44206e38289a3",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "joker_reels_coins_10/modules/ModuleManager_Inspired.json": {
+  "sha256": "74323c4c5daebddb04652a4d27ac7f6fd7ac3fd9fbe1d025325da1b165859b1a",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "joker_reels_coins_10/modules/ModuleManager_Playground.json": {
+  "sha256": "14c67b07b731fd4773069eb4008889597f73ed41b628899d534254732733c580",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "joker_reels_coins_10/modules/ModuleManager_Truserv_Bot.json": {
+  "sha256": "8c3bfa90e0820a8d3b0cda0b56b5378b1bad8c02b841c3d72bbf7bebf2acaa41",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "joker_reels_coins_10/modules/ModuleManager_Truserv_Client.json": {
+  "sha256": "f692e80af9e212da6ec8c5abf431a7715c699267b2b05035962a045a902acf70",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "joker_reels_coins_10/modules/ModuleManager_Truserv_Server.json": {
+  "sha256": "a10230cb4738c4d0bc0e103b12fa41200ac1d4c8c9156941fcbe320c256b8322",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "zodiac_wheel_coins/modules/ModuleManager_Ares.json": {
+  "sha256": "bd65ba24242466343f14d5afd5ba2306d80095e8132c28292251ddafb015a4b7",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "zodiac_wheel_coins/modules/ModuleManager_Astro.json": {
+  "sha256": "7ccc95df656b51438c9eaa74b44a170617b04778a9c2e05a97d3c86705775dd6",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "zodiac_wheel_coins/modules/ModuleManager_Playground.json": {
+  "sha256": "3f02c5b80cb1e15fdaaefa91c6ac470a03a22de47edcbf23025468c1c8d27276",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "zodiac_wheel_coins/modules/ModuleManager_Truserv_Bot.json": {
+  "sha256": "ea020f62a1b937edb2e04b0fe53514950212a4032fe6ca448b47d78e112b5c32",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "zodiac_wheel_coins/modules/ModuleManager_Truserv_Client.json": {
+  "sha256": "f7181465e521510a8c9635438beb7964d99e717611edef3fb41122c1ef43b0af",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "zodiac_wheel_coins/modules/ModuleManager_Truserv_Server.json": {
+  "sha256": "6b294812b327011aa8f101f5fdf2c0a1752dd2afe57bfb5978b9fb27be1a443d",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "zodiac_wheel_coins/modules/ZodiacWheelCoinsModules_Partner.json": {
+  "sha256": "e6a23d2de876b41e4246c19dfdb2494761d5ca4a8c91bd7970c7500520ce2c24",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "zodiac_wheel_coins/modules/ZodiacWheelCoinsModules_QA.json": {
+  "sha256": "dac72751057a85b4c6798e025563e091767952c0a51b3f9d36bd76ac8a0fd6fb",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ },
+ "zodiac_wheel_coins/modules/ZodiacWheelCoinsModules.json": {
+  "sha256": "3b43bd1e055815b92eecd9e47ef840a231209f084cbae53659ea0a86a9096574",
+  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+ }
+}

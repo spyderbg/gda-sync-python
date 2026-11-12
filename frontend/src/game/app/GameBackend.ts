@@ -1,9 +1,11 @@
 // The backend endpoints the browser game uses for every file operation: the game project (modules config and
 // descriptors), its JSON data (math, view configs, views), its images, audio and fonts (the asset library's preview),
-// the asset report the asset library lists, and the export of generated files.
+// the asset report the asset library lists, and the export of generated files. The project's modules configs are the
+// browser game's own where it has the game's (ModulesConfigs.ts), and the backend's otherwise.
 
 import type { RtfLayout } from '@game/engine/GameVideoCtrl/Rtf/RtfLayout';
 import type { RssDescriptors } from '@game/engine/Game/RuntimeExport/IResources';
+import { WithOwnModules } from './ModulesConfigs';
 
 export interface GameProjectModule {
   name: string;
@@ -22,8 +24,10 @@ export interface GameProject {
   workspace: { id: string; name: string };
   gamePath: string;
   resourcesPath: string;
+  /** The game's modules config: the browser game's own (frontend/src/game/configs/<game>/modules), or else the one
+   * beside the workspace's resources folder (configs/<workspace id>/modules), which the backend reads. */
   modules: GameModulesConfig | null;
-  /** The modules config of the game's family (configs/alpha_family/modules/AlphaGameModules.json). */
+  /** The modules config of the game's family (configs/alpha_family/modules/AlphaGameModules.json), from the same place. */
   familyModules: GameModulesConfig | null;
   /** The C++ game sources (games/game), which an export copies the plugin's sources from. */
   cppPath: string;
@@ -52,7 +56,7 @@ async function getJSON<T>(url: string): Promise<T> {
 }
 
 export const GameBackend = {
-  Project: () => getJSON<GameProject>('/api/game/project'),
+  Project: async () => WithOwnModules(await getJSON<GameProject>('/api/game/project')),
   AssetReport: () => getJSON<GameAssetReport>('/api/asset-report'),
   /** A JSON file of the game, by its path relative to the game folder. */
   Data: <T>(path: string) => getJSON<T>(`/api/game/data?file=${encodeURIComponent(path)}`),

@@ -1,0 +1,138 @@
+{
+  "include": [
+    "AlphaGameModules.json"
+  ],
+  "plugins": [],
+  "modules": [
+    {
+      "name": "PlaygroundVideo",
+      "space": "Egt::Integration::Playground",
+      "header": "Egt/PlaygroundVideo/PlaygroundVideo.h",
+      "config": {
+        "inspiredCompatibility": true,
+        "windowsDirection": "column_reverse",
+        "viewportsDirection": "column_reverse",
+        "viewports": [
+          {
+            "type": "main",
+            "resolutionWidth": 1920,
+            "resolutionHeight": 1080
+          },
+          {
+            "type": "info",
+            "resolutionWidth": 1920,
+            "resolutionHeight": 1080
+          }
+        ]
+      }
+    },
+    {
+      "override": true,
+      "name": "VideoManager",
+      "initAfter": [
+        "PlaygroundVideo",
+        "ResourceRepository"
+      ],
+      "config": {
+        "swap": false,
+        "preserveAspectRatio": true
+      }
+    },
+    {
+      "override": true,
+      "name": "ResourceManager",
+      "config": {
+        "integration": "playground"
+      }
+    },
+    {
+      "name": "RecoveryManager",
+      "space": "Egt::Integration",
+      "header": "Egt/RecoveryManager/RecoveryManager.h"
+    },
+    {
+      "name": "PlaygroundIntegration",
+      "space": "Egt::Integration::Playground",
+      "header": "Egt/PlaygroundIntegration/PlaygroundIntegration.h",
+      "config": {
+        "layerId": 0,
+        "isMaxBetStartingGame": false,
+        "autoExit": {
+          "zeroCreditAfterMatchEndedDurationMs": 3000
+        }
+      }
+    },
+    {
+      "name": "ResponsibleGamingManager",
+      "space": "Egt::Integration",
+      "header": "Egt/ResponsibleGamingManager/ResponsibleGamingManager.h"
+    },
+    {
+      "name": "ResponsibleGamingSetupView",
+      "space": "Egt::Integration",
+      "header": "Egt/ResponsibleGamingSetupView/ResponsibleGamingSetupView.h",
+      "initAfter": [
+        "ResourceManager"
+      ],
+      "config": {
+        "layerId": 800
+      }
+    },
+    {
+      "name": "ResponsibleGamingWarningView",
+      "space": "Egt::Integration",
+      "header": "Egt/ResponsibleGamingWarningView/ResponsibleGamingWarningView.h",
+      "initAfter": [
+        "ResourceManager"
+      ],
+      "config": {
+        "layerId": 900
+      }
+    },
+    {
+      "name": "TaxationView",
+      "space": "Egt::Integration",
+      "header": "Egt/TaxationView/TaxationView.h",
+      "initAfter": [
+        "ResourceManager"
+      ],
+      "config": {
+        "layerId": 1100,
+        "idleTimerDuration": 10000,
+        "additionalMessageRegex": [
+          {
+            "regexTag": "<PRESS_PLAY>",
+            "localizationTag": "ARES_PRESS_TO_CONTINUE_TAXATION"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LocalizationManager",
+      "space": "Egt::Integration",
+      "header": "Egt/LocalizationManager/LocalizationManager.h",
+      "config": {
+        "supportedLanguages": [
+          "it-IT",
+          "en-GB"
+        ],
+        "defaultLanguage": "en-GB"
+      }
+    },
+    {
+      "name": "PlaygroundAlphaFamilyGameflow",
+      "space": "Egt::Integration::Playground::AlphaFamily",
+      "header": "Egt/PlaygroundAlphaFamilyGameflow/PlaygroundAlphaFamilyGameflow.h"
+    },
+    {
+      "name": "AlphaFamilyBridge",
+      "space": "Egt::Integration::AlphaFamily",
+      "header": "Egt/AlphaFamilyBridge/AlphaFamilyBridge.h"
+    },
+    {
+      "name": "MessageBoardManager",
+      "space": "Egt::Integration",
+      "header": "Egt/MessageBoardManager/MessageBoardManager.h"
+    }
+  ]
+}

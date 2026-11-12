@@ -1,0 +1,20 @@
+{
+  "include": [
+    "../../alpha_family/modules/AlphaInspiredModules.json",
+    "BurningCrownTetraSpins10Modules.json"
+  ],
+  "plugins": [],
+  "modules": [
+    {
+      "override": true,
+      "name": "VideoManager",
+      "config": {
+        "loadingScreensPaths": {
+          "main": "./art/1920x1080/09_LoadingScreen/DDS/Loading_screen_JR.dds",
+          "info": "./art/1920x1080/08.Topper/Topper_JR.dds",
+          "topper": "./art/1920x1080/09_LoadingScreen/DDS/Loading_screen_JR.dds"
+        }
+      }
+    }
+  ]
+}

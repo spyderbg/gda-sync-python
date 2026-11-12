@@ -1,0 +1,43 @@
+{
+  "include": [],
+  "plugins": [],
+  "modules": [
+    {
+      "name": "ResourceRepository",
+      "space": "Egt::Game",
+      "header": "Egt/ResourceRepository/ResourceRepository.h",
+      "config": {
+        "threadCountNormal": 0,
+        "threadCountHigh": 0,
+        "threadCountCritical": 0,
+        "reservedResourceCount": 0
+      }
+    },
+    {
+      "name": "ResourceManager",
+      "space": "Egt::Game",
+      "header": "Egt/ResourceManager/ResourceManager.h",
+      "initAfter": [
+        "ResourceRepository"
+      ],
+      "config": {
+        "allRssDataFileName": "AllRssData-Server.json"
+      }
+    },
+    {
+      "name": "RecoveryManager",
+      "space": "Egt::Integration",
+      "header": "Egt/RecoveryManager/RecoveryManager.h"
+    },
+    {
+      "name": "TruservServerIntegration",
+      "space": "Egt::Integration::Truserv",
+      "header": "Egt/TruservServerIntegration/TruservServerIntegration.h"
+    },
+    {
+      "name": "AlphaFamilyGameflow",
+      "space": "Egt::Integration::AlphaFamily",
+      "header": "Egt/AlphaFamilyGameflow/AlphaFamilyGameflow.h"
+    }
+  ]
+}

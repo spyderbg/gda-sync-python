@@ -1,0 +1,24 @@
+{
+  "include": [
+    "../../alpha_family/modules/AlphaTruservBotModules.json"
+  ],
+  "plugins": [],
+  "modules": [
+    {
+      "name": "BurningCrownTetraSpins10Math",
+      "space": "Egt::Game::AlphaFamily",
+      "header": "Egt/BurningCrownTetraSpins10Math/BurningCrownTetraSpins10Math.h",
+      "config": {
+        "setups": [
+          {
+            "id": "var_8435",
+            "simRtp": 0.8435,
+            "minCap": null,
+            "maxCap": 500000,
+            "mathFileId": "MathRulesConfig_8435"
+          }
+        ]
+      }
+    }
+  ]
+}

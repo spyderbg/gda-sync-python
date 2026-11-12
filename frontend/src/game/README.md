@@ -19,12 +19,14 @@ file agrees with itself and with the setup's capping, and its lines view plays t
 
 ## What it loads, and from where
 
-Every file operation goes through the backend (`egt_gda_sync/game/project.py`):
+Every file operation goes through the backend (`egt_gda_sync/game/project.py`), but the modules configs, which the
+browser game has of its own: a workspace of a ported game plays without the games repository's `configs` folder beside
+its resources ([`docs/independent_game.md`](../../../docs/independent_game.md)):
 
 | What | Endpoint | C++ counterpart |
 | --- | --- | --- |
-| The game's modules and their config | `GET /api/game/project` → `modules` (`configs/<workspace id>/modules/<Name>Modules.json`) | ModuleManager config |
-| The family's modules (the capping splash...) | `GET /api/game/project` → `familyModules` (`configs/alpha_family/modules/AlphaGameModules.json`) | ModuleManager config |
+| The game's modules and their config | The browser game's own `configs/<workspace id>/modules/<Name>Modules.json`, built into it (`app/ModulesConfigs.ts`); for a game that has none there, `GET /api/game/project` → `modules` (the same path beside the workspace's resources folder) | ModuleManager config |
+| The family's modules (the capping splash...) | The browser game's own `configs/alpha_family/modules/AlphaGameModules.json`; otherwise `GET /api/game/project` → `familyModules` | ModuleManager config |
 | The descriptors' entries (images, sequences, movies, fonts, styles, audio, IData, views, RTFs) | `GET /api/game/project` → `descriptors` | ResourceManager |
 | The math file, view configs and views | `GET /api/game/data?file=<path in the game folder>` | `IResources::Get<RssIData>`, ElementsList |
 | When the watched view, IData and descriptor files last changed | `GET /api/game/file-stamps?file=...&file=...` | FileWatch (inotify) |
@@ -56,6 +58,7 @@ The folders mirror the C++ ones, and the classes keep their C++ names and method
 | `alpha_family/libs/AlphaFamilyStatesLibrary` | the states library (managers, Idle, Match, MainRound, TetraRound, MatchCappingApplied...) |
 | `alpha_family/libs/AlphaFamilyVideoCtrl` | BaseView, ButtonView, NumericBarView, MenuView |
 | `alpha_family/plugins/<plugin>/<Module>` | `alpha_family/plugins/<plugin>/src/Egt/<Module>`: a game's Math, Fsm, View, InfoView, TopperView |
+| `configs/<plugin>/modules`, `configs/alpha_family/modules` | `games/configs/<plugin>/modules` and the family's: the modules configs, copied as they are by a game sync (`export/sync-configs.mjs`, `export/ConfigsManifest.json`). The Play page reads a game's `<Name>Modules.json` and the family's `AlphaGameModules.json` from here (`app/ModulesConfigs.ts`, by the workspace's id, or else its game folder's name), built in like the modules they name: a change shows after a build, or at once on the development server |
 | `alpha_family/plugins/alpha_family/<Module>` | `alpha_family/plugins/alpha_family/src/Egt/<Module>`: the family's debug tools, the RNG Presets (`AlphaFamilyMathRngPreset`), the RNG Picker (`AlphaFamilyMathRngTool`) and the automation's stub views (`AlphaFamilyAutomationView`) |
 | `alpha_family/libs/AlphaFamilyMathToolUtils` | `alpha_family/libs/src/Egt/AlphaFamilyMathToolUtils` (ResultToRng, RulesHelper: the RNG numbers of a wanted result) |
 | `integration/AlphaFamilyGameflow` | `integration/libs/src/Egt/AlphaFamilyGameflow` |
@@ -339,6 +342,14 @@ the panel (`/api/game/sync`). It cannot ask: where the procedure says to ask, it
 scratch folder is the app data folder's `game-syncs/<plugin>-<time>`. The backend finds `claude` on its PATH, or where
 Claude Code's installers put it (`~/.local/bin`, `~/.claude/local`, nvm's folders): an app started from an IDE lacks the
 shell's PATH. Review and commit what it ported: the export finds the TypeScript as it was ported in the git history.
+
+A game's modules configs follow too: `node export/sync-configs.mjs <games> [--check] [<plugin>...]` copies
+`configs/<plugin>/modules`, and the folders of the configs these include (the family's `configs/alpha_family/modules`),
+from the games repository's HEAD into `configs/`, by the same paths. `export/ConfigsManifest.json` records each copy's
+SHA-256 and the commit it was taken from, so a copy edited here is kept, and one that the games repository changed too
+is a conflict that the sync does not overwrite (`--force` takes the games repository's). `--check` only lists what
+differs, with the commits since. The Play page plays with these copies (`app/ModulesConfigs.ts`), so a ported game
+needs nothing of the games repository's `configs` folder ([`docs/independent_game.md`](../../../docs/independent_game.md)).
 
 The whole procedure, step by step, as Claude Code follows it: [`docs/code_sync/game_sync.md`](../../../docs/code_sync/game_sync.md)
 for a game's plugin (in Claude Code, `/game-sync <plugin>` runs it), and

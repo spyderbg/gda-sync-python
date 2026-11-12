@@ -1,5 +1,7 @@
 """Workflow tests in a real browser. They share one backend and run in order."""
 
+import re
+
 import pytest
 from playwright.sync_api import expect
 
@@ -275,6 +277,30 @@ def test_the_play_page_explains_a_game_the_browser_cannot_play(page):
     page.get_by_role("button", name="Play", exact=True).click()
     expect(page.get_by_role("heading", name="This game cannot be played in the browser yet")).to_be_visible()
     expect(page.get_by_label("Game screen")).to_be_hidden()
+    # Neither place has one: the browser game's own configs, nor the folder beside the workspace's resources.
+    missing = page.get_by_text("No modules config was found for this workspace")
+    expect(missing).to_be_visible()
+    expect(missing.locator("code")).to_have_text([re.compile(r"^frontend/src/game/configs/.+/modules$"), re.compile(r"^configs/.+/modules$")])
+
+
+def test_the_play_page_starts_a_ported_game_with_the_browser_games_own_modules_config(page):
+    # A ported game's workspace on a machine without the games repository: the backend finds no modules config beside the
+    # resources folder, and the browser game has the game's own (frontend/src/game/configs, which a game sync copies).
+    def as_a_ported_game(route):
+        response = route.fetch()
+        project = response.json()
+        assert project["modules"] is None and project["familyModules"] is None
+        project["workspace"]["id"] = "burning_crown_tetra_spins_10"
+        route.fulfill(response=response, json=project)
+
+    page.route("**/api/game/project", as_a_ported_game)
+    page.goto("/")
+    select_workspace(page)
+    page.get_by_role("button", name="Play", exact=True).click()
+    # The game starts: its screen shows, or it stops for the resources this workspace's folder lacks. It is not unsupported.
+    started = page.get_by_label("Game screen").or_(page.get_by_role("alert").filter(has_text="The game stopped:"))
+    expect(started.first).to_be_visible(timeout=30_000)
+    expect(page.get_by_role("heading", name="This game cannot be played in the browser yet")).to_be_hidden()
 
 
 def test_stops_the_local_application_and_leaves_a_clear_closed_workspace_screen(page, backend):

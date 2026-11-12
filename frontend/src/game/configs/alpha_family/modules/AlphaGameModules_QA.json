@@ -1,0 +1,116 @@
+{
+  "plugins": [],
+  "modules": [
+    {
+      "name": "DebugImguiOverlay",
+      "space": "Egt::Game",
+      "header": "Egt/DebugImguiOverlay/DebugImguiOverlay.h",
+      "initAfter": [
+        "VideoManager"
+      ],
+      "config": {
+        "imguiEx": {
+          "onScreenKeyboardSupport": true,
+          "iniFilename": "imgui.ini",
+          "paramsFilename": "imgui_params.ini",
+          "iniSaveFolder": "",
+          "iniResourceFolder": "../common/ini",
+          "enableIniAutoSave": false
+        },
+        "imguiVideoCtrl": {
+          "displayWidth": 0,
+          "displayHeight": 0,
+          "fontScale": 1.25,
+          "styleScale": 1.25,
+          "scrollbarScale": 2.0,
+          "fonts": {
+            "Default": "../common/f/imgui/Inter-Medium.ttf",
+            "Monospace": "../common/f/imgui/Inconsolata-Medium.ttf"
+          }
+        }
+      }
+    },
+    {
+      "name": "AutomationManager",
+      "space": "Egt::Integration",
+      "header": "Egt/AutomationManager/AutomationManager.h",
+      "config": {
+        "stubViewModule": {
+          "name": "AlphaFamilyAutomationView",
+          "space": "Egt::Game::AlphaFamily",
+          "header": "Egt/AlphaFamilyAutomationView/AlphaFamilyAutomationView.h"
+        }
+      }
+    },
+    {
+      "name": "LogViewer",
+      "space": "Egt::Integration",
+      "header": "Egt/LogViewer/LogViewer.h"
+    },
+    {
+      "name": "PoiViewer",
+      "space": "Egt::Integration",
+      "header": "Egt/PoiViewer/PoiViewer.h"
+    },
+    {
+      "name": "HelpInfo",
+      "space": "Egt::Integration",
+      "header": "Egt/HelpInfo/HelpInfo.h"
+    },
+    {
+      "name": "KeymapInfo",
+      "space": "Egt::Integration",
+      "header": "Egt/KeymapInfo/KeymapInfo.h"
+    },
+    {
+      "name": "GameFsmViewer",
+      "space": "Egt::Game",
+      "header": "Egt/GameFsmViewer/GameFsmViewer.h"
+    },
+    {
+      "name": "RngPresetManager",
+      "space": "Egt::Integration",
+      "header": "Egt/RngPresetManager/RngPresetManager.h"
+    },
+    {
+      "name": "AlphaFamilyMathRngPreset",
+      "space": "Egt::Game::AlphaFamily",
+      "header": "Egt/AlphaFamilyMathRngPreset/AlphaFamilyMathRngPreset.h"
+    },
+    {
+      "name": "AlphaFamilyMathRngTool",
+      "space": "Egt::Game::AlphaFamily",
+      "header": "Egt/AlphaFamilyMathRngTool/AlphaFamilyMathRngTool.h"
+    },
+    {
+      "name": "ResourceInspector",
+      "space": "Egt::Game::AlphaFamily",
+      "header": "Egt/ResourceInspector/ResourceInspector.h"
+    },
+    {
+      "name": "FileWatch",
+      "space": "Egt::Game",
+      "header": "Egt/FileWatch/FileWatch.h"
+    },
+    {
+      "name": "GraphicsInspector",
+      "space": "Egt::Integration",
+      "header": "Egt/GraphicsInspector/GraphicsInspector.h"
+    },
+    {
+      "name": "ScreenshotsManager",
+      "space": "Egt::Integration",
+      "header": "Egt/ScreenshotsManager/ScreenshotsManager.h"
+    },
+    {
+      "name": "QaBridge",
+      "space": "Egt::Integration",
+      "header": "Egt/QaBridge/QaBridge.h",
+      "config": {
+        "enabled": true,
+        "port": 5111,
+        "game": "{{GAME_NAME}}"
+      }
+    }
+  ]
+}

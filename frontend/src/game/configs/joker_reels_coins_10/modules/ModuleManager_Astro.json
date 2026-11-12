@@ -1,0 +1,36 @@
+{
+  "include": [
+    "../../alpha_family/modules/AlphaAstroModules.json",
+    "JokerReelsCoins10Modules.json"
+  ],
+  "plugins": [],
+  "modules": [
+    {
+      "override": true,
+      "name": "AstroVideo",
+      "config": {
+        "mainWidth": 1920,
+        "mainHeight": 1080
+      }
+    },
+    {
+      "override": true,
+      "name": "VideoManager",
+      "config": {
+        "loadingScreensPaths": {
+          "main": "./art/1920x1080/09_LoadingScreen/DDS/Loading_screen_JR.dds",
+          "info": "./art/1920x1080/08.Topper/Topper_JR.dds",
+          "topper": "./art/1920x1080/09_LoadingScreen/DDS/Loading_screen_JR.dds"
+        }
+      }
+    },
+    {
+      "override": true,
+      "name": "ResourceManager",
+      "config": {
+        "resolutionWidth": 1920,
+        "resolutionHeight": 1080
+      }
+    }
+  ]
+}

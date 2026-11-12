@@ -1,3 +1,7 @@
+> Since 2026-11-12 the Play page takes a ported game's modules config from the browser game's own copies
+> (`frontend/src/game/configs`, which `/game-sync` copies from the games repository), so the workspace below plays
+> without a `configs` folder beside `rss`. The notes that follow describe the problem as it was before that.
+
 The game itself is fine. On this machine, the Play page can't find the game's modules config. When
   that's missing, it shows its "not ported yet" screen, which offers to import from C++. That's why it
   looks as if the C++ code is needed. It isn't needed for playing.

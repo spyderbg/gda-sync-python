@@ -1,0 +1,128 @@
+{
+  "include": [
+    "AlphaGameModules.json"
+  ],
+  "plugins": [],
+  "modules": [
+    {
+      "remove": true,
+      "name": "AudioManager"
+    },
+    {
+      "name": "TruservAudioManager",
+      "space": "Egt::Integration::Truserv",
+      "header": "Egt/TruservAudioManager/TruservAudioManager.h",
+      "initAfter": [
+        "VideoManager"
+      ],
+      "config": {
+        "audioDesignRssId": "AudioDesignConfig",
+        "possibleSoundVolumes": [
+          0.333,
+          0.667,
+          1.000
+        ]
+      }
+    },
+    {
+      "name": "TruservClientVideo",
+      "space": "Egt::Integration::Truserv",
+      "header": "Egt/TruservClientVideo/TruservClientVideo.h",
+      "config": {}
+    },
+    {
+      "override": true,
+      "name": "VideoManager",
+      "initAfter": [
+        "TruservClientVideo",
+        "ResourceRepository"
+      ],
+      "config": {
+        "swap": true
+      }
+    },
+    {
+      "override": true,
+      "name": "ResourceManager",
+      "initAfter": [
+        "ResourceRepository",
+        "VideoManager",
+        "TruservAudioManager",
+        "LocalizationManager"
+      ]
+    },
+    {
+      "name": "RecoveryManager",
+      "space": "Egt::Integration",
+      "header": "Egt/RecoveryManager/RecoveryManager.h"
+    },
+    {
+      "name": "TruservClientIntegration",
+      "space": "Egt::Integration::Truserv",
+      "header": "Egt/TruservClientIntegration/TruservClientIntegration.h",
+      "config": {
+        "attendance": {
+          "noCreditIdleExitDurationMs": 0,
+          "lessThanMinBetCreditIdleExitDurationMs": 0
+        },
+        "autoExit": {
+          "zeroCreditAfterMatchEndedDurationMs": 3000
+        }
+      }
+    },
+    {
+      "name": "ResponsibleGamingManager",
+      "space": "Egt::Integration",
+      "header": "Egt/ResponsibleGamingManager/ResponsibleGamingManager.h"
+    },
+    {
+      "name": "ResponsibleGamingSetupView",
+      "space": "Egt::Integration",
+      "header": "Egt/ResponsibleGamingSetupView/ResponsibleGamingSetupView.h",
+      "initAfter": [
+        "ResourceManager"
+      ],
+      "config": {
+        "layerId": 800
+      }
+    },
+    {
+      "name": "ResponsibleGamingWarningView",
+      "space": "Egt::Integration",
+      "header": "Egt/ResponsibleGamingWarningView/ResponsibleGamingWarningView.h",
+      "initAfter": [
+        "ResourceManager"
+      ],
+      "config": {
+        "layerId": 900
+      }
+    },
+    {
+      "name": "LocalizationManager",
+      "space": "Egt::Integration",
+      "header": "Egt/LocalizationManager/LocalizationManager.h",
+      "config": {
+        "supportedLanguages": [
+          "it-IT",
+          "en-GB"
+        ],
+        "defaultLanguage": "it-IT"
+      }
+    },
+    {
+      "name": "TruservClientAlphaFamilyGameflow",
+      "space": "Egt::Integration::Truserv::AlphaFamily",
+      "header": "Egt/TruservClientAlphaFamilyGameflow/TruservClientAlphaFamilyGameflow.h"
+    },
+    {
+      "name": "AlphaFamilyBridge",
+      "space": "Egt::Integration::AlphaFamily",
+      "header": "Egt/AlphaFamilyBridge/AlphaFamilyBridge.h"
+    },
+    {
+      "name": "MessageBoardManager",
+      "space": "Egt::Integration",
+      "header": "Egt/MessageBoardManager/MessageBoardManager.h"
+    }
+  ]
+}

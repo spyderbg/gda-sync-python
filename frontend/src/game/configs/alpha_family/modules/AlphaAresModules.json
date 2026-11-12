@@ -1,0 +1,175 @@
+{
+  "include": [
+    "AlphaGameModules.json"
+  ],
+  "plugins": [],
+  "modules": [
+    {
+      "name": "AresVideo",
+      "space": "Egt::Integration::Ares",
+      "header": "Egt/AresVideo/AresVideo.h",
+      "runtimeAccess": {
+        "GameImport,Integration": "rw",
+        "GameView": "x"
+      }
+    },
+    {
+      "override": true,
+      "name": "VideoManager",
+      "initAfter": [
+        "AresVideo"
+      ],
+      "runtimeAccess": {
+        "Integration": "rwx",
+        "IntegrationView": "rwx",
+        "IntegrationDebug": "rwx"
+      },
+      "config": {
+        "swap": true
+      }
+    },
+    {
+      "override": true,
+      "name": "ResourceManager",
+      "config": {
+        "integration": "ares"
+      },
+      "initAfter": [
+        "ResourceRepository",
+        "VideoManager",
+        "AudioManager",
+        "AresLocalizationManager"
+      ]
+    },
+    {
+      "name": "RecoveryManager",
+      "space": "Egt::Integration",
+      "header": "Egt/RecoveryManager/RecoveryManager.h"
+    },
+    {
+      "name": "AresIntegration",
+      "space": "Egt::Integration::Ares",
+      "header": "Egt/AresIntegration/AresIntegration.h",
+      "config": {
+        "blinkIntervalMs": 600,
+        "autoExit": {
+          "zeroCreditAfterMatchEndedDurationMs": 100
+        },
+        "volume": {
+          "frameworkVolumeMapping": [
+            0.0000,
+            0.0625,
+            0.1250,
+            0.1875,
+            0.2500,
+            0.3125,
+            0.3750,
+            0.4375,
+            0.5000,
+            0.5625,
+            0.6250,
+            0.6875,
+            0.7500,
+            0.8125,
+            0.8750,
+            0.9375,
+            1.0000
+          ]
+        }
+      }
+    },
+    {
+      "override": true,
+      "name": "AudioManager",
+      "initAfter": [
+        "VideoManager",
+        "ResourceRepository",
+        "AresIntegration"
+      ],
+      "config": {
+        "cycleSkipsMute": false,
+        "possibleSoundVolumes": [
+          0.00,
+          0.25,
+          0.50,
+          0.75,
+          1.00
+        ]
+      }
+    },
+    {
+      "name": "ResponsibleGamingManager",
+      "space": "Egt::Integration",
+      "header": "Egt/ResponsibleGamingManager/ResponsibleGamingManager.h",
+      "initAfter": [
+        "ResourceManager"
+      ],
+      "config": {
+        "layerId": 800
+      }
+    },
+    {
+      "name": "TaxationView",
+      "space": "Egt::Integration",
+      "header": "Egt/TaxationView/TaxationView.h",
+      "initAfter": [
+        "ResourceManager"
+      ],
+      "config": {
+        "layerId": 1100,
+        "idleTimerDuration": 10000,
+        "additionalMessageRegex": [
+          {
+            "regexTag": "<PRESS_PLAY>",
+            "localizationTag": "ARES_PRESS_TO_CONTINUE_TAXATION"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AresLocalizationManager",
+      "space": "Egt::Integration::Ares",
+      "header": "Egt/AresLocalizationManager/AresLocalizationManager.h",
+      "runtimeAccess": {
+        "GameImport": "rwx",
+        "Integration,GameDebug": "rwx"
+      },
+      "config": {
+        "supportedLanguages": [
+          "it-IT",
+          "en-GB"
+        ],
+        "frameworkLanguages": [
+          "it-IT",
+          "en-EN",
+          "zh-Hans"
+        ]
+      }
+    },
+    {
+      "name": "AresAlphaFamilyGameflow",
+      "space": "Egt::Integration::Ares",
+      "header": "Egt/AresAlphaFamilyGameflow/AresAlphaFamilyGameflow.h"
+    },
+    {
+      "name": "AresPoiRegister",
+      "space": "Egt::Integration::Ares",
+      "header": "Egt/AresIntegration/Components/AresPoiRegister.h"
+    },
+    {
+      "name": "AresKernelConfig",
+      "space": "Egt::Integration::Ares",
+      "header": "Egt/AresIntegration/Components/AresKernelConfig.h",
+      "config": {
+        "lootWaitMs": 3000,
+        "exitWaitMs": 16,
+        "recoverMsgTimeOutMs": 3000
+      }
+    },
+    {
+      "name": "MessageBoardManager",
+      "space": "Egt::Integration",
+      "header": "Egt/MessageBoardManager/MessageBoardManager.h"
+    }
+  ]
+}

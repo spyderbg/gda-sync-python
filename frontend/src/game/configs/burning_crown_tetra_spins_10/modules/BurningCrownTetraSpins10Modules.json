@@ -1,0 +1,44 @@
+{
+  "plugins": [],
+  "modules": [
+    {
+      "name": "BurningCrownTetraSpins10Math",
+      "space": "Egt::Game::AlphaFamily",
+      "header": "Egt/BurningCrownTetraSpins10Math/BurningCrownTetraSpins10Math.h",
+      "config": {
+        "setups": [
+          {
+            "id": "var_8435",
+            "simRtp": 0.8435,
+            "minCap": null,
+            "maxCap": 500000,
+            "mathFileId": "MathRulesConfig_8435"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BurningCrownTetraSpins10View",
+      "space": "Egt::Game::AlphaFamily",
+      "header": "Egt/BurningCrownTetraSpins10View/BurningCrownTetraSpins10View.h"
+    },
+    {
+      "name": "BurningCrownTetraSpins10InfoView",
+      "space": "Egt::Game::AlphaFamily",
+      "header": "Egt/BurningCrownTetraSpins10InfoView/BurningCrownTetraSpins10InfoView.h"
+    },
+    {
+      "name": "BurningCrownTetraSpins10Fsm",
+      "space": "Egt::Game::AlphaFamily",
+      "header": "Egt/BurningCrownTetraSpins10Fsm/BurningCrownTetraSpins10Fsm.h"
+    },
+    {
+      "name": "BurningCrownTetraSpins10TopperView",
+      "space": "Egt::Game::AlphaFamily",
+      "header": "Egt/BurningCrownTetraSpins10TopperView/BurningCrownTetraSpins10TopperView.h",
+      "initAfter": [
+        "ResourceManager"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,72 @@
+{
+  "plugins": [],
+  "modules": [
+    {
+      "name": "DebugImguiOverlay",
+      "space": "Egt::Game",
+      "header": "Egt/DebugImguiOverlay/DebugImguiOverlay.h",
+      "initAfter": [
+        "VideoManager"
+      ],
+      "config": {
+        "imguiEx": {
+          "onScreenKeyboardSupport": true,
+          "iniFilename": "imgui.ini",
+          "paramsFilename": "imgui_params.ini",
+          "iniSaveFolder": "",
+          "iniResourceFolder": "../common/ini",
+          "enableIniAutoSave": false
+        },
+        "imguiVideoCtrl": {
+          "displayWidth": 0,
+          "displayHeight": 0,
+          "fontScale": 1.25,
+          "styleScale": 1.25,
+          "scrollbarScale": 2.0,
+          "fonts": {
+            "Default": "../common/f/imgui/Inter-Medium.ttf",
+            "Monospace": "../common/f/imgui/Inconsolata-Medium.ttf"
+          }
+        }
+      }
+    },
+    {
+      "name": "RngPresetManager",
+      "space": "Egt::Integration",
+      "header": "Egt/RngPresetManager/RngPresetManager.h",
+      "config": {
+        "mathDetailsHidden": true
+      }
+    },
+    {
+      "name": "AlphaFamilyMathRngPreset",
+      "space": "Egt::Game::AlphaFamily",
+      "header": "Egt/AlphaFamilyMathRngPreset/AlphaFamilyMathRngPreset.h"
+    },
+    {
+      "name": "AlphaFamilyMathRngTool",
+      "space": "Egt::Game::AlphaFamily",
+      "header": "Egt/AlphaFamilyMathRngTool/AlphaFamilyMathRngTool.h"
+    },
+    {
+      "name": "LogViewer",
+      "space": "Egt::Integration",
+      "header": "Egt/LogViewer/LogViewer.h"
+    },
+    {
+      "name": "PoiViewer",
+      "space": "Egt::Integration",
+      "header": "Egt/PoiViewer/PoiViewer.h"
+    },
+    {
+      "name": "HelpInfo",
+      "space": "Egt::Integration",
+      "header": "Egt/HelpInfo/HelpInfo.h"
+    },
+    {
+      "name": "KeymapInfo",
+      "space": "Egt::Integration",
+      "header": "Egt/KeymapInfo/KeymapInfo.h"
+    }
+  ]
+}

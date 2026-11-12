@@ -1,0 +1,93 @@
+{
+  "include": [
+    "AlphaGameModules.json"
+  ],
+  "plugins": [],
+  "modules": [
+    {
+      "name": "AstroVideo",
+      "space": "Egt::Integration::Astro",
+      "header": "Egt/AstroVideo/AstroVideo.h",
+      "config": {
+        "main": {
+          "title": "Astro Main (bottom, touch)",
+          "x": 0,
+          "y": 570,
+          "w": 960,
+          "h": 540,
+          "resizable": true,
+          "vsync": true
+        },
+        "info": {
+          "title": "Astro Info (top)",
+          "x": 0,
+          "y": 0,
+          "w": 960,
+          "h": 540,
+          "resizable": true,
+          "vsync": true
+        },
+        "topper": {
+          "w": 0,
+          "h": 0
+        }
+      }
+    },
+    {
+      "override": true,
+      "name": "VideoManager",
+      "initAfter": [
+        "AstroVideo",
+        "ResourceRepository",
+        "AstroIntegration"
+      ],
+      "config": {
+        "swap": true
+      }
+    },
+    {
+      "override": true,
+      "name": "ResourceManager",
+      "config": {
+        "integration": "astro"
+      }
+    },
+    {
+      "name": "RecoveryManager",
+      "space": "Egt::Integration",
+      "header": "Egt/RecoveryManager/RecoveryManager.h"
+    },
+    {
+      "name": "AstroIntegration",
+      "space": "Egt::Integration::Astro",
+      "header": "Egt/AstroIntegration/AstroIntegration.h"
+    },
+    {
+      "name": "ResponsibleGamingManager",
+      "space": "Egt::Integration",
+      "header": "Egt/ResponsibleGamingManager/ResponsibleGamingManager.h"
+    },
+    {
+      "name": "LocalizationManager",
+      "space": "Egt::Integration",
+      "header": "Egt/LocalizationManager/LocalizationManager.h",
+      "config": {
+        "supportedLanguages": [
+          "it-IT",
+          "en-GB"
+        ],
+        "defaultLanguage": "en-GB"
+      }
+    },
+    {
+      "name": "AstroAlphaFamilyGameflow",
+      "space": "Egt::Integration::Astro::AlphaFamily",
+      "header": "Egt/AstroAlphaFamilyGameflow/AstroAlphaFamilyGameflow.h"
+    },
+    {
+      "name": "MessageBoardManager",
+      "space": "Egt::Integration",
+      "header": "Egt/MessageBoardManager/MessageBoardManager.h"
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "include": [
+    "AlphaGameModules.json"
+  ],
+  "plugins": [],
+  "modules": [
+    {
+      "name": "HatVideo",
+      "space": "Egt::Integration::Hat",
+      "header": "Egt/HatVideo/HatVideo.h",
+      "config": {
+        "vsync": true,
+        "touchScreenWidth": 1920,
+        "touchScreenHeight": 1080
+      }
+    },
+    {
+      "override": true,
+      "name": "VideoManager",
+      "initAfter": [
+        "HatVideo",
+        "ResourceRepository"
+      ],
+      "config": {
+        "swap": false
+      }
+    },
+    {
+      "name": "RecoveryManager",
+      "space": "Egt::Integration",
+      "header": "Egt/RecoveryManager/RecoveryManager.h"
+    },
+    {
+      "name": "HatIntegration",
+      "space": "Egt::Integration::Hat",
+      "header": "Egt/HatIntegration/HatIntegration.h",
+      "config": {
+        "autoExit": {
+          "zeroCreditAfterMatchEndedDurationMs": 3000
+        }
+      }
+    },
+    {
+      "name": "ResponsibleGamingManager",
+      "space": "Egt::Integration",
+      "header": "Egt/ResponsibleGamingManager/ResponsibleGamingManager.h"
+    },
+    {
+      "name": "LocalizationManager",
+      "space": "Egt::Integration",
+      "header": "Egt/LocalizationManager/LocalizationManager.h",
+      "config": {
+        "supportedLanguages": [
+          "en-GB",
+          "bg-BG",
+          "en-US",
+          "el-GR"
+        ],
+        "defaultLanguage": "bg-BG"
+      }
+    },
+    {
+      "name": "AlphaFamilyGameflow",
+      "space": "Egt::Integration::AlphaFamily",
+      "header": "Egt/AlphaFamilyGameflow/AlphaFamilyGameflow.h"
+    }
+  ]
+}

@@ -317,6 +317,7 @@ def test_the_game_sync_runs_the_game_sync_command_for_the_workspaces_game_headle
     assert run["argv"][run["argv"].index("--add-dir") + 1] == str(scratch)
     tools = run["argv"][run["argv"].index("--allowedTools") + 1:]
     assert f"Bash(git -C {games} log:*)" in tools and "Bash(.venv/bin/python -I docs/code_sync/play_check.py:*)" in tools
+    assert "Bash(node frontend/src/game/export/sync-configs.mjs:*)" in tools and "modules configs" in run["prompt"]
     assert not any("commit" in tool or "push" in tool for tool in tools)
 
 

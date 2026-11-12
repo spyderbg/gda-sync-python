@@ -1,0 +1,44 @@
+{
+  "plugins": [],
+  "modules": [
+    {
+      "name": "BurningHotCoinsMath",
+      "space": "Egt::Game::AlphaFamily",
+      "header": "Egt/BurningHotCoinsMath/BurningHotCoinsMath.h",
+      "config": {
+        "setups": [
+          {
+            "id": "var_Burning_Hot_Coins_newPerc_v3(8423)",
+            "simRtp": 0.8423,
+            "minCap": null,
+            "maxCap": 500000,
+            "mathFileId": "MathRulesConfig_8423"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BurningHotCoinsView",
+      "space": "Egt::Game::AlphaFamily",
+      "header": "Egt/BurningHotCoinsView/BurningHotCoinsView.h"
+    },
+    {
+      "name": "BurningHotCoinsInfoView",
+      "space": "Egt::Game::AlphaFamily",
+      "header": "Egt/BurningHotCoinsInfoView/BurningHotCoinsInfoView.h"
+    },
+    {
+      "name": "BurningHotCoinsFsm",
+      "space": "Egt::Game::AlphaFamily",
+      "header": "Egt/BurningHotCoinsFsm/BurningHotCoinsFsm.h"
+    },
+    {
+      "name": "BurningHotCoinsTopperView",
+      "space": "Egt::Game::AlphaFamily",
+      "header": "Egt/BurningHotCoinsTopperView/BurningHotCoinsTopperView.h",
+      "initAfter": [
+        "ResourceManager"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,107 @@
+{
+  "include": [
+    "../../alpha_family/modules/AlphaAresModules.json",
+    "BurningCrownTetraSpins10Modules.json"
+  ],
+  "plugins": [],
+  "modules": [
+    {
+      "override": true,
+      "name": "AresVideo",
+      "config": {
+        "mainWidth": 1920,
+        "mainHeight": 1080,
+        "infoWidth": 1920,
+        "infoHeight": 1080,
+        "topperWidth": 1920,
+        "topperHeight": 1080
+      }
+    },
+    {
+      "override": true,
+      "name": "VideoManager",
+      "config": {
+        "loadingScreenPath": "./resources/burning_hot_coins/AT_VLT.dds",
+        "resolutionWidth": 1920,
+        "resolutionHeight": 1080
+      }
+    },
+    {
+      "override": true,
+      "name": "ResourceManager",
+      "config": {
+        "resolutionWidth": 1920,
+        "resolutionHeight": 1080
+      }
+    },
+    {
+      "name": "AresAtmosphere",
+      "space": "Egt::Integration::Ares",
+      "header": "Egt/AresIntegration/Components/AresAtmosphere.h",
+      "config": {
+        "scenarios": [
+          {
+            "name": "default",
+            "red": 0,
+            "green": 75,
+            "blue": 0,
+            "alpha": 255
+          }
+        ],
+        "startScenario": "default"
+      }
+    },
+    {
+      "name": "MessageBoardView",
+      "space": "Egt::Integration",
+      "header": "Egt/MessageBoardView/MessageBoardView.h",
+      "config": {
+        "centerYRatio": 0.401388,
+        "textStyleId": "STYLE_BOLD",
+        "backgroundSize": {
+          "x": 720,
+          "y": 450
+        },
+        "backgroundPadding": {
+          "x": 10,
+          "y": 10
+        },
+        "initialBackgroundColor": {
+          "r": 255,
+          "g": 0,
+          "b": 0,
+          "a": 255
+        },
+        "undefinedBackgroundColor": {
+          "r": 128,
+          "g": 128,
+          "b": 128,
+          "a": 255
+        },
+        "overlayBackgroundColor": {
+          "r": 0,
+          "g": 255,
+          "b": 0,
+          "a": 255
+        },
+        "waitingInputBackgroundColor": {
+          "r": 0,
+          "g": 0,
+          "b": 255,
+          "a": 255
+        },
+        "blockingInputBackgroundColor": {
+          "r": 255,
+          "g": 0,
+          "b": 0,
+          "a": 255
+        }
+      },
+      "initAfter": [
+        "VideoManager",
+        "ResourceManager",
+        "BurningCrownTetraSpins10InfoView"
+      ]
+    }
+  ]
+}

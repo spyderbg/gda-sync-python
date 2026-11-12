@@ -1,0 +1,12 @@
+{
+  "plugins": [],
+  "modules": [
+    {
+      "name": "AlphaFamilyMathRngPreset",
+      "space": "Egt::Game::AlphaFamily",
+      "header": "Egt/AlphaFamilyMathRngPreset/AlphaFamilyMathRngPreset.h",
+      "config": {
+      }
+    }
+  ]
+}

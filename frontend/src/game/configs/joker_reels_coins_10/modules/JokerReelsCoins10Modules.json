@@ -1,0 +1,36 @@
+{
+  "plugins": [],
+  "modules": [
+    {
+      "name": "JokerReelsCoins10Math",
+      "space": "Egt::Game::AlphaFamily",
+      "header": "Egt/JokerReelsCoins10Math/JokerReelsCoins10Math.h",
+      "config": {
+        "setups": [
+          {
+            "id": "var_8438",
+            "simRtp": 0.8438,
+            "minCap": null,
+            "maxCap": 500000,
+            "mathFileId": "MathRulesConfig_8438"
+          }
+        ]
+      }
+    },
+    {
+      "name": "JokerReelsCoins10View",
+      "space": "Egt::Game::AlphaFamily",
+      "header": "Egt/JokerReelsCoins10View/JokerReelsCoins10View.h"
+    },
+    {
+      "name": "JokerReelsCoins10InfoView",
+      "space": "Egt::Game::AlphaFamily",
+      "header": "Egt/JokerReelsCoins10InfoView/JokerReelsCoins10InfoView.h"
+    },
+    {
+      "name": "JokerReelsCoins10Fsm",
+      "space": "Egt::Game::AlphaFamily",
+      "header": "Egt/JokerReelsCoins10Fsm/JokerReelsCoins10Fsm.h"
+    }
+  ]
+}

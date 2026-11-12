@@ -1,0 +1,15 @@
+{
+  "plugins": [],
+  "modules": [
+    {
+      "name": "PlaygroundQaCredit",
+      "space": "Egt::Integration::Playground",
+      "header": "Egt/PlaygroundQaCredit/PlaygroundQaCredit.h"
+    },
+    {
+      "name": "PlaygroundQaDoorSimulator",
+      "space": "Egt::Integration::Playground",
+      "header": "Egt/PlaygroundQaDoorSimulator/PlaygroundQaDoorSimulator.h"
+    }
+  ]
+}

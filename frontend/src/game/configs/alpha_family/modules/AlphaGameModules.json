@@ -1,0 +1,137 @@
+{
+  "plugins": [],
+  "modules": [
+    {
+      "name": "ResourceRepository",
+      "space": "Egt::Game",
+      "header": "Egt/ResourceRepository/ResourceRepository.h"
+    },
+    {
+      "name": "VideoManager",
+      "space": "Egt::Game",
+      "header": "Egt/VideoManager/VideoManager.h",
+      "initAfter": [
+        "ResourceRepository"
+      ],
+      "config": {
+        "resolutionWidth": 1920,
+        "resolutionHeight": 1080,
+        "infoScreenPositionX": 1440,
+        "infoScreenPositionY": 0,
+        "swap": false,
+        "systemFonts": [
+          {
+            "name": "NotoSansMono",
+            "dir": "../common/f/system_fonts/sans",
+            "refSize": 120,
+            "mapping": {
+              "monospace": {
+                "type": "Regular",
+                "face": "Mono"
+              }
+            }
+          },
+          {
+            "name": "NotoSans",
+            "dir": "../common/f/system_fonts/sans",
+            "refSize": 120,
+            "mapping": {
+              "regular": {
+                "type": "Regular",
+                "face": "Regular"
+              },
+              "bold": {
+                "type": "Bold",
+                "face": "Bold"
+              },
+              "black": {
+                "type": "Black",
+                "face": "Black"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "AudioManager",
+      "space": "Egt::Game",
+      "header": "Egt/AudioManager/AudioManager.h",
+      "initAfter": [
+        "VideoManager",
+        "ResourceRepository"
+      ],
+      "config": {
+        "audioDesignRssId": "AudioDesignConfig",
+        "possibleSoundVolumes": [
+          0.40,
+          0.70,
+          1.00
+        ]
+      }
+    },
+    {
+      "name": "ResourceManager",
+      "space": "Egt::Game",
+      "header": "Egt/ResourceManager/ResourceManager.h",
+      "initAfter": [
+        "ResourceRepository",
+        "VideoManager",
+        "AudioManager",
+        "LocalizationManager"
+      ],
+      "config": {
+        "resolutionWidth": 1920,
+        "resolutionHeight": 1080
+      }
+    },
+    {
+      "name": "CappingSplashView",
+      "space": "Egt::Game",
+      "header": "Egt/CappingSplashView/CappingSplashView.h",
+      "initAfter": [
+        "ResourceManager"
+      ],
+      "config": {}
+    },
+    {
+      "name": "LoadingScreenView",
+      "space": "Egt::Integration",
+      "header": "Egt/LoadingScreenView/LoadingScreenView.h",
+      "initAfter": [
+        "ResourceManager"
+      ],
+      "config": {
+        "soundRssKey": "SOUND_LOADING_SCREEN_ENTER_GAME",
+        "defaultLayout": {
+          "mainViewport": {
+            "layerId": 950,
+            "imageRssKey": "IMAGE_LOADING_SCREEN_MAIN"
+          },
+          "infoViewport": {
+            "layerId": 950,
+            "imageRssKey": "IMAGE_LOADING_SCREEN_INFO"
+          },
+          "topperViewport": {
+            "layerId": 950,
+            "imageRssKey": "IMAGE_LOADING_SCREEN_TOPPER"
+          }
+        },
+        "portraitLayout": {
+          "mainViewport": {
+            "layerId": 950,
+            "imageRssKey": "IMAGE_LOADING_SCREEN_MAIN_PORTRAIT"
+          },
+          "infoViewport": {
+            "layerId": 950,
+            "imageRssKey": ""
+          },
+          "topperViewport": {
+            "layerId": 950,
+            "imageRssKey": "IMAGE_LOADING_SCREEN_TOPPER_PORTRAIT"
+          }
+        }
+      }
+    }
+  ]
+}

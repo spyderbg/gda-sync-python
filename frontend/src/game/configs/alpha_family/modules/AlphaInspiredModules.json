@@ -1,0 +1,117 @@
+{
+  "include": [
+    "AlphaGameModules.json"
+  ],
+  "plugins": [],
+  "modules": [
+    {
+      "name": "InspiredVideo",
+      "space": "Egt::Integration::Inspired",
+      "header": "Egt/InspiredVideo/InspiredVideo.h",
+      "config": {
+        "main": {
+          "windowId": 2,
+          "title": "InspiredMain",
+          "x": 0,
+          "y": 0,
+          "w": 1440,
+          "h": 900,
+          "resizable": false,
+          "fullscreen": false,
+          "vsync": false
+        },
+        "info": {
+          "windowId": 1,
+          "title": "InspiredInfo",
+          "x": 0,
+          "y": 0,
+          "w": 1440,
+          "h": 900,
+          "resizable": false,
+          "fullscreen": false,
+          "vsync": true
+        }
+      }
+    },
+    {
+      "override": true,
+      "name": "VideoManager",
+      "initAfter": [
+        "InspiredVideo",
+        "ResourceRepository"
+      ],
+      "config": {
+        "swap": true
+      }
+    },
+    {
+      "name": "RecoveryManager",
+      "space": "Egt::Integration",
+      "header": "Egt/RecoveryManager/RecoveryManager.h"
+    },
+    {
+      "name": "InspiredIntegration",
+      "space": "Egt::Integration::Inspired",
+      "header": "Egt/InspiredIntegration/InspiredIntegration.h",
+      "config": {
+        "autoExit": {
+          "zeroCreditAfterMatchEndedDurationMs": 3000
+        }
+      }
+    },
+    {
+      "name": "ResponsibleGamingManager",
+      "space": "Egt::Integration",
+      "header": "Egt/ResponsibleGamingManager/ResponsibleGamingManager.h"
+    },
+    {
+      "name": "ResponsibleGamingSetupView",
+      "space": "Egt::Integration",
+      "header": "Egt/ResponsibleGamingSetupView/ResponsibleGamingSetupView.h",
+      "initAfter": [
+        "ResourceManager"
+      ],
+      "config": {
+        "layerId": 800
+      }
+    },
+    {
+      "name": "ResponsibleGamingWarningView",
+      "space": "Egt::Integration",
+      "header": "Egt/ResponsibleGamingWarningView/ResponsibleGamingWarningView.h",
+      "initAfter": [
+        "ResourceManager"
+      ],
+      "config": {
+        "layerId": 900
+      }
+    },
+    {
+      "name": "LocalizationManager",
+      "space": "Egt::Integration",
+      "header": "Egt/LocalizationManager/LocalizationManager.h",
+      "config": {
+        "supportedLanguages": [
+          "it-IT",
+          "en-GB"
+        ],
+        "defaultLanguage": "en-GB"
+      }
+    },
+    {
+      "name": "AlphaFamilyGameflow",
+      "space": "Egt::Integration::AlphaFamily",
+      "header": "Egt/AlphaFamilyGameflow/AlphaFamilyGameflow.h"
+    },
+    {
+      "name": "AlphaFamilyBridge",
+      "space": "Egt::Integration::AlphaFamily",
+      "header": "Egt/AlphaFamilyBridge/AlphaFamilyBridge.h"
+    },
+    {
+      "name": "MessageBoardManager",
+      "space": "Egt::Integration",
+      "header": "Egt/MessageBoardManager/MessageBoardManager.h"
+    }
+  ]
+}

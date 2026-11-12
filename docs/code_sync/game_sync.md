@@ -5,6 +5,11 @@ up to date with the game's C++ (`games/game/alpha_family/plugins/<plugin>/src/Eg
 any game that is already ported. The alpha_family libraries and `hat_libs`, which every game shares, have their own
 document, [library_sync.md](library_sync.md). Use it together with this one when the libraries changed too.
 
+A sync also copies the game's modules configs (`games/configs/<plugin>/modules` and the family's
+`games/configs/alpha_family/modules`) into `frontend/src/game/configs`. These name the modules the game runs and their
+config, such as the math setups. The Play page plays with these copies, so a ported game needs nothing of the games
+repository's `configs` folder ([independent_game.md](../independent_game.md)).
+
 The direction is C++ → TypeScript. The opposite direction is [game_sync_to_cpp.md](game_sync_to_cpp.md)
 (`/game-sync-to-cpp <plugin>`). It ports a game's TypeScript changes into its C++ plugin in the games repository, and
 touches nothing outside it. The export to an export folder is in `frontend/src/game/README.md` ("Adding a game or a
@@ -46,6 +51,17 @@ All commands run from the repository root (`/media/plamen/data/Python/gda-sync`)
   games repository's HEAD.
 - The export finds the TypeScript as it was ported by its hash in this repository's git history, so a sync must be
   committed before the next export.
+- `frontend/src/game/configs` has the modules configs, by their paths in `$GAMES/configs`: each ported game's
+  `<plugin>/modules` folder, whole, and the folders of the configs these include (`alpha_family/modules`).
+  `frontend/src/game/export/ConfigsManifest.json` has one entry per copied file: its SHA-256 as it was synced
+  (`sha256`), and the games repository's commit it was taken from (`commit`).
+- `node frontend/src/game/export/sync-configs.mjs $GAMES --check <plugin>` lists the configs that differ from the games
+  repository's HEAD, with the commits since each was synced. Without `--check` it copies them and moves the manifest.
+  It takes committed files only, and never overwrites a copy that was edited here (step 5).
+- The Play page reads a game's `<Name>Modules.json` and the family's `AlphaGameModules.json` from
+  `frontend/src/game/configs` (`app/ModulesConfigs.ts`), by the workspace's id, or else its game folder's name. They
+  are built into the browser game, so a synced config plays after the build of step 6. A game with no copy there plays
+  with the config beside its workspace's resources folder, as before.
 
 ## Step 0: Preconditions
 
@@ -56,8 +72,9 @@ All commands run from the repository root (`/media/plamen/data/Python/gda-sync`)
    (`export/import-game.mjs`, the module registry that finds a game's modules by glob), every round's states but the
    extra rounds', and the full `ViewManager`. A game that is not ported is an import, not a sync: stop and tell the
    user.
-2. **The C++ is committed.** Run `git -C $GAMES status --short -- game`. The manifest records commits, so sync only
-   committed C++. If files under `game/` are modified, ask the user whether to wait for their commit.
+2. **The C++ and the configs are committed.** Run `git -C $GAMES status --short -- game configs`. The manifests record
+   commits, so sync only committed C++. If files under `game/` are modified, ask the user whether to wait for their
+   commit. `sync-configs.mjs` leaves out what is not committed under `configs/`, and lists it: say so in the report.
 3. **The `hat_libs` checkout matches the pin.** Run `git -C $GAMES submodule status hat_libs`. A leading `+` means
    the checkout differs from the commit the games repository pins: mention it.
 4. **This repository's state is known.** Run `git status --short` and `git branch --show-current`. Don't mix the sync
@@ -98,6 +115,25 @@ const files = require("child_process").execSync("git -C '$GAMES'/game ls-files a
 console.log(files.filter(f => !ported.has(f)).join("\n"));'
 ```
 
+Then list the configs that changed:
+
+```sh
+node frontend/src/game/export/sync-configs.mjs $GAMES --check <plugin>
+git -C $GAMES diff <the commit before the first one listed> HEAD -- configs/<path>
+```
+
+Step 5 copies them. Before that, read each change for what the TypeScript must follow:
+
+| Config change | What to do |
+| --- | --- |
+| A module added to, or removed from, `<Name>Modules.json` | The browser game creates the modules a config names (`app/ModuleRegistry.ts` finds a game's by glob). A new module of the game is a new C++ class to port ("New C++ classes"); the Play page lists a module it does not have. |
+| A module's `config` changed (a math setup's `id`, `simRtp`, caps, `mathFileId`) | The module's TypeScript reads the same config. Check that it reads a new field: `grep -rn '<field>' --include='*.ts' frontend/src/game`. |
+| The family's `AlphaGameModules.json` | It is every game's. Check a new module against `app/ModuleRegistry.ts`, and say in the report that the other games get it too. |
+| A variant (`*_QA.json`, `*_Partner.json`, `*DebugModules.json`) or an integration's `ModuleManager_*.json` | Nothing to port: the browser game does not read them. They are copied to keep the folder whole. |
+
+When it says `The games repository has no configs/<plugin>/modules`, the game's folder has another name there (Nordic
+Rush is `nordic_tale` since VLT-26750) or is on another branch. Nothing is copied or deleted: say so in the report.
+
 Classify each untracked change:
 
 | C++ change | What to do |
@@ -106,6 +142,7 @@ Classify each untracked change:
 | A `*.data.h` with no `.data.ts` | Its structs (a view's IData config, for example) are declared in another TypeScript file. Find it with `grep -rn '<StructName>' --include='*.ts' frontend/src/game` and port the change there. |
 | A new `.h`/`.cpp` class | A new port. See "New C++ classes" below. |
 | A deleted `.h`/`.cpp` | Delete its TypeScript file if nothing else imports it. Its manifest entry goes away in step 5. |
+| `configs/<plugin>/modules/*.json`, `configs/alpha_family/modules/*.json` | Listed by `sync-configs.mjs --check`, above, and copied in step 5. |
 | `resources/<plugin>/...` (view JSON, `Rss*Data.json`, images) | Usually nothing. The browser game reads the workspace's game folder directly. But when the C++ starts using new element ids, check that the view JSON has them: `grep -n '<element id>' $GAMES/resources/<plugin>/v/1920x1080/<View>.json`. |
 
 ## Step 2: Record the translation baseline, before editing
@@ -256,7 +293,7 @@ fs.writeFileSync(process.argv[2], JSON.stringify([...cc, ...cc.filter(e => e.fil
 node frontend/src/game/export/translator/compare.mjs $GAMES/game --compile <scratch>/compile_commands.json | tail -1
 ```
 
-## Step 5: Move the manifest
+## Step 5: Move the manifest, and sync the configs
 
 Name every file `import-cpp.mjs` listed, including the ones that needed no change:
 
@@ -272,6 +309,24 @@ the repository root matches no entry, and port-manifest says `0 of them now port
 
 Always pass `--only`. Without it, port-manifest also refreshes every entry whose TypeScript changed, and that marks the
 browser-made changes nobody has exported yet as ported, so the next export would not translate them.
+
+Then copy the game's modules configs, once the TypeScript follows their changes (step 1):
+
+```sh
+node frontend/src/game/export/sync-configs.mjs $GAMES <plugin>
+node frontend/src/game/export/sync-configs.mjs $GAMES --check <plugin>
+```
+
+Always name the plugin: without one it syncs every ported game's configs, and the other games' changes have not been
+read. The family's folder comes with any game, since each game's configs include it. The second command must say
+`Nothing to sync`. The first one exits with 1 on a conflict:
+
+- **`CONFLICT`:** the copy here was edited since it was synced, and the games repository's file changed too. It is
+  left as it is. Stop and ask the user which to keep: `--force` takes the games repository's, and loses the edit.
+- **`Edited here, and kept`:** the copy was edited here, and the games repository's file did not change. Nothing to do
+  in a sync: name it in the report, since the games repository does not have the edit.
+- **`Only this repository has`:** a config made here. It is kept.
+- **`Not committed in the games repository`:** not synced (step 0).
 
 ## Step 6: Test and play
 
@@ -330,6 +385,8 @@ need the user's eyes: ask them to look at the Play page.
 Report to the user:
 
 - each synced file: what changed, with the C++ commit and its subject;
+- the configs that were synced (new, changed, deleted), with what the TypeScript needed for them, and the ones that were
+  not: conflicts, uncommitted files, a game without a configs folder;
 - what you did not port, and why (QA-only, an unported round, an unported dependency and its stand-in);
 - the comparison before and after for the touched files, and the compile check;
 - the tests and the playthrough, and what you could not verify, such as visuals.
@@ -347,7 +404,7 @@ judge an idiom.
 
 **Developer → Import from C++ → Port with Claude Code** runs this document instead: `/game-sync <workspace id>` in a
 headless Claude Code session (`claude -p`, auto mode) in the app's sources, with the sync's commands allowed by their text
-(`game_sync_tools` in `egt_gda_sync/game/project.py`). It works in the sources as a terminal session does, and its report
+(`game_sync_tools` in `egt_gda_sync/game/project.py`), `sync-configs.mjs` among them. It works in the sources as a terminal session does, and its report
 shows on the panel. It cannot ask the user: where this document says to ask, it stops and ends its report with the
 question. Its scratch folder is the app data folder's `game-syncs/<plugin>-<time>`.
 
@@ -370,11 +427,16 @@ question. Its scratch folder is the app data folder's `game-syncs/<plugin>-<time
   `ViewManager.SetupBets` on 2026-10-27), play a round of every type to see that each round's bets are right.
 - **Synced files with no TypeScript change.** Files that needed no change still need `--only` in step 5, or
   `import-cpp.mjs` keeps listing them.
-- **A workspace whose id is not its game's folder.** The app reads a game's modules config from
-  `configs/<workspace id>/modules`, and the export writes it there, so a workspace's id must be its game's folder name in
-  `resources/`, `configs/` and `game/alpha_family/plugins/`. Otherwise the Play page says the browser game has none of
-  its modules, and `play_check.py` times out waiting for the game screen. Zodiac Wheel Coins' workspace was
+- **A workspace whose id is not its game's folder.** The Play page finds a game's modules config by the workspace's
+  id, or else by its game folder's name (`configs/<name>/modules`, the browser game's own first), and the export
+  writes it to `configs/<workspace id>/modules`. So a workspace's id should be its game's folder name in `resources/`,
+  `configs/` and `game/alpha_family/plugins/`. When neither name has a config, the Play page says no modules config
+  was found, and `play_check.py` times out waiting for the game screen. Zodiac Wheel Coins' workspace was
   `zodiac_wheel_coins_italy` until 2026-11-05.
+- **A config changed in the games repository does not play until it is synced.** The Play page takes a ported game's
+  modules config from `frontend/src/game/configs`, not from the games repository's `configs` folder. A change there
+  shows on the Play page after step 5 copies it and step 6 builds. `sync-configs.mjs --check` tells whether the two
+  differ.
 - **An import's cycles.** `import-game.mjs --copies` copies a file only once what it includes is there, and type-checks
   the batch with every other file of the game. A file ported by hand that imports a copy not made yet fails that check
   for the whole batch, so move it aside while the copies are made. A copy that includes a file ported by hand, which

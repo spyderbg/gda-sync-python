@@ -1,0 +1,35 @@
+{
+  "include": [
+    "../../alpha_family/modules/AlphaAstroModules.json",
+    "ZodiacWheelCoinsModules.json"
+  ],
+  "plugins": [],
+  "modules": [
+    {
+      "override": true,
+      "name": "AstroVideo",
+      "config": {
+        "mainWidth": 1920,
+        "mainHeight": 1080
+      }
+    },
+    {
+      "override": true,
+      "name": "VideoManager",
+      "config": {
+        "loadingScreensPaths": {
+          "main": "../burning_hot_coins/art/1920x1080/09.LoadingScreen/LoadingScreen_BH_playtech.dds",
+          "info": "../burning_hot_coins/art/1920x1080/08.Topper/Topper_BH.dds"
+        }
+      }
+    },
+    {
+      "override": true,
+      "name": "ResourceManager",
+      "config": {
+        "resolutionWidth": 1920,
+        "resolutionHeight": 1080
+      }
+    }
+  ]
+}

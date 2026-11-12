@@ -1,0 +1,44 @@
+{
+  "plugins": [],
+  "modules": [
+    {
+      "name": "ZodiacWheelCoinsMath",
+      "space": "Egt::Game::AlphaFamily",
+      "header": "Egt/ZodiacWheelCoinsMath/ZodiacWheelCoinsMath.h",
+      "config": {
+        "setups": [
+          {
+            "id": "var_8423",
+            "simRtp": 0.8423,
+            "minCap": null,
+            "maxCap": 500000,
+            "mathFileId": "MathRulesConfig_8423"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ZodiacWheelCoinsView",
+      "space": "Egt::Game::AlphaFamily",
+      "header": "Egt/ZodiacWheelCoinsView/ZodiacWheelCoinsView.h"
+    },
+    {
+      "name": "ZodiacWheelCoinsInfoView",
+      "space": "Egt::Game::AlphaFamily",
+      "header": "Egt/ZodiacWheelCoinsInfoView/ZodiacWheelCoinsInfoView.h"
+    },
+    {
+      "name": "ZodiacWheelCoinsFsm",
+      "space": "Egt::Game::AlphaFamily",
+      "header": "Egt/ZodiacWheelCoinsFsm/ZodiacWheelCoinsFsm.h"
+    },
+    {
+      "name": "ZodiacWheelCoinsTopperView",
+      "space": "Egt::Game::AlphaFamily",
+      "header": "Egt/ZodiacWheelCoinsTopperView/ZodiacWheelCoinsTopperView.h",
+      "initAfter": [
+        "ResourceManager"
+      ]
+    }
+  ]
+}

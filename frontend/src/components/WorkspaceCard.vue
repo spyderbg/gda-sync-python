@@ -15,8 +15,8 @@ const emit = defineEmits<{ select: []; rescan: [] }>();
         <span v-if="current" class="workspace-card-current">Current</span>
       </span>
       <span class="workspace-card-folders">
-        <span><small>GDA folder</small><span :title="workspace.source">{{ workspace.source || 'Not configured' }}</span></span>
         <span><small>Game folder</small><span :title="workspace.destination">{{ workspace.destination }}</span></span>
+        <span><small>GDA folder</small><span :title="workspace.source">{{ workspace.source || 'Not configured' }}</span></span>
       </span>
     </button>
     <div class="workspace-card-actions">

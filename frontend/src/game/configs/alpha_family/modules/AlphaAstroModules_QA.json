@@ -1,0 +1,15 @@
+{
+  "plugins": [],
+  "modules": [
+    {
+      "name": "AstroQaCredit",
+      "space": "Egt::Integration::Astro",
+      "header": "Egt/AstroQaCredit/AstroQaCredit.h"
+    },
+    {
+      "name": "AstroQaDoorSimulator",
+      "space": "Egt::Integration::Astro",
+      "header": "Egt/AstroQaDoorSimulator/AstroQaDoorSimulator.h"
+    }
+  ]
+}

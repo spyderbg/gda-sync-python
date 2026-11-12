@@ -1,0 +1,11 @@
+{
+  "include": [],
+  "plugins": [],
+  "modules": [
+    {
+      "name": "RngPresetManager",
+      "space": "Egt::Integration",
+      "header": "Egt/RngPresetManager/RngPresetManager.h"
+    }
+  ]
+}

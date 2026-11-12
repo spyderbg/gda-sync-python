@@ -1,0 +1,24 @@
+{
+  "include": [
+    "../../alpha_family/modules/AlphaTruservServerModules.json"
+  ],
+  "plugins": [],
+  "modules": [
+    {
+      "name": "ZodiacWheelCoinsMath",
+      "space": "Egt::Game::AlphaFamily",
+      "header": "Egt/ZodiacWheelCoinsMath/ZodiacWheelCoinsMath.h",
+      "config": {
+        "setups": [
+          {
+            "id": "var_8423",
+            "simRtp": 0.8423,
+            "minCap": null,
+            "maxCap": 500000,
+            "mathFileId": "MathRulesConfig_8423"
+          }
+        ]
+      }
+    }
+  ]
+}

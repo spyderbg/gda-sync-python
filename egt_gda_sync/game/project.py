@@ -4,7 +4,9 @@ reads it.
 - Its modules config: the <Name>Modules.json of configs/<workspace id>/modules in the games folder, the folder above the
   resources folder, which names the game's modules and their config (such as the math setups and their math file); and
   its family's, such as configs/alpha_family/modules/AlphaGameModules.json for a game of Egt::Game::AlphaFamily
-  modules, which names the modules every game of the family has (the capping splash...).
+  modules, which names the modules every game of the family has (the capping splash...). The browser game plays with
+  its own copies of these where it has the game's (frontend/src/game/configs, app/ModulesConfigs.ts), so these are for
+  a game it has no copy of, such as one being imported; a workspace without the folder has none here.
 - Its descriptors: every *Data.json of the game folder and the descriptors they include, with each entry's paths
   resolved to files: the images, image sequences (their {N-M} frames expanded), fonts, text styles, audio events,
   IData (math, view configs) and ElementsList entries (views) the game loads by id.
@@ -611,11 +613,12 @@ def game_sync_prompt(plugin: str, games: Path, scratch: Path) -> str:
 
 def game_sync_tools(games: Path) -> list[str]:
     """The commands of a game sync (game_sync.md, library_sync.md), allowed by their text: git's reading commands in the
-    app's sources, the games repository and hat_libs, the export's tools, the type check, the tests, the build and the
-    playthrough."""
+    app's sources, the games repository and hat_libs, the export's tools (the configs' sync among them), the type check,
+    the tests, the build and the playthrough."""
     reads = ("status", "log", "diff", "show", "ls-tree", "ls-files", "rev-parse", "merge-base", "branch --show-current", "submodule status")
     commands = [f"{git} {read}" for git in ("git", f"git -C {games}", f"git -C {games}/hat_libs") for read in reads]
     commands += ["node frontend/src/game/export/import-cpp.mjs", "node frontend/src/game/export/port-manifest.mjs",
+                 "node frontend/src/game/export/sync-configs.mjs",
                  "node frontend/src/game/export/translator/compare.mjs", "cd frontend && npm run typecheck", "npm run typecheck",
                  "cd frontend && node src/game/hat_libs/tweeny/tests/run.mjs", ".venv/bin/python -m pytest",
                  ".venv/bin/python scripts/build.py", ".venv/bin/python -I docs/code_sync/play_check.py",

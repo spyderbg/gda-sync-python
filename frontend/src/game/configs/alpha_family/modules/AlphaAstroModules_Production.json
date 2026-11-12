@@ -1,0 +1,12 @@
+{
+  "plugins": [],
+  "modules": [
+    {
+      "name": "AstroVideo",
+      "override": true,
+      "config": {
+        "usePlatformSizes": true
+      }
+    }
+  ]
+}
