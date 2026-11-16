@@ -378,7 +378,7 @@ class GameProject:
             "If the skill requires confirmation or clarification, stop before that action and put the question in your report. "
             "Keep all the skill's scope restrictions. When its execute conditions fail, such as uncommitted changes in the "
             "games repository, stop before any layout work, change nothing and report what failed. "
-            "Only edit the selected game's views within the skill's permitted scope. "
+            "Only edit the selected game's views and IData within the skill's permitted scope. "
             "Do not commit. Keep drawings in the supplied scratch folder. Report progress and the complete result.\n"
             f"\nUser's layout instructions:\n{instructions or 'Match the preview; infer the visible views and state using the skill.'}\n"
         )
@@ -723,20 +723,20 @@ def _layout_result(execution: dict, error: str | None) -> str:
     """How a View layout run ended, in one sentence, for the page's execution summary."""
     changes = execution["changedFiles"]
     count = None if changes is None else len(changes)
-    files = f"{count} view file{'' if count == 1 else 's'}"
+    files = f"{count} layout file{'' if count == 1 else 's'}"
     failed = (execution.get("conditions") or {}).get("failed") or []
     if failed:
         condition = f"the execute condition{'s' if len(failed) > 1 else ''} {', '.join(failed)} failed"
         return (f"Stopped before any layout work: {condition}, so nothing changed." if count == 0
                 else f"Stopped: {condition}, but {files} changed." if count
-                else f"Stopped: {condition}; the changed view files could not be determined.")
+                else f"Stopped: {condition}; the changed layout files could not be determined.")
     if error:
-        return ("Failed with an error, and no view file changed." if count == 0
+        return ("Failed with an error, and no layout file changed." if count == 0
                 else f"Failed with an error after {files} changed." if count
-                else "Failed with an error; the changed view files could not be determined.")
-    return ("Finished without changing any view file." if count == 0
+                else "Failed with an error; the changed layout files could not be determined.")
+    return ("Finished without changing any layout file." if count == 0
             else f"Finished: {files} changed." if count
-            else "Finished, but the changed view files could not be determined.")
+            else "Finished, but the changed layout files could not be determined.")
 
 
 def _run_layout(command: list[str], prompt: str, env: dict, game: Path, scratch: Path) -> None:
@@ -796,7 +796,7 @@ def _run_layout(command: list[str], prompt: str, env: dict, game: Path, scratch:
             incomplete = sum(call["durationSeconds"] is None for call in execution["calls"])
             if incomplete:
                 execution["warnings"].append(f"{incomplete} helper call(s) did not report completion; their duration is unknown.")
-            _agent_job["log"].append(f"View layout total time: {execution['durationSeconds']:.3f}s\nChanged view files:\n"
+            _agent_job["log"].append(f"View layout total time: {execution['durationSeconds']:.3f}s\nChanged layout files:\n"
                                      + ("\n".join(f"{item['change']}: {item['path']}" for item in changes) or "None"
                                         if changes is not None else "Could not determine changes"))
             try:

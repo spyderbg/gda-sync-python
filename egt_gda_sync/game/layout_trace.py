@@ -25,28 +25,33 @@ def fingerprint(path: Path) -> str:
     return digest.hexdigest()
 
 
+LAYOUT_FOLDERS = ("v", "idata")
+
+
 def view_snapshot(game: Path) -> dict[str, str]:
-    """The workspace's view files, including descriptors so unexpected edits are visible."""
-    root = game / "v"
-    if root.is_symlink():
-        raise OSError(f"Cannot track a linked views folder: {root}")
-    try:
-        root.stat()
-    except FileNotFoundError:
-        return {}
+    """The workspace's layout files: its views (v/, including descriptors so unexpected edits are visible) and its IData
+    (idata/), which the skill may change too."""
     result = {}
 
     def unreadable(error):
         raise error
 
-    for folder, directories, files in os.walk(root, onerror=unreadable):
-        if any((Path(folder) / name).is_symlink() for name in directories):
-            raise OSError(f"Cannot track linked view folders in {folder}")
-        for name in files:
-            path = Path(folder) / name
-            if path.is_symlink():
-                raise OSError(f"Cannot track a linked view file: {path}")
-            result[path.relative_to(game).as_posix()] = fingerprint(path)
+    for name in LAYOUT_FOLDERS:
+        root = game / name
+        if root.is_symlink():
+            raise OSError(f"Cannot track a linked layout folder: {root}")
+        try:
+            root.stat()
+        except FileNotFoundError:
+            continue
+        for folder, directories, files in os.walk(root, onerror=unreadable):
+            if any((Path(folder) / item).is_symlink() for item in directories):
+                raise OSError(f"Cannot track linked layout folders in {folder}")
+            for item in files:
+                path = Path(folder) / item
+                if path.is_symlink():
+                    raise OSError(f"Cannot track a linked layout file: {path}")
+                result[path.relative_to(game).as_posix()] = fingerprint(path)
     return result
 
 

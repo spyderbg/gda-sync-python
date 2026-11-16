@@ -264,3 +264,4 @@ when the user asks. A `hat_libs` sync has no manifest entry, so this record is t
 | `def1924e4` | 2026-10-29 | `faa5f19a0` (2026-10-29) | checked 2026-11-06 | Burning Crown's theme suffixes sync (games `0317b4fa7`): the pin has not moved |
 | `def1924e4` | 2026-10-29 | `faa5f19a0` (2026-10-29) | checked 2026-11-12 | Nordic Rush's rename to Nordic Tale (games `beab58632`, synced at `d65ca5b45`): the pin has not moved |
 | `def1924e4` | 2026-10-29 | `faa5f19a0` (2026-10-29) | checked 2026-11-16 | Burning Crown's sync with the hold and spin library and Nordic Tale's Flash Spins (games `468193594`, synced at `2d0d392d8`): the pin has not moved |
+| `def1924e4` | 2026-10-29 | `faa5f19a0` (2026-10-29) | checked 2026-11-16 | Burning Hot Coins' sync with the info screen's VLT-21474 fix (games `a2e2aca0e`, synced at `2d0d392d8`): the pin has not moved |

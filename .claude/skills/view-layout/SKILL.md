@@ -1,6 +1,6 @@
 ---
 name: view-layout
-description: Lay a game's views out by a preview the user sends, a picture of how the screen should look (such as a designer's PNG from the GDA's DESIGN/09.Preview), placing and scaling the elements it shows, showing the hidden ones it shows and hiding the ones it leaves out, changing nothing but the elements lists of the game's v/<resolution>/*View.json files. Use when the user sends or names a preview and asks to place, move, scale, show or hide view elements to match it.
+description: Lay a game's views out by a preview the user sends, a picture of how the screen should look (such as a designer's PNG from the GDA's DESIGN/09.Preview), placing and scaling the elements it shows, showing the hidden ones it shows and hiding the ones it leaves out, changing nothing but the elements lists of the game's v/<resolution>/*View.json files and the layout values (positions, offsets, insets, sizes, scales) of its idata/<resolution>/*.json IData, where the code draws what the preview shows, such as the Tetra round's win lines. Use when the user sends or names a preview and asks to place, move, scale, show or hide view elements to match it.
 argument-hint: <preview image> [workspace id] [view names...]
 allowed-tools: Bash(.venv/bin/python -I .claude/skills/view-layout/view_layout.py:*), Bash(.venv/bin/python -I .claude/skills/view-layout/execute_conditions.py:*)
 ---
@@ -79,8 +79,9 @@ $H move VIEW ID=X,Y '#INDEX=X,Y' ...      # writes positions
 
 ## Scope
 
-- **Write only the views of the workspace's game folder:** its `v/<resolution>/**/*.json` files, but not its
-  `*Data.json` descriptors. A view that the game includes from elsewhere, such as
+- **Write only the views and the IData of the workspace's game folder:** its `v/<resolution>/**/*.json` files, but not
+  its `*Data.json` descriptors, and its `idata/<resolution>/*.json` files, within the limits of "IData" below. A view
+  that the game includes from elsewhere, such as
   `../common/features/responsible_gaming/v/...`, is shared with other games, so report what it needs instead.
 - **Change only where elements are, and whether they show:** `position`, always through `move`; `scale` where the
   preview's image is larger or smaller (the Edit tool, laid out like the file's other members); and `hidden`, so that
@@ -93,13 +94,36 @@ $H move VIEW ID=X,Y '#INDEX=X,Y' ...      # writes positions
   instead of the default. Never change ids, types, `rssKey`, `rssKeys`, `rssKeySound`, `rssStyleId`, `color` or
   `loopCount`.
 - **Never edit anything else:**
-  - the descriptors (`*Data.json`), images, text styles (a font's size is in `RssTextStylesData.json`) or IData
-    (`idata/`);
+  - the descriptors (`*Data.json`), images or text styles (a font's size is in `RssTextStylesData.json`);
+  - in an IData, anything but its layout values (see "IData");
   - the TypeScript, the C++, this repository's code, or other games.
 
   When the preview needs any of these, such as an image that differs, an element the views lack or another font size,
   report it.
 - Do not commit, in either repository, unless the user asks.
+
+## IData
+
+Some of what the screen shows is in no view: the code draws it from the view's IData, `idata/<resolution>/<View>.json`,
+which the descriptors (`RssIDataData.json`) name by an id such as `TetraRoundViewConfig`. Burning Crown's Tetra win
+lines and squares, for example, are made at runtime (`TetraRoundView.ts`, `ShowCombinations`, `CreateLineVisual`) from
+the `linesConfig` of `idata/1920x1080/TetraRoundView.json`, and its `LinesView.json` has no elements. When the preview
+shows such a thing elsewhere, or sized or cut otherwise, change the IData instead of reporting it.
+
+- **Find the value the code reads:** grep the IData's id (`GetIData<...>('TetraRoundViewConfig')`) and the member in
+  the game's TypeScript (`frontend/src/game/alpha_family/plugins/<plugin>/`), and read how it is used: what it offsets,
+  insets or scales, and from where. The C++ game reads the same file: grep the member in its C++
+  (`$GAMES/game/alpha_family/plugins/<plugin>/src`) too, and report a member that only one of them reads.
+- **Change only layout values:** numbers that place or size what the code draws, such as positions, offsets
+  (`winSquareOffsets`), insets (`winSquareCutInset`), cell and symbol sizes, steps, scales and fit boxes. Keep the
+  member's other numbers' form (whole numbers, or fractions when they have fractions).
+- **Ask first** before changing anything else of an IData: ids, `rss*` keys, sound ids, colors, timings and intervals,
+  reeling parameters, counts, or adding, removing or reordering members or list entries. Never edit the math
+  (`math/`), or an IData that the game includes from elsewhere (report it, as for an included view).
+- **Measure** what the code draws from the preview: zoom with `draw --crop` (its views drawn faintly, or none), and
+  find the pixels of the drawn thing and of the images it is placed by; `elements` gives an image's box for the views'
+  elements only. Work out the new value from how the code uses it, and say how in the report.
+- **Apply** with the Edit tool, keeping the file's layout. Change only the resolution folder of the preview.
 
 ## Inputs
 
@@ -188,7 +212,8 @@ $H move VIEW ID=X,Y '#INDEX=X,Y' ...      # writes positions
      - its view is in the game's folder.
 
      A hidden Anim that decorates the element, at its position, such as a knob's sparkles, is shown with it.
-   - **In the preview, but in no view:** report it (Scope). When the user asks to create it, add an element of the
+   - **In the preview, but in no view:** when the code draws it from an IData, such as win lines and squares, change
+     its layout values ("IData"). Otherwise report it (Scope). When the user asks to create it, add an element of the
      type its neighbours have, drawing an image the descriptors already have (`rssKey`), with an id the code does not
      use; say where in the drawing order you put it. When no image of the descriptors is the preview's, report that
      instead.
@@ -215,6 +240,14 @@ $H move VIEW ID=X,Y '#INDEX=X,Y' ...      # writes positions
      is drawn sharp over the preview.
    - For Burning Crown's panel views, also run `node tests/tetra-panel/run.mjs <game folder>/v/1920x1080` from
      `frontend`.
+   - For a changed IData, Read the edited members back: a file that no longer parses is not read again, and the game
+     keeps the old values. Check that the game reloads it: grep `WatchConfig('<IData id>'` in the game's TypeScript.
+     The Play page's FileWatch reads the changed file within about a second (the browser console logs
+     `FileWatch: idata/... changed`), the IData's object takes its values in place, and the watching view reads its
+     config again: what the view makes as it shows it, such as the Tetra win lines, takes the new values the next time
+     it is shown; what it made before, such as the reels' symbols, is made again once its reels stop. This was checked on 2026-11-16 by editing Burning Crown's
+     `linesConfig.winSquareCutInset` while the Tetra round played: the next win's lines were cut by the new value,
+     with no restart. An IData that no view watches needs the Play page reloaded: say so in the report.
 7. **Report**, in Markdown, as the View layout page draws it: open with a one-sentence **Result:** paragraph, then
    short paragraphs, each with a bold title line, lists for elements and files, and `code` for ids, paths and
    positions. Write each paragraph on one line, since a line break within a paragraph shows as one. Report:
@@ -225,8 +258,10 @@ $H move VIEW ID=X,Y '#INDEX=X,Y' ...      # writes positions
      one the code places, shows or hides;
    - what the preview needs beyond the views: images, text styles, elements the views lack, included views, and
      elements whose visibility the code sets by id that the preview shows otherwise;
-   - `git -C $GAMES diff --stat -- <game folder>/v`.
+   - for each IData changed, each member (old → new), what the code does with it, how you measured it, and whether
+     the C++ reads it too;
+   - `git -C $GAMES diff --stat -- <game folder>/v <game folder>/idata`.
 
    Tell the user how to see the result: the Play page shows changed views within a second, and the Asset library's
-   ElementsList section draws them. The changes are in the games repository and are not committed. No export is
-   needed, since the views are not TypeScript.
+   ElementsList section draws them. A changed IData plays without a restart too (step 6). The changes are in the games
+   repository and are not committed. No export is needed, since the views and the IData are not TypeScript.

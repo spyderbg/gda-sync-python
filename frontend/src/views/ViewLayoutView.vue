@@ -159,7 +159,7 @@ onBeforeUnmount(() => {
       <form class="card" @submit.prevent="start">
         <div class="card-body">
           <h2 class="h5">Preview image</h2>
-          <p class="text-muted small">Choose the layout you want for this workspace. Claude Code updates the game’s view files; Play reloads the changes automatically.</p>
+          <p class="text-muted small">Choose the layout you want for this workspace. Claude Code updates the game’s view and IData files; Play reloads the changes automatically.</p>
           <div class="form-group">
             <label for="layout-preview">Upload preview</label>
             <input id="layout-preview" type="file" class="form-control-file" accept=".png,.jpg,.jpeg,.dds" :disabled="starting || status?.running" aria-describedby="layout-image-help" @change="chooseImage">
@@ -220,13 +220,13 @@ onBeforeUnmount(() => {
             <p v-if="thisRun.result.cost != null" class="small text-muted mt-3 mb-0">{{ thisRun.result.turns }} turns · ${{ thisRun.result.cost.toFixed(4) }}</p>
           </details>
           <details v-if="thisRun?.execution && !thisRun.running" class="layout-details mb-3">
-            <summary><h3 class="h6 d-inline">Changed view files<span v-if="thisRun.execution.changedFiles"> ({{ thisRun.execution.changedFiles.length }})</span></h3></summary>
+            <summary><h3 class="h6 d-inline">Changed layout files<span v-if="thisRun.execution.changedFiles"> ({{ thisRun.execution.changedFiles.length }})</span></h3></summary>
             <p class="small text-muted">{{ thisRun.execution.gamePath }}</p>
             <p v-if="thisRun.execution.changedFiles == null" class="small">Changes could not be determined.</p>
             <ul v-else-if="thisRun.execution.changedFiles.length" class="small">
               <li v-for="file in thisRun.execution.changedFiles" :key="file.path"><code>{{ file.path }}</code> · {{ file.change }}</li>
             </ul>
-            <p v-else class="small">No view files changed.</p>
+            <p v-else class="small">No layout files changed.</p>
           </details>
           <details v-if="thisRun?.execution?.calls.length" class="layout-details mb-3">
             <summary><h3 class="h6 d-inline">view_layout.py calls ({{ thisRun.execution.calls.length }})</h3></summary>

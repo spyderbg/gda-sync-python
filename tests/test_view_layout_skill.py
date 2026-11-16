@@ -373,3 +373,28 @@ def test_move_writes_only_the_positions_and_keeps_the_files_layout(tmp_path):
     assert helper("move", str(view), "image_missing=1,1").returncode == 2
     assert helper("move", str(view.parent.parent.parent / "RssImagesData.json"), "x=1,1").returncode == 2
     assert view.read_bytes().decode() == after
+
+
+def test_layout_snapshot_tracks_views_and_idata(tmp_path):
+    # The View layout page lists what a run changed: the views, and the IData the skill may now edit too.
+    from egt_gda_sync.game.layout_trace import changed_files, view_snapshot
+
+    game = tmp_path / "game"
+    (game / "v" / "1920x1080").mkdir(parents=True)
+    (game / "idata" / "1920x1080").mkdir(parents=True)
+    (game / "math").mkdir()
+    (game / "v" / "1920x1080" / "LinesView.json").write_text("{}")
+    (game / "idata" / "1920x1080" / "TetraRoundView.json").write_text('{"linesConfig": {}}')
+    (game / "math" / "fake_reels.json").write_text("{}")
+    before = view_snapshot(game)
+    assert set(before) == {"v/1920x1080/LinesView.json", "idata/1920x1080/TetraRoundView.json"}
+
+    (game / "idata" / "1920x1080" / "TetraRoundView.json").write_text('{"linesConfig": {"winSquareCutInset": {}}}')
+    (game / "math" / "fake_reels.json").write_text("[]")
+    assert changed_files(before, view_snapshot(game)) == [{"path": "idata/1920x1080/TetraRoundView.json", "change": "modified"}]
+
+    # A game without an idata folder is tracked by its views alone.
+    (game / "idata" / "1920x1080" / "TetraRoundView.json").unlink()
+    (game / "idata" / "1920x1080").rmdir()
+    (game / "idata").rmdir()
+    assert set(view_snapshot(game)) == {"v/1920x1080/LinesView.json"}

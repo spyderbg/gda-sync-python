@@ -487,6 +487,8 @@ export class InfoView extends BaseView implements IInfoView {
       this.m_infoIdleStopwatch.Resume();
     }
 
+    if (this.m_nextPage !== EInfoViewPageType.Undefined) return;
+
     const orderedInfoPages = this.m_config.orderedInfoPages;
     if (orderedInfoPages.length === 0) return;
     const currentPageIndex = orderedInfoPages.indexOf(this.m_currentPage);

@@ -3564,11 +3564,11 @@
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsInfoView/InfoView.h",
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsInfoView/InfoView.cpp"
   ],
-  "sha256": "53ebcf057dac83738966a17aef3887d3ba3e597051b834d3e4360fab09873946",
-  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "sha256": "5feb5e4ae48b63b3a578c57c13d921647d9e2cdb4037beb9ecfa9a8ad3c74062",
+  "cppCommit": "2d0d392d83987b4ce92b1625b8dbb41035af769a",
   "cppSha256": {
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsInfoView/InfoView.h": "b1c981be93e319016470c7b76bd0f58a81c9083e866842c6a338ef1ab903c837",
-   "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsInfoView/InfoView.cpp": "8b6689e79cfd833ff7b73710492752b472d909ec4d2c4efd82c7789576bab904"
+   "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsInfoView/InfoView.cpp": "7c50a3a4dee78c938123f861de836fd5900d553b0f3e39e5a270dad18e7e8587"
   }
  },
  "alpha_family/plugins/burning_hot_coins/BurningHotCoinsMath/BurningHotCoinsMath.ts": {
