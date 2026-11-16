@@ -12,6 +12,13 @@ export interface ReelSubScreen {
   reelStepY: number;
 }
 
+// Grid placement for one ReelVisual; set explicitly by the view before construction.
+export class ReelVisualConfig {
+  reelStartCol = -1;
+  reelStartRow = -1;
+  reelHeightInCells = -1;
+}
+
 export interface ReelSubScreensConfig {
   visibleCols: number;
   visibleRows: number;

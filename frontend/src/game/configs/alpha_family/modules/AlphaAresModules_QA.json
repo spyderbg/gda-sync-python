@@ -5,6 +5,11 @@
       "name": "AresQaCabinetKeys",
       "space": "Egt::Integration::Ares",
       "header": "Egt/AresQaCabinetKeys/AresQaCabinetKeys.h"
+    },
+    {
+      "name": "AresQaKeyboard",
+      "space": "Egt::Integration::Ares",
+      "header": "Egt/AresQaKeyboard/AresQaKeyboard.h"
     }
   ]
 }

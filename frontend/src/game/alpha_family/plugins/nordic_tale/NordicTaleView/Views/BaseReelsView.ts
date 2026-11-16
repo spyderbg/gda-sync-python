@@ -2,7 +2,7 @@
 // asks of the view that owns it.
 
 import type { IAudioPlayback } from '@game/engine/Game/RuntimeImport/IAudioApi';
-import type { ReelsViewConfig } from './ReelsView.data';
+import type { ReelingParamsConfig, ReelsViewConfig } from './ReelsView.data';
 
 export interface BaseReelsView {
   IsHiddenSymbol(reelIdx: number, row: number): boolean;
@@ -10,6 +10,8 @@ export interface BaseReelsView {
   PlayAttractionSound(): void;
   StopAttractionSound(): void;
   GetReelsViewConfig(): ReelsViewConfig;
+  // BaseReelsView's own returns the config's reelingParamsConfig
+  GetReelingParamsConfig(): ReelingParamsConfig;
   GetStoppedReelIds(): number[];
   GetStoppedReelIdxs(subScreen: number): number[];
   GetReelsCount(subScreenIdx: number): number;

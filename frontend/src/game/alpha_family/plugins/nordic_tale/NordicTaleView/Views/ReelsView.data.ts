@@ -60,6 +60,10 @@ export interface ReelingParamsConfig {
 export interface ReelsViewConfig {
   symbolsConfig: SymbolVisualConfig[];
   reelSoundsConfig: ReelSoundsConfig;
+  // reeling params (main / base-game reels)
   reelingParamsConfig: ReelingParamsConfig;
+  // reeling params while HoldAndSpin per-cell reels are active
+  reelingParamsHSConfig: ReelingParamsConfig;
+  // sub screens
   subScreensConfig: ReelSubScreensConfig;
 }

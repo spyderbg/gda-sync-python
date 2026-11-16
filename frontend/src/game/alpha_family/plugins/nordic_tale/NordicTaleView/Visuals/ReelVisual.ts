@@ -1,7 +1,10 @@
 // Egt::Game::AlphaFamily::ReelVisual (NordicTaleView/Visuals/ReelVisual.h/.cpp): one reel strip, which
 // spins over the fake reel and stops on the round's stop, a tick (tickDuration) at a time. A symbol is drawn centred on
-// its cell, with its overlay image and text; the hold and spin round's symbols are drawn over the strip.
+// its cell, with its overlay image and text. Its grid placement (ReelVisualConfig) makes it a full column of the main
+// reels or a single cell of the hold and spin round's reels, which draws the held symbols only.
 
+import { Contains } from '@game/engine/GameCore/Common/ContainerHelpers';
+import { AssertIf } from '@game/engine/GameCore/Common/Defensive';
 import { Alignment } from '@game/engine/GameVideoCtrl/ViewElements/BaseElement';
 import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
 import type { ElementsList } from '@game/engine/GameVideoCtrl/ViewElements/ElementsList';
@@ -9,7 +12,7 @@ import { ImageElement } from '@game/engine/GameVideoCtrl/ViewElements/ImageEleme
 import { TextElement } from '@game/engine/GameVideoCtrl/ViewElements/TextElement';
 import { ERoundTags, type SymbolId, type SymbolIds } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
 import type { BaseReelsView } from '../Views/BaseReelsView';
-import type { ReelSubScreensConfig } from '../Views/ReelSubScreen.data';
+import type { ReelSubScreensConfig, ReelVisualConfig } from '../Views/ReelSubScreen.data';
 import { BaseVisual } from './BaseVisual';
 
 enum EStatus {
@@ -26,7 +29,7 @@ export class ReelVisual extends BaseVisual {
   private m_symbolIds: SymbolIds = [];
   private m_fakeSymbolIds: SymbolIds = [];
   private m_stopSymbolIds: SymbolIds = [];
-  private m_hsSymbolIds: SymbolIds = [];
+  private m_holdedSymbolIds: SymbolIds = [];
   private m_beforeStopSymbolIds: SymbolIds = [];
   private m_afterStopSymbolIds: SymbolIds = [];
   private m_beforeStopPositions: number[] = [];
@@ -43,17 +46,45 @@ export class ReelVisual extends BaseVisual {
   private m_hasAttraction = false;
   private m_bStoppedSoundPlayed = false;
   private m_bAttractionSoundPlayed = false;
-  private m_usReelMovPiece: number;
+  private m_usReelMovPiece = 0;
   private m_usReelTicksStopEvent = 0;
   private m_wildId: SymbolId = -1;
 
+  private readonly m_reelStartCol: number = 0;
+  private readonly m_reelStartRow: number = 0;
+  private readonly m_reelHeightInCells: number = 0;
+  private m_hsStopRank = 0;
+
   constructor(elementsList: ElementsList, private readonly m_reelId: number, private readonly m_baseReelsView: BaseReelsView,
-    private readonly m_subScreensConfig: ReelSubScreensConfig) {
+    private readonly m_subScreensConfig: ReelSubScreensConfig, config: ReelVisualConfig) {
     super(elementsList);
-    const config = m_baseReelsView.GetReelsViewConfig();
-    this.m_usReelMovPiece = config.reelingParamsConfig.normalDeltaPosPerTick;
-    // the elements are drawn by the reel only
-    for (const it of config.symbolsConfig) {
+    this.m_reelStartCol = config.reelStartCol;
+    this.m_reelStartRow = config.reelStartRow;
+    this.m_reelHeightInCells = config.reelHeightInCells;
+
+    if (AssertIf(m_subScreensConfig.visibleCols < 1 || m_subScreensConfig.visibleRows < 1)) return;
+
+    if (AssertIf(config.reelStartCol < 0 || config.reelStartCol >= m_subScreensConfig.visibleCols)) return;
+    if (AssertIf(config.reelStartRow < 0 || config.reelStartRow >= m_subScreensConfig.visibleRows)) return;
+    if (AssertIf(config.reelHeightInCells < 1)) return;
+    if (AssertIf(config.reelHeightInCells > m_subScreensConfig.visibleRows)) return;
+    if (AssertIf(config.reelStartRow + config.reelHeightInCells > m_subScreensConfig.visibleRows)) return;
+
+    this.m_usReelMovPiece = m_baseReelsView.GetReelingParamsConfig().normalDeltaPosPerTick;
+
+    this.CreateSymbolElements();
+  }
+
+  /** ~ReelVisual: removes the elements it made. @browserOnly */
+  Destroy() {
+    this.m_elementsList.Remove(this.GetElementIds());
+    this.m_symbolElementIds.clear();
+  }
+
+  // the elements are drawn by the reel only
+  private CreateSymbolElements() {
+    const viewConfig = this.m_baseReelsView.GetReelsViewConfig();
+    for (const it of viewConfig.symbolsConfig) {
       const ids: string[] = [];
       this.m_symbolElementIds.set(it.id, ids);
 
@@ -61,7 +92,9 @@ export class ReelVisual extends BaseVisual {
         const image = this.m_elementsList.Create(ImageElement, it.rssId).SetAlignment(Alignment.MiddleCenter);
         image.SetHidden(true);
 
-        ids.push(image.GetId());
+        const id = image.GetId();
+        ids.push(id);
+        this.StoreElementId(id);
       }
 
       if ((it.overlayImage?.rssId ?? '') !== '') {
@@ -70,7 +103,9 @@ export class ReelVisual extends BaseVisual {
           .SetAlignment(Alignment.MiddleCenter);
         image.SetHidden(true);
 
-        ids.push(image.GetId());
+        const id = image.GetId();
+        ids.push(id);
+        this.StoreElementId(id);
       }
 
       if ((it.overlayText?.text ?? '') !== '') {
@@ -81,7 +116,9 @@ export class ReelVisual extends BaseVisual {
         text.SetText(it.overlayText!.text);
         text.SetHidden(true);
 
-        ids.push(text.GetId());
+        const id = text.GetId();
+        ids.push(id);
+        this.StoreElementId(id);
       }
     }
   }
@@ -90,36 +127,12 @@ export class ReelVisual extends BaseVisual {
    * step per tick and its stop's ticks again; it keeps its symbols and where it is.
    * @browserOnly */
   ReloadConfig() {
-    const config = this.m_baseReelsView.GetReelsViewConfig();
-    for (const ids of this.m_symbolElementIds.values()) this.m_elementsList.Remove(ids);
-    this.m_symbolElementIds.clear();
-    this.m_usReelMovPiece = config.reelingParamsConfig.normalDeltaPosPerTick;
-    for (const it of config.symbolsConfig) {
-      const ids: string[] = [];
-      this.m_symbolElementIds.set(it.id, ids);
-
-      const image = this.m_elementsList.Create(ImageElement, it.rssId).SetAlignment(Alignment.MiddleCenter);
-      image.SetHidden(true);
-      ids.push(image.GetId());
-
-      if ((it.overlayImage?.rssId ?? '') !== '') {
-        const overlay = this.m_elementsList.Create(ImageElement, it.overlayImage!.rssId)
-          .SetPivot({ x: it.overlayImage!.ox, y: it.overlayImage!.oy })
-          .SetAlignment(Alignment.MiddleCenter);
-        overlay.SetHidden(true);
-        ids.push(overlay.GetId());
-      }
-
-      if ((it.overlayText?.text ?? '') !== '') {
-        const text = this.m_elementsList.Create(TextElement);
-        text.SetStyleId(it.overlayText!.styleId);
-        text.SetPivot({ x: it.overlayText!.ox, y: it.overlayText!.oy });
-        text.SetAlignment(Alignment.MiddleCenter);
-        text.SetText(it.overlayText!.text);
-        text.SetHidden(true);
-        ids.push(text.GetId());
-      }
+    for (const ids of this.m_symbolElementIds.values()) {
+      for (const id of ids) this.RemoveElementId(id);
     }
+    this.m_symbolElementIds.clear();
+    this.m_usReelMovPiece = this.m_baseReelsView.GetReelingParamsConfig().normalDeltaPosPerTick;
+    this.CreateSymbolElements();
     this.SetSubScreenIdx(this.GetSubScreenIdx());
   }
 
@@ -130,23 +143,34 @@ export class ReelVisual extends BaseVisual {
   Draw(drawList: DrawList) {
     this.DrawReelStrip(drawList, false);
     this.DrawReelStrip(drawList, true);
-    this.DrawHoldAndSpinSymbols(drawList);
   }
 
   Process() {
     this.NextStep();
   }
 
+  HasReelStrip() {
+    return this.m_symbolIds.length > 0;
+  }
+
   private DrawReelStrip(drawList: DrawList, wildOnly: boolean) {
     if (!this.m_symbolIds.length) return;
-    const config = this.m_baseReelsView.GetReelsViewConfig();
     const subScreen = this.subScreen;
-    const rowCount = config.subScreensConfig.visibleRows;
+    const rowCount = this.GetEffectiveVisibleRows();
     const useClip = this.m_ucReelStatus !== EStatus.STOPPED;
     let pos = Math.trunc(this.m_ssCurPos / subScreen.reelStepY);
     const nPixelsFromCurrent = this.m_ssCurPos - pos * subScreen.reelStepY;
+
+    const startCol = this.m_reelStartCol;
+    const startRow = this.m_reelStartRow;
+
     if (useClip) {
-      drawList.push_clip({ x: subScreen.reelAreaX, y: subScreen.reelAreaY, w: config.subScreensConfig.visibleCols * subScreen.reelStepX, h: rowCount * subScreen.reelStepY });
+      drawList.push_clip({
+        x: Math.trunc(subScreen.reelAreaX + startCol * subScreen.reelStepX),
+        y: Math.trunc(subScreen.reelAreaY + startRow * subScreen.reelStepY),
+        w: subScreen.reelStepX,
+        h: rowCount * subScreen.reelStepY,
+      });
     }
     for (let squareIt = 0; squareIt <= rowCount; ++squareIt) {
       if (squareIt < rowCount || nPixelsFromCurrent !== 0) {
@@ -154,12 +178,12 @@ export class ReelVisual extends BaseVisual {
         const isWild = symbolId === this.m_wildId;
         if (wildOnly === isWild) {
           // Same cell center as WinFigureVisual::GetCellCenter: half the symbol, not half the reel step.
-          const nPicX = subScreen.reelAreaX + subScreen.reelStepX * this.m_reelIdx +
+          const nPicX = subScreen.reelAreaX + subScreen.reelStepX * startCol +
             subScreen.symbolWidth / 2.0;
-          const nPicY = subScreen.reelAreaY + subScreen.reelStepY * squareIt +
+          const nPicY = subScreen.reelAreaY + subScreen.reelStepY * (startRow + squareIt) +
             subScreen.symbolHeight / 2.0 - nPixelsFromCurrent;
 
-          this.DrawSymbol(drawList, symbolId, { x: nPicX, y: nPicY }, squareIt);
+          this.DrawSymbol(drawList, symbolId, { x: nPicX, y: nPicY }, startRow + squareIt);
         }
       }
       if (++pos >= this.m_symbolIds.length) pos = 0;
@@ -167,25 +191,12 @@ export class ReelVisual extends BaseVisual {
     if (useClip) drawList.pop_clip();
   }
 
-  private DrawHoldAndSpinSymbols(drawList: DrawList) {
-    if (this.m_hsSymbolIds.length === 0) return;
-
-    const subScreen = this.subScreen;
-
-    const x =
-      subScreen.reelAreaX + subScreen.reelStepX * this.m_reelIdx + subScreen.symbolWidth / 2.0;
-    const y = subScreen.reelAreaY + subScreen.symbolHeight / 2.0;
-
-    for (let i = 0; i < this.m_hsSymbolIds.length; i++) {
-      const symbolId = this.m_hsSymbolIds[i];
-      if (symbolId < 0) continue;
-
-      this.DrawSymbol(drawList, symbolId, { x, y: y + i * subScreen.reelStepY }, i);
-    }
-  }
-
   private DrawSymbol(drawList: DrawList, symbolId: SymbolId, position: { x: number; y: number }, row: number) {
-    if (this.m_baseReelsView.IsHiddenSymbol(this.m_reelIdx, row)) return;
+    if (symbolId < 0) return;
+    if (!this.IsFullVisibleColumn() && !Contains(this.m_holdedSymbolIds, symbolId)) return;
+
+    const col = this.m_reelStartCol;
+    if (this.m_baseReelsView.IsHiddenSymbol(col, row)) return;
 
     for (const elementId of this.m_symbolElementIds.get(symbolId) ?? []) {
       const element = this.m_elementsList.TryGet(elementId);
@@ -211,12 +222,14 @@ export class ReelVisual extends BaseVisual {
 
   SetSubScreenIdx(subScreenIdx: number) {
     const config = this.m_baseReelsView.GetReelsViewConfig();
+    const reeling = this.m_baseReelsView.GetReelingParamsConfig();
     if (!config.subScreensConfig.subScreens[subScreenIdx]) return;
     super.SetSubScreenIdx(subScreenIdx);
     // difference between stopping ticks and additional ticks, clamped
-    const target = config.reelingParamsConfig.reelingAdditionalTicks;
-    const epilogTicks = config.reelingParamsConfig.outroDeltaPosPerTick.length;
-    const stoppingTicks = Math.trunc((this.subScreen.symbolHeight * config.subScreensConfig.visibleRows) / config.reelingParamsConfig.normalDeltaPosPerTick);
+    const target = reeling.reelingAdditionalTicks;
+    const epilogTicks = reeling.outroDeltaPosPerTick.length;
+    const visibleRowsForTicks = this.GetEffectiveVisibleRows();
+    const stoppingTicks = Math.trunc((this.subScreen.symbolHeight * visibleRowsForTicks) / reeling.normalDeltaPosPerTick);
     this.m_usReelTicksStopEvent = Math.min(Math.max(target - stoppingTicks, 0), epilogTicks);
   }
 
@@ -261,12 +274,12 @@ export class ReelVisual extends BaseVisual {
   }
 
   NormalStop() {
-    const config = this.m_baseReelsView.GetReelsViewConfig();
+    const reeling = this.m_baseReelsView.GetReelingParamsConfig();
     if (this.m_ucReelStatus === EStatus.INTRO || this.m_ucReelStatus === EStatus.STARTING || this.m_ucReelStatus === EStatus.REELING) {
       this.m_usStopStepsCount = 0;
       this.m_usStopStepsEnd = this.m_hasAttraction
-        ? config.reelingParamsConfig.reelingAttractionAdditionalTicks - config.reelingParamsConfig.outroDeltaPosPerTick.length
-        : this.m_reelIdx === 0 ? config.reelingParamsConfig.reelingMinDurationTicks : 1;
+        ? reeling.reelingAttractionAdditionalTicks - reeling.outroDeltaPosPerTick.length
+        : this.m_hsStopRank === 0 ? reeling.reelingMinDurationTicks : 1;
     }
     if (this.m_hasAttraction && !this.m_bAttractionSoundPlayed && this.m_ucReelStatus === EStatus.REELING) {
       this.m_baseReelsView.PlayAttractionSound();
@@ -287,8 +300,20 @@ export class ReelVisual extends BaseVisual {
     this.m_hasAttraction = tags.includes(ERoundTags.Attraction);
   }
 
-  SetHoldAndSpinSymbols(symbolIds: SymbolIds) {
-    this.m_hsSymbolIds = [...symbolIds];
+  SetHoldedSymbolIds(symbolIds: SymbolIds) {
+    this.m_holdedSymbolIds = [...symbolIds];
+  }
+
+  private IsFullVisibleColumn() {
+    return this.m_reelStartRow === 0 && this.m_reelHeightInCells === this.m_subScreensConfig.visibleRows;
+  }
+
+  private GetEffectiveVisibleRows() {
+    return this.m_reelHeightInCells;
+  }
+
+  SetHoldAndSpinStopRank(rank: number) {
+    this.m_hsStopRank = rank;
   }
 
   SetWildId(wildId: SymbolId) {
@@ -327,8 +352,7 @@ export class ReelVisual extends BaseVisual {
 
   private NextStep() {
     if (!this.m_symbolIds.length) return;
-    const config = this.m_baseReelsView.GetReelsViewConfig();
-    const params = config.reelingParamsConfig;
+    const params = this.m_baseReelsView.GetReelingParamsConfig();
     const subScreen = this.subScreen;
     const height = this.m_symbolIds.length * subScreen.symbolHeight;
     const wrap = (value: number) => ((value % height) + height) % height;
@@ -359,8 +383,9 @@ export class ReelVisual extends BaseVisual {
         }
       }
       if (this.m_ucReelStatus === EStatus.STARTING) {
+        const visibleRowsForStart = this.GetEffectiveVisibleRows();
         const ssDownBorder = !this.m_nResultsPositions.length ? this.m_ssCurPos
-          : wrap((this.m_nResultsPositions[0] - this.m_beforeStopPositions.length - config.subScreensConfig.visibleRows) * subScreen.symbolHeight + height);
+          : wrap((this.m_nResultsPositions[0] - this.m_beforeStopPositions.length - visibleRowsForStart) * subScreen.symbolHeight + height);
         if (Math.abs(ssDownBorder - this.m_ssCurPos) <= this.m_usReelMovPiece) {
           this.m_ucReelStatus = EStatus.REELING;
           this.RemoveResults();

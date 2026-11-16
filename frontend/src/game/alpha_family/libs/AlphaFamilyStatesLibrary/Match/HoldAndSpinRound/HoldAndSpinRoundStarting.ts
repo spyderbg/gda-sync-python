@@ -6,7 +6,7 @@ import { assert, AssertUnless } from '@game/engine/GameCore/Common/Defensive';
 import { EgtALogCategoryClass, EgtATrace } from '@game/engine/GameCore/Log/LogCategory';
 import { IGameflow } from '@game/alpha_family/libs/AlphaFamily/RuntimeImport/IGameflow.bridge';
 import { StartRoundRequest, type StartRoundReply } from '@game/alpha_family/libs/AlphaFamily/RuntimeImport/IGameflow.data';
-import { IHoldAndSpinRound, IHoldAndSpinRoundReeling, IHoldAndSpinRoundStarting } from '@game/alpha_family/libs/AlphaFamily/States/Match/IHoldAndSpinRound';
+import { HoldAndSpinReelSetup, IHoldAndSpinRound, IHoldAndSpinRoundReeling, IHoldAndSpinRoundStarting } from '@game/alpha_family/libs/AlphaFamily/States/Match/IHoldAndSpinRound';
 import { HoldAndSpinRoundStorage } from './HoldAndSpinRound.data';
 
 export class HoldAndSpinRoundStartingState extends State {
@@ -17,7 +17,12 @@ export class HoldAndSpinRoundStartingState extends State {
 
     this.AttachCallbacks();
 
-    this.Parent(IHoldAndSpinRound).SetupViews({ disableInfoButton: true, startReeling: true, showMainInfo: true });
+    this.Parent(IHoldAndSpinRound).SetupViews({
+      disableInfoButton: true,
+      setupReels: false,
+      reelSetup: HoldAndSpinReelSetup.Trigger,
+      showMainInfo: true,
+    });
 
     if (!_isRecovery) {
       this.RequestStartRound();

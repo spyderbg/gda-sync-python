@@ -6,12 +6,21 @@ import type { RoundType } from '../../Math/Common/Common.data';
 import type { HoldAndSpinRoundRules } from '../../Math/HoldAndSpin/HoldAndSpinRoundRules';
 import type { IRound } from './IRound';
 
+export enum HoldAndSpinReelSetup {
+  None,
+  Trigger, // trigger shields only (no reel spin)
+  Spinning, // HoldAndSpin phase reeling
+  Presenting, // HS grid after a phase (no spin)
+  Outro, // final HS grid during outro (from last round result)
+}
+
 export interface HoldAndSpinViewOptions {
   disableInfoButton?: boolean;
   startReeling?: boolean; // start reeling instead of instant set
   setupReels?: boolean; // setup of reels view from result (default true)
-  setupHoldAndSpinReels?: boolean; // HoldAndSpin phase reeling
-  overrideWinBar?: number; // value for win bar
+  reelSetup?: HoldAndSpinReelSetup; // default None
+  overrideWinBar?: number; // value for credits win bar
+  overrideCoinsBar?: number; // value for coins win bar
   showMainInfo?: boolean; // show HoldAndSpin info view main mode
   featureStarted?: boolean; // reels fire, banner and spins bar are shown
   showSpinsCompleted?: boolean; // spins bar shows "Spins Completed" without animation

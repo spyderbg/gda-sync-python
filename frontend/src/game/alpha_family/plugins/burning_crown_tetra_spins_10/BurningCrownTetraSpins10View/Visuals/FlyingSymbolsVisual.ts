@@ -2,9 +2,9 @@
 // crown flying from its cell in one tetra sub screen to the same cell of a later one.
 
 import type { Point } from '@game/engine/Game/RuntimeExport/IResources';
+import { AnimElement } from '@game/engine/GameVideoCtrl/ViewElements/AnimElement';
 import { Alignment } from '@game/engine/GameVideoCtrl/ViewElements/BaseElement';
 import type { ElementsList } from '@game/engine/GameVideoCtrl/ViewElements/ElementsList';
-import { ImageElement } from '@game/engine/GameVideoCtrl/ViewElements/ImageElement';
 import { MoveTo } from '@game/engine/GameVideoCtrl/ViewElements/TweenyExtend/TweenyExtendElement';
 import * as tweeny from '@game/hat_libs/tweeny/tweeny';
 import type { FlyingSymbolData } from '../Views/ReelsView.data';
@@ -14,6 +14,8 @@ export class FlyingSymbolsVisual extends BaseVisual {
   private m_reelIdx = 0;
   private m_startingSubScreenIdx = 0;
   private m_endSubScreenIdx = 0;
+
+  private m_flyingElementId = '';
   private m_animation = new tweeny.tween_action();
 
   constructor(elementsList: ElementsList) {
@@ -51,15 +53,14 @@ export class FlyingSymbolsVisual extends BaseVisual {
   }
 
   AddAnimation(movePath: [Point, Point], data: FlyingSymbolData, duration: number) {
-    const element = this.m_elementsList.CreatePtr(ImageElement, data.flyingRssId);
-    element.SetPosition(movePath[0]);
-    element.SetAlignment(Alignment.MiddleCenter);
+    // the crown keeps cycling after it lands, until TetraRoundView clears it on its reel's stop
+    const flying = this.m_elementsList.CreatePtr(AnimElement, data.flyingRssId);
+    flying.SetPosition(movePath[0]).SetAlignment(Alignment.MiddleCenter).SetHidden(true);
 
-    this.StoreElementId(element.GetId());
+    this.m_flyingElementId = flying.GetId();
+    this.StoreElementId(this.m_flyingElementId);
 
-    const action = MoveTo(element, movePath[1], duration, tweeny.ease.linear);
-
-    this.m_animation = action;
+    this.m_animation = MoveTo(flying, movePath[1], duration, tweeny.ease.linear);
   }
 
   SetHidden(isHidden: boolean) {
@@ -69,7 +70,11 @@ export class FlyingSymbolsVisual extends BaseVisual {
   StartAnimation(subScreenIdx: number) {
     if (subScreenIdx !== this.m_startingSubScreenIdx) return false;
 
-    this.m_elementsList.SetHidden(false, this.GetElementIds());
+    const flying = this.m_elementsList.TryGet(this.m_flyingElementId, AnimElement);
+    if (flying) {
+      flying.SetHidden(false);
+      flying.Play();
+    }
 
     tweeny.start(this.m_animation);
     return true;

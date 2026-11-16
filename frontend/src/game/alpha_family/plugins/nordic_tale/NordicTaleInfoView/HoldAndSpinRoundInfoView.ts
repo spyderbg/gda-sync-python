@@ -349,6 +349,11 @@ export class HoldAndSpinRoundInfoView extends BaseView implements IHoldAndSpinRo
   }
 
   ShowComets(infos: SymbolViewInfos) {
+    if (!infos.length) {
+      this.m_events.cometsAnimDone.Post();
+      return;
+    }
+
     this.m_oldMode = this.m_mode;
     this.m_mode = EMode.Comets;
     this.m_cometInfos = [...infos];
@@ -708,6 +713,7 @@ export class HoldAndSpinRoundInfoView extends BaseView implements IHoldAndSpinRo
 
       if (it === undefined) continue;
       if ((it.effectId ?? '') === '') continue;
+      if ((it.effectValue ?? 0) <= 0) continue;
       if (AssertUnless(IsValidIndex(subScreens.subScreens, 0))) continue;
 
       const subScreen = subScreens.subScreens[0];

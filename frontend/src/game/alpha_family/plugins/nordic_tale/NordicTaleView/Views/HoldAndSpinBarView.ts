@@ -103,6 +103,17 @@ export class HoldAndSpinBarView extends NumericBarView<IHoldAndSpinBarView, IHol
     super.Deinit();
   }
 
+  Process() {
+    super.Process();
+
+    if (Unless(this.m_elementsList.IsLoaded())) return;
+
+    if (this.m_state === ESubstate.IncreasingValue && !tweeny.is_running(this.m_actionValueIncreased)) {
+      this.SetSubstate(ESubstate.ValueVisible);
+      this.m_events.valueAnimDone.Post();
+    }
+  }
+
   // IWinBarViewWithShow
   ShowRemainder(visible: boolean) {
     if (!visible) return;
@@ -115,6 +126,7 @@ export class HoldAndSpinBarView extends NumericBarView<IHoldAndSpinBarView, IHol
 
   // NumericBarView
   SetValueNow(value: number) {
+    this.StopValueIncreasedAnim(true);
     super.SetValueNow(value);
     this.AdjustValue();
   }
@@ -158,7 +170,7 @@ export class HoldAndSpinBarView extends NumericBarView<IHoldAndSpinBarView, IHol
     if (!this.m_elementsList.IsLoaded()) return;
     if (this.m_state === ESubstate.Invisible) return;
 
-    this.StopValueIncreasedAnim(false);
+    this.StopValueIncreasedAnim(true);
 
     if (animate) {
       this.SetSubstate(ESubstate.ShowingCompleted);
@@ -376,7 +388,7 @@ export class HoldAndSpinBarView extends NumericBarView<IHoldAndSpinBarView, IHol
       return;
     }
 
-    this.StopValueIncreasedAnim(false);
+    this.StopValueIncreasedAnim(true);
 
     if (value !== this.m_shownValue) {
       this.m_shownValue = value;

@@ -7,7 +7,7 @@ import { Contains, IsValidIndex } from '@game/engine/GameCore/Common/ContainerHe
 import { AssertIf, assert } from '@game/engine/GameCore/Common/Defensive';
 import { Copy } from '@game/engine/GameCore/Common/Types';
 import { EgtALogCategoryClass, EgtATrace } from '@game/engine/GameCore/Log/LogCategory';
-import { Currency, RoundType, type SymbolGrid } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
+import { Currency, RoundType, type SymbolGrid, type SymbolId } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
 import { HoldAndSpinRoundInput } from '@game/alpha_family/libs/AlphaFamily/Math/HoldAndSpin/HoldAndSpinRoundInput.data';
 import { HoldAndSpinPhase } from '@game/alpha_family/libs/AlphaFamily/Math/HoldAndSpin/HoldAndSpinRoundPhase.data';
 import type { RoundResult } from '@game/alpha_family/libs/AlphaFamily/Math/RoundResult.data';
@@ -16,7 +16,7 @@ import { IGameflow } from '@game/alpha_family/libs/AlphaFamily/RuntimeImport/IGa
 import { IBetManager } from '@game/alpha_family/libs/AlphaFamily/States/IBetManager';
 import { IGameManager } from '@game/alpha_family/libs/AlphaFamily/States/IGameManager';
 import { IViewManager, type SetupViewsOptions } from '@game/alpha_family/libs/AlphaFamily/States/IViewManager';
-import { type HoldAndSpinViewOptions, IHoldAndSpinRound } from '@game/alpha_family/libs/AlphaFamily/States/Match/IHoldAndSpinRound';
+import { HoldAndSpinReelSetup, type HoldAndSpinViewOptions, IHoldAndSpinRound } from '@game/alpha_family/libs/AlphaFamily/States/Match/IHoldAndSpinRound';
 import { IHoldAndSpinBarView } from '@game/alpha_family/libs/AlphaFamily/Views/BarsView.bridge';
 import { IHoldAndSpinRoundInfoView } from '@game/alpha_family/libs/AlphaFamily/Views/IHoldAndSpinRoundInfoView.bridge';
 import { IHoldAndSpinRoundOverlayView } from '@game/alpha_family/libs/AlphaFamily/Views/IHoldAndSpinRoundOverlayView.bridge';
@@ -79,6 +79,7 @@ export class HoldAndSpinRoundState extends State implements IHoldAndSpinRound {
     let vmOptions: SetupViewsOptions = {
       startReeling: options.startReeling ?? false,
       setupReels: options.setupReels ?? true,
+      overrideCoinsBar: options.overrideCoinsBar,
       overrideWinBar: options.overrideWinBar,
       disableInfoButton: options.disableInfoButton ?? false,
       overrideSpecialRoundView: RoundType.HoldAndSpin,
@@ -88,15 +89,17 @@ export class HoldAndSpinRoundState extends State implements IHoldAndSpinRound {
       vmOptions.overrideFakeReels = RoundType.HoldAndSpin;
     }
 
-    if (options.setupHoldAndSpinReels) {
-      this.SetupHoldAndSpinReelsView();
-    }
-
     const nvram = this.ConstNvram(HoldAndSpinRoundStorage);
     if (nvram.roundResult) {
       this.Parent(IViewManager).SetupViews(nvram.roundResult, vmOptions);
     } else {
       this.Parent(IViewManager).SetupViewsLastResult(vmOptions);
+    }
+
+    // After ViewManager (SetupWinCombination clears win figures and reel combinations).
+    const reelSetup = options.reelSetup ?? HoldAndSpinReelSetup.None;
+    if (reelSetup !== HoldAndSpinReelSetup.None) {
+      this.ApplyHoldAndSpinReelSetup(reelSetup);
     }
 
     if (options.showMainInfo) {
@@ -159,31 +162,86 @@ export class HoldAndSpinRoundState extends State implements IHoldAndSpinRound {
     }
   }
 
-  private SetupHoldAndSpinReelsView() {
-    const nvram = this.ConstNvram(HoldAndSpinRoundStorage);
-    const roundResult = nvram.roundResult;
-    if (AssertIf(!roundResult)) return;
+  private static BuildOutroHoldedGrid(stop: SymbolGrid, triggerSymbolIds: SymbolId[]): SymbolGrid {
+    const holded: SymbolGrid = [];
+    holded.length = stop.length;
+    for (let col = 0; col < stop.length; ++col) {
+      if (AssertIf(!IsValidIndex(stop, col))) continue;
+      holded[col] = []; // a TypeScript array resized has holes: C++ resizes the column it has
+      holded[col].length = stop[col].length;
+      for (let row = 0; row < stop[col].length; ++row) {
+        const sid = stop[col][row];
+        holded[col][row] = Contains(triggerSymbolIds, sid) ? sid : -1;
+      }
+    }
 
-    const phases = roundResult!.GetPhases(this.GetRuntime());
-    if (AssertIf(!phases.length)) return;
+    return holded;
+  }
 
-    const phaseIdx = nvram.phaseIdx;
-    if (!IsValidIndex(phases, phaseIdx)) return;
-
-    const roundPhase = phases[phaseIdx];
-    if (AssertIf(!(roundPhase instanceof HoldAndSpinPhase))) return;
+  private ApplyHoldAndSpinReelSetup(setup: HoldAndSpinReelSetup) {
+    if (setup === HoldAndSpinReelSetup.None) return;
 
     const roundRules = this.GetRoundRules();
     const fakeReels = roundRules.GetFakeReels();
 
-    const phase = roundPhase as HoldAndSpinPhase;
-    const stop = phase.stop;
-    const holded = this.GetHoldAndSpinHoldedGrid();
+    let stop: SymbolGrid = [];
+    let holded: SymbolGrid = [];
+
+    switch (setup as HoldAndSpinReelSetup) {
+      case HoldAndSpinReelSetup.Trigger:
+        holded = this.GetHoldAndSpinHoldedGrid();
+        stop = holded;
+        break;
+
+      case HoldAndSpinReelSetup.Spinning:
+      case HoldAndSpinReelSetup.Presenting: {
+        const nvram = this.ConstNvram(HoldAndSpinRoundStorage);
+        const roundResult = nvram.roundResult;
+        if (AssertIf(!roundResult)) return;
+
+        const phases = roundResult!.GetPhases(this.GetRuntime());
+        if (AssertIf(!phases.length)) return;
+
+        const phaseIdx = nvram.phaseIdx;
+        if (!IsValidIndex(phases, phaseIdx)) return;
+
+        const roundPhase = phases[phaseIdx];
+        if (AssertIf(!(roundPhase instanceof HoldAndSpinPhase))) return;
+
+        const phase = roundPhase as HoldAndSpinPhase;
+        stop = phase.stop;
+        holded = this.GetHoldAndSpinHoldedGrid();
+        break;
+      }
+
+      case HoldAndSpinReelSetup.Outro: {
+        const lastResult = this.ConstParent(IGameManager).GetLastRoundResult();
+        const phases = lastResult.GetPhases(this.GetRuntime());
+        if (AssertIf(!phases.length)) return;
+
+        const lastPhase = phases[phases.length - 1];
+        if (AssertIf(!(lastPhase instanceof HoldAndSpinPhase))) return;
+
+        const phase = lastPhase as HoldAndSpinPhase;
+        stop = phase.stop;
+        holded = HoldAndSpinRoundState.BuildOutroHoldedGrid(stop, roundRules.GetConfig().triggerSymbolIds);
+        break;
+      }
+
+      case HoldAndSpinReelSetup.None: return;
+    }
 
     const reelsView = this.RuntimeGet(IReelsView);
+    reelsView.ClearHoldAndSpinSymbols();
     reelsView.SetupFakeReels(fakeReels);
-    reelsView.StartReeling();
-    reelsView.ShowHoldAndSpinPhase(stop, holded);
+
+    if (setup === HoldAndSpinReelSetup.Spinning) {
+      reelsView.StartReeling();
+      reelsView.ShowHoldAndSpinPhase(stop, holded);
+    } else {
+      reelsView.ShowHoldAndSpinPhase(stop, holded);
+      reelsView.ShowStopFigures();
+    }
   }
 
   private GetHoldAndSpinHoldedGrid(): SymbolGrid {
@@ -194,14 +252,17 @@ export class HoldAndSpinRoundState extends State implements IHoldAndSpinRound {
 
     const nvram = this.ConstNvram(HoldAndSpinRoundStorage);
     const roundResult = nvram.roundResult;
-    if (AssertIf(!roundResult)) return result;
-
-    const phases = roundResult!.GetPhases(this.GetRuntime());
     const prevPhaseIdx = nvram.phaseIdx - 1;
 
-    if (IsValidIndex(phases, prevPhaseIdx)) {
-      const phase = phases[prevPhaseIdx] as HoldAndSpinPhase;
-      result = Copy(phase.stop);
+    if (roundResult) {
+      const phases = roundResult.GetPhases(this.GetRuntime());
+
+      if (IsValidIndex(phases, prevPhaseIdx)) {
+        const phase = phases[prevPhaseIdx] as HoldAndSpinPhase;
+        result = Copy(phase.stop);
+      } else if (nvram.roundInput) {
+        result = Copy(nvram.roundInput.prevStop);
+      }
     } else if (nvram.roundInput) {
       result = Copy(nvram.roundInput.prevStop);
     }

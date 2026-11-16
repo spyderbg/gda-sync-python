@@ -646,10 +646,10 @@
    "alpha_family/libs/src/Egt/AlphaFamily/States/Match/IHoldAndSpinRound.h",
    "alpha_family/libs/src/Egt/AlphaFamily/States/Match/IHoldAndSpinRound.cpp"
   ],
-  "sha256": "738ef0422344b979b41835a97107ca9cccff049f2e7c3ae30e2a2ad091d512b1",
-  "cppCommit": "2882fd0e74f433262f7b8d47046d24083b154984",
+  "sha256": "6c2498d36144bbbd0a08a531a69126d4ac368b5b83aa4a3efe6c35791d209be8",
+  "cppCommit": "2d0d392d83987b4ce92b1625b8dbb41035af769a",
   "cppSha256": {
-   "alpha_family/libs/src/Egt/AlphaFamily/States/Match/IHoldAndSpinRound.h": "2bf5bb2e276f20d32df10ad3d64ace308965ee6a74bf27ff2ffa36f77a7f87f8",
+   "alpha_family/libs/src/Egt/AlphaFamily/States/Match/IHoldAndSpinRound.h": "6a1a7a47c90f8169f2b0d42d73cce9c621d9b350ef20cbb59dac3a55a49bfec2",
    "alpha_family/libs/src/Egt/AlphaFamily/States/Match/IHoldAndSpinRound.cpp": "3efe480dd20da77d4fc16ade963b418c464e9b8e413093022489f6ba3ba4a0d7"
   }
  },
@@ -1584,11 +1584,11 @@
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRound.h",
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRound.cpp"
   ],
-  "sha256": "b4dcacc1b07db73337acdacc0a494d44b6d5678aa72a1b67ba72beb1ba103a50",
-  "cppCommit": "2882fd0e74f433262f7b8d47046d24083b154984",
+  "sha256": "66e2641d0dcd229f7ddcd60149488e5d7c9bc3549a7a5eff6c5d1cc50f8ec4bf",
+  "cppCommit": "2d0d392d83987b4ce92b1625b8dbb41035af769a",
   "cppSha256": {
-   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRound.h": "2c332f644dd3917c9faa491cf4532d751b9d4d0621585b917cac233037828321",
-   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRound.cpp": "191ba4b83a70a9d4c970e9e126b467755decce2befd694ff5f21d718bf377b21"
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRound.h": "7867634dfed654c98b12ae7cb98f0adf2d6a8b00c8ab809511d303a0a947a3df",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRound.cpp": "104f1763e9858206de5e7d92f77ecd507a99ee103f3922de5649de192fb54a90"
   }
  },
  "alpha_family/libs/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundEnding.ts": {
@@ -1620,11 +1620,11 @@
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundOutro.h",
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundOutro.cpp"
   ],
-  "sha256": "afec736893f3f791a5a404b74443e3636e4b41ebcd509598b0f8c126cd7bbf90",
-  "cppCommit": "2882fd0e74f433262f7b8d47046d24083b154984",
+  "sha256": "0ebe80d825e2be0b3878f5f59355b9836662fe837f2c112f0ff0536f32384150",
+  "cppCommit": "2d0d392d83987b4ce92b1625b8dbb41035af769a",
   "cppSha256": {
-   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundOutro.h": "bf2cf9c5e91e6aec1ade48b611c2220e49e161055826b1a29c244cdaf6ff2828",
-   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundOutro.cpp": "c676521d142412821562fde8e08a0df47f06a9a4456830dec823265c9374f7bc"
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundOutro.h": "4705de01a604b8b2fa78023f166c1c85659a83d526d378c2abd5e12ccc7161b6",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundOutro.cpp": "7fc149fcfb0264f18690266c366059f0649ef8bc1074d630760f24d9dac3ab15"
   }
  },
  "alpha_family/libs/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundPresenting.ts": {
@@ -1632,11 +1632,11 @@
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundPresenting.h",
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundPresenting.cpp"
   ],
-  "sha256": "f946742e3c9382afe3513c1ecd59099f8988e815cf03990523b886f9faf5d283",
-  "cppCommit": "2882fd0e74f433262f7b8d47046d24083b154984",
+  "sha256": "03e4e0585bf31b0d9602cd2373cb918cb0fe86e1120f6c0dccbfeb5198b99602",
+  "cppCommit": "2d0d392d83987b4ce92b1625b8dbb41035af769a",
   "cppSha256": {
-   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundPresenting.h": "7700c5069803d11241c5871c7641f74efc78797c95379328e687e1911ff2d1a2",
-   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundPresenting.cpp": "8cc7b03329d93a7e9af10b3d31e8d221859dbacb5b88214680c15e49c3011e92"
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundPresenting.h": "8b722edbc06c2c4528f9334192feb3de4c28fc5cb214090399dda37359baa32c",
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundPresenting.cpp": "8b8ed49cc010708783559ae82b81badc21e42a4f1317f88c429f30539a37cf55"
   }
  },
  "alpha_family/libs/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundReeling.ts": {
@@ -1644,11 +1644,11 @@
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundReeling.h",
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundReeling.cpp"
   ],
-  "sha256": "54e0ff653d829e137d921348c6533be2712a19f4f48581959f3ac35b0038dcf3",
-  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "sha256": "4c2eb8620bb5a3e04d2ab59699ff6e95b24224d500ef04ff336f63abbfde711b",
+  "cppCommit": "2d0d392d83987b4ce92b1625b8dbb41035af769a",
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundReeling.h": "6d336999f7a704d92fe9090d11cde29ea195e23fb1aa2e70090d9b90a74298d0",
-   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundReeling.cpp": "ad80d8b047fab7a14a817c9efe6b9acc480281a692924ac65c1efe1eba8fb162"
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundReeling.cpp": "55c7a767c284fa01b09781ed58666b8c96f9c00a63b99bfbe4d8d8e4b23b999c"
   }
  },
  "alpha_family/libs/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundStarting.ts": {
@@ -1656,11 +1656,11 @@
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundStarting.h",
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundStarting.cpp"
   ],
-  "sha256": "7ec45274bbdc9828f9c3ab78aa4e3a28c6dfa2d2e69e1c1103c5826b67bb62c4",
-  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "sha256": "ea8a3ee9bd5293c400364d4958e2668f67341708443c7d57f0ebc9140cc56b7c",
+  "cppCommit": "2d0d392d83987b4ce92b1625b8dbb41035af769a",
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundStarting.h": "a8aebe7afedda3f9b868de5a15d5bae27536ee117cfa76d2c3074813d856ff68",
-   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundStarting.cpp": "4dae8a416860b4cd2484762fe59c653181a4fbfc981352652accda46ac46280f"
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/HoldAndSpinRound/HoldAndSpinRoundStarting.cpp": "0f77af0610d350b2492fe309654034df66fef6276f8270fda8efc7ddad97662c"
   }
  },
  "alpha_family/libs/AlphaFamilyStatesLibrary/Match/MainRound/MainRound.ts": {
@@ -1740,11 +1740,11 @@
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/MatchCappingApplied/MatchCappingApplied.h",
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/MatchCappingApplied/MatchCappingApplied.cpp"
   ],
-  "sha256": "95d28eb3ab84928d77f6871f0c1e08f28112faebe44cbb2218d43e7556b03488",
-  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "sha256": "f4ecd56c6b4dd73562ab3d570ba5b1127ae328538ee671691dc4c5f7b5ea0d51",
+  "cppCommit": "2d0d392d83987b4ce92b1625b8dbb41035af769a",
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/MatchCappingApplied/MatchCappingApplied.h": "d991f7717e00c2df61ec50f585295cc28442ceb58c87677397e8881ec5942e68",
-   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/MatchCappingApplied/MatchCappingApplied.cpp": "06c19d63985ff969bfbaadb5acb81e020dc63a3352b15dd69c5062f4a2b34774"
+   "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/MatchCappingApplied/MatchCappingApplied.cpp": "34da12210732f8209a99028dd6d3b1869745974c90e3786b9a0e225af9bcf3b4"
   }
  },
  "alpha_family/libs/AlphaFamilyStatesLibrary/Match/MatchEnding/MatchEnding.ts": {
@@ -3448,11 +3448,11 @@
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Visuals/FlyingSymbolsVisual.h",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Visuals/FlyingSymbolsVisual.cpp"
   ],
-  "sha256": "283dd6df1e08935883177f56452cea4fb16588e5ce41e473ba3ac013000e8505",
-  "cppCommit": "f0c46d2a37422c811dea77221127db2101f537dd",
+  "sha256": "11c448edb88a11a782e7a7f2cf1c1a1d194cb115c69bb2cbc0495f5b688c218e",
+  "cppCommit": "2d0d392d83987b4ce92b1625b8dbb41035af769a",
   "cppSha256": {
-   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Visuals/FlyingSymbolsVisual.h": "89f694c105f320538a7ef64daa0e7bad221d6ee4003a963c9cd584210cc1e3d9",
-   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Visuals/FlyingSymbolsVisual.cpp": "012eda702c47c90e97338f4b07313804725c387df6f22d1442bd8bbd26ce4256"
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Visuals/FlyingSymbolsVisual.h": "023302e26409d4e1a818d40f9424791fed1d4736685c1564b734e99bb3f98dd4",
+   "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Visuals/FlyingSymbolsVisual.cpp": "76e71d17b548c0e20ef785227b20503782853beb86d278ec44cbe2ddff429caf"
   }
  },
  "alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Visuals/LinesVisual.ts": {
@@ -5010,11 +5010,11 @@
    "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleInfoView/HoldAndSpinRoundInfoView.h",
    "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleInfoView/HoldAndSpinRoundInfoView.cpp"
   ],
-  "sha256": "16206f3609e70dfe0b04f61b65f483f7cbf7f080e842d35cece2d44d0c241fac",
-  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
+  "sha256": "159d56c94a9429a629170b9b277491dc7d62d6c0dda2d311b95a4d05cbee8569",
+  "cppCommit": "2d0d392d83987b4ce92b1625b8dbb41035af769a",
   "cppSha256": {
    "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleInfoView/HoldAndSpinRoundInfoView.h": "ca5cd894239e2a42bb1002f71c2552878d57d6f87fa91d47f6f08923aad33146",
-   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleInfoView/HoldAndSpinRoundInfoView.cpp": "a2193dd901683e9915d98a9782bda6f220ebb2b6679b8fe6b0d5932da105880a"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleInfoView/HoldAndSpinRoundInfoView.cpp": "450db48cbebe95f315215f86d891b1feb17f2371e8fffb25232e213cf7f39c0e"
   }
  },
  "alpha_family/plugins/nordic_tale/NordicTaleInfoView/InfoView.data.ts": {
@@ -5136,11 +5136,11 @@
    "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/NordicTaleView.h",
    "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/NordicTaleView.cpp"
   ],
-  "sha256": "4c2e94ff7b9b6ed8f69e50e72df9231995ad2e1c25087d99fb2628e724b504a8",
-  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
+  "sha256": "bf619aa55ff6980f9126041f6ede813febfc78869d9dbb71f7fef19a2e1cfd94",
+  "cppCommit": "2d0d392d83987b4ce92b1625b8dbb41035af769a",
   "cppSha256": {
    "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/NordicTaleView.h": "f86c366dd7316facc405063f964f8ef6b8a34b74767b9783845c5006ee0286bd",
-   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/NordicTaleView.cpp": "44a3876a8cf07824918d7441dac2ca410801aad16e86653b53283c45e8dea6a5"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/NordicTaleView.cpp": "29debd88a3b2489fc0a96767cc17179b271c0c46cacdcaa3101ebbe0066dfa1e"
   }
  },
  "alpha_family/plugins/nordic_tale/NordicTaleView/SwButtons/BetDownSwButtonView.ts": {
@@ -5316,11 +5316,11 @@
    "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/BaseReelsView.h",
    "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/BaseReelsView.cpp"
   ],
-  "sha256": "657c837aabdeca0c5fa567a7a7adb42da428e20ff5bf828bb6911360f7f7305c",
-  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
+  "sha256": "feee9c550da6ca4f5a706e4f3f10e6acfd69a5e0891642098e77c44495b8196d",
+  "cppCommit": "2d0d392d83987b4ce92b1625b8dbb41035af769a",
   "cppSha256": {
-   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/BaseReelsView.h": "7215e2b8546e7500cd28415bf962f5798fcd357ecf6fb3cfc9dc9d6ae0a476ea",
-   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/BaseReelsView.cpp": "cca3fc2cca8fa8169b63f9bac6e15e97445a971d71c8e77c1b1cb058071a7a6a"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/BaseReelsView.h": "13f5dd8eef0c9ac316675b6752f59475009d8dccf6e316298a9f73b99e9a7a38",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/BaseReelsView.cpp": "541c9720e04e9bf74c187075c14bb3d638af3a4c148ed6686bb349db9ed73663"
   }
  },
  "alpha_family/plugins/nordic_tale/NordicTaleView/Views/BetBarView.ts": {
@@ -5460,11 +5460,11 @@
    "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/HoldAndSpinBarView.h",
    "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/HoldAndSpinBarView.cpp"
   ],
-  "sha256": "b726017d1fdc3d5fef5bde467344c9baf77811ce6cbcfca7021e65dc8abe3d62",
-  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
+  "sha256": "d9d5a7500dfc0cd8f2ad26e900d24ec7371607d1d2198a19838de2249222126b",
+  "cppCommit": "2d0d392d83987b4ce92b1625b8dbb41035af769a",
   "cppSha256": {
-   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/HoldAndSpinBarView.h": "cf113ef974041f3edb7ba04874481d4b68146edc4a00b53b666963e03f9a7957",
-   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/HoldAndSpinBarView.cpp": "aa64caeaf0e54d68461753303a0cb137c07e2906fad08a62fafafd51b9b7b7e2"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/HoldAndSpinBarView.h": "e4677881e173b7cbbdc48cd041083335ce413ffa6b65fc02d49747a88ddfc464",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/HoldAndSpinBarView.cpp": "66567131526c1ee50c261ab799ab1cbbe5915f0aa5e8f9b131555feba13eaa97"
   }
  },
  "alpha_family/plugins/nordic_tale/NordicTaleView/Views/HoldAndSpinRoundOverlayView.ts": {
@@ -5541,20 +5541,20 @@
   "cpp": [
    "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/ReelSubScreen.data.h"
   ],
-  "sha256": "a4fc3378d33cf1506c0f42af309f44fca37f17173b695262a4c4111abf561c67",
-  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
+  "sha256": "dd6c7e87611c06be081758352046df303e4fed63b79efc2f88061ec70ad4a7ff",
+  "cppCommit": "2d0d392d83987b4ce92b1625b8dbb41035af769a",
   "cppSha256": {
-   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/ReelSubScreen.data.h": "60b687633a9db66347203356a01851b28fc40629b0a02d3695f097693e7fc48f"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/ReelSubScreen.data.h": "7a576c61017aed2b04668a1654731c8a05ccf9656c0bcf21cdcd729b28c37177"
   }
  },
  "alpha_family/plugins/nordic_tale/NordicTaleView/Views/ReelsView.data.ts": {
   "cpp": [
    "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/ReelsView.data.h"
   ],
-  "sha256": "2aebaa4d4bbef6398c3a7b78540cbe9066951a4eeb8fe235e98e4578c7360aca",
-  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
+  "sha256": "dd624f832c53eb54ab051d53c33912397bf3d8ae413d450ee424e924f5d651ea",
+  "cppCommit": "2d0d392d83987b4ce92b1625b8dbb41035af769a",
   "cppSha256": {
-   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/ReelsView.data.h": "fb33ad7a6930f21941f3f52fef8b6d871c271368fa4daef69ff9ca15b2cb9177"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/ReelsView.data.h": "5b955160f32f3d63dcd19f6c5c074c93821a68e708ecfe263b900995005fa697"
   }
  },
  "alpha_family/plugins/nordic_tale/NordicTaleView/Views/ReelsView.ts": {
@@ -5562,11 +5562,11 @@
    "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/ReelsView.h",
    "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/ReelsView.cpp"
   ],
-  "sha256": "5f6d91718feaf598a9e2f9a111c5ad709b104339cf8b2c50232cb5fd55af30e2",
-  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
+  "sha256": "68d494f36eb7b7e8fdfb3acee3fb97d4937344fb4bace1cef8f7f29fcbd57f2f",
+  "cppCommit": "2d0d392d83987b4ce92b1625b8dbb41035af769a",
   "cppSha256": {
-   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/ReelsView.h": "a59b992f6f06c0b317d9dddda034c25228ab953762395506645d530d6141819e",
-   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/ReelsView.cpp": "8f457693f36b14b3a437376924757d59de186e9cc841803a894e61e8ab3f75cb"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/ReelsView.h": "8086f672f30b95ab418a0cb6adc3d4c6626edf2cfa60f6356cffe7820ae19059",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/ReelsView.cpp": "205791e03e144decabf04de9e20be34dcc81d8cc146070759e2f5130d70863ac"
   }
  },
  "alpha_family/plugins/nordic_tale/NordicTaleView/Views/SoundMenuView.ts": {
@@ -5652,11 +5652,11 @@
    "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/WinFiguresView.h",
    "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/WinFiguresView.cpp"
   ],
-  "sha256": "d9c0e46d23965b26b5ca95e0388a17ac1bc3b42cb54bb2b3c551e4e7c44c504e",
-  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
+  "sha256": "bb7ed1127c2dbff34bf73f996af2ec25d57026921b1898c0098c78711656991b",
+  "cppCommit": "2d0d392d83987b4ce92b1625b8dbb41035af769a",
   "cppSha256": {
-   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/WinFiguresView.h": "e25ee749cdb12291f9c871a343a7fd7d01fab25ba2c6998b06d3f93c7f54ca2d",
-   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/WinFiguresView.cpp": "f0b172661d5a896e3d669c096d27f929989192b3a55d5468e92ff367d6a669a5"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/WinFiguresView.h": "be30c4a61b0a5cffce3e8b0db36de0f98796ab0b57b23a90053239c2918b490c",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/WinFiguresView.cpp": "97b8de04d6d601166da3627d5f6530c5dac05d5ac6afa28e1f89e253ece53709"
   }
  },
  "alpha_family/plugins/nordic_tale/NordicTaleView/Visuals/BaseVisual.ts": {
@@ -5698,11 +5698,11 @@
    "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Visuals/ReelVisual.h",
    "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Visuals/ReelVisual.cpp"
   ],
-  "sha256": "75fe8408eaa1fc1737231a0385e63b5e617e0dca13fe8c237cb974d1ac1c0977",
-  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
+  "sha256": "d1d64952cb51c44af17bcbffb14d55ad212b96db0a1d6ae519289bccd0042b55",
+  "cppCommit": "2d0d392d83987b4ce92b1625b8dbb41035af769a",
   "cppSha256": {
-   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Visuals/ReelVisual.h": "73bc8da5772d1a5733c2e28fdabb636782b8e9054c8685ce273dd74242b58862",
-   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Visuals/ReelVisual.cpp": "0c16cded500d6ee5899e538c19c302b024f84ccd23084c92259fd0a5617abe7c"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Visuals/ReelVisual.h": "6b09fdcd440e120e3d7d1deee63c074a50c8f5fcb62772df9812e32e104752b7",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Visuals/ReelVisual.cpp": "84e9fe5e7066000321b808cd576cfffdf2cdf0c9ff6770e440b29f33e5bc4f4d"
   }
  },
  "alpha_family/plugins/nordic_tale/NordicTaleView/Visuals/StatusLineVisual.data.ts": {
@@ -5742,11 +5742,11 @@
    "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Visuals/WinFiguresVisual.h",
    "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Visuals/WinFiguresVisual.cpp"
   ],
-  "sha256": "156428adfeef86b71d19e5eecaf879271aa0684cbbadb74690c076570a9b8d14",
-  "cppCommit": "d65ca5b45be70dbea66aa7a1c037493585f817c1",
+  "sha256": "7b934e63ca52da9e9e2011b4e5281564f14cd5b7c605add21186fe8e926dc441",
+  "cppCommit": "2d0d392d83987b4ce92b1625b8dbb41035af769a",
   "cppSha256": {
-   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Visuals/WinFiguresVisual.h": "2f5d0cbf492b7dd4ef55e46f37981be10d5f79eabd785236f6e9b29aa4268764",
-   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Visuals/WinFiguresVisual.cpp": "e63ff9b199561be7cc4ebf269ecb9eb25c5a689dc1aab88d5f6b5995ee739d59"
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Visuals/WinFiguresVisual.h": "a09fb0bacf530cc3461d429f7f3795b520ca352be6b332349ec2b5418ca6318f",
+   "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Visuals/WinFiguresVisual.cpp": "25ae0fafc4f60190c07ab455662adadd5f5f3ec72b9614e0a7131c46f0dc9211"
   }
  },
  "alpha_family/plugins/zodiac_wheel_coins/ZodiacWheelCoinsFsm/ZodiacWheelCoinsFsm.ts": {

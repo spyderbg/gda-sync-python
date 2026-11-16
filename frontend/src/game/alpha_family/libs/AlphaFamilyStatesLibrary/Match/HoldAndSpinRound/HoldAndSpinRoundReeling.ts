@@ -3,7 +3,7 @@
 
 import { State } from '@game/engine/Fsm/Fsm';
 import { EgtALogCategoryClass, EgtATrace } from '@game/engine/GameCore/Log/LogCategory';
-import { IHoldAndSpinRound, IHoldAndSpinRoundPresenting, IHoldAndSpinRoundReeling } from '@game/alpha_family/libs/AlphaFamily/States/Match/IHoldAndSpinRound';
+import { HoldAndSpinReelSetup, IHoldAndSpinRound, IHoldAndSpinRoundPresenting, IHoldAndSpinRoundReeling } from '@game/alpha_family/libs/AlphaFamily/States/Match/IHoldAndSpinRound';
 import { IReelsView } from '@game/alpha_family/libs/AlphaFamily/Views/IReelsView.bridge';
 
 export class HoldAndSpinRoundReelingState extends State {
@@ -14,7 +14,12 @@ export class HoldAndSpinRoundReelingState extends State {
 
     this.AtachCallbacks();
 
-    this.Parent(IHoldAndSpinRound).SetupViews({ disableInfoButton: true, setupReels: false, setupHoldAndSpinReels: true, showMainInfo: true });
+    this.Parent(IHoldAndSpinRound).SetupViews({
+      disableInfoButton: true,
+      setupReels: false,
+      reelSetup: HoldAndSpinReelSetup.Spinning,
+      showMainInfo: true,
+    });
   }
 
   ToRoundPresenting() {

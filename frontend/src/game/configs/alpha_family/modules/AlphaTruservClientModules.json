@@ -71,33 +71,6 @@
       }
     },
     {
-      "name": "ResponsibleGamingManager",
-      "space": "Egt::Integration",
-      "header": "Egt/ResponsibleGamingManager/ResponsibleGamingManager.h"
-    },
-    {
-      "name": "ResponsibleGamingSetupView",
-      "space": "Egt::Integration",
-      "header": "Egt/ResponsibleGamingSetupView/ResponsibleGamingSetupView.h",
-      "initAfter": [
-        "ResourceManager"
-      ],
-      "config": {
-        "layerId": 800
-      }
-    },
-    {
-      "name": "ResponsibleGamingWarningView",
-      "space": "Egt::Integration",
-      "header": "Egt/ResponsibleGamingWarningView/ResponsibleGamingWarningView.h",
-      "initAfter": [
-        "ResourceManager"
-      ],
-      "config": {
-        "layerId": 900
-      }
-    },
-    {
       "name": "LocalizationManager",
       "space": "Egt::Integration",
       "header": "Egt/LocalizationManager/LocalizationManager.h",
@@ -118,11 +91,6 @@
       "name": "AlphaFamilyBridge",
       "space": "Egt::Integration::AlphaFamily",
       "header": "Egt/AlphaFamilyBridge/AlphaFamilyBridge.h"
-    },
-    {
-      "name": "MessageBoardManager",
-      "space": "Egt::Integration",
-      "header": "Egt/MessageBoardManager/MessageBoardManager.h"
     }
   ]
 }

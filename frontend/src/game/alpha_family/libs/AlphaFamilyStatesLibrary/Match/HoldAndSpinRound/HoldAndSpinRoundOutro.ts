@@ -13,7 +13,7 @@ import { HoldAndSpinPhase } from '@game/alpha_family/libs/AlphaFamily/Math/HoldA
 import { IGameflow } from '@game/alpha_family/libs/AlphaFamily/RuntimeImport/IGameflow.bridge';
 import { IBetManager } from '@game/alpha_family/libs/AlphaFamily/States/IBetManager';
 import { IGameManager } from '@game/alpha_family/libs/AlphaFamily/States/IGameManager';
-import { IHoldAndSpinRound, IHoldAndSpinRoundOutro } from '@game/alpha_family/libs/AlphaFamily/States/Match/IHoldAndSpinRound';
+import { HoldAndSpinReelSetup, IHoldAndSpinRound, IHoldAndSpinRoundOutro } from '@game/alpha_family/libs/AlphaFamily/States/Match/IHoldAndSpinRound';
 import { IMatch } from '@game/alpha_family/libs/AlphaFamily/States/Match/IMatch';
 import { IBigWinInfoView } from '@game/alpha_family/libs/AlphaFamily/Views/IBigWinInfoView.bridge';
 import { IHoldAndSpinRoundInfoView } from '@game/alpha_family/libs/AlphaFamily/Views/IHoldAndSpinRoundInfoView.bridge';
@@ -39,8 +39,6 @@ enum EOutroStep {
   FeatureOutro,
 }
 
-const emptyInfos: SymbolViewInfos = [];
-
 export class HoldAndSpinRoundOutroState extends State {
   static Interfaces = [IHoldAndSpinRoundOutro];
 
@@ -54,11 +52,15 @@ export class HoldAndSpinRoundOutroState extends State {
     this.AttachCallbacks();
 
     const hsEnergy = this.RuntimeGetConst(IGameflow).GetMatchCurrencyAvailable(Currency.HoldAndSpinEnergy);
-    this.Parent(IHoldAndSpinRound).SetupViews({ disableInfoButton: true, showSpinsCompleted: (hsEnergy === 0) });
+    this.Parent(IHoldAndSpinRound).SetupViews({
+      disableInfoButton: true,
+      setupReels: false,
+      reelSetup: HoldAndSpinReelSetup.Outro,
+      showSpinsCompleted: (hsEnergy === 0),
+    });
     if (hsEnergy === 0) {
       this.ShowSymbolPrize();
     } else {
-      // Parent<IHoldAndSpinRound>().SetFeatureStartedViews(false);
       this.TransitLater(this.Parent(IMatch).ToNextRound());
     }
   }
@@ -72,15 +74,27 @@ export class HoldAndSpinRoundOutroState extends State {
     this.ReactOn(this.RuntimeGetConst(IStartHwButton.Events).buttonPressedEvent, this.OnFastStopRequested);
   }
 
-  private GetWinFiguresInfo(): SymbolViewInfos {
+  /// All trigger-symbol positions across every Hold & Spin phase in the last match result (deduped by grid cell).
+  private GetHeldFiguresInfo(): SymbolViewInfos {
+    const merged: SymbolViewInfos = [];
     const lastResult = this.ConstParent(IGameManager).GetLastRoundResult();
     const phases = lastResult.GetPhases(this.GetRuntime());
-    if (!phases.length) return emptyInfos;
+    if (!phases.length) return merged;
 
-    const phase = phases[phases.length - 1];
-    if (!(phase instanceof HoldAndSpinPhase)) return emptyInfos;
+    const seenCoords = new Set<string>();
 
-    return phase.winFiguresInfo;
+    for (const phase of [...phases].reverse()) {
+      if (!(phase instanceof HoldAndSpinPhase)) continue;
+
+      for (const info of (phase as HoldAndSpinPhase).winFiguresInfo) {
+        if (!seenCoords.has(info.coord.key())) {
+          seenCoords.add(info.coord.key());
+          merged.push(info);
+        }
+      }
+    }
+
+    return merged;
   }
 
   private GetLastRoundTags(): ERoundTags[] {
@@ -145,9 +159,9 @@ export class HoldAndSpinRoundOutroState extends State {
   private ShowComets() {
     this.m_step = EOutroStep.Comets;
 
-    const winFiguresInfo = this.GetWinFiguresInfo();
-    this.RuntimeGet(IWinFiguresView).ShowComets(winFiguresInfo);
-    this.RuntimeGet(IHoldAndSpinRoundInfoView).ShowComets(winFiguresInfo);
+    const heldFiguresInfo = this.GetHeldFiguresInfo();
+    this.RuntimeGet(IWinFiguresView).ShowComets(heldFiguresInfo);
+    this.RuntimeGet(IHoldAndSpinRoundInfoView).ShowComets(heldFiguresInfo);
   }
 
   private ShowFreeSpinsRewardSplash() {

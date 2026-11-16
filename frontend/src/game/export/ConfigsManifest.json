@@ -1,11 +1,11 @@
 {
  "alpha_family/modules/AlphaAresModules_QA.json": {
-  "sha256": "3138e5667255132939c4022b61e247f97b6f34b054ddd3f2ed4a001875ef92bf",
-  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+  "sha256": "d16855a005555d299637740614e95306388aa627a96551c01c3b055057553f04",
+  "commit": "2d0d392d83987b4ce92b1625b8dbb41035af769a"
  },
  "alpha_family/modules/AlphaAresModules.json": {
-  "sha256": "51591c1162c2b9593712e6d85312575208a304c6aac12b934520fe1d3b8aafa0",
-  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+  "sha256": "d5f3cdbb1060ea39d9318d03ef13477eecf92a0c50cef6bbbd1ffa88f2a6fb8a",
+  "commit": "2d0d392d83987b4ce92b1625b8dbb41035af769a"
  },
  "alpha_family/modules/AlphaAstroModules_Production.json": {
   "sha256": "79306cf477e80f219dd27f59cf148f47f25b18b94794ab1f221f24b17dd84137",
@@ -52,8 +52,8 @@
   "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
  },
  "alpha_family/modules/AlphaTruservClientModules.json": {
-  "sha256": "1f7ac78fd5ea60edd62ce98953719a27260bf9efeb5f9404bd57cbe76f6bff26",
-  "commit": "d65ca5b45be70dbea66aa7a1c037493585f817c1"
+  "sha256": "1e2d170d460de5a3414be9488164d310c759db345a0dcf9cb852c5ce1fc8efe5",
+  "commit": "2d0d392d83987b4ce92b1625b8dbb41035af769a"
  },
  "alpha_family/modules/AlphaTruservServerModules_Partner.json": {
   "sha256": "4f64b0946337b4b266ebc1c70aa7e6b3844d7a2fcb1165473008376da4b2ace8",

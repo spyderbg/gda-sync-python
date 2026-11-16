@@ -127,7 +127,7 @@ export class NordicTaleView extends BaseModule {
 
   private CreateViews() {
     this.AddViews('background', new GameBackgroundView());
-    this.AddViews('rounds', new ReelsView(), new ReelsOverlayView(), new WinFiguresView());
+    this.AddViews('rounds', new ReelsView(), new ReelsOverlayView());
     this.AddViews('wheel', new WheelRoundView(), new WheelCancelSwButtonView(), new WheelStartSwButtonView());
     this.AddViews(
       'bars',
@@ -135,6 +135,8 @@ export class NordicTaleView extends BaseModule {
       new CoinsBarView(),
       new CreditsWinBarView(),
       new BetBarView(),
+      // Held shield loops and win figures: above reels/overlay (incl. HS fire), below HS spins bar.
+      new WinFiguresView(),
       new HoldAndSpinBarView(),
       new LinesView(),
       new StatusLineView(),

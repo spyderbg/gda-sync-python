@@ -5,7 +5,7 @@ import type { Point } from '@game/engine/Game/RuntimeExport/IResources';
 import { AssertUnless, Unless } from '@game/engine/GameCore/Common/Defensive';
 import { EgtALogCategoryClass } from '@game/engine/GameCore/Log/LogCategory';
 import { AnimElement } from '@game/engine/GameVideoCtrl/ViewElements/AnimElement';
-import { Alignment } from '@game/engine/GameVideoCtrl/ViewElements/BaseElement';
+import { Alignment, BaseElement } from '@game/engine/GameVideoCtrl/ViewElements/BaseElement';
 import { ImageElement } from '@game/engine/GameVideoCtrl/ViewElements/ImageElement';
 import { TextElement } from '@game/engine/GameVideoCtrl/ViewElements/TextElement';
 import type { ElementsList } from '@game/engine/GameVideoCtrl/ViewElements/ElementsList';
@@ -101,6 +101,15 @@ export class WinFigureVisual extends BaseVisual {
     if (Unless(anim)) return;
 
     anim!.Play();
+  }
+
+  SetDimmed(dimmed: boolean) {
+    if (!this.HasStoredElementId()) return;
+
+    const color = dimmed ? { r: 96, g: 96, b: 96, a: 255 } : { r: 255, g: 255, b: 255, a: 255 };
+    for (const elementId of this.GetElementIds()) {
+      this.m_elementsList.Get(elementId, BaseElement).SetColor(color);
+    }
   }
 
   ////////////////////////////////////////////////////////////////////////////////

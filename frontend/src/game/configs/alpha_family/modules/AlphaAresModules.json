@@ -52,6 +52,10 @@
       "header": "Egt/AresIntegration/AresIntegration.h",
       "config": {
         "blinkIntervalMs": 600,
+        "attendance": {
+          "noCreditIdleExitDurationMs": 0,
+          "lessThanMinBetCreditIdleExitDurationMs": 0
+        },
         "autoExit": {
           "zeroCreditAfterMatchEndedDurationMs": 100
         },

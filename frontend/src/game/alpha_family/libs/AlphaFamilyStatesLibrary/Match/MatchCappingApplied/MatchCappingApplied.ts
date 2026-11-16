@@ -6,6 +6,7 @@ import { ILimits } from '@game/engine/Game/RuntimeImport/ILimits';
 import { EgtALogCategoryClass, EgtATrace } from '@game/engine/GameCore/Log/LogCategory';
 import { Currency, RoundType } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
 import { IGameflow } from '@game/alpha_family/libs/AlphaFamily/RuntimeImport/IGameflow.bridge';
+import { IGameManager } from '@game/alpha_family/libs/AlphaFamily/States/IGameManager';
 import { IViewManager } from '@game/alpha_family/libs/AlphaFamily/States/IViewManager';
 import { ICreditTaxation } from '@game/alpha_family/libs/AlphaFamily/States/Match/ICreditTaxation';
 import { IMatchCappingApplied } from '@game/alpha_family/libs/AlphaFamily/States/Match/IMatchCappingApplied';
@@ -23,6 +24,8 @@ export class MatchCappingAppliedState extends State {
 
     const showAllFeaturesEnd = this.RuntimeGetConst(IGameflow).HasRemainingFeaturesOnCap();
     this.RuntimeGet(ICappingSplashView).ShowCappingSplashView(showAllFeaturesEnd);
+
+    this.Parent(IGameManager).SetAutoPlay(false);
   }
 
   private AttachCallbacks() {
