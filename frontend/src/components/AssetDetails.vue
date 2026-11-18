@@ -8,6 +8,7 @@ import AudioPreview from './AudioPreview.vue';
 import MoveAssets from './MoveAssets.vue';
 import RenameKey from './RenameKey.vue';
 import DeclareAsset from './DeclareAsset.vue';
+import CreateMovie from './CreateMovie.vue';
 import DeclarationFileActions from './DeclarationFileActions.vue';
 import FontPreview from './FontPreview.vue';
 import MoviePreview from './MoviePreview.vue';
@@ -37,11 +38,13 @@ const unsaved = ref(false);
 // The dialog that declares the asset, over this one.
 const declaring = ref(false);
 const moving = ref(false);
+// The dialog that makes an image sequence into a movie.
+const makingMovie = ref(false);
 const metadataOpen = ref(false);
 const renaming = ref<AssetDeclaration | null>(null);
-watch(() => props.row.id, () => { declaring.value = false; });
+watch(() => props.row.id, () => { declaring.value = false; makingMovie.value = false; });
 function close() {
-  if (declaring.value || moving.value || renaming.value || metadataOpen.value) return;
+  if (declaring.value || makingMovie.value || moving.value || renaming.value || metadataOpen.value) return;
   if (unsaved.value && !window.confirm('Discard your changes without saving them?')) return;
   emit('close');
 }
@@ -371,6 +374,8 @@ const scope = computed(() => ({ game: 'Belongs to this game only.', common: 'A c
     <div class="modal-footer details-footer">
       <span class="text-muted">{{ row.resource }}</span>
       <button v-if="row.type === 'texture' && row.scope !== 'outside'" type="button" class="btn btn-outline-primary" :disabled="unsaved" @click="metadataOpen = true">Image metadata…</button>
+      <button v-if="sequence && readable && row.scope !== 'outside'" type="button" class="btn btn-outline-primary" :disabled="unsaved"
+              title="Encode the frames as a movie and declare it under a new RSS key, which an Anim element can name instead of the sequence" @click="makingMovie = true">Make movie…</button>
       <button type="button" class="btn btn-outline-primary" :disabled="unsaved" @click="moving = true">Move…</button>
       <button type="button" class="btn btn-light" @click="close">Close</button>
     </div>
@@ -378,6 +383,7 @@ const scope = computed(() => ({ game: 'Belongs to this game only.', common: 'A c
   <MoveAssets v-if="moving" :row="row" @close="moving = false" />
   <RenameKey v-if="renaming?.id && renaming?.type" :kind="renaming.type" :rss-key="renaming.id" @close="renaming = null" />
   <DeclareAsset v-if="declaring" :row="row" @close="declaring = false" />
+  <CreateMovie v-if="makingMovie" :row="row" @close="makingMovie = false" />
   <ImageStudio v-if="metadataOpen" :row="row" stacked @close="metadataOpen = false" />
 </template>
 

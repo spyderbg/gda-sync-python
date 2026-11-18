@@ -126,6 +126,13 @@ export interface DeclarationKindOptions {
   ids: string[]; id: string | null;
   values: Record<string, { default: DeclarationValue | null; used: number; values: [DeclarationValue, number][] }>;
 }
+/** How an image sequence can be made into a movie (LibraryService.movie_options): a new RSS key and a path for it, the
+ * descriptors that can declare it, its suggested format, and the sequence's timing. */
+export interface MovieOptions {
+  id: string; ids: string[]; path: string; descriptors: string[]; formats: MovieFormat[]; movieFormat: MovieFormat;
+  sequenceId: string | null; frameTime: number; fps: number; loopCount: number; frames: number;
+}
+export type MovieFormat = 'valpha' | 'opaque';
 /** How an asset that no descriptor declares can be declared: the paths its entry names, and the kinds that can, the
  * usual one first. */
 export interface DeclarationOptions {

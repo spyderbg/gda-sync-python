@@ -20,6 +20,7 @@ import time
 import uuid
 from collections import OrderedDict
 from collections.abc import Callable
+from dataclasses import fields as dataclass_fields
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import TypeVar
@@ -31,6 +32,7 @@ from egt_gda_sync.app.errors import AppError, error_message
 from egt_gda_sync.workspace.asset_report import AssetReports, inventory
 from egt_gda_sync.assets.fonts import FONT_EXTENSIONS, describe_font
 from egt_gda_sync.assets.movies import MOVIE_EXTENSIONS, describe_movie, movie_thumbnail
+from egt_gda_sync.assets.movie_maker import FORMATS as MOVIE_FORMATS, encode_movie, movie_path, suggested_format
 from egt_gda_sync.images.png import PNG_SIGNATURE
 from egt_gda_sync.workspace import backups
 from egt_gda_sync.sync.rss_declare import KINDS, asset_files, asset_kinds, asset_name, build_entry, descriptor_targets, entry_paths, kind_options, used_values
@@ -991,6 +993,127 @@ class Library:
                           and (item["id"] == row["id"] or item.get("sequence") or item["resourcePath"] == row["resourcePath"])), None)
             return {"library": self.scan(), "asset": found[0]["id"] if found else None, "descriptor": descriptor,
                     "line": found[1]["line"] if found else line}
+
+        return self._exclusive(operation)
+
+    def _sequence_asset(self, asset: str) -> tuple[dict, Path, dict[Path, object], list[tuple[Path, dict | None]]]:
+        """An image sequence of the newest asset report whose frames exist, the game folder, its descriptors as they are
+        now, and its frames as (file, source rectangle) pairs."""
+        workspace_id, entry = self._active_workspace()
+        settings = self._comparison(workspace_id, entry)[1]
+        row = self._report_asset(workspace_id, asset)[0]
+        if not row.get("sequence"):
+            raise AppError("Only an image sequence can be made into a movie", 400)
+        frames = [(Path(frame["resourcePath"]), frame.get("source")) for frame in row["sequence"]["frames"]]
+        if row["category"] not in ("available", "supplementary") or not all(file.is_file() for file, _source in frames):
+            raise AppError("Every frame of the sequence must exist. Rescan to update the report.", 409)
+        game = self._asset_game(settings)
+        try:
+            documents = load_documents(game, required=False)
+        except (OSError, ValueError, TypeError) as error:
+            raise AppError(f"The descriptors cannot be read: {error_message(error)}") from error
+        return row, game, documents, frames
+
+    @staticmethod
+    def _resource_ids(documents: dict[Path, object]) -> set[str]:
+        """The ids of every entry of the game's descriptors, of any kind."""
+        return {entry.id for document in documents.values() for item in dataclass_fields(document)
+                for entry in getattr(document, item.name) if isinstance(getattr(entry, "id", None), str)}
+
+    def movie_options(self, asset: str) -> dict:
+        """How an image sequence can be made into a movie: a new id named like the game's movies (the sequence's with
+        _MOVIE), a path in the game's m folder, the descriptors that can hold a Movie entry, the format its frames suggest
+        (valpha when they have alpha), and the sequence's frame time, frame rate, loop count and frames."""
+        row, game, documents, frames = self._sequence_asset(asset)
+        sequence = row["sequence"]
+        ids = self._resource_ids(documents)
+        name = sequence["id"] or asset_name(row)
+        base = re.sub(r"[^0-9A-Za-z]+", "_", name).strip("_").upper() or "ANIM"
+        suggested = f"{base if base.startswith('ANIM_') else 'ANIM_' + base}_MOVIE"
+        candidate, number = suggested, 2
+        while candidate in ids:
+            candidate, number = f"{suggested}_{number}", number + 1
+        try:
+            movie_format = suggested_format(frames)
+        except (OSError, ValueError) as error:
+            raise AppError(f"The frames cannot be read: {error_message(error)}", 400) from error
+        return {"id": candidate, "ids": sorted(ids), "path": movie_path(frames[0][0], game, asset_name(row), movie_format),
+                "descriptors": [path.relative_to(game).as_posix() for path in descriptor_targets(documents, KINDS["Movie"], game)],
+                "formats": list(MOVIE_FORMATS), "movieFormat": movie_format, "sequenceId": sequence["id"],
+                "frameTime": sequence["frameTime"], "fps": round(1000 / sequence["frameTime"], 3) if sequence["frameTime"] > 0 else 0,
+                "loopCount": sequence["loopCount"], "frames": len(frames)}
+
+    def create_movie(self, asset: str, movie_id: str, path: str, descriptor: str, movie_format: str) -> dict:
+        """Encode an image sequence of the newest asset report as a new movie file of the game folder (path, relative to
+        it, which must not exist), and declare it in a descriptor that holds Movie entries, under a new id, so a view's
+        Anim element can name it instead of the sequence. The sequence and its frames stay. The descriptor it replaces is
+        saved in the backups, and the movie is recorded as created, so undoing the operation removes both. Then generate
+        the asset report again. Returns the library, the movie's asset id in the new report, and its entry."""
+        def operation() -> dict:
+            self.require_folders("destination")
+            workspace_id, entry = self._active_workspace()
+            row, game, documents, frames = self._sequence_asset(asset)
+            if not re.fullmatch(r"[A-Za-z0-9_.\-]+", movie_id or ""):
+                raise AppError("A movie id is letters, digits, underscores, dots and hyphens", 400)
+            if movie_id in self._resource_ids(documents):
+                raise AppError(f"{movie_id} is the id of another resource of the game", 409)
+            relative_path = path.strip().replace("\\", "/")
+            if not relative_path or relative_path.startswith("/") or Path(relative_path).suffix.lower() not in (".mov", ".mp4"):
+                raise AppError("The movie's path is a .mov or .mp4 file in the game folder", 400)
+            targets = {item.relative_to(game).as_posix(): item for item in descriptor_targets(documents, KINDS["Movie"], game)}
+            if descriptor not in targets:
+                raise AppError(f"{descriptor} is not a descriptor of the game that holds movies", 400)
+            resources = os.path.realpath(self._comparison(workspace_id, entry)[1]["resources_dir"])
+            game_relative = os.path.relpath(game, resources)
+            movie = safe_path(resources, os.path.join(game_relative, *relative_path.split("/")), create_parents=False)
+            if not contained(str(game), movie):
+                raise AppError("The movie's path is a .mov or .mp4 file in the game folder", 400)
+            if os.path.lexists(movie):
+                raise AppError(f"{relative_path} exists already", 409)
+            descriptor_relative = os.path.relpath(targets[descriptor], resources)
+            target = safe_path(resources, descriptor_relative)
+            new_entry = {"id": movie_id, "path": relative_path, **({"movieFormat": movie_format} if movie_format != "opaque" else {})}
+            try:
+                data = Path(target).read_bytes()
+                bom = data.startswith(b"\xef\xbb\xbf")
+                text, line = add_declaration(data[3 if bom else 0:].decode("utf-8"), KINDS["Movie"].list, new_entry)
+                parse_dataclass(DOCUMENT_TYPES[Path(target).name], json.loads(text), descriptor)
+            except (UnicodeDecodeError, ValueError) as error:
+                raise AppError(error_message(error), 400) from error
+            movie_parent = os.path.dirname(movie)
+            existing_parent = movie_parent
+            while not os.path.isdir(existing_parent):
+                existing_parent = os.path.dirname(existing_parent)
+            try:
+                facts = encode_movie(frames, row["sequence"]["frameTime"], movie_format, Path(movie))
+            except (OSError, ValueError) as error:
+                _remove_empty_folders(movie_parent, existing_parent)
+                raise AppError(f"The movie could not be made: {error_message(error)}", 400) from error
+            folder = backups.new_operation(self.backup_path)
+            movie_relative = _portable(os.path.relpath(movie, resources))
+            try:
+                if Path(target).read_bytes() != data:
+                    raise AppError(f"{descriptor} changed while the movie was made. Try again.", 409)
+                backup = os.path.join(folder, descriptor_relative)
+                os.makedirs(os.path.dirname(backup), exist_ok=True)
+                _copy_exclusive(target, backup)
+                _write_file(target, (b"\xef\xbb\xbf" if bom else b"") + text.encode("utf-8"))
+            except BaseException:
+                os.unlink(movie)
+                _remove_empty_folders(movie_parent, existing_parent)
+                shutil.rmtree(folder, ignore_errors=True)
+                raise
+            label = row["sequence"]["id"] or os.path.basename(row["resource"])
+            message = f"Made movie {movie_id} ({relative_path}) from {label}, declared in {descriptor}"
+            self._record("edit", message, [_portable(descriptor_relative), movie_relative], os.path.getsize(movie))
+            backups.write_manifest(folder, action="edit", message=message, root=resources,
+                                   workspace={"id": workspace_id, "name": entry.get("name", workspace_id)},
+                                   created=[{"path": movie_relative, "sha256": file_hash(movie)}])
+            rows = self._write_asset_report()["assets"]
+            found = next((item for item in rows if any(_portable(use["descriptor"]) == descriptor and use["type"] == "Movie"
+                                                       and use.get("id") == movie_id for use in item["requiredBy"])), None)
+            return {"library": self.scan(), "asset": found["id"] if found else None, "descriptor": descriptor, "line": line,
+                    "entry": new_entry, "movie": facts}
 
         return self._exclusive(operation)
 

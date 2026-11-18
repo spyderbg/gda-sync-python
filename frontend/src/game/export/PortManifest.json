@@ -3330,8 +3330,8 @@
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/ReelsView.h",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/ReelsView.cpp"
   ],
-  "sha256": "c1444e71450822241fb10f1e2f86c09edead89abab36a3b7cda00f2c6975f6e4",
-  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "sha256": "794b09bea57413d12ada10add081ea3f237375b8adc39e8481121cda9193c309",
+  "cppCommit": "25b57cd8d4d9da9f24006525a5527a3cd9f474e9",
   "cppSha256": {
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/ReelsView.h": "e78990d494bd8051a63cc8f2a8517692c112bd6a899b6e06d35b74b0dbad69e8",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/ReelsView.cpp": "dbf8b603092009f0e67115496424e9ad9f80d5aa6534df70fb400ee93bc4028f"
@@ -3388,8 +3388,8 @@
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/TetraRoundView.h",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/TetraRoundView.cpp"
   ],
-  "sha256": "c5e6199e015c6bd34ce21149dd4eeffee723d3ebe9bc3570da1fbcf97219813e",
-  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "sha256": "8e6c24ad8a12d328105910863693d9286e0a6ac3d870b1e9add5edd6638e9526",
+  "cppCommit": "25b57cd8d4d9da9f24006525a5527a3cd9f474e9",
   "cppSha256": {
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/TetraRoundView.h": "b97ff58b410e8d2df4ae3573d1070f9ca50457962ab96d5c2d6bf490d15ae524",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/TetraRoundView.cpp": "0d506b3b84542110894aa6cc108a52c66bb6ec5c64b7d2f5c723ed5bb52c0cb6"
@@ -4078,8 +4078,8 @@
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/ReelsView.h",
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/ReelsView.cpp"
   ],
-  "sha256": "36268e3e1a1200aa4b3eb07033f425d216e8449cf246783a73dc5812aa168196",
-  "cppCommit": "d94055e3020b647c7dae6bfed16a5c0795846db6",
+  "sha256": "b0264c81208cf776f024af53f5d7a3e5933915296733fdcb09bd8e6227fd5b7d",
+  "cppCommit": "25b57cd8d4d9da9f24006525a5527a3cd9f474e9",
   "cppSha256": {
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/ReelsView.h": "75e9c41ddb5e5897f0f68c2a5bb526fbc9c776545db5970a66905039fda18f3b",
    "alpha_family/plugins/burning_hot_coins/src/Egt/BurningHotCoinsView/Views/ReelsView.cpp": "fa4437c0ae3bbc7cbbf44ba7cfc6955578648781eaf781f0f5687e8ebbd643ed"
@@ -4794,8 +4794,8 @@
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/ReelsView.h",
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/ReelsView.cpp"
   ],
-  "sha256": "981c7e9ef3a3d264bc1112c52830b8208731d97bedb65c3f514ef7a9c3fb3f80",
-  "cppCommit": "2882fd0e74f433262f7b8d47046d24083b154984",
+  "sha256": "1e00b9de62487fb0fc2f1d15f710b538db386d92cf8bf0c0de514f862ebef61e",
+  "cppCommit": "25b57cd8d4d9da9f24006525a5527a3cd9f474e9",
   "cppSha256": {
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/ReelsView.h": "f1fa76a2a8158214f41702065636ffd55e5eb59cf92a71120eca29f264efbc78",
    "alpha_family/plugins/joker_reels_coins_10/src/Egt/JokerReelsCoins10View/Views/ReelsView.cpp": "f11bfc8c07d13d58602509e606584f957e4d0d719369eef74df1f4888f211994"
@@ -5562,8 +5562,8 @@
    "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/ReelsView.h",
    "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/ReelsView.cpp"
   ],
-  "sha256": "68d494f36eb7b7e8fdfb3acee3fb97d4937344fb4bace1cef8f7f29fcbd57f2f",
-  "cppCommit": "2d0d392d83987b4ce92b1625b8dbb41035af769a",
+  "sha256": "73135f44d48ea4e4ce072fa7f94b8fc6562a9a1c59a7cd76a4d5f8ced10dbb43",
+  "cppCommit": "25b57cd8d4d9da9f24006525a5527a3cd9f474e9",
   "cppSha256": {
    "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/ReelsView.h": "8086f672f30b95ab418a0cb6adc3d4c6626edf2cfa60f6356cffe7820ae19059",
    "alpha_family/plugins/nordic_tale/src/Egt/NordicTaleView/Views/ReelsView.cpp": "205791e03e144decabf04de9e20be34dcc81d8cc146070759e2f5130d70863ac"
@@ -6290,8 +6290,8 @@
    "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/ReelsView.h",
    "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/ReelsView.cpp"
   ],
-  "sha256": "c423f8d54b582aca2e1d772a0aa5c0c21e19bd7127ce043656543fbd3af2bf1b",
-  "cppCommit": "47bc8436e516582d4207cb2e900afab0c03337f2",
+  "sha256": "3693b407e33b1b04db6aaa50b3fd5f1e728bf224d8e36572c59ebd53b176340e",
+  "cppCommit": "25b57cd8d4d9da9f24006525a5527a3cd9f474e9",
   "cppSha256": {
    "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/ReelsView.h": "9e61458a8700c00d34bd05c12b439b5520343e40e1ac89d3d9a5b62ec09ca3d8",
    "alpha_family/plugins/zodiac_wheel_coins/src/Egt/ZodiacWheelCoinsView/Views/ReelsView.cpp": "fa4437c0ae3bbc7cbbf44ba7cfc6955578648781eaf781f0f5687e8ebbd643ed"

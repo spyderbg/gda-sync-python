@@ -48,6 +48,7 @@ export class FileWatch extends BaseModule implements IFileWatch {
       console.info(`FileWatch: ${filepath} changed`);
       this.m_events.fileChanged.Post(filepath);
     }
+    // the page's time, not the game Clock's: inotify (C++) sees changes while the game is paused or slowed down too
     const now = performance.now();
     if (!this.m_polling && now >= this.m_nextPoll && this.m_files.size) {
       this.m_nextPoll = now + PollIntervalMs;

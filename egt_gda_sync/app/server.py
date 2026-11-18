@@ -321,6 +321,16 @@ class RemoveAssetBody(_Body):
     confirmUsed: bool = False
 
 
+class MovieBody(_Body):
+    """A movie made from an image sequence of the asset report: its new id, its path relative to the game folder, the
+    descriptor that declares it, relative to the game folder, and its format."""
+    asset: Text4K
+    id: Text4K
+    path: Text4K
+    descriptor: Text4K
+    movieFormat: Literal["valpha", "opaque"]
+
+
 class DeclarationBody(_Body):
     """A new descriptor entry for an asset of the asset report that no descriptor declares: its kind, the descriptor
     that holds it, relative to the game folder, and the values of its fields; those its kind does not have are refused."""
@@ -772,6 +782,14 @@ def create_app(
     def declare_asset(body: DeclarationBody) -> dict:
         values = body.model_dump(exclude_none=True, exclude={"asset", "kind", "descriptor"})
         return library.declare_asset(body.asset, body.kind, body.descriptor, values)
+
+    @app.get("/api/asset-report/movie")
+    def movie_options(asset: Annotated[str, Query(max_length=4096)]) -> dict:
+        return library.movie_options(asset)
+
+    @app.post("/api/asset-report/movie")
+    def create_movie(body: MovieBody) -> dict:
+        return library.create_movie(body.asset, body.id, body.path, body.descriptor, body.movieFormat)
 
     @app.get("/api/asset-report/uses")
     def asset_uses(asset: Annotated[str, Query(max_length=4096)]) -> dict:

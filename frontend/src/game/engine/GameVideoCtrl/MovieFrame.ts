@@ -1,6 +1,7 @@
 // The picture of a movie's current frame, for video_ctrl::draw_list::add_movie_image. A "valpha" movie stacks its alpha
-// under its picture: the top half of each frame is the picture, the bottom half its alpha as gray. The frame is composed
-// into a transparent picture of half the height, on the GPU (WebGL), or else from its pixels.
+// under its picture: the top half of each frame is the picture, premultiplied by its alpha, the bottom half its alpha as
+// gray (C++'s fs_valphamix divides the color by the alpha). The frame is composed into a transparent picture of half the
+// height, on the GPU (WebGL), or else from its pixels.
 //
 // The WebGL picture is an OffscreenCanvas where the browser has one: Firefox swaps red and blue when its GPU 2D canvas
 // (the game's) draws a WebGL <canvas> (a gold Big Win shows blue), but not when it draws a WebGL OffscreenCanvas.
@@ -11,7 +12,7 @@ const FRAGMENT = `precision mediump float; varying vec2 uv; uniform sampler2D fr
 void main() {
   vec3 color = texture2D(frame, vec2(uv.x, uv.y * 0.5)).rgb;
   float alpha = texture2D(frame, vec2(uv.x, 0.5 + uv.y * 0.5)).r;
-  gl_FragColor = vec4(color * alpha, alpha);
+  gl_FragColor = vec4(min(color, vec3(alpha)), alpha);
 }`;
 
 const ATTRIBUTES: WebGLContextAttributes = { premultipliedAlpha: true, alpha: true, preserveDrawingBuffer: true };
@@ -103,7 +104,12 @@ export class MovieFrame {
     const alpha = ctx.getImageData(0, 0, width, height).data;
     ctx.drawImage(video, 0, 0, width, height, 0, 0, width, height);
     const picture = ctx.getImageData(0, 0, width, height);
-    for (let i = 3; i < alpha.length; i += 4) picture.data[i] = alpha[i - 3];
+    // ImageData is not premultiplied: the color is divided by the alpha.
+    for (let i = 3; i < alpha.length; i += 4) {
+      const value = alpha[i - 3];
+      picture.data[i] = value;
+      for (let channel = i - 3; channel < i; channel++) picture.data[channel] = value ? Math.min(255, Math.round(picture.data[channel] * 255 / value)) : 0;
+    }
     ctx.putImageData(picture, 0, 0);
   }
 }

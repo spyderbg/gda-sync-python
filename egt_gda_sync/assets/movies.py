@@ -124,10 +124,12 @@ def _frame_at(capture: cv2.VideoCapture, index: int) -> np.ndarray | None:
 
 
 def unstacked(frame: np.ndarray) -> np.ndarray:
-    """A valpha frame's picture with its alpha, as BGRA: the top half, transparent where the bottom half is black."""
+    """A valpha frame's picture with its alpha, as BGRA: the top half, premultiplied by the bottom half's gray (as the
+    games' shader reads it), divided back out, and transparent where the bottom half is black."""
     half = frame.shape[0] // 2
     alpha = cv2.cvtColor(frame[half:half * 2], cv2.COLOR_BGR2GRAY)
-    return np.dstack((frame[:half], alpha))
+    picture = frame[:half].astype(np.uint16) * 255 // np.maximum(alpha, 1)[..., None]
+    return np.dstack((np.minimum(picture, 255).astype(np.uint8), alpha))
 
 
 def movie_thumbnail(path: str, stacked: bool = False, width: int = THUMBNAIL_WIDTH) -> tuple[bytes, str]:

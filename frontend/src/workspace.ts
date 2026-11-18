@@ -1,7 +1,7 @@
 // Application state shared by the layout and the views, and the actions that talk to the backend.
 import { computed, reactive, ref, watch } from 'vue';
 import { commonAction, plural, resourceAction, splitPath, viewSaves, type GdaCandidate } from './format';
-import type { ChangePlan, MoveFolderList, MoveRequest, RenameKeyRequest, Asset, AssetSection, AssetUse, DeclarationKind, DeclarationOptions, LibraryResponse, RestoreResult, RssFileDetails, RssResource, RssSyncHistory, RssSyncStatus, Session, SyncResult, View, ViewLayout, WorkspaceConfig } from './types';
+import type { ChangePlan, MoveFolderList, MoveRequest, RenameKeyRequest, Asset, AssetSection, AssetUse, DeclarationKind, DeclarationOptions, LibraryResponse, MovieFormat, MovieOptions, RestoreResult, RssFileDetails, RssResource, RssSyncHistory, RssSyncStatus, Session, SyncResult, View, ViewLayout, WorkspaceConfig } from './types';
 
 const INVALID_SESSION = 'Invalid session. Reload the application.';
 const RSS_POLL_MS = 1000;
@@ -27,7 +27,7 @@ export const reportState = computed<'unknown' | 'creating' | 'none' | 'failed' |
 export const session = reactive({ token: '', version: '', platform: '' });
 export const loadError = ref('');
 export const stopped = ref(false);
-export const busy = ref<'' | 'scan' | 'sync' | 'report' | 'settings' | 'shutdown' | 'delete-report' | 'restore' | 'declare' | 'remove' | 'move' | 'rename'>('');
+export const busy = ref<'' | 'scan' | 'sync' | 'report' | 'settings' | 'shutdown' | 'delete-report' | 'restore' | 'declare' | 'remove' | 'move' | 'rename' | 'movie'>('');
 /** What the GDA sync report resources being applied do, while busy is "sync" for them. */
 export const applying = ref<ReturnType<typeof commonAction>>(null);
 export const toast = ref<{ text: string; error?: boolean } | null>(null);
@@ -327,6 +327,28 @@ export async function declareAsset(body: { asset: string; kind: DeclarationKind;
     applyLibrary(result.library);
     if (result.asset) ui.inspecting = result.asset;
     notify(`Declared ${typeof body.id === 'string' ? body.id : 'the asset'} in ${result.descriptor}:${result.line}.`);
+    return true;
+  } catch (e) {
+    notify((e as Error).message, true);
+    return false;
+  } finally { busy.value = ''; }
+}
+
+/** How an image sequence of the asset report can be made into a movie. */
+export function movieOptions(asset: string) {
+  return getJSON<MovieOptions>(`/api/asset-report/movie?asset=${encodeURIComponent(asset)}`);
+}
+
+/** Encode an image sequence as a movie file of the game and declare it under a new RSS key, then show the movie. A movie
+ * plays once unless its Anim element sets loopCount, so the message says when the sequence loops otherwise. */
+export async function createMovie(body: { asset: string; id: string; path: string; descriptor: string; movieFormat: MovieFormat }, sequence: { id: string | null; loopCount: number }) {
+  busy.value = 'movie';
+  try {
+    const result = await api<{ library: LibraryResponse; asset: string | null; descriptor: string; line: number }>('asset-report/movie', 'POST', body);
+    applyLibrary(result.library);
+    if (result.asset) ui.inspecting = result.asset;
+    const loop = sequence.loopCount === 1 ? '' : ` Set the element's loopCount to ${sequence.loopCount}: a movie plays once unless it does.`;
+    notify(`Made ${body.path} and declared it as ${body.id} in ${result.descriptor}:${result.line}. Name ${body.id} in an Anim element's rssKey instead of ${sequence.id ?? 'the sequence'}.${loop}`);
     return true;
   } catch (e) {
     notify((e as Error).message, true);

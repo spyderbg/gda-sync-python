@@ -23,7 +23,7 @@ const duration = ref(0);
 let scratch: CanvasRenderingContext2D | null = null;
 let pending = 0;
 
-/** Draw the current frame on the canvas: its top half's colors with its bottom half as their alpha. */
+/** Draw the current frame on the canvas: its top half's colors, premultiplied, with its bottom half as their alpha. */
 function compose() {
   const element = video.value;
   const target = canvas.value;
@@ -49,11 +49,14 @@ function compose() {
   const frame = context.createImageData(width, half);
   const pixels = frame.data;
   const below = width * half * 4;
+  // The picture is premultiplied by its alpha, as the game's shader reads it; ImageData is not, so it is divided out.
   for (let index = 0; index < below; index += 4) {
-    pixels[index] = source[index];
-    pixels[index + 1] = source[index + 1];
-    pixels[index + 2] = source[index + 2];
-    pixels[index + 3] = source[below + index];
+    const alpha = source[below + index];
+    const factor = alpha ? 255 / alpha : 0;
+    pixels[index] = Math.min(255, source[index] * factor);
+    pixels[index + 1] = Math.min(255, source[index + 1] * factor);
+    pixels[index + 2] = Math.min(255, source[index + 2] * factor);
+    pixels[index + 3] = alpha;
   }
   context.putImageData(frame, 0, 0);
 }

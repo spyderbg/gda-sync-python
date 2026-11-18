@@ -1,5 +1,6 @@
 // Egt::Game::AlphaFamily::ReelsView (ZodiacWheelCoinsView/Views/ReelsView.h/.cpp): the main game's five reels.
 
+import { Clock } from '@game/engine/Game/Utils/Clock';
 import { IsArrayOf } from '@game/engine/GameCore/Common/ContainerHelpers';
 import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
 import { BrowserOnly } from '@game/engine/GameCore/Common/BrowserOnly';
@@ -65,9 +66,11 @@ export class ReelsView extends BaseView implements IReelsView, BaseReelsView {
   Process() {
     const tick = this.m_config.reelingParamsConfig.tickDuration;
     if (this.m_lastTickTime !== null) {
-      const now = performance.now();
-      // a tab in the background resumes without replaying every tick it missed
-      if (now - this.m_lastTickTime > 1000) this.m_lastTickTime = now - tick;
+      const now = Clock.now();
+      // a tab in the background resumes without replaying every tick it missed (over a second of the page's time)
+      BrowserOnly(() => {
+        if (now - this.m_lastTickTime! > 1000 * Clock.GetSpeed()) this.m_lastTickTime = now - tick;
+      });
       while (this.m_lastTickTime + tick < now) {
         this.m_lastTickTime += tick;
         for (const reel of this.m_reels) reel.Process();
@@ -109,7 +112,7 @@ export class ReelsView extends BaseView implements IReelsView, BaseReelsView {
     if (this.GetStoppedReelIds().length < this.m_reels.length) return; // not all reels have stopped
     this.RuntimeGet(ILinesView).StopWinLinesSounds('StartReeling');
     this.m_events.startReelingEvent.Post();
-    this.m_lastTickTime = performance.now();
+    this.m_lastTickTime = Clock.now();
     for (const reel of this.m_reels) reel.StartReeling();
     this.RuntimeGet(IAudioApi).Play(this.m_config.reelSoundsConfig.startReelingSoundId);
     this.m_hiddenSymbolCoords.clear();

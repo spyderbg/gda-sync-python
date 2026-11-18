@@ -7,9 +7,14 @@ Versions follow the project's single-digit major.minor.build scheme.
 
 ## [Unreleased]
 
+### Added
+
+- Make a movie of an image sequence in the Asset library, declared under its own RSS key
+
 ### Changed
 
 - Let the view-layout skill change the layout values of a game's IData, and list changed IData files with the views
+- Draw valpha movies' premultiplied colors as the C++ game does, in the Play page and the movie preview
 
 ## [2.1.3] - 2026-11-10
 

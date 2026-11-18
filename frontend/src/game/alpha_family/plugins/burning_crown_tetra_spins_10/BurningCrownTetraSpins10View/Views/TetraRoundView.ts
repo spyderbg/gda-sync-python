@@ -1,6 +1,7 @@
 // Egt::Game::AlphaFamily::TetraRoundView (BurningCrownTetraSpins10View/Views/TetraRoundView.h/.cpp): the tetra round's
 // four sub screens of five reels, their lines, win figures, flying crowns, dimming and wins.
 
+import { Clock } from '@game/engine/Game/Utils/Clock';
 import type { Point, RssRect } from '@game/engine/Game/RuntimeExport/IResources';
 import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
 import { BrowserOnly } from '@game/engine/GameCore/Common/BrowserOnly';
@@ -101,8 +102,11 @@ export class TetraRoundView extends BaseView implements ITetraRoundView, BaseRee
   Process() {
     const tick = this.m_config.reelingParamsConfig.tickDuration;
     if (this.m_lastTickTime !== null) {
-      const now = performance.now();
-      if (now - this.m_lastTickTime > 1000) this.m_lastTickTime = now - tick;
+      const now = Clock.now();
+      // a tab in the background resumes without replaying every tick it missed (over a second of the page's time)
+      BrowserOnly(() => {
+        if (now - this.m_lastTickTime! > 1000 * Clock.GetSpeed()) this.m_lastTickTime = now - tick;
+      });
       while (this.m_lastTickTime + tick < now) {
         this.m_lastTickTime += tick;
         for (const reel of this.m_reels) reel.Process();
@@ -167,7 +171,7 @@ export class TetraRoundView extends BaseView implements ITetraRoundView, BaseRee
     this.m_stopFigures = [];
     this.ClearAllFlyingSymbols();
     this.m_events.startReelingEvent.Post();
-    this.m_lastTickTime = performance.now();
+    this.m_lastTickTime = Clock.now();
     for (const reel of this.m_reels) reel.StartReeling();
     this.m_linesAnimations.forEach((_, subScreenIdx) => this.ClearCombinations(subScreenIdx));
     for (const winValue of this.m_winValues) winValue.Clear();

@@ -14,6 +14,7 @@
 //   app/SourceLocation maps back to the TypeScript.
 
 import { Event, EventQueue } from '@game/engine/Core/Event';
+import { Clock } from '@game/engine/Game/Utils/Clock';
 import { Runtime, RuntimeHolder, RuntimeToken } from '@game/engine/GameCore/RuntimeAccess';
 
 type Target = RuntimeToken<unknown> | string;
@@ -169,6 +170,7 @@ export interface TransitionRecord {
   destroyed: string[];
   created: string[];
   source: TransitSource;
+  /** The game Clock's time of the transition, in milliseconds. */
   time: number;
 }
 
@@ -265,7 +267,7 @@ export class Machine {
       divergeIndex++;
     }
     const record: TransitionRecord = {
-      from: current.name, to: target.name, source, time: performance.now(),
+      from: current.name, to: target.name, source, time: Clock.now(),
       destroyed: this.current.slice(divergeIndex).map(ctx => ctx.node.name).reverse(),
       created: targetPath.slice(divergeIndex).map(node => node.name),
     };

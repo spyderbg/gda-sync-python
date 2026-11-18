@@ -541,6 +541,43 @@ components:
       additionalProperties: false
       type: object
       title: MovePreviewBody
+    MovieBody:
+      properties:
+        asset:
+          type: string
+          maxLength: 4096
+          title: Asset
+        id:
+          type: string
+          maxLength: 4096
+          title: Id
+        path:
+          type: string
+          maxLength: 4096
+          title: Path
+        descriptor:
+          type: string
+          maxLength: 4096
+          title: Descriptor
+        movieFormat:
+          type: string
+          enum:
+          - valpha
+          - opaque
+          title: Movieformat
+      additionalProperties: false
+      type: object
+      required:
+      - asset
+      - id
+      - path
+      - descriptor
+      - movieFormat
+      title: MovieBody
+      description: 'A movie made from an image sequence of the asset report: its new
+        id, its path relative to the game folder, the
+
+        descriptor that declares it, relative to the game folder, and its format.'
     OpenDeclarationBody:
       properties:
         descriptor:
@@ -926,6 +963,7 @@ components:
           type: string
           maxLength: 4096
           title: Source
+          default: ''
         destination:
           type: string
           maxLength: 4096
@@ -934,7 +972,6 @@ components:
       type: object
       required:
       - name
-      - source
       - destination
       title: SettingsBody
     SyncBody:
@@ -2218,6 +2255,63 @@ paths:
                 type: object
                 additionalProperties: true
                 title: Response Declare Asset Api Asset Report Declaration Post
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '413':
+          $ref: '#/components/responses/ContentTooLarge'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Asset library
+  /api/asset-report/movie:
+    get:
+      summary: Movie Options
+      operationId: movie_options_api_asset_report_movie_get
+      parameters:
+      - name: asset
+        in: query
+        required: true
+        schema:
+          type: string
+          maxLength: 4096
+          title: Asset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Movie Options Api Asset Report Movie Get
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Asset library
+    post:
+      summary: Create Movie
+      operationId: create_movie_api_asset_report_movie_post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MovieBody'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Create Movie Api Asset Report Movie Post
         '400':
           $ref: '#/components/responses/InvalidRequest'
         '403':

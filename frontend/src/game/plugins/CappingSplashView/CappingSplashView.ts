@@ -74,7 +74,7 @@ export class CappingSplashView extends BaseModule implements ICappingSplashView 
 
   Process() {
     if (this.m_visible) {
-      this.m_elementsList.Update(performance.now());
+      this.m_elementsList.Update();
       this.CheckIdleTimer();
     }
   }

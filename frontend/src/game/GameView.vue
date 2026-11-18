@@ -246,6 +246,7 @@ async function start() {
   };
   let last = 0;
   app.onFrame = () => {
+    // the page's time, not the game Clock's: the panel refreshes 5 times a second at any game speed
     const now = performance.now();
     if (now - last > 200) {
       last = now;
