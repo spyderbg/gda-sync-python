@@ -7,6 +7,8 @@ Versions follow the project's single-digit major.minor.build scheme.
 
 ## [Unreleased]
 
+## [2.1.4] - 2026-11-19
+
 ### Added
 
 - Make a movie of an image sequence in the Asset library, declared under its own RSS key
@@ -16,6 +18,22 @@ Versions follow the project's single-digit major.minor.build scheme.
 - Let the view-layout skill change the layout values of a game's IData, and list changed IData files with the views
 - Draw valpha movies' premultiplied colors as the C++ game does, in the Play page and the movie preview
 - Let the game server deal random numbers up to a kernel's maxValue, and reply with the maxValue it dealt them to
+- Performance optimizations ┌────────────────────────────────────────────────┬────────┬───────┬──────────┐   │                    command                     │ before │ after │ speed-up │   ├────────────────────────────────────────────────┼────────┼───────┼──────────┤   │ locate                                         │ 2.63s  │ 1.45s │ 1.8×     │   ├────────────────────────────────────────────────┼────────┼───────┼──────────┤   │ locate --search 0                              │ 7.90s  │ 1.89s │ 4.2×     │   ├────────────────────────────────────────────────┼────────┼───────┼──────────┤   │ locate --scales (6 extra scales)               │ 11.64s │ 2.54s │ 4.6×     │   ├────────────────────────────────────────────────┼────────┼───────┼──────────┤   │ locate, half-size preview, --search 0 --scales │ 6.09s  │ 1.58s │ 3.9×     │   ├────────────────────────────────────────────────┼────────┼───────┼──────────┤   │ locate --origin auto                           │ 3.46s  │ 2.11s │ 1.6×     │   ├────────────────────────────────────────────────┼────────┼───────┼──────────┤   │ draw --over --outline                          │ 2.93s  │ 1.61s │ 1.8×     │   ├────────────────────────────────────────────────┼────────┼───────┼──────────┤   │ draw --origin auto                             │ 5.10s  │ 2.56s │ 2.0×     │   └────────────────────────────────────────────────┴────────┴───────┴──────────┘
+- Cache decoded view-layout DDS images and default to Haiku
+- Compose view layers as pixels for the view-layout skill
+- Make the GDA folder optional for workspaces
+- Speed up DDS previews with Pillow and entity tags
+- Document why the browser Play page shows "not ported yet"
+- Sync modules configs into the browser game
+- Show workspace icons and rename Nordic Rush to Nordic Tale
+- Rename Nordic Rush to Nordic Tale
+- Sync hold and spin reel setup and Nordic Tale shields from C++
+- Let view-layout change IData layout values
+- Make movies from image sequences and time the game on the Clock
+- Port the C++ kernel random bits, game pause and input timing to the browser game
+- Port the C++ numeric bars, sounds and expanding wilds to the browser game
+- Port the C++ replay numbers and button touch areas to the browser game
+- Match C++ tetra win values and Automation round counts import
 
 ### Fixed
 
@@ -245,5 +263,7 @@ Versions follow the project's single-digit major.minor.build scheme.
 
 [2.1.2]: https://github.com/spyderbg/gda-sync-python/compare/cbd2d0ea24898107ff7b0c73bfcca7980a56718f...releases%2Fv2.1.2
 
-[Unreleased]: https://github.com/spyderbg/gda-sync-python/compare/releases%2Fv2.1.3...HEAD
 [2.1.3]: https://github.com/spyderbg/gda-sync-python/compare/1eb00518a15d1689470da5aa7f30b123de52d0d2...releases%2Fv2.1.3
+
+[Unreleased]: https://github.com/spyderbg/gda-sync-python/compare/releases%2Fv2.1.4...HEAD
+[2.1.4]: https://github.com/spyderbg/gda-sync-python/compare/7fe352b445ec13fc3250fe7ab4bcf2c1bccce665...releases%2Fv2.1.4
