@@ -2,6 +2,7 @@
 // which calculate a round's result from its input and random numbers.
 
 import { InsufficientRandomBits } from '@game/engine/GameCore/Random/Exceptions';
+import { ReplaySaveToRngSequence, RngSequenceToReplaySave } from '../Common/ReplayRngConvert';
 import { HistoryEngine, type IRng, MonteCarloEngineHat, ReplayEngine, RngOp } from '@game/engine/GameCore/Random/IRng';
 import { Currencies, type CurrencyType } from '@game/engine/Game/Math/Common.data';
 import { EgtALogCategoryClass, EgtATrace } from '@game/engine/GameCore/Log/LogCategory';
@@ -206,7 +207,7 @@ export class ReelRoundRules extends BaseReelRules {
       }
 
       // Prepare replay
-      result.m_replay = { input, rngs: rng.GetHistory().data };
+      result.m_replay = { input, rngs: RngSequenceToReplaySave(rng.GetHistory()) };
       return result;
     } catch (error) {
       if (error instanceof InsufficientRandomBits) {
@@ -223,8 +224,12 @@ export class ReelRoundRules extends BaseReelRules {
 
   RecoverRound(replay: RoundReplay): RoundResultOrError {
     const replayRng = new HistoryEngine(new ReplayEngine());
-    replayRng.engine.SetNumbers(replay.rngs);
-    return this.CalculateRound(replay.input as ReelRoundInput, replayRng);
+    replayRng.engine.SetNumbers(ReplaySaveToRngSequence(replay.rngs).data);
+
+    const round = this.CalculateRound(replay.input as ReelRoundInput, replayRng);
+    console.assert(replayRng.engine.IsEmpty());
+
+    return round;
   }
 
   PrepareInput(nextRoundInput: ReelRoundInput, lastRoundResult: RoundResult) {

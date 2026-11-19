@@ -12,7 +12,7 @@
 import { Currencies, type CurrencyType } from '@game/engine/Game/Math/Common.data';
 import { BitQueue } from '@game/engine/GameCore/Random/BitGenerator/BitQueue';
 import { ExternalRngEngineHat } from '@game/engine/GameCore/Random/Engine/ExternalRngEngine';
-import { type IRng, MementoEngine, MonteCarloEngine, type RngNumber, type RngNumbers } from '@game/engine/GameCore/Random/IRng';
+import { type IRng, MementoEngine, MonteCarloEngine, type RngNumbers } from '@game/engine/GameCore/Random/IRng';
 import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
 import { ECapTiming, ILimits } from '@game/engine/Game/RuntimeImport/ILimits';
 import { IMathTypes } from '@game/engine/Game/RuntimeExport/IMathTypes';
@@ -80,7 +80,7 @@ export class AlphaFamilyGameflow extends BaseModule implements IGameflow, IGamef
   private round: Round | null = null;
   private preset: RoundPreset | null = null;
   /** The rounds played, newest last, for the page's history. */
-  readonly history: { roundType: RoundType; bet: number; win: number; rngs: RngNumber[] }[] = [];
+  readonly history: { roundType: RoundType; bet: number; win: number; rngs: number[] }[] = [];
 
   Init(runtime: Runtime, config: ModuleConfig) {
     super.Init(runtime, config);

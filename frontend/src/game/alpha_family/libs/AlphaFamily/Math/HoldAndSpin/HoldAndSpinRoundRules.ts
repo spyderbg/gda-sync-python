@@ -3,6 +3,7 @@
 
 import { Currencies } from '@game/engine/Game/Math/Common.data';
 import { InsufficientRandomBits } from '@game/engine/GameCore/Random/Exceptions';
+import { ReplaySaveToRngSequence, RngSequenceToReplaySave } from '../Common/ReplayRngConvert';
 import { HistoryEngine, type IRng, MonteCarloEngineHat, ReplayEngine } from '@game/engine/GameCore/Random/IRng';
 import { EgtALogCategoryClass, EgtAError, EgtATrace } from '@game/engine/GameCore/Log/LogCategory';
 import { Currency, ERoundTags, Multipliers, RoundErrorCode, RoundType, type SymbolGrid } from '../Common/Common.data';
@@ -86,7 +87,7 @@ export class HoldAndSpinRoundRules {
       result.m_overrideCurrencies.push([Currency.HoldAndSpinEnergy, context.spins * input.bet]);
 
       // Prepare replay
-      result.m_replay = { input, rngs: rng.GetHistory().data };
+      result.m_replay = { input, rngs: RngSequenceToReplaySave(rng.GetHistory()) };
 
       return result;
     } catch (error) {
@@ -104,9 +105,12 @@ export class HoldAndSpinRoundRules {
 
   RecoverRound(replay: RoundReplay): RoundResultOrError {
     const replayRng = new HistoryEngine(new ReplayEngine());
-    replayRng.engine.SetNumbers(replay.rngs);
+    replayRng.engine.SetNumbers(ReplaySaveToRngSequence(replay.rngs).data);
 
-    return this.CalculateRound(replay.input as HoldAndSpinRoundInput, replayRng);
+    const round = this.CalculateRound(replay.input as HoldAndSpinRoundInput, replayRng);
+    console.assert(replayRng.engine.IsEmpty());
+
+    return round;
   }
 
   PrepareInput(nextRoundInput: HoldAndSpinRoundInput, lastRoundInput: RoundInput, lastRoundPhase: RoundPhase) {

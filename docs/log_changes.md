@@ -35,6 +35,8 @@ Versions follow the project's single-digit major.minor.build scheme.
 - Write coins as coins in the bet bar and the status line
 - Bind Zodiac Wheel Coins' responsible gaming button, and post the status line's events
 - List the browser game's languages in the C++ integrations' order, with English as the default
+- Take a button's touches in its touch area from its position, or where its image was drawn, with circle and ellipse areas
+- Save a round's replay as the values it drew, and recover it unchecked, so that changed math calculates it again
 
 ## [2.1.3] - 2026-11-10
 

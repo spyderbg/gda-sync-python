@@ -70,8 +70,8 @@
    "alpha_family/libs/src/Egt/AlphaFamily/Math/HoldAndSpin/HoldAndSpinRoundRules.h",
    "alpha_family/libs/src/Egt/AlphaFamily/Math/HoldAndSpin/HoldAndSpinRoundRules.cpp"
   ],
-  "sha256": "13678a054094571470fb436227ca68e44a56b57bbf9c556a676f798ef2d2bee4",
-  "cppCommit": "25b57cd8d4d9da9f24006525a5527a3cd9f474e9",
+  "sha256": "86d8fde0304c793c7427cb67bf730727cf7c9903a18bc0d6a7c06a915456f6e1",
+  "cppCommit": "92db9c959d8420687515e007c77b1745df24d7e6",
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamily/Math/HoldAndSpin/HoldAndSpinRoundRules.h": "91b625f684787a75ea89e5471139ce1bfce616493adf13b40cb373d7f6baef13",
    "alpha_family/libs/src/Egt/AlphaFamily/Math/HoldAndSpin/HoldAndSpinRoundRules.cpp": "a0f6f7787600817c0ebc7dbe23b8cfa8bc1f4377ee2e3375b49df4db5a8a03fc"
@@ -126,8 +126,8 @@
    "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/ReelRoundRules.h",
    "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/ReelRoundRules.cpp"
   ],
-  "sha256": "ad6e90ac35a799f838ac343479a8b5526b75ec6ca39f26d13fd9c04e83c7049c",
-  "cppCommit": "25b57cd8d4d9da9f24006525a5527a3cd9f474e9",
+  "sha256": "5692bc28c85ef3ce18301088266128c7cdb2182e12619f187fe07b1d113afa89",
+  "cppCommit": "92db9c959d8420687515e007c77b1745df24d7e6",
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/ReelRoundRules.h": "e62f61b566ce5d97799476f22feda8966e09e1bd81dfd8d77224ae0bd3c1a4c3",
    "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/ReelRoundRules.cpp": "90c2e76ac3012e0a84e6193f3367ed05f74f7b0e0b75fb4ce40939071b07609f"
@@ -416,8 +416,8 @@
    "alpha_family/libs/src/Egt/AlphaFamily/Math/RoundResult.data.h",
    "alpha_family/libs/src/Egt/AlphaFamily/Math/RoundResult.data.cpp"
   ],
-  "sha256": "374074dd36df1ae3e7b3f456269b9db8b93786e3db8102b4351d5ee2991c6e63",
-  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "sha256": "ea7f7a5596a2aaa86cc21a0b6fd4949034d26eea71d81e815a5dd965c03b1629",
+  "cppCommit": "92db9c959d8420687515e007c77b1745df24d7e6",
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamily/Math/RoundResult.data.h": "8ea78c0a1afeb1c795b973222bc5bec07bca1fc1bfe90e068172afa574456e5f",
    "alpha_family/libs/src/Egt/AlphaFamily/Math/RoundResult.data.cpp": "cd9d6c3a6abedc8e4ba7d884dba8a3690acc1fc753e33c295831398fa0d0a902"
@@ -458,8 +458,8 @@
    "alpha_family/libs/src/Egt/AlphaFamily/Math/Wheel/WheelRoundRules.h",
    "alpha_family/libs/src/Egt/AlphaFamily/Math/Wheel/WheelRoundRules.cpp"
   ],
-  "sha256": "9a28e260c7afc6a1207dcd43c9c207704850fa0a0a5bac3da760edb6a426da84",
-  "cppCommit": "25b57cd8d4d9da9f24006525a5527a3cd9f474e9",
+  "sha256": "2657a4e31b5c6b6e2ffaa31fd314f9213ddd2759caeec27bd08517ab957324ac",
+  "cppCommit": "92db9c959d8420687515e007c77b1745df24d7e6",
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamily/Math/Wheel/WheelRoundRules.h": "1052269ef422d71b38a368507dcade539e9186da874812e30bd3e24ceb2f46a6",
    "alpha_family/libs/src/Egt/AlphaFamily/Math/Wheel/WheelRoundRules.cpp": "a53b0d021fbbdcedb6caee6a2cd6772eafc2f996f60bac824c6980f798ea4d53"

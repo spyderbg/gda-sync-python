@@ -16,6 +16,22 @@ export interface Transform {
   alignY: number;
 }
 
+/** math::transformf::transform_coord of an element's transform (BaseElement::GetTransform) for a drawing of the given
+ * size: where a point of the drawing lands on the screen, as WithTransform draws it. */
+export function TransformCoord(transform: Transform, width: number, height: number, point: { x: number; y: number }) {
+  let x = point.x - transform.alignX * width - transform.pivotX;
+  let y = point.y - transform.alignY * height - transform.pivotY;
+  x *= transform.scaleX;
+  y *= transform.scaleY;
+  if (transform.rotation) {
+    const radians = (transform.rotation * Math.PI) / 180;
+    const cos = Math.cos(radians);
+    const sin = Math.sin(radians);
+    [x, y] = [x * cos - y * sin, x * sin + y * cos];
+  }
+  return { x: x + transform.x + transform.pivotX, y: y + transform.y + transform.pivotY };
+}
+
 export class DrawList {
   constructor(readonly ctx: CanvasRenderingContext2D) {}
 

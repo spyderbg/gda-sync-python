@@ -3,6 +3,8 @@
 // number for the round's replay), ReplayEngine (plays a recorded sequence back), and the RNG tools' OverrideEngine
 // and MementoEngine (Random/Adaptor: numbers forced by operation, recorded).
 
+import { RngMismatch } from './Exceptions';
+
 export enum RngOp {
   // Don't use Undefined in IRng::Generate calls
   Undefined = 0,
@@ -211,25 +213,40 @@ export class HistoryEngine<T extends IRng = IRng> implements IRng {
   }
 }
 
-/** Plays a recorded sequence back, checking each number against the range it is asked for. */
+/** Egt::GameCore::ReplayEngine (Random/Engine/ReplayEngine.h/.cpp): plays a recorded sequence back. Each number must be
+ * of the operation asked (unless it records none, Undefined), of the range asked, and within it, else RngMismatch; a
+ * number of ReplayNoCheck is taken as it is. */
 export class ReplayEngine implements IRng {
-  private numbers: RngNumber[] = [];
+  private m_nextNumbers: RngNumber[] = [];
 
   SetNumbers(numbers: RngNumber[]) {
-    this.numbers = [...numbers];
+    this.m_nextNumbers = [...numbers];
   }
 
   IsEmpty() {
-    return this.numbers.length === 0;
+    return this.m_nextNumbers.length === 0;
   }
 
   Generate(op: RngOp, range = 0) {
-    const number = this.numbers.shift();
-    if (!number) throw new Error('ReplayEngine has no more numbers');
-    if (number.op !== RngOp.ReplayNoCheck && (number.op !== op || number.range !== range)) {
-      throw new Error(`ReplayEngine expected ${RngOp[number.op]}(${number.range}), got ${RngOp[op]}(${range})`);
+    console.assert(op !== RngOp.Undefined);
+    if (this.IsEmpty()) {
+      throw new RngMismatch(`ReplayEngine::Generate next numbers exhausted! op=${RngOp[op]} range=${range}`);
     }
-    return number.value;
+
+    // check next number
+    const n = this.m_nextNumbers[0];
+    const doChecks = n.op !== RngOp.ReplayNoCheck;
+    const mismatchOp = n.op !== RngOp.Undefined && n.op !== op;
+    const mismatchRange = n.range !== range;
+    const mismatchValue = range !== 0 && n.value >= range;
+    if (doChecks && (mismatchOp || mismatchRange || mismatchValue)) {
+      throw new RngMismatch(`ReplayEngine::Generate mismatch! op=${RngOp[op]} range=${range} expectedOp=${RngOp[n.op]} `
+        + `expectedRange=${n.range} expectedValue=${n.value}`);
+    }
+
+    // pop next number
+    this.m_nextNumbers.shift();
+    return n.value;
   }
 
   GetHistory(): RngSequence {

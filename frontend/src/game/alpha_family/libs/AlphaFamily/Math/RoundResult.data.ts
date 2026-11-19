@@ -4,7 +4,8 @@
 // phases can be dropped and recovered from the replay; here they are always kept.
 
 import { Currencies, type CurrencyType } from '@game/engine/Game/Math/Common.data';
-import type { IRng, RngNumber } from '@game/engine/GameCore/Random/IRng';
+import type { IRng } from '@game/engine/GameCore/Random/IRng';
+import type { uint32_t } from '@game/engine/GameCore/Common/Types';
 import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
 import { IMathRules } from '../RuntimeExport/IMathRules';
 import { Currency, PayoutSummary, RoundErrorCode, RoundType } from './Common/Common.data';
@@ -19,7 +20,8 @@ export type { RoundPhase, RoundPhases } from './RoundPhase';
 
 export interface RoundReplay {
   input: RoundInput;
-  rngs: RngNumber[];
+  /** The values of the numbers the round drew (ReplayRngConvert's RngSequenceToReplaySave). */
+  rngs: uint32_t[];
 }
 
 export interface CappingInfo {

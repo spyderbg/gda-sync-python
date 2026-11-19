@@ -7,3 +7,12 @@ export class InsufficientRandomBits extends Error {
     this.name = 'InsufficientRandomBits';
   }
 }
+
+/** A ReplayEngine was asked for a number its sequence does not have: none left, or not the operation, range or value
+ * it recorded. */
+export class RngMismatch extends Error {
+  constructor(message = 'RngMismatch') {
+    super(message);
+    this.name = 'RngMismatch';
+  }
+}

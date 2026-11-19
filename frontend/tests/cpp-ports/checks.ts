@@ -13,8 +13,9 @@ import { LocalizationManager } from '@game/integration/LocalizationManager/Local
 import { BitQueue } from '@game/engine/GameCore/Random/BitGenerator/BitQueue';
 import { RngDistributionHat } from '@game/engine/GameCore/Random/Distribution/RngDistributionHat';
 import { ExternalRngEngineHat } from '@game/engine/GameCore/Random/Engine/ExternalRngEngine';
-import { InsufficientRandomBits } from '@game/engine/GameCore/Random/Exceptions';
-import { RngOp } from '@game/engine/GameCore/Random/IRng';
+import { InsufficientRandomBits, RngMismatch } from '@game/engine/GameCore/Random/Exceptions';
+import { ReplayEngine, RngOp } from '@game/engine/GameCore/Random/IRng';
+import { ReplaySaveToRngSequence, RngSequenceToReplaySave } from '@game/alpha_family/libs/AlphaFamily/Math/Common/ReplayRngConvert';
 import { Event, EventQueue, Sentinel } from '@game/engine/Core/Event';
 import { Machine, Node, State, type Reaction } from '@game/engine/Fsm/Fsm';
 import { GameFsm } from '@game/engine/Game/Fsm/GameFsm';
@@ -24,7 +25,8 @@ import { IPause } from '@game/engine/Game/RuntimeImport/IPause';
 import { Runtime } from '@game/engine/GameCore/RuntimeAccess';
 import { Stopwatch } from '@game/engine/GameCore/Tools/Timers';
 import { IVideo } from '@game/engine/GameVideoCtrl/RuntimeExport/IVideo';
-import { ButtonElement } from '@game/engine/GameVideoCtrl/ViewElements/ButtonElement';
+import { AreaType, ButtonElement } from '@game/engine/GameVideoCtrl/ViewElements/ButtonElement';
+import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
 import { PauseMonitor } from '@game/integration/Runtime/Common/PauseMonitor';
 import { Accumulation } from '@game/alpha_family/libs/AlphaFamily/Views/Tools/AccumulationControl';
 import { BaseElement } from '@game/engine/GameVideoCtrl/ViewElements/BaseElement';
@@ -124,6 +126,27 @@ export function run() {
     equal(engine.Generate(RngOp.UnitTest, range), value, `InverseUniform then GenerateUniform of ${value} in [0, ${range})`);
   }
 
+  // ReplayEngine: a recorded number of another operation (unless it records none), another range or out of its range,
+  // or none left, is an RngMismatch; a ReplayNoCheck number is taken as it is (a recovery's: ReplayRngConvert).
+  const replayed = (numbers: { op: RngOp; range: number; value: number }[], draws: [RngOp, number][]) => {
+    const replay = new ReplayEngine();
+    replay.SetNumbers(numbers);
+    try {
+      return draws.map(([op, range]) => replay.Generate(op, range));
+    } catch (caught) {
+      return caught instanceof RngMismatch ? 'RngMismatch' : String(caught);
+    }
+  };
+  equal(replayed([{ op: RngOp.StopReels, range: 10, value: 3 }], [[RngOp.StopReels, 10]]), [3], 'the number recorded');
+  equal(replayed([{ op: RngOp.Undefined, range: 10, value: 3 }], [[RngOp.StopWheel, 10]]), [3], 'a number of no operation, of any');
+  equal(replayed([{ op: RngOp.StopReels, range: 10, value: 3 }], [[RngOp.StopWheel, 10]]), 'RngMismatch', 'another operation');
+  equal(replayed([{ op: RngOp.StopReels, range: 10, value: 3 }], [[RngOp.StopReels, 12]]), 'RngMismatch', 'another range');
+  equal(replayed([{ op: RngOp.StopReels, range: 4, value: 7 }], [[RngOp.StopReels, 4]]), 'RngMismatch', 'a value out of its range');
+  equal(replayed([], [[RngOp.StopReels, 4]]), 'RngMismatch', 'no number left');
+  const saved = RngSequenceToReplaySave({ data: [{ op: RngOp.StopReels, range: 10, value: 3 }, { op: RngOp.StopWheel, range: 4, value: 9 }] });
+  equal([saved, replayed(ReplaySaveToRngSequence(saved).data, [[RngOp.SelectReel, 2], [RngOp.StopReels, 100]])], [[3, 9], [3, 9]],
+    'a replay saves the values; recovered, they are taken unchecked');
+
   // The game Clock on a time the checks move on (its durations are differences of the page's fractional times: rounded).
   let pageTime = performance.now();
   const realNow = performance.now.bind(performance);
@@ -169,8 +192,12 @@ function timingAndInput(equal: (actual: unknown, expected: unknown, message: str
   const button = new ButtonElement();
   button.Init(runtime, '');
   button.SetElementData({ type: 'Button', rssKeys: ['IMG_IDLE', 'IMG_PRESSED', 'IMG_DISABLED'], position: { x: 10, y: 10 }, rssKeySound: 'SOUND_PRESS' });
+  // a frame's draw, which gives a button without a touch area its bounds (C++'s m_bounds)
+  const frame = { DrawImage() {} } as unknown as DrawList;
   const inside = { x: 20, y: 20 };
   const outside = { x: 500, y: 500 };
+  check(button.HandleTouchDown(inside), false, 'a button never drawn has no bounds yet');
+  button.Draw(frame);
   check(button.HandleTouchDown(outside), false, 'a touch outside the button');
   check(button.HandleTouchDown(inside), true, 'a touch down presses the button');
   check(sounds, ['SOUND_PRESS'], 'with its sound');
@@ -191,6 +218,37 @@ function timingAndInput(equal: (actual: unknown, expected: unknown, message: str
   area.SetElementData({ type: 'Button', rssKeys: ['AREA_ONLY'], touchArea: { x: 0, y: 0, w: 40, h: 40 }, rssKeySound: 'SOUND_AREA' });
   check([area.HandleTouchDown(inside), area.HandleTouchDown(inside), sounds.length], [true, true, 2],
     'an area element only says whether the point is in it: no pressed state, no sound');
+
+  // The touch area: the data's, an offset from the position that moves with it, whatever the alignment and scale.
+  const tapped = (element: ButtonElement, points: { x: number; y: number }[]) => points.map(p => {
+    element.Draw(frame);
+    const taken = element.HandleTouchDown(p);
+    Advance(250);
+    element.Update(0);
+    return taken;
+  });
+  const credits = new ButtonElement();
+  credits.Init(runtime, '');
+  credits.SetElementData({ type: 'Button', rssKeys: ['IMG_CREDITS'], position: { x: 330, y: 965 }, alignment: 'MiddleCenter', scale: { x: 2, y: 2 },
+    touchArea: { x: -10.5, y: -8, w: 43, h: 33 } });
+  check([credits.GetAreaType(), credits.GetTouchArea()], [AreaType.Rectangle, { x: 320, y: 957, w: 43, h: 33 }],
+    'a touch area makes a rectangle area, from the position (C++\'s int rect: -10.5 is -10)');
+  check(tapped(credits, [{ x: 320, y: 957 }, { x: 363, y: 990 }, { x: 319, y: 957 }, { x: 330, y: 991 }]), [true, true, false, false],
+    'its edges are in it; alignment and scale do not move it');
+  credits.SetPosition({ x: 100, y: 100 });
+  check(tapped(credits, [{ x: 95, y: 95 }, { x: 320, y: 957 }]), [true, false], 'it moves with the element');
+  // Without a touch area: the image, as drawn (100x50, aligned to its middle, scaled by 2).
+  const aligned = new ButtonElement();
+  aligned.Init(runtime, '');
+  aligned.SetElementData({ type: 'Button', rssKeys: ['IMG_ALIGNED'], position: { x: 500, y: 500 }, alignment: 'MiddleCenter', scale: { x: 2, y: 2 } });
+  check(tapped(aligned, [{ x: 400, y: 450 }, { x: 600, y: 550 }, { x: 601, y: 500 }, { x: 500, y: 449 }]), [true, true, false, false],
+    'the drawn image: aligned and scaled');
+  // A circle of the touch area's width: the point's distance from its middle within its radius.
+  const circle = new ButtonElement();
+  circle.Init(runtime, '');
+  circle.SetElementData({ type: 'Button', rssKeys: ['IMG_WHEEL'], position: { x: 0, y: 0 }, touchAreaType: 'Circle', touchArea: { x: 491.5, y: -6, w: 940, h: 940 } });
+  check(tapped(circle, [{ x: 961, y: 464 }, { x: 961, y: -6 }, { x: 961, y: 934 }, { x: 491, y: 464 }, { x: 500, y: 0 }, { x: 1431, y: 464 }]),
+    [true, true, true, true, false, true], 'a circle area: its middle and edges in, the square\'s corner out');
 
   // Event: a queued callback whose sentinel expired before its queue ran it does not run; unregistering does not cancel it.
   const event = new Event<[number]>();

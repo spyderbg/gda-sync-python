@@ -57,6 +57,21 @@ export function run() {
   badInput.bet = 50;
   check(!(wheel.CalculateRound(badInput, new HistoryEngine(new MonteCarloEngineHat(1))) instanceof RoundResult), 'a bet below the wheel\'s minimum is refused');
 
+  // A round's replay saves the values it drew (ReplayRngConvert) and recovers the round from them, unchecked: a recovery
+  // with changed math (here the sectors' weights, so the range it draws in) calculates the round again, as C++ does.
+  const played = wheel.CalculateRound(wheelInput, new HistoryEngine(new MonteCarloEngineHat(9)));
+  if (played instanceof RoundResult) {
+    const stopOf = (result: RoundResult) => (result.m_phases[0] as WheelRoundPhase).stopSector;
+    check(played.m_replay.rngs.length > 0 && played.m_replay.rngs.every(value => typeof value === 'number'), 'a replay saves the numbers\' values');
+    const recovered = wheel.RecoverRound(played.m_replay);
+    check(recovered instanceof RoundResult && stopOf(recovered) === stopOf(played), 'a recovered round stops where it did');
+    const changedConfig = { ...wheelConfig, sectors: { ...wheelConfig.sectors, range: wheelConfig.sectors.range.map(item => ({ ...item, weight: item.weight * 2 })) } };
+    const again = new WheelRoundRules(changedConfig).RecoverRound(played.m_replay);
+    check(again instanceof RoundResult, `a recovery with changed math calculates the round again${again instanceof RoundResult ? '' : `: ${again.message}`}`);
+  } else {
+    check(false, `wheel round failed: ${played.message}`);
+  }
+
   // the RNG tools' engine (MementoEngine): an operation's forced numbers first, in order, then its engine's; all recorded
   const memento = new MementoEngine(new MonteCarloEngineHat(7));
   memento.PushOverride({ data: [{ op: RngOp.StopReels, range: 10, value: 3 }, { op: RngOp.StopWheel, range: 5, value: 2 }, { op: RngOp.StopReels, range: 10, value: 4 }] });

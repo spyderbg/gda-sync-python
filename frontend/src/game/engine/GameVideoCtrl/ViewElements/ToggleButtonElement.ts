@@ -32,7 +32,7 @@ export class ToggleButtonElement extends ButtonElement {
   private m_pressedAt = 0;
 
   HandleTouchDown(point: Point) {
-    if (this.hidden || !this.enabled || !this.Contains(point)) return false;
+    if (this.hidden || !this.enabled || !this.IsPointInArea(point)) return false;
     this.RefreshToggleState();
     this.PlayPressedSound();
     this.m_pressedAt = Clock.now();

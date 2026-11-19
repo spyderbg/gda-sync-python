@@ -121,6 +121,8 @@ export interface ViewElementData {
   hidden?: boolean;
   fitBox?: Size;
   touchArea?: RssRect;
+  /** How a button's touch area takes touches: Rectangle, Circle or Ellipse (AreaType). */
+  touchAreaType?: string;
   /** The sound a button plays when pressed. */
   rssKeySound?: string;
   loopCount?: number;

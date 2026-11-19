@@ -3,6 +3,7 @@
 
 import { Currencies, type CurrencyType } from '@game/engine/Game/Math/Common.data';
 import { InsufficientRandomBits } from '@game/engine/GameCore/Random/Exceptions';
+import { ReplaySaveToRngSequence, RngSequenceToReplaySave } from '../Common/ReplayRngConvert';
 import { HistoryEngine, type IRng, MonteCarloEngineHat, ReplayEngine } from '@game/engine/GameCore/Random/IRng';
 import { Currency, RoundErrorCode, RoundType } from '../Common/Common.data';
 import { RoundConfigError, RoundInputError } from '../Common/Exceptions';
@@ -140,7 +141,7 @@ export class WheelRoundRules {
       }
 
       // Prepare replay
-      result.m_replay = { input, rngs: rng.GetHistory().data };
+      result.m_replay = { input, rngs: RngSequenceToReplaySave(rng.GetHistory()) };
 
       return result;
     } catch (error) {
@@ -155,10 +156,13 @@ export class WheelRoundRules {
   }
 
   RecoverRound(replay: RoundReplay): RoundResultOrError {
-    const replayRng = new HistoryEngine(new ReplayEngine());
-    replayRng.engine.SetNumbers(replay.rngs);
+    const replayRng = new ReplayEngine();
+    replayRng.SetNumbers(ReplaySaveToRngSequence(replay.rngs).data);
 
-    return this.CalculateRound(replay.input as WheelRoundInput, replayRng);
+    const round = this.CalculateRound(replay.input as WheelRoundInput, replayRng);
+    console.assert(replayRng.IsEmpty());
+
+    return round;
   }
 
   ////////////////////////////////////////////////////////////////////////////////

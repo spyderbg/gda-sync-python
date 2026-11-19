@@ -6,7 +6,7 @@ import { IVideo } from '@game/engine/GameVideoCtrl/RuntimeExport/IVideo';
 import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
 import { TextElement } from '@game/engine/GameVideoCtrl/ViewElements/TextElement';
 import { ImageElement } from '@game/engine/GameVideoCtrl/ViewElements/ImageElement';
-import { ButtonElement } from '@game/engine/GameVideoCtrl/ViewElements/ButtonElement';
+import { AreaType, ButtonElement } from '@game/engine/GameVideoCtrl/ViewElements/ButtonElement';
 import { ThemeType } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IThemeView';
 import { EWinBarState } from '@game/alpha_family/libs/AlphaFamily/Views/BarsView.bridge';
 import { IInfoSwButtonView } from '@game/alpha_family/libs/AlphaFamily/Views/SwButtonViews.bridge';
@@ -76,13 +76,16 @@ function runChecks(layouts: Record<string, ElementsListData>, Advance: (ms: numb
   const layout = (view: BaseView) => (view as unknown as { m_themeLayout: ThemeLayout }).m_themeLayout;
   // The element a view binds for an id in its current theme.
   const bound = <T extends BaseElement = BaseElement>(view: BaseView, id: string, Type?: new () => T) => list(view).Get(layout(view).ElementId(id), Type);
+  // The middle of a button's touch area, or else of its image (aligned and scaled, as the button's draw bounds it).
   const point = (view: BaseView, id: string) => {
-    const area = bound(view, id, ButtonElement).GetTouchArea();
-    return { x: area.x + area.w / 2, y: area.y + area.h / 2 };
+    const button = bound(view, id, ButtonElement);
+    const area = button.GetAreaType() === AreaType.None ? button.GetBounds() : button.GetTouchArea();
+    return { x: Math.trunc(area.x + area.w / 2), y: Math.trunc(area.y + area.h / 2) };
   };
-  // A tap, then the frames of a button's pressed time (210 ms of the game Clock: ButtonElement), so that the next tap
-  // finds it idle again.
+  // A frame's draw, then a tap, then the frames of a button's pressed time (210 ms of the game Clock: ButtonElement), so
+  // that the next tap finds it idle again. A button without a touch area takes touches where it was last drawn.
   const click = (view: BaseView, p: Point) => {
+    view.Draw({} as DrawList);
     const handled = view.HandleTouchDown(p.x, p.y);
     view.HandleTouchUp(p.x, p.y);
     Advance(250);
@@ -90,10 +93,16 @@ function runChecks(layouts: Record<string, ElementsListData>, Advance: (ms: numb
     return handled;
   };
   const drawn: string[] = [];
-  // Observe the real lists' selected elements; rendering itself belongs to DrawList.
+  // Observe the real lists' selected elements; rendering itself belongs to DrawList. A button still draws, on a list that
+  // draws nothing, for the bounds it takes touches in.
+  const nothing = { DrawImage() {} } as unknown as DrawList;
   const observe = (view: BaseView) => {
     for (const element of list(view).GetElements()) {
-      element.Draw = () => { if (element.IsVisible()) drawn.push(element.GetId()); };
+      const drawElement = element.Draw.bind(element);
+      element.Draw = () => {
+        if (element instanceof ButtonElement) drawElement(nothing);
+        if (element.IsVisible()) drawn.push(element.GetId());
+      };
     }
   };
   views.forEach(observe);
