@@ -2,8 +2,9 @@
 // of a hold and spin round, which drops coins on the free positions of the trigger's stop, one spin per round.
 
 import { Currencies } from '@game/engine/Game/Math/Common.data';
+import { InsufficientRandomBits } from '@game/engine/GameCore/Random/Exceptions';
 import { HistoryEngine, type IRng, MonteCarloEngineHat, ReplayEngine } from '@game/engine/GameCore/Random/IRng';
-import { EgtALogCategoryClass, EgtAError } from '@game/engine/GameCore/Log/LogCategory';
+import { EgtALogCategoryClass, EgtAError, EgtATrace } from '@game/engine/GameCore/Log/LogCategory';
 import { Currency, ERoundTags, Multipliers, RoundErrorCode, RoundType, type SymbolGrid } from '../Common/Common.data';
 import { RoundConfigError, RoundInputError } from '../Common/Exceptions';
 import { SelectRandomValue, SelectValueFromIndex } from '../Common/Weighted';
@@ -89,6 +90,11 @@ export class HoldAndSpinRoundRules {
 
       return result;
     } catch (error) {
+      if (error instanceof InsufficientRandomBits) {
+        const insufficient = new RoundError(RoundErrorCode.InsufficientRandomBits, 'Request more random numbers and retry!');
+        EgtATrace('{}: {}', RoundErrorCode[insufficient.code], insufficient.message);
+        return insufficient;
+      }
       const code = error instanceof RoundInputError ? RoundErrorCode.InputError
         : error instanceof RoundConfigError ? RoundErrorCode.ConfigError : RoundErrorCode.Exception;
       EgtAError('{}: {}', RoundErrorCode[code], (error as Error).message);

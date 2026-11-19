@@ -25,7 +25,7 @@ export class CoinsFreeRoundState extends ReelRoundState {
     input.bet = betManager.GetInitialBet();
     input.betType = Currency.CoinsFreeSpinEnergy;
     input.lines = betManager.GetInitialLines();
-    input.betPerLine = input.bet / input.lines;
+    input.betPerLine = Math.trunc(input.bet / input.lines);
     input.consume = new Currencies(Currency.CoinsFreeSpinEnergy, input.bet);
   }
 }

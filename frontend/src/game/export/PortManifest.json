@@ -70,8 +70,8 @@
    "alpha_family/libs/src/Egt/AlphaFamily/Math/HoldAndSpin/HoldAndSpinRoundRules.h",
    "alpha_family/libs/src/Egt/AlphaFamily/Math/HoldAndSpin/HoldAndSpinRoundRules.cpp"
   ],
-  "sha256": "c1d9224abe06bb4d9006e9d97111bf25b869f38af67b9a151eb9c4eb354fc43b",
-  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "sha256": "13678a054094571470fb436227ca68e44a56b57bbf9c556a676f798ef2d2bee4",
+  "cppCommit": "25b57cd8d4d9da9f24006525a5527a3cd9f474e9",
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamily/Math/HoldAndSpin/HoldAndSpinRoundRules.h": "91b625f684787a75ea89e5471139ce1bfce616493adf13b40cb373d7f6baef13",
    "alpha_family/libs/src/Egt/AlphaFamily/Math/HoldAndSpin/HoldAndSpinRoundRules.cpp": "a0f6f7787600817c0ebc7dbe23b8cfa8bc1f4377ee2e3375b49df4db5a8a03fc"
@@ -126,8 +126,8 @@
    "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/ReelRoundRules.h",
    "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/ReelRoundRules.cpp"
   ],
-  "sha256": "d293c42041d4a6765d3d97acfe5e9fb39a5133700cf8f1694c27ec9a3276b681",
-  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "sha256": "ad6e90ac35a799f838ac343479a8b5526b75ec6ca39f26d13fd9c04e83c7049c",
+  "cppCommit": "25b57cd8d4d9da9f24006525a5527a3cd9f474e9",
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/ReelRoundRules.h": "e62f61b566ce5d97799476f22feda8966e09e1bd81dfd8d77224ae0bd3c1a4c3",
    "alpha_family/libs/src/Egt/AlphaFamily/Math/Reel/ReelRoundRules.cpp": "90c2e76ac3012e0a84e6193f3367ed05f74f7b0e0b75fb4ce40939071b07609f"
@@ -458,8 +458,8 @@
    "alpha_family/libs/src/Egt/AlphaFamily/Math/Wheel/WheelRoundRules.h",
    "alpha_family/libs/src/Egt/AlphaFamily/Math/Wheel/WheelRoundRules.cpp"
   ],
-  "sha256": "fdb2c5e822e043a9a4c5e224fb68c69b2e974f0f15fed969e2680307af8a061e",
-  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "sha256": "9a28e260c7afc6a1207dcd43c9c207704850fa0a0a5bac3da760edb6a426da84",
+  "cppCommit": "25b57cd8d4d9da9f24006525a5527a3cd9f474e9",
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamily/Math/Wheel/WheelRoundRules.h": "1052269ef422d71b38a368507dcade539e9186da874812e30bd3e24ceb2f46a6",
    "alpha_family/libs/src/Egt/AlphaFamily/Math/Wheel/WheelRoundRules.cpp": "a53b0d021fbbdcedb6caee6a2cd6772eafc2f996f60bac824c6980f798ea4d53"
@@ -1168,8 +1168,8 @@
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/GameManager.h",
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/GameManager.cpp"
   ],
-  "sha256": "1f1bce82793e992ebe1eec77409b7d4b2cf5da4d0f4882f15d7c69a24fb8d781",
-  "cppCommit": "0be2c0e3236b529c2f02da30807ff1af190f4895",
+  "sha256": "b1b523dab8d169d6b61f0b00217cf2c738c22bea3e6989a3b51f170d3d2f109e",
+  "cppCommit": "25b57cd8d4d9da9f24006525a5527a3cd9f474e9",
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/GameManager.h": "65b1fafc313b9650df4db16e258b1471befc7d8add27db83ea6c5468f368409b",
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/GameManager.cpp": "f9ecefd25c1670ec5e5a1f02cdb79b1e79bd57b000f824f9ca7f0d4ce7c852e6"
@@ -1192,8 +1192,8 @@
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRound.h",
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRound.cpp"
   ],
-  "sha256": "661bb579902463f2b0f863929209c314f121b2b6f201b1b62f8e081bbad64c27",
-  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "sha256": "2edffcad8621fb63a68ccfc6884684a602ca831589b2dc99296fff235a833a26",
+  "cppCommit": "25b57cd8d4d9da9f24006525a5527a3cd9f474e9",
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRound.h": "b2fa0d3a8f140aca099de8706f6a95fc2516e16a2f6ea7c332e81155b5774c75",
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsFreeRound/CoinsFreeRound.cpp": "584bbfb379acfe695e83cfe810fd1dac67f2f8a7b5034f91b6b6c0a53cd2e852"
@@ -1276,8 +1276,8 @@
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRound.h",
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRound.cpp"
   ],
-  "sha256": "257f182a7849341986ff5d10b9e3d56c8e827d6fe1acf380eaa80edbbe4d18f5",
-  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "sha256": "8a4137f8e2bada0ec9b3f0320e131e6914f34f8c208557054d18c3c51a27220a",
+  "cppCommit": "25b57cd8d4d9da9f24006525a5527a3cd9f474e9",
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRound.h": "ac5c0bea73d640c19e50dc867420c292480e366b2d8c38250c8b0f99a0afe30e",
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRound.cpp": "b724dbfc749506409aaeab1bc65f818ede006f12a27ea607cc43e590c2896719"
@@ -1300,8 +1300,8 @@
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundInput.h",
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundInput.cpp"
   ],
-  "sha256": "d713702a82cfabe8e456be9a7e7a97a142619e0feb07282810ed867876e80aa4",
-  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "sha256": "b0ec1ce3bd8d03e090ad9e87c1f2572dc003b423e299bedd23820ab547905788",
+  "cppCommit": "25b57cd8d4d9da9f24006525a5527a3cd9f474e9",
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundInput.h": "b93b870a618482c4ddaab1b0438a325f03c168cded1300ac54d81d46f4648f5b",
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/CoinsRound/CoinsRoundInput.cpp": "62ff8e5eea28f8426a67d91e2ff66d116666b2488ae872b7bd59e3f1d42447fc"
@@ -1384,8 +1384,8 @@
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRound.h",
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRound.cpp"
   ],
-  "sha256": "151746455a47cc43fa2346d52be4c5610e74088cd0bb633d5e738d1fdf880b0e",
-  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "sha256": "151e07ccd36566613f45446cd3a25fa34ed18b8a557a1320d15b961a517fc43a",
+  "cppCommit": "25b57cd8d4d9da9f24006525a5527a3cd9f474e9",
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRound.h": "87f5e70d96da93e9de9c4fb5dd76316eb4731724f6dc0393851f83287a5f4936",
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/FreeRound/FreeRound.cpp": "0d353b0b0ca14c317d09cd39d57db43979608a66d44afbabd53b8bd52d97449d"
@@ -1668,8 +1668,8 @@
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/MainRound/MainRound.h",
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/MainRound/MainRound.cpp"
   ],
-  "sha256": "e599069e65882c110a50286a9baae6c0bae20f425561b126cb95463fc8c4280a",
-  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "sha256": "36e461eb5eb4195fc72cf9042fa19cf41d84cae2c9f942ce485aa4bcec24c53d",
+  "cppCommit": "25b57cd8d4d9da9f24006525a5527a3cd9f474e9",
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/MainRound/MainRound.h": "a39fd784b764a714bb33efa157f234689e5fe3bd76134ba5e5fb9937b9cbe87e",
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/MainRound/MainRound.cpp": "bf40cc78ac4f90ffb4ea5cba10b9b97a5c7d9086f35ca2b0ebd08bba7fa83d94"
@@ -1916,8 +1916,8 @@
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRound.h",
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRound.cpp"
   ],
-  "sha256": "b769c9a33d3ffb5174f4a30ae25fd290bd9379086ad6f1aacf3b1bc074fdb7fc",
-  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
+  "sha256": "16544290d4646b5464eee724956626d242f178efed7cfca2828e0e7d3b40afa8",
+  "cppCommit": "25b57cd8d4d9da9f24006525a5527a3cd9f474e9",
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRound.h": "fdde2973bdc7e5a6e4a2e04cf08f13cc91e1983f602ad26c51cc6d50879bfcf6",
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRound.cpp": "89807e966f0767f664688e6b846743bee449d4699c8eeda5fe283fcb9f8f9364"
@@ -1940,8 +1940,8 @@
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRoundInput.h",
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRoundInput.cpp"
   ],
-  "sha256": "412029f87b279e50b7f095c82401a121b24bf83d493ee632290fd1136a86ef7e",
-  "cppCommit": "0314c80351a1860abd636e1feac53ccee67b8310",
+  "sha256": "8582f3e8069106ea6e3e687ae16a70358981f129b054c76d96523ff2b19e0349",
+  "cppCommit": "25b57cd8d4d9da9f24006525a5527a3cd9f474e9",
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRoundInput.h": "8e73e1422f6c23848399d7c12e2056d4fece4192df54de9fe2f573d91dc60362",
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/Match/TetraRound/TetraRoundInput.cpp": "d3795cdba8e78bbe6651a20a137f3c25bb16efc8c93f1425f4a18fef43bb7600"
@@ -2118,8 +2118,8 @@
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/ViewManager.h",
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/ViewManager.cpp"
   ],
-  "sha256": "3a451d9268d21d44dd41f8d6a85de02e26328d7ae2db23551e2e10eb3b1f9490",
-  "cppCommit": "6253e35ff4c5904a014c8c28ff638b6b4a27f87c",
+  "sha256": "c1916087cff1ed514691fd96fe8bc9527db45f9b95755a358e26fc12dac3c311",
+  "cppCommit": "25b57cd8d4d9da9f24006525a5527a3cd9f474e9",
   "cppSha256": {
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/ViewManager.h": "9bd9224f3f126f6bff8a0ca06344638c0e5f88d8a0fa1e7d0b954b3e31a4bdb2",
    "alpha_family/libs/src/Egt/AlphaFamilyStatesLibrary/ViewManager.cpp": "2260e234194e73fa299dc602ff4293db5f8eabc889f4bbea4dc1681b4efd48e8"

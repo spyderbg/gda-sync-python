@@ -22,7 +22,7 @@ export class MainRoundState extends ReelRoundState {
     input.bet = betManager.GetInitialBet();
     input.betType = Currency.Credits;
     input.lines = betManager.GetInitialLines();
-    input.betPerLine = input.bet / input.lines;
+    input.betPerLine = Math.trunc(input.bet / input.lines);
     input.consume = new Currencies(Currency.MainSpinEnergy, input.bet);
   }
 }

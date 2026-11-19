@@ -62,9 +62,20 @@ def test_sequences_are_deleted_and_moved_by_their_ids(client):
 
 
 def test_the_server_deals_random_32_bit_numbers(client):
-    randoms = client.post("/api/game/rng/randoms", json={"count": 64}).json()["randoms"]
+    reply = client.post("/api/game/rng/randoms", json={"count": 64}).json()
+    randoms = reply["randoms"]
     assert len(randoms) == 64 and all(0 <= value < 1 << 32 for value in randoms) and len(set(randoms)) > 60
+    # as a C++ kernel replies to RequestRandoms(count, 0): the maxValue the numbers were dealt to
+    assert reply["maxValue"] == (1 << 32) - 1
     assert client.post("/api/game/rng/randoms", json={"count": 0}).status_code == 400
+
+
+def test_the_server_deals_numbers_up_to_the_kernels_max_value(client):
+    reply = client.post("/api/game/rng/randoms", json={"count": 200, "maxValue": 15}).json()
+    assert reply["maxValue"] == 15
+    assert all(0 <= value <= 15 for value in reply["randoms"]) and len(set(reply["randoms"])) > 8
+    assert client.post("/api/game/rng/randoms", json={"count": 1, "maxValue": 1 << 32}).status_code == 400
+    assert client.post("/api/game/rng/randoms", json={"count": 1, "maxValue": -1}).status_code == 400
 
 
 def test_the_queue_refuses_numbers_that_are_not_rng_numbers(client):

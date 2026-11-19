@@ -15,6 +15,16 @@ Versions follow the project's single-digit major.minor.build scheme.
 
 - Let the view-layout skill change the layout values of a game's IData, and list changed IData files with the views
 - Draw valpha movies' premultiplied colors as the C++ game does, in the Play page and the movie preview
+- Let the game server deal random numbers up to a kernel's maxValue, and reply with the maxValue it dealt them to
+
+### Fixed
+
+- Draw the browser game's rounds from the kernel's numbers as the C++ game does: bit queue, hat distribution, 32 a request
+- Cap a browser game round before its outcome, as the C++ integrations do
+- Hold the browser game still on pause: its state machine, its player input and its sounds, as the C++ PauseMonitor does
+- Keep a pressed button for 210 ms of game time, ignoring taps meanwhile, as the C++ ButtonElement does
+- Drop a state's queued events once the states that react on them are gone, as the C++ state machine does
+- Round bets per line and per sub screen down, as the C++ integer division does
 
 ## [2.1.3] - 2026-11-10
 

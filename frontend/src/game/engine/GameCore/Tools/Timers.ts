@@ -34,31 +34,47 @@ export class Timers {
   }
 }
 
-/** Stopwatch::Measure, in milliseconds. */
-/** Egt::GameCore::Stopwatch: the time it has run, in ms, which pauses and resumes. */
+/** Egt::Game::Stopwatch (Game/Utils/Stopwatch.h/.cpp): the time it has run on the game Clock, in ms, which pauses and
+ * resumes. Reset starts it again from 0, running, and returns the time it had run. */
 export class Stopwatch {
-  private start = Clock.now();
-  private pausedAt: number | null = null;
+  private m_resumeTime = Clock.now();
+  private m_pauseTime: number | null = null;
+  private m_accumulated = 0;
 
-  Measure() {
-    return (this.pausedAt ?? Clock.now()) - this.start;
-  }
-
-  Reset() {
-    this.start = this.pausedAt ?? Clock.now();
+  IsRunning() {
+    return this.m_pauseTime === null;
   }
 
   Pause() {
-    this.pausedAt ??= Clock.now();
+    if (!this.IsRunning()) return;
+    this.m_pauseTime = Clock.now();
+    this.m_accumulated += this.m_pauseTime - this.m_resumeTime;
   }
 
   Resume() {
-    if (this.pausedAt === null) return;
-    this.start += Clock.now() - this.pausedAt;
-    this.pausedAt = null;
+    if (this.IsRunning()) return;
+    this.m_resumeTime = Clock.now();
+    this.m_pauseTime = null;
   }
 
-  IsRunning() {
-    return this.pausedAt === null;
+  Measure() {
+    let elapsed = this.m_accumulated;
+    if (this.IsRunning()) {
+      elapsed += Clock.now() - this.m_resumeTime;
+    }
+    return elapsed;
+  }
+
+  Reset() {
+    /// Note: don't implenet as Measure + Constructor because Clock::now() must be called only once to be accurate.
+    const now = Clock.now();
+    let elapsed = this.m_accumulated;
+    if (this.IsRunning()) {
+      elapsed += now - this.m_resumeTime;
+    }
+    this.m_resumeTime = now;
+    this.m_pauseTime = null;
+    this.m_accumulated = 0;
+    return elapsed;
   }
 }

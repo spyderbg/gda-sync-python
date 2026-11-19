@@ -125,12 +125,17 @@ class GameServer:
             return {"sequence": sequence, **self._queue(game)}
 
     @staticmethod
-    def randoms(count: int) -> list[int]:
-        """Random 32-bit numbers, from the system's cryptographic generator: the kernel's numbers a round is calculated
-        with when the queue has none for it."""
+    def randoms(count: int, max_value: int = 0) -> dict:
+        """Random numbers in [0, max_value] (0: the full 32 bits), from the system's cryptographic generator: the kernel's
+        numbers a round is calculated with when the queue has none for it. As a C++ kernel replies to RequestRandoms
+        (TruservServerKernel), the reply has the maxValue the numbers were dealt to."""
         if not 1 <= count <= MAX_RANDOMS:
             raise AppError(f"Ask for 1 to {MAX_RANDOMS} random numbers", 400)
-        return [secrets.randbelow(UINT32) for _ in range(count)]
+        if not 0 <= max_value < UINT32:
+            raise AppError("maxValue is a 32-bit unsigned number", 400)
+        if max_value == 0:
+            max_value = UINT32 - 1
+        return {"randoms": [secrets.randbelow(max_value + 1) for _ in range(count)], "maxValue": max_value}
 
     def post_event(self, workspace: str, event: dict) -> dict:
         """Something the game did that its debug tools follow, for the tools' other windows."""

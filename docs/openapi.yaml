@@ -896,6 +896,12 @@ components:
           maximum: 4096.0
           minimum: 1.0
           title: Count
+        maxValue:
+          type: integer
+          maximum: 4294967295.0
+          minimum: 0.0
+          title: Maxvalue
+          default: 0
       additionalProperties: false
       type: object
       required:

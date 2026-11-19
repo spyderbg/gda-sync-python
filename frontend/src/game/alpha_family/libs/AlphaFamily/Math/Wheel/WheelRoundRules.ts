@@ -2,6 +2,7 @@
 // (the coins exchange wheel, the gamble wheel): a sector chosen by weight pays its share of the bet.
 
 import { Currencies, type CurrencyType } from '@game/engine/Game/Math/Common.data';
+import { InsufficientRandomBits } from '@game/engine/GameCore/Random/Exceptions';
 import { HistoryEngine, type IRng, MonteCarloEngineHat, ReplayEngine } from '@game/engine/GameCore/Random/IRng';
 import { Currency, RoundErrorCode, RoundType } from '../Common/Common.data';
 import { RoundConfigError, RoundInputError } from '../Common/Exceptions';
@@ -143,6 +144,10 @@ export class WheelRoundRules {
 
       return result;
     } catch (error) {
+      if (error instanceof InsufficientRandomBits) {
+        const insufficient = new RoundError(RoundErrorCode.InsufficientRandomBits, 'Request more random numbers and retry!');
+        return insufficient;
+      }
       const code = error instanceof RoundInputError ? RoundErrorCode.InputError
         : error instanceof RoundConfigError ? RoundErrorCode.ConfigError : RoundErrorCode.Exception;
       return new RoundError(code, (error as Error).message);

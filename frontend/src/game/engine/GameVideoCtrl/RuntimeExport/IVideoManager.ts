@@ -14,6 +14,9 @@ export type IsOpaqueFullScreenHandler = (() => boolean) | null;
 export interface IVideoManager {
   RegisterRenderLayerMain(layer: number, handleEvent: EventHandler, draw: DrawHandler, isOpaqueFullScreen: IsOpaqueFullScreenHandler): void;
   UnregisterRenderLayerMain(layer: number): void;
+  // A debug layer keeps its input while the game is paused (IPause), so a debug tool can resume it; every
+  // other layer stops receiving player input. Removed with UnregisterRenderLayerMain.
+  RegisterDebugLayerMain(layer: number, handleEvent: EventHandler, draw: DrawHandler, isOpaqueFullScreen: IsOpaqueFullScreenHandler): void;
   GetMainResolution(): { w: number; h: number };
 }
 

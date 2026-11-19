@@ -1,24 +1,44 @@
 // The AudioManager module (plugins/src/Egt/AudioManager): provides IAudioApi, which plays the audio events of
 // RssAudioData.json by id, one of an event's samples at a time; an event of a polyphony group stops the group's other
-// sounds. The volume presets cycle with the sound button.
+// sounds. The volume presets cycle with the sound button. The game pause (IPause) pauses every sound and resumes it,
+// and a sound played while paused starts paused (C++'s OnGamePaused, OnGameResumed and Play).
 
 import { IAudioApi, IAudioApiEvents, type IAudioPlayback } from '@game/engine/Game/RuntimeImport/IAudioApi';
 import { IResources } from '@game/engine/Game/RuntimeExport/IResources';
+import { IPause } from '@game/engine/Game/RuntimeImport/IPause';
 import { Runtime } from '@game/engine/GameCore/RuntimeAccess';
 import { BaseModule, type ModuleConfig } from '@game/engine/ModuleManager/BaseModule';
 
 const VOLUME_PRESETS = [0, 0.25, 0.5, 1];
 
 class AudioPlayback implements IAudioPlayback {
+  /** Held by the game pause: it plays on when the game resumes. */
+  pausedByGame = false;
+
   constructor(readonly audio: HTMLAudioElement, readonly group: string | undefined) {}
 
   Stop() {
+    this.pausedByGame = false;
     this.audio.pause();
     this.audio.currentTime = 0;
   }
 
   IsPlaying() {
-    return !this.audio.paused && !this.audio.ended;
+    return this.pausedByGame || (!this.audio.paused && !this.audio.ended);
+  }
+
+  /** audio_player's pause of a sound. */
+  Pause() {
+    if (!this.IsPlaying()) return;
+    this.pausedByGame = true;
+    this.audio.pause();
+  }
+
+  /** audio_player's resume of a sound. */
+  Resume() {
+    if (!this.pausedByGame) return;
+    this.pausedByGame = false;
+    if (this.audio.volume > 0) this.audio.play().catch(() => {});
   }
 }
 
@@ -32,10 +52,28 @@ export class AudioManager extends BaseModule implements IAudioApi {
     super.Init(runtime, config);
     this.RuntimeAdd(IAudioApi, this);
     this.RuntimeAdd(IAudioApi.Events, this.events);
+
+    const pause = this.RuntimeTryGetConst(IPause.Events);
+    if (pause) {
+      pause.paused.RegisterInstant(this, () => this.OnGamePaused());
+      pause.resumed.RegisterInstant(this, () => this.OnGameResumed());
+    }
+
     return true;
   }
 
+  private OnGamePaused() {
+    for (const playback of this.playing) playback.Pause();
+  }
+
+  private OnGameResumed() {
+    for (const playback of this.playing) playback.Resume();
+  }
+
   Deinit() {
+    const pause = this.RuntimeTryGetConst(IPause.Events);
+    pause?.paused.Unregister(this);
+    pause?.resumed.Unregister(this);
     this.StopAll();
     this.RuntimeRemove(IAudioApi);
     this.RuntimeRemove(IAudioApi.Events);
@@ -60,6 +98,10 @@ export class AudioManager extends BaseModule implements IAudioApi {
     this.playing = this.playing.filter(item => item.IsPlaying());
     this.playing.push(playback);
     if (audio.volume > 0) audio.play().catch(() => {});
+    const pause = this.RuntimeTryGetConst(IPause);
+    if (pause && pause.IsPaused()) {
+      playback.Pause();
+    }
     this.events.playbackStarted.Post(audioEventId, playback);
     return playback;
   }

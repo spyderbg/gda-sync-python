@@ -70,7 +70,7 @@ export class TetraRoundInputState extends State {
 
     input.bet = currentBet;
     input.lines = betManager.GetCurrentLines();
-    input.betPerLine = input.bet / (subscreens * input.lines);
+    input.betPerLine = Math.trunc(input.bet / (subscreens * input.lines));
     input.consume = new Currencies(Currency.Credits, currentBet);
   }
 

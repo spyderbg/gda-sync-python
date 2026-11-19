@@ -85,7 +85,7 @@ export class GameManager extends State implements IGameManager {
     input.roundType = roundType;
     input.bet = rules.GetMinBet();
     input.lines = rules.GetMinLines();
-    input.betPerLine = input.bet / input.lines;
+    input.betPerLine = Math.trunc(input.bet / input.lines);
     if (roundType === RoundType.Tetra) {
       const subScreenCount = rules.GetTetraSpinRules().GetSubScreenCount();
       input.betPerLine /= subScreenCount;

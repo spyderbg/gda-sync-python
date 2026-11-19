@@ -25,7 +25,21 @@ import { SoundVolumeSwButtonView } from '@game/alpha_family/plugins/burning_crow
 import { LanguageSwButtonView } from '@game/alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/SwButtons/LanguageSwButtonView';
 import * as tweeny from '@game/hat_libs/tweeny/tweeny';
 
+/** The game Clock reads performance.now(): the checks move it on themselves, as frames would. */
 export function run(layouts: Record<string, ElementsListData>) {
+  let pageTime = performance.now();
+  const realNow = performance.now.bind(performance);
+  performance.now = () => pageTime;
+  try {
+    return runChecks(layouts, (ms: number) => {
+      pageTime += ms;
+    });
+  } finally {
+    performance.now = realNow;
+  }
+}
+
+function runChecks(layouts: Record<string, ElementsListData>, Advance: (ms: number) => void) {
   let checks = 0;
   const check = (condition: boolean, message: string) => {
     ++checks;
@@ -64,9 +78,13 @@ export function run(layouts: Record<string, ElementsListData>) {
     const area = bound(view, id, ButtonElement).GetTouchArea();
     return { x: area.x + area.w / 2, y: area.y + area.h / 2 };
   };
+  // A tap, then the frames of a button's pressed time (210 ms of the game Clock: ButtonElement), so that the next tap
+  // finds it idle again.
   const click = (view: BaseView, p: Point) => {
     const handled = view.HandleTouchDown(p.x, p.y);
     view.HandleTouchUp(p.x, p.y);
+    Advance(250);
+    view.Process();
     return handled;
   };
   const drawn: string[] = [];

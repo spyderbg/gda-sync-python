@@ -524,7 +524,7 @@ export class ViewManager extends State implements IViewManager, IViewManagerEven
       ? mathRules.GetWheelRoundRules(RoundType.Gamble).GetMaxAttempts()
       : 0;
 
-    infoScreen.SetGambleCapLimit(capping / 2);
+    infoScreen.SetGambleCapLimit(Math.trunc(capping / 2));
     infoScreen.SetGambleLimits(capping, maxGambleAttempts);
 
     if (options.autoSelectInfoPage) {

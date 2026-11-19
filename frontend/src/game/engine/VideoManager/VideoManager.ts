@@ -1,10 +1,12 @@
 // The VideoManager module (plugins/src/Egt/VideoManager): provides IVideo, the screen of the view resolution the game
 // draws on, and IVideoManager, the render layers over it (the capping splash...). The browser's canvas is that screen,
 // scaled to the page; touches are mapped back to the view resolution. Its Process updates the started tweens (tweeny).
+// While the game is paused (IPause), the player's touches reach only the debug layers (C++'s OnOsEvent).
 
 import { Clock } from '@game/engine/Game/Utils/Clock';
 import * as tweeny from '@game/hat_libs/tweeny/tweeny';
 import { IResources } from '@game/engine/Game/RuntimeExport/IResources';
+import { IPause } from '@game/engine/Game/RuntimeImport/IPause';
 import { Runtime } from '@game/engine/GameCore/RuntimeAccess';
 import { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
 import { FontCache } from '@game/engine/GameVideoCtrl/Fonts';
@@ -25,7 +27,7 @@ export class VideoManager extends BaseModule implements IVideo, IVideoManager {
   private topperCtx: CanvasRenderingContext2D | null = null;
   private handleEvent: ((event: TouchEventData) => boolean) | null = null;
   private ctx: CanvasRenderingContext2D | null = null;
-  private readonly layersMain = new Map<number, { handleEvent: EventHandler; draw: DrawHandler; isOpaqueFullScreen: IsOpaqueFullScreenHandler }>();
+  private readonly layersMain = new Map<number, { handleEvent: EventHandler; draw: DrawHandler; isOpaqueFullScreen: IsOpaqueFullScreenHandler; debug: boolean }>();
   private readonly listeners: [string, EventListener][] = [];
   private m_lastProcess: number | null = null;
 
@@ -120,7 +122,11 @@ export class VideoManager extends BaseModule implements IVideo, IVideoManager {
   }
 
   RegisterRenderLayerMain(layer: number, handleEvent: EventHandler, draw: DrawHandler, isOpaqueFullScreen: IsOpaqueFullScreenHandler) {
-    this.layersMain.set(layer, { handleEvent, draw, isOpaqueFullScreen });
+    this.layersMain.set(layer, { handleEvent, draw, isOpaqueFullScreen, debug: false });
+  }
+
+  RegisterDebugLayerMain(layer: number, handleEvent: EventHandler, draw: DrawHandler, isOpaqueFullScreen: IsOpaqueFullScreenHandler) {
+    this.layersMain.set(layer, { handleEvent, draw, isOpaqueFullScreen, debug: true });
   }
 
   UnregisterRenderLayerMain(layer: number) {
@@ -131,10 +137,21 @@ export class VideoManager extends BaseModule implements IVideo, IVideoManager {
     return [...this.layersMain].sort(([a], [b]) => a - b).map(([, layer]) => layer);
   }
 
-  /** The topmost layer first, then the game, until one takes the input. */
+  /** The topmost layer first, then the game, until one takes the input. A touch is the player's input, which a paused
+   * game holds: only a debug layer gets it then. */
   private HandleEvent(event: TouchEventData) {
-    for (const layer of this.Layers().reverse()) if (layer.handleEvent(event)) return;
-    this.handleEvent?.(event);
+    const pause = this.RuntimeTryGetConst(IPause);
+    const holdInput = !!pause && pause.IsPaused();
+
+    for (const layer of this.Layers().reverse()) {
+      if (!layer.handleEvent) continue;
+      if (holdInput && !layer.debug) continue;
+      if (layer.handleEvent(event)) return;
+    }
+
+    if (this.handleEvent && !holdInput) {
+      if (this.handleEvent(event)) return;
+    }
   }
 
   GetImages() {

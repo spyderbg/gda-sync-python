@@ -144,9 +144,10 @@ export class GameServer {
     }, true);
   }
 
-  /** Random 32-bit numbers the server deals the round. */
-  Randoms(count: number, handle: (randoms: number[]) => void) {
-    this.Request<{ randoms: number[] }>('game/rng/randoms', { count }, reply => handle(reply.randoms), true);
+  /** Random numbers in [0, maxValue] the server deals the round (maxValue 0: 32-bit numbers), and the maxValue it dealt
+   * them to, as a kernel replies to RequestRandoms. */
+  Randoms(count: number, maxValue: number, handle: (randoms: number[], maxValue: number) => void) {
+    this.Request<{ randoms: number[]; maxValue: number }>('game/rng/randoms', { count, maxValue }, reply => handle(reply.randoms, reply.maxValue), true);
   }
 
   /** Tells the server what the game did that its tools follow, in order, without holding up the rounds. */

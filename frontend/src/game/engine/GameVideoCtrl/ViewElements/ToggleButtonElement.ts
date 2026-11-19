@@ -27,12 +27,13 @@ const ImageOfState: Record<EState, number> = {
 };
 
 export class ToggleButtonElement extends ButtonElement {
-  private m_state = EState.ToggledOff;
+  /** @cppName m_state (C++'s ToggleButtonElement is a BaseElement: here a ButtonElement, whose m_state it has) */
+  private m_toggleState = EState.ToggledOff;
   private m_pressedAt = 0;
 
   HandleTouchDown(point: Point) {
     if (this.hidden || !this.enabled || !this.Contains(point)) return false;
-    this.RefreshState();
+    this.RefreshToggleState();
     this.PlayPressedSound();
     this.m_pressedAt = Clock.now();
     return true;
@@ -43,24 +44,25 @@ export class ToggleButtonElement extends ButtonElement {
   }
 
   Update(now: number) {
-    if (now - this.m_pressedAt >= PressedDuration && (this.m_state === EState.PressedOff || this.m_state === EState.PressedOn)) this.RefreshState();
+    if (now - this.m_pressedAt >= PressedDuration && (this.m_toggleState === EState.PressedOff || this.m_toggleState === EState.PressedOn)) this.RefreshToggleState();
     super.Update(now);
   }
 
   ResetState() {
-    this.m_state = EState.ToggledOff;
+    this.m_toggleState = EState.ToggledOff;
   }
 
   IsToggledOn() {
-    return this.m_state === EState.ToggledOn || this.m_state === EState.PressedOn;
+    return this.m_toggleState === EState.ToggledOn || this.m_toggleState === EState.PressedOn;
   }
 
   protected ImageIndex() {
     if (!this.enabled) return ImageOfState[EState.Disabled];
-    return ImageOfState[this.m_state];
+    return ImageOfState[this.m_toggleState];
   }
 
-  private RefreshState() {
-    this.m_state = Transitions[this.m_state];
+  /** @cppName RefreshState */
+  private RefreshToggleState() {
+    this.m_toggleState = Transitions[this.m_toggleState];
   }
 }

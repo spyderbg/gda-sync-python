@@ -2,10 +2,11 @@
 // browser's storage), plays the kernel's part in matches, and provides the services a C++ integration provides: the
 // wallet, the limits, the localization (numbers written as the C++ LocalizationManager writes them), the hardware buttons
 // (the keyboard and the page's panel), the recovery's state change actions, responsible gaming, the application control
-// and the game pause (IPauseControl). The random numbers
+// and the game pause (its PauseMonitor: IPause and IPauseControl). The random numbers
 // a round asks for come from the game server (integration/GameServer): the browser game is a server based game.
 
 import { EventQueue } from '@game/engine/Core/Event';
+import { MonteCarloEngine, RngOp } from '@game/engine/GameCore/Random/IRng';
 import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
 import { HW_BUTTONS, HwButtonLight, type HwButtonName, type HwButtonState, IHwButtonEvents, type IHwButton } from '@game/engine/Game/RuntimeImport/HwButtons.bridge';
 import { ECapTiming, ILimits, ILimitsEvents } from '@game/engine/Game/RuntimeImport/ILimits';
@@ -14,8 +15,7 @@ import { IRecovery, IRecoveryEvents, type IStateChangeAction } from '@game/engin
 import { IAppControl, IResponsibleGaming, IResponsibleGamingEvents } from '@game/engine/Game/RuntimeImport/IResponsibleGaming';
 import { IWallet, IWalletEvents, TransactionType } from '@game/engine/Game/RuntimeImport/IWallet';
 import { BaseModule, type ModuleConfig } from '@game/engine/ModuleManager/BaseModule';
-import { Clock } from '@game/engine/Game/Utils/Clock';
-import { IPauseControl, type PauseReason } from '@game/integration/Runtime/IPauseControl';
+import { PauseMonitor } from '@game/integration/Runtime/Common/PauseMonitor';
 import { IGameServer } from '@game/integration/GameServer/GameServer';
 import { LocalizationManager } from '@game/integration/LocalizationManager/LocalizationManager';
 import { IKernelIntegration, IKernelIntegrationEvents, type IKernelApi } from './IKernelIntegration';
@@ -71,6 +71,7 @@ export class BrowserKernel extends BaseModule implements IKernelApi, IKernelInte
   private language = LANGUAGES[0];
   private config: BrowserKernelConfig = {};
   private capping = 0;
+  private m_pauseMonitor: PauseMonitor | null = new PauseMonitor();
 
   Init(runtime: Runtime, config: BrowserKernelConfig) {
     super.Init(runtime, config);
@@ -80,24 +81,13 @@ export class BrowserKernel extends BaseModule implements IKernelApi, IKernelInte
     const kernel = this;
     this.RuntimeAdd(IKernelIntegration, this);
     this.RuntimeAdd(IKernelIntegration.Events, this.kernelEvents);
-    // the game pause (C++'s PauseMonitor): paused while any reason holds it
-    const pauses = new Set<PauseReason>();
-    this.RuntimeAdd(IPauseControl, {
-      Request: reason => {
-        pauses.add(reason);
-        Clock.SetPaused(true);
-      },
-      Release: reason => {
-        pauses.delete(reason);
-        Clock.SetPaused(pauses.size > 0);
-      },
-      IsHeld: reason => pauses.has(reason),
-    });
+    // the game pause, as the C++ integrations own it (PauseMonitor): paused while any reason holds it
+    if (!this.m_pauseMonitor!.Init(this.GetRuntime())) return false;
     this.RuntimeAdd(IWallet, { GetCredit: () => kernel.credit, StartCashout: () => kernel.Cashout() });
     this.RuntimeAdd(IWallet.Events, this.walletEvents);
     this.RuntimeAdd(ILimits, {
       GetBetLimits: () => ({ minBet: config.minBet ?? 0, maxBet: config.maxBet ?? Number.MAX_SAFE_INTEGER, defaultBet: 0 }),
-      GetWinCapping: () => ({ capping: kernel.capping, capTiming: ECapTiming.AfterRoundOutcome, capValueWinBar: true }),
+      GetWinCapping: () => ({ capping: kernel.capping, capTiming: ECapTiming.BeforeRoundOutcome, capValueWinBar: true }),
       IsMaxBetStartingGame: () => false,
       IsTaxThresholdBreached: () => false,
       ShowTaxMessage: () => kernel.queue.AddCallback(() => kernel.limitsEvents.taxMessageClosed.Post()),
@@ -147,9 +137,17 @@ export class BrowserKernel extends BaseModule implements IKernelApi, IKernelInte
     return true;
   }
 
+  PostInit() {
+    if (!super.PostInit()) return false;
+    this.m_pauseMonitor?.PostInit();
+    return true;
+  }
+
   Deinit() {
-    this.RuntimeRemove(IPauseControl);
-    Clock.SetPaused(false);
+    if (this.m_pauseMonitor) {
+      this.m_pauseMonitor.Deinit();
+      this.m_pauseMonitor = null;
+    }
     for (const token of Object.values(HW_BUTTONS)) {
       this.RuntimeRemove(token);
       this.RuntimeRemove(token.Events);
@@ -258,14 +256,25 @@ export class BrowserKernel extends BaseModule implements IKernelApi, IKernelInte
     this.queue.AddCallback(() => this.kernelEvents.startRoundReply.Post());
   }
 
-  /** The round's random numbers, which the game server deals (without one, the browser's cryptographic generator). */
-  RequestRandoms(count: number) {
+  /** The round's random numbers in [0, maxValue] (maxValue 0: the full 32 bits), which the game server deals (without
+   * one, the browser's cryptographic generator). The reply carries the maxValue they were dealt to, as the C++ kernels'
+   * (TruservServerKernel::RequestRandoms). */
+  RequestRandoms(count: number, maxValue: number) {
     const server = this.RuntimeTryGet(IGameServer);
     if (server) {
-      server.Randoms(count, randoms => this.queue.AddCallback(() => this.kernelEvents.randomsReply.Post(randoms)));
+      server.Randoms(count, maxValue, (randoms, dealtMaxValue) =>
+        this.queue.AddCallback(() => this.kernelEvents.randomsReply.Post(randoms, dealtMaxValue)));
       return;
     }
-    this.queue.AddCallback(() => this.kernelEvents.randomsReply.Post([...crypto.getRandomValues(new Uint32Array(count))]));
+    if (maxValue === 0) {
+      maxValue = 0xffff_ffff;
+    }
+    // Random number in the range [0, interval): maxValue + 1 of the full range is 2^32, which is 0 as a uint32_t
+    const interval = (maxValue + 1) >>> 0;
+    const engine = new MonteCarloEngine();
+    const randoms: number[] = [];
+    for (let i = 0; i < count; ++i) randoms.push(engine.Generate(RngOp.SimulateRemoteServer, interval));
+    this.queue.AddCallback(() => this.kernelEvents.randomsReply.Post(randoms, maxValue));
   }
 
   RequestRoundOutcome(_creditWin: number) {

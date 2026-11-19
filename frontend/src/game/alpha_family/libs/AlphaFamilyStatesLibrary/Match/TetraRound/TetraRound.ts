@@ -74,7 +74,7 @@ export class TetraRoundState extends State implements ITetraRound {
     input.bet = initialBet * subscreens;
     input.betType = Currency.Credits;
     input.lines = betManager.GetInitialLines();
-    input.betPerLine = initialBet / input.lines;
+    input.betPerLine = Math.trunc(initialBet / input.lines);
     input.consume = new Currencies(Currency.Credits, input.bet);
     input.initialMatchCreditBet = gameflow.GetInitialCreditsBet();
   }
@@ -182,9 +182,9 @@ export class TetraRoundState extends State implements ITetraRound {
     const rules = this.GetRoundRules();
     const subScreenCount = rules.GetTetraSpinRules().GetSubScreenCount();
     const menu = this.RuntimeGet(IBetMenuView);
-    const currentBetPerSubscreen = betManager.GetCurrentBet() / subScreenCount;
-    const allowedBetsPerSubscreen = betManager.GetAllowedBetsIncludingSelected().map(bet => bet / subScreenCount);
-    const betLimitPerSubscreen = betManager.GetBetLimit() / subScreenCount;
+    const currentBetPerSubscreen = Math.trunc(betManager.GetCurrentBet() / subScreenCount);
+    const allowedBetsPerSubscreen = betManager.GetAllowedBetsIncludingSelected().map(bet => Math.trunc(bet / subScreenCount));
+    const betLimitPerSubscreen = Math.trunc(betManager.GetBetLimit() / subScreenCount);
     const minAllowedBetPerSubscreen = allowedBetsPerSubscreen[0];
     const maxAllowedBetPerSubscreen = Math.min(betLimitPerSubscreen, allowedBetsPerSubscreen[allowedBetsPerSubscreen.length - 1]);
 

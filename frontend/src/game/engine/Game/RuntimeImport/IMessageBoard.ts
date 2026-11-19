@@ -19,7 +19,9 @@ export interface IMessageBoard {
 
 export class IMessageBoardEvents {
   readonly onWaitingInput = new Event();
+  readonly onWaitingInputRemoved = new Event();
   readonly onBlocking = new Event();
+  readonly onBlockingRemoved = new Event();
 }
 
 export const IMessageBoard = Interface<IMessageBoard, IMessageBoardEvents>('IMessageBoard');

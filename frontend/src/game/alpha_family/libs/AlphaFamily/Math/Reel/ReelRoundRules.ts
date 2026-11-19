@@ -1,9 +1,10 @@
 // Egt::Game::AlphaFamily::ReelRoundRules (AlphaFamily/Math/Reel/ReelRoundRules.h/.cpp): the rules of a reel round,
 // which calculate a round's result from its input and random numbers.
 
+import { InsufficientRandomBits } from '@game/engine/GameCore/Random/Exceptions';
 import { HistoryEngine, type IRng, MonteCarloEngineHat, ReplayEngine, RngOp } from '@game/engine/GameCore/Random/IRng';
 import { Currencies, type CurrencyType } from '@game/engine/Game/Math/Common.data';
-import { EgtALogCategoryClass } from '@game/engine/GameCore/Log/LogCategory';
+import { EgtALogCategoryClass, EgtATrace } from '@game/engine/GameCore/Log/LogCategory';
 import { type Line, type Lines, RoundErrorCode, RoundType, type SymbolId } from '../Common/Common.data';
 import { RoundConfigError, RoundInputError } from '../Common/Exceptions';
 import { RoundError, type RoundReplay, RoundResult, type RoundResultOrError } from '../RoundResult.data';
@@ -208,6 +209,11 @@ export class ReelRoundRules extends BaseReelRules {
       result.m_replay = { input, rngs: rng.GetHistory().data };
       return result;
     } catch (error) {
+      if (error instanceof InsufficientRandomBits) {
+        const insufficient = new RoundError(RoundErrorCode.InsufficientRandomBits, 'Request more random numbers and retry!');
+        EgtATrace('{}: {}', RoundErrorCode[insufficient.code], insufficient.message);
+        return insufficient;
+      }
       const code = error instanceof RoundInputError ? RoundErrorCode.InputError
         : error instanceof RoundConfigError ? RoundErrorCode.ConfigError : RoundErrorCode.Exception;
       console.error(`ReelRoundRules: ${RoundErrorCode[code]}: ${(error as Error).message}`);

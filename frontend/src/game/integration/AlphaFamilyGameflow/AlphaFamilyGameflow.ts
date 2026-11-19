@@ -1,14 +1,18 @@
 // Egt::Integration::AlphaFamily::AlphaFamilyGameflow (integration/libs/src/Egt/AlphaFamilyGameflow): provides IGameflow,
 // the match and its rounds with the kernel, and IGameflowIntegration, its events for the integration's modules. A round
 // is calculated with the kernel's numbers, or with the RNG Queue's or the automation's while they override them
-// (GetRoundRng). A match's wallet keeps its currencies: starting it rewards MainSpinEnergy of
+// (GetRoundRng). The kernel's numbers go into a BitQueue at the kernel's bit width (from the maxValue it replies with),
+// and the round draws from it with RngDistributionHat (RoundRngEngine): when it runs out, the round asks for more and
+// is calculated again. A match's wallet keeps its currencies: starting it rewards MainSpinEnergy of
 // the bet, which the main round consumes; rounds reward credits, which tetra rounds consume; the credits left are paid
 // at its end. The next round is the one whose currency the match has (GetNextRoundType), or a tetra round while the
 // match has credits for it (CheckTetraRound), or the coins wheel when the coins' least win reaches the cap
 // (CheckForcedWheel).
 
 import { Currencies, type CurrencyType } from '@game/engine/Game/Math/Common.data';
-import { HistoryEngine, type IRng, MonteCarloEngine, type RngNumber, type RngOp, type RngSequence } from '@game/engine/GameCore/Random/IRng';
+import { BitQueue } from '@game/engine/GameCore/Random/BitGenerator/BitQueue';
+import { ExternalRngEngineHat } from '@game/engine/GameCore/Random/Engine/ExternalRngEngine';
+import { type IRng, MementoEngine, MonteCarloEngine, type RngNumber, type RngNumbers } from '@game/engine/GameCore/Random/IRng';
 import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
 import { ECapTiming, ILimits } from '@game/engine/Game/RuntimeImport/ILimits';
 import { IMathTypes } from '@game/engine/Game/RuntimeExport/IMathTypes';
@@ -25,7 +29,9 @@ import { type IGameflowIntegration, IGameflowIntegration as IGameflowIntegration
 import { IRngPresetManager } from '@game/integration/Runtime/IRngPresetManager';
 import { IAutomationManager } from '@game/integration/Runtime/IAutomationManager';
 
-const RngBatchCount = 64;
+const RngBatchCount = 32;
+
+type RoundRngEngine = MementoEngine<ExternalRngEngineHat>;
 
 interface ConsecutiveRoundInfo {
   roundType: RoundType;
@@ -50,28 +56,6 @@ interface Round {
   showFastLines: boolean;
 }
 
-class InsufficientRandomBits extends Error {}
-
-/** The kernel's random numbers as an engine: it runs out, and asks for more, when the round needs more. */
-class KernelNumbersEngine implements IRng {
-  private index = 0;
-
-  constructor(private readonly numbers: number[]) {}
-
-  Generate(_op: RngOp, range = 0) {
-    const limit = range ? 0x1_0000_0000 - (0x1_0000_0000 % range) : 0x1_0000_0000;
-    for (;;) {
-      if (this.index >= this.numbers.length) throw new InsufficientRandomBits();
-      const value = this.numbers[this.index++];
-      if (value < limit) return range ? value % range : value;
-    }
-  }
-
-  GetHistory(): RngSequence {
-    return { data: [] };
-  }
-}
-
 /** A condition the next round's result must meet, as the C++ RNG presets force outcomes for development. */
 export interface RoundPreset {
   roundType: RoundType;
@@ -79,14 +63,21 @@ export interface RoundPreset {
   condition: (result: RoundResult) => boolean;
 }
 
+/** std::bit_width: the number of bits a 32-bit unsigned value needs. */
+function BitWidth(value: number) {
+  return 32 - Math.clz32(value);
+}
+
 export class AlphaFamilyGameflow extends BaseModule implements IGameflow, IGameflowIntegration {
   private readonly m_events = new IGameflowEvents();
   private readonly m_integrationEvents = new IGameflowIntegrationEvents();
-  /** The engine of the kernel's numbers the round is calculated with (C++'s volatileRngEngine). */
-  private volatileRngEngine: IRng | null = null;
+  /** The kernel's numbers of the round being calculated, all it sent. */
+  private volatileRngNumbers: RngNumbers | null = null;
+  /** The engine of the kernel's numbers the round is calculated with (a page's preset round: its own numbers'). */
+  private volatileRngEngine: RoundRngEngine | MementoEngine | null = null;
+  private kernelBitsPerRngNumber = 0;
   private match: Match | null = null;
   private round: Round | null = null;
-  private numbers: number[] = [];
   private preset: RoundPreset | null = null;
   /** The rounds played, newest last, for the page's history. */
   readonly history: { roundType: RoundType; bet: number; win: number; rngs: RngNumber[] }[] = [];
@@ -100,7 +91,7 @@ export class AlphaFamilyGameflow extends BaseModule implements IGameflow, IGamef
     const kernel = this.RuntimeGet(IKernelIntegration.Events);
     kernel.startMatchReply.RegisterInstant(this, success => this.OnKernelStartMatchReply(success));
     kernel.startRoundReply.RegisterInstant(this, () => this.OnKernelStartRoundReply());
-    kernel.randomsReply.RegisterInstant(this, randoms => this.OnKernelRandomsReply(randoms));
+    kernel.randomsReply.RegisterInstant(this, (randoms, maxValue) => this.OnKernelRandomsReply(randoms, maxValue));
     kernel.roundOutcomeReply.RegisterInstant(this, () => this.OnKernelRoundOutcomeReply());
     kernel.endMatchReply.RegisterInstant(this, netWin => this.OnKernelEndMatchReply(netWin));
     return true;
@@ -196,20 +187,66 @@ export class AlphaFamilyGameflow extends BaseModule implements IGameflow, IGamef
 
   private OnKernelStartRoundReply() {
     const round = this.round!;
-    const match = this.match!;
+    console.assert(!round.kernelStarted);
+    console.assert(!this.volatileRngNumbers);
+    console.assert(!this.volatileRngEngine);
+
     round.kernelStarted = true;
+
     this.CheckConsecutiveRoundStart();
+
+    const match = this.match!;
     match.wallet.consumed.AddAll(round.input.consume);
+
     match.wallet.blocked.SubtractAll(round.input.consume);
-    this.numbers = [];
+
     // Create empty engine
-    this.volatileRngEngine = new HistoryEngine(new KernelNumbersEngine(this.numbers));
-    this.Kernel().RequestRandoms(RngBatchCount);
+    this.volatileRngNumbers = [];
+    this.volatileRngEngine = new MementoEngine(new ExternalRngEngineHat());
+    this.kernelBitsPerRngNumber = 0;
+
+    this.KernelRequestRandoms();
   }
 
-  private OnKernelRandomsReply(randoms: number[]) {
+  private KernelRequestRandoms() {
+    let maxValue: number;
+    console.assert(this.kernelBitsPerRngNumber <= 32);
+    switch (this.kernelBitsPerRngNumber) {
+      case 0: maxValue = 0; break; // special case to request as many bits as possible from the kernel
+      case 32: maxValue = 0xffff_ffff; break;
+      default: maxValue = 2 ** this.kernelBitsPerRngNumber - 1; break;
+    }
+    console.assert(((maxValue + 1) & maxValue) === 0);
+    this.Kernel().RequestRandoms(RngBatchCount, maxValue);
+  }
+
+  private OnKernelRandomsReply(randoms: number[], maxValue: number) {
+    // Kernel may send any maxValue, but it should be aligned to whole number of bits, otherwise our bit
+    // queue implementation would produce bias in the distribution.
+    // TODO: consider throwing an exception instead of assert!
+    console.assert(((maxValue + 1) & maxValue) === 0);
+    const bits = maxValue === 0 ? 32 : BitWidth(maxValue);
+    if (this.kernelBitsPerRngNumber === 0) {
+      this.kernelBitsPerRngNumber = bits;
+    } else {
+      console.assert(this.kernelBitsPerRngNumber === bits);
+    }
+
     // Kernel can send more or less numbers than requested, we will use them all and ask for more when we run out.
-    this.numbers.push(...randoms);
+    const numbers = this.volatileRngNumbers!;
+    for (const value of randoms) {
+      numbers.push(value);
+    }
+
+    // Re-create engine
+    const engine = new ExternalRngEngineHat();
+    this.volatileRngEngine = new MementoEngine(engine);
+    {
+      const bitQueue = new BitQueue();
+      bitQueue.Push(this.kernelBitsPerRngNumber, numbers);
+      engine.SetBitQueue(bitQueue);
+    }
+
     this.CalculateRoundResult();
   }
 
@@ -223,47 +260,46 @@ export class AlphaFamilyGameflow extends BaseModule implements IGameflow, IGamef
 
   private CalculateRoundResult() {
     const round = this.round!;
+    console.assert(round.kernelStarted);
+    console.assert(!round.kernelOutcome);
+
     let resultOrError;
-    if (this.IsRoundRngOverrideUsed()) {
-      // the RNG tools' numbers (C++'s GetRoundRng): no kernel numbers are used
-      resultOrError = this.CalculateRoundOf(round.input, this.GetRoundRng());
-    } else if (this.preset && this.preset.roundType === round.input.roundType) {
+    if (!this.IsRoundRngOverrideUsed() && this.preset && this.preset.roundType === round.input.roundType) {
+      // the page's development preset (browser only): a round of its own numbers that meets it
       resultOrError = this.CalculatePresetRound(this.preset);
       this.preset = null;
     } else {
-      // A thrown InsufficientRandomBits comes back as an error: the round asks the kernel for more numbers and retries.
-      const engine = new KernelNumbersEngine(this.numbers);
-      const rng = new HistoryEngine(engine);
-      this.volatileRngEngine = rng;
-      const generate = engine.Generate.bind(engine);
-      let insufficient = false;
-      engine.Generate = (op, range) => {
-        try {
-          return generate(op, range);
-        } catch (error) {
-          if (error instanceof InsufficientRandomBits) insufficient = true;
-          throw error;
-        }
-      };
+      const rng = this.GetRoundRng();
+      console.assert(rng.GetHistory().data.length === 0);
+
       resultOrError = this.CalculateRoundOf(round.input, rng);
-      if (insufficient) {
-        this.Kernel().RequestRandoms(RngBatchCount);
-        return;
-      }
     }
+
     if (resultOrError instanceof RoundError) {
-      throw new Error(`CalculateRound failed! code=${RoundErrorCode[resultOrError.code]}, message=${resultOrError.message}`);
+      if (resultOrError.code === RoundErrorCode.InsufficientRandomBits) {
+        /// Request more random nubers and retry when they arrive
+        this.KernelRequestRandoms();
+        return;
+      } else {
+        /// Unrecoverable error
+        throw new Error(`CalculateRound failed! code=${RoundErrorCode[resultOrError.code]}, message=${resultOrError.message}`);
+      }
+    } else {
+      round.result = resultOrError;
+
+      // apply capping
+      this.ApplyCapping(round.result, ECapTiming.BeforeRoundOutcome);
+
+      this.Kernel().RequestRoundOutcome(round.result.GetSummary().rewards.Get(Currency.Credits));
+      return;
     }
-    round.result = resultOrError;
-    this.ApplyCapping(round.result, ECapTiming.BeforeRoundOutcome);
-    this.Kernel().RequestRoundOutcome(round.result.GetSummary().rewards.Get(Currency.Credits));
   }
 
   private CalculatePresetRound(preset: RoundPreset) {
     const round = this.round!;
     let last = null;
     for (let attempt = 0; attempt < 200_000; attempt++) {
-      const rng = new HistoryEngine(new MonteCarloEngine());
+      const rng = new MementoEngine(new MonteCarloEngine());
       const result = this.CalculateRoundOf(round.input, rng);
       if (!(result instanceof RoundResult)) return result;
       last = result;
@@ -286,6 +322,7 @@ export class AlphaFamilyGameflow extends BaseModule implements IGameflow, IGamef
 
     /// Round outcome confirmed => rng no longer needed
     /// Note: clear rng engine after roundStarted event
+    this.volatileRngNumbers = null;
     this.volatileRngEngine = null;
 
     /// Finaly complete the round

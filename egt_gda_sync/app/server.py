@@ -301,6 +301,8 @@ class RngRoundBody(_Body):
 
 class RngRandomsBody(_Body):
     count: Annotated[int, Field(strict=True, ge=1, le=MAX_RANDOMS)]
+    # the kernel's maxValue: the numbers' highest value, 0 for the full 32 bits
+    maxValue: Annotated[int, Field(strict=True, ge=0, le=UINT32 - 1)] = 0
 
 
 class GameEventBody(_Body):
@@ -939,7 +941,7 @@ def create_app(
 
     @app.post("/api/game/rng/randoms")
     def game_rng_randoms(body: RngRandomsBody) -> dict:
-        return {"randoms": game_server.randoms(body.count)}
+        return game_server.randoms(body.count, body.maxValue)
 
     @app.post("/api/game/rng/events")
     def game_rng_event(body: GameEventBody, game: PlayedGame) -> dict:

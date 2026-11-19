@@ -13,7 +13,7 @@
 //   argument of Transit, which the GameFsmViewer shows): here read from the call stack, a position in the script that
 //   app/SourceLocation maps back to the TypeScript.
 
-import { Event, EventQueue } from '@game/engine/Core/Event';
+import { Event, EventQueue, Sentinel } from '@game/engine/Core/Event';
 import { Clock } from '@game/engine/Game/Utils/Clock';
 import { Runtime, RuntimeHolder, RuntimeToken } from '@game/engine/GameCore/RuntimeAccess';
 
@@ -157,11 +157,18 @@ export function Node(type: StateClass, name: string, children: StateNode[] = [])
   return { name, type, children };
 }
 
+/** A state's reaction on an event (C++'s EventHandler): the states that react on the same event share its sentinel, the
+ * machine's registration of the event, which expires with the last of them. */
+interface EventHandler {
+  sentinel: Sentinel;
+  callback: (...args: unknown[]) => Reaction;
+}
+
 interface StateCtx {
   node: StateNode;
   instance: State;
   nvrams: Map<DataClass, object>;
-  handlers: Map<Event<unknown[]>, (...args: unknown[]) => Reaction>;
+  handlers: Map<Event<unknown[]>, EventHandler>;
 }
 
 export interface TransitionRecord {
@@ -180,7 +187,6 @@ export class Machine {
   private readonly nodesByName = new Map<string, StateNode>();
   private readonly nodesByInterface = new Map<RuntimeToken<unknown>, StateNode>();
   private readonly statics = new Map<DataClass, object>();
-  private readonly registeredEvents = new Set<Event<unknown[]>>();
   private current: StateCtx[] = [];
   private runtime: Runtime | null = null;
   /** The latest transitions, newest last, for the game's debug panel. */
@@ -200,7 +206,7 @@ export class Machine {
   }
 
   Deinit() {
-    this.current = [];
+    this.DestroyStates(0);
     this.queue.Clear();
   }
 
@@ -271,7 +277,7 @@ export class Machine {
       destroyed: this.current.slice(divergeIndex).map(ctx => ctx.node.name).reverse(),
       created: targetPath.slice(divergeIndex).map(node => node.name),
     };
-    this.current.length = divergeIndex;
+    this.DestroyStates(divergeIndex);
     for (let i = divergeIndex; i < targetPath.length; i++) this.pushState(targetPath[i]);
     this.transitions.push(record);
     if (this.transitions.length > 200) this.transitions.shift();
@@ -289,6 +295,18 @@ export class Machine {
     this.current.push({ node, instance, nvrams, handlers: new Map() });
   }
 
+  /** Destroys the states from the index on: an event's sentinel expires with the last state that reacts on it, so that
+   * the event's dispatches still queued are dropped (C++'s state contexts, whose handlers hold the sentinel). */
+  private DestroyStates(index: number) {
+    const destroyed = this.current.splice(index);
+    for (const ctx of destroyed) {
+      for (const handler of ctx.handlers.values()) {
+        const shared = this.current.some(alive => [...alive.handlers.values()].some(other => other.sentinel === handler.sentinel));
+        if (!shared) handler.sentinel.Expire();
+      }
+    }
+  }
+
   private indexOf(state: State) {
     return this.current.findIndex(ctx => ctx.instance === state);
   }
@@ -300,11 +318,24 @@ export class Machine {
     if (index < 0) throw new Error('Registering event to destroyed state');
     const ctx = this.current[index];
     if (ctx.handlers.has(event)) throw new Error(`State ${ctx.node.name} registering for the same event twice`);
-    ctx.handlers.set(event, handler);
-    if (!this.registeredEvents.has(event)) {
-      this.registeredEvents.add(event);
-      event.Register(this.queue, this, (...args: unknown[]) => this.dispatch(event, args));
+
+    let sentinel = this.FindStateEventSentinel(event);
+    if (sentinel) {
+      console.assert(event.IsRegistered(sentinel));
+    } else {
+      sentinel = new Sentinel();
+      event.Register(this.queue, sentinel, (...args: unknown[]) => this.dispatch(event, args));
     }
+    ctx.handlers.set(event, { sentinel, callback: handler });
+  }
+
+  /** The sentinel of the states' reactions on the event, while one of them is alive. */
+  private FindStateEventSentinel(event: Event<unknown[]>) {
+    for (const ctx of this.current) {
+      const handler = ctx.handlers.get(event);
+      if (handler) return handler.sentinel;
+    }
+    return null;
   }
 
   private dispatch(event: Event<unknown[]>, args: unknown[]) {
@@ -312,7 +343,7 @@ export class Machine {
       const ctx = this.current[i];
       const handler = ctx?.handlers.get(event);
       if (!handler) continue;
-      const reaction = handler(...args);
+      const reaction = handler.callback(...args);
       if (reaction.kind === 'consume' || reaction.kind === 'reject') break;
       if (reaction.kind === 'forward' || reaction.kind === 'skip') continue;
       this.transit(ctx.node, this.resolve(reaction.target!), false, false, reaction.source ?? { function: 'anonymous', state: ctx.node.name, file: '', line: 0, column: 0 });

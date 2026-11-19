@@ -27,7 +27,7 @@ export class CoinsRoundState extends ReelRoundState {
     input.bet = betManager.GetInitialBet();
     input.betType = Currency.CoinsSpinEnergy;
     input.lines = betManager.GetInitialLines();
-    input.betPerLine = input.bet / input.lines;
+    input.betPerLine = Math.trunc(input.bet / input.lines);
     input.consume = new Currencies(Currency.CoinsSpinEnergy, input.bet);
     input.initialMatchCreditBet = gameflow.GetInitialCreditsBet();
   }

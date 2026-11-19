@@ -1,9 +1,13 @@
-// Egt::GameVideoCtrl::ButtonElement (ViewElements/ButtonElement.h): an image for each state (rssKeys: idle, pressed,
-// disabled) and the area that takes touches (touchArea, else the image).
+// Egt::GameVideoCtrl::ButtonElement (ViewElements/ButtonElement.h/.cpp): an image for each state (rssKeys: idle, pressed,
+// disabled) and the area that takes touches (touchArea, else the image). A touch down presses an idle button: it shows
+// pressed for 210 ms of the game Clock (m_timerPressed), whatever the touch up does, and takes no other touch until
+// then. A button whose idle key is no image (an area element) only says whether the point is in its area.
 
 import type { Point, RssRect, ViewElementData } from '@game/engine/Game/RuntimeExport/IResources';
 import { IResources } from '@game/engine/Game/RuntimeExport/IResources';
 import { IAudioApi } from '@game/engine/Game/RuntimeImport/IAudioApi';
+import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { Stopwatch } from '@game/engine/GameCore/Tools/Timers';
 import type { DrawList } from '../DrawList';
 import { IVideo } from '../RuntimeExport/IVideo';
 import { BaseElement } from './BaseElement';
@@ -20,8 +24,30 @@ export class ButtonElement extends BaseElement {
   protected images: string[] = [];
   protected touchArea: RssRect | null = null;
   protected enabled = true;
-  protected pressed = false;
+  private m_state = EButtonState.Idle;
+  private readonly m_timerPressed = new Stopwatch();
   protected pressedSound = '';
+
+  Init(runtime: Runtime, key = '') {
+    super.Init(runtime, key);
+
+    this.m_timerPressed.Reset();
+    this.m_timerPressed.Pause();
+  }
+
+  Deinit() {
+    this.m_timerPressed.Reset();
+    super.Deinit();
+  }
+
+  Update(now: number) {
+    if (this.m_state === EButtonState.Pressed && this.m_timerPressed.Measure() > 210) {
+      this.m_timerPressed.Reset();
+      this.m_timerPressed.Pause();
+      this.RefreshState();
+    }
+    super.Update(now);
+  }
 
   SetElementData(data: ViewElementData) {
     super.SetElementData(data);
@@ -52,7 +78,9 @@ export class ButtonElement extends BaseElement {
 
   SetEnabled(enabled: boolean) {
     this.enabled = enabled;
-    if (!enabled) this.pressed = false;
+
+    this.RefreshState();
+
     return this;
   }
 
@@ -60,8 +88,14 @@ export class ButtonElement extends BaseElement {
     return this.enabled;
   }
 
-  IsPressed() {
-    return this.pressed;
+  GetPressedDuration() {
+    return this.m_timerPressed.Measure();
+  }
+
+  private RefreshState() {
+    if (this.m_timerPressed.IsRunning()) return;
+
+    this.m_state = this.enabled === false ? EButtonState.Disabled : EButtonState.Idle;
   }
 
   GetTouchArea(): RssRect {
@@ -71,7 +105,7 @@ export class ButtonElement extends BaseElement {
 
   /** The index of the image of the button's state. */
   protected ImageIndex(): number {
-    return !this.enabled ? EButtonState.Disabled : this.pressed ? EButtonState.Pressed : EButtonState.Idle;
+    return this.m_state;
   }
 
   private CurrentImage() {
@@ -98,18 +132,41 @@ export class ButtonElement extends BaseElement {
     return point.x >= area.x && point.x <= area.x + area.w && point.y >= area.y && point.y <= area.y + area.h;
   }
 
-  // the button reacts on the touch down; it shows pressed until the touch up
+  /** Whether the button has no idle image: an area that takes touches. */
+  protected IsAreaElement() {
+    const key = this.images[EButtonState.Idle];
+    return !key || TOUCH_AREA_KEYS.includes(key) || !this.RuntimeGet(IResources).GetImage(key);
+  }
+
   HandleTouchDown(point: Point) {
-    if (this.hidden || !this.enabled || this.pressed || !this.Contains(point)) return false;
-    this.pressed = true;
-    this.PlayPressedSound();
-    return true;
+    if (!(this.IsVisible() && this.enabled)) return false;
+    if (this.m_state !== EButtonState.Idle) return false;
+    const prevState = this.m_state;
+
+    if (this.IsAreaElement()) {
+      return this.Contains(point);
+    } else if (this.Contains(point)) {
+      this.m_timerPressed.Reset();
+      this.m_state = EButtonState.Pressed;
+      this.PlayPressedSound();
+    } else {
+      this.m_state = EButtonState.Idle;
+    }
+
+    return this.m_state !== prevState;
   }
 
   HandleTouchUp(point: Point) {
-    if (!this.pressed) return false;
-    this.pressed = false;
-    return !this.hidden && this.enabled && this.Contains(point);
+    if (this.m_state !== EButtonState.Pressed) return false;
+
+    if (this.IsAreaElement()) {
+      return this.Contains(point);
+    } else if (this.Contains(point)) {
+      // the button reacts on the button touch down
+      return true;
+    }
+
+    return false;
   }
 
   Draw(drawList: DrawList) {
