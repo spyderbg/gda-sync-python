@@ -688,7 +688,7 @@ onBeforeUnmount(() => {
         <div class="game-stage">
           <canvas ref="infoCanvas" class="game-canvas" aria-label="Info screen" />
         </div>
-        <p class="game-info-note small text-muted mb-0">The info screen: the help pages of the game's RTF, drawn with the app's font. Info shows the next page.</p>
+        <p class="game-info-note small text-muted mb-0">The info screen shows the game's help pages. Info shows the next page.</p>
       </div>
     </div>
 

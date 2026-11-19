@@ -1,11 +1,14 @@
 """RTFs are a section of the asset library, whose cards and details show their pages."""
 
 import json
+import shutil
+import subprocess
+from pathlib import Path
 
 import pytest
 from playwright.sync_api import expect
 
-from tests.e2e.conftest import BUILD, Backend
+from tests.e2e.conftest import BUILD, ROOT, Backend
 from tests.fixtures.rtf import write_project
 
 pytestmark = pytest.mark.e2e
@@ -93,4 +96,48 @@ def test_the_library_shows_an_rtf_with_its_pages(new_context, rtf_backend):
     expect(details.get_by_role('group', name='Pages of help').get_by_role('button', name='Show page wintable')).to_have_attribute('aria-pressed', 'true')
     details.locator('.details-page-button', has_text='keyboard').click()
     expect(details.get_by_role('group', name='Page keyboard')).to_contain_text('The background is not mapped')
+    assert errors == []
+
+
+def test_game_rtf_uses_configured_fonts_and_plays_inline_video(new_context, rtf_backend, tmp_path):
+    """Real canvas text and frame pixels, through the game's renderer and backend resource URLs."""
+    project = rtf_backend.get('/api/game/project')
+    fonts = Path(project['gamePath']).parent / 'common' / 'fonts'
+    fonts.mkdir(parents=True)
+    source = Path('/usr/share/fonts/truetype/dejavu')
+    if not (source / 'DejaVuSans.ttf').exists():
+        pytest.skip('DejaVu Sans is needed for the canvas font fixture')
+    for face, filename in [('Regular', 'DejaVuSans.ttf'), ('Bold', 'DejaVuSans-Bold.ttf')]:
+        shutil.copyfile(source / filename, fonts / f'Test-{face}.ttf')
+    bundle = tmp_path / 'rtf-renderer.mjs'
+    subprocess.run(['node', '--input-type=module', '-e', '''
+import { build } from 'vite';
+import { dirname, basename } from 'node:path';
+await build({ configFile: false, resolve: { alias: { '@game': process.cwd() + '/src/game' } },
+  build: { outDir: dirname(process.argv[1]), emptyOutDir: false,
+    lib: { entry: 'tests/rtf-renderer.ts', formats: ['es'], fileName: () => basename(process.argv[1]) } }, logLevel: 'warn' });
+''', str(bundle)], cwd=ROOT / 'frontend', check=True, capture_output=True, text=True)
+    page = new_context().new_page()
+    errors = []
+    page.on('pageerror', lambda error: errors.append(str(error)))
+    page.route('**/rtf-renderer.mjs', lambda route: route.fulfill(path=str(bundle), content_type='text/javascript'))
+    page.goto(rtf_backend.url)
+    page.evaluate('''async project => {
+      const { create } = await import('/rtf-renderer.mjs');
+      window.rtfRenderer = await create(project);
+    }''', project)
+    families = page.evaluate('() => window.rtfRenderer.fonts()')
+    assert all(family and family.startswith('egt-system-') for family in families)
+    first = page.evaluate('() => window.rtfRenderer.render(0)')
+    assert first['pixel'] == [220, 0, 40, 255]
+    assert first['text'][0]['value'] == '5,00'
+    assert families[0] in first['text'][0]['font']
+    title = page.evaluate('() => window.rtfRenderer.title()')
+    title_font = next(piece['font'] for piece in title if piece['value'] == 'HOW ')
+    assert families[2] in title_font
+    assert title_font.startswith('900 ')
+    assert page.evaluate('() => window.rtfRenderer.render(40).pixel') == [220, 40, 40, 255]
+    assert page.evaluate('() => window.rtfRenderer.render(80).pixel') == [220, 80, 40, 255]
+    assert page.evaluate('() => window.rtfRenderer.render(120).pixel') == first['pixel']
+    assert page.evaluate('() => window.rtfRenderer.render(120).pixel') == first['pixel']  # Frozen game clock.
     assert errors == []

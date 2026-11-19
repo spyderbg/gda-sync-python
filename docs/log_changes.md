@@ -14,6 +14,7 @@ Versions follow the project's single-digit major.minor.build scheme.
 ### Fixed
 
 - Fill Burning Crown's info screen paytable: name its melon and crown figures as the RTF does, and show a tetra sub screen's wins in the tetra round
+- Draw Info Screen paytables with the configured system fonts and restore inline RTF animations, including Tetra Spins
 
 ## [2.1.4] - 2026-11-19
 

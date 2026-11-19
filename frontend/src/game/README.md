@@ -87,8 +87,8 @@ Where the browser differs from a cabinet:
 
 - The info and topper screens are canvases under the game (**Info screen**, **Topper**); Info opens the info screen.
   The topper screen takes the size of its picture, which on a cabinet the integration's viewport has.
-- An RTF is laid out by the backend and drawn with the app's font, not the RTF Tool's renderer and the project's fonts:
-  the help pages are close to the cabinet's, not exact.
+- RTF help pages use VideoManager's configured system fonts and play inline frame sequences at their configured FPS
+  on the game clock. Canvas text metrics can still differ slightly from the cabinet's RTF Tool renderer.
 - Movies play in the browser's video player, muted (their sounds are audio events), composed with their `valpha` alpha.
   They load once the game's images have loaded, where C++ loads and starts them when the element is made.
 
