@@ -11,8 +11,7 @@ import { make_sentinel, sentinel } from '@game/hat_libs/egt_hpp/sentinel';
 import * as tweeny from '@game/hat_libs/tweeny/tweeny';
 import { ELeftStatusLine, ERightStatusLine, EStatusLine } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
 import { CombinationsEqual, type ReelCombinations } from '@game/alpha_family/libs/AlphaFamily/Math/Reel/ReelRoundPhase.data';
-import { IControlViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IControlView';
-import { IStatusLineView } from '@game/alpha_family/libs/AlphaFamily/Views/IStatusLineView.bridge';
+import { IStatusLineView, IStatusLineViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/IStatusLineView.bridge';
 import { BaseView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/BaseView';
 import { BaseVisual } from '../Visuals/BaseVisual';
 import { StatusLineVisual } from '../Visuals/StatusLineVisual';
@@ -65,7 +64,7 @@ enum AnimationCommand {
 }
 
 export class StatusLineView extends BaseView implements IStatusLineView {
-  protected readonly m_events = new IControlViewEvents();
+  protected readonly m_events = new IStatusLineViewEvents();
 
   private m_statusLines: StatusLineVisual[] = [];
 
@@ -132,11 +131,14 @@ export class StatusLineView extends BaseView implements IStatusLineView {
     this.AdjustMidStatus();
     this.AdjustLeftStatus();
     this.AdjustRightStatus();
+    this.PostShownStatus();
 
     switch (this.m_lastAnimationCommand) {
       case AnimationCommand.PauseAnimations:
         this.PauseAnimations();
         break;
+      case AnimationCommand.ResumeAnimations: // [[fallthrough]]
+      case AnimationCommand.PlayAnimations: // [[fallthrough]]
       default:
         break;
     }
@@ -151,6 +153,16 @@ export class StatusLineView extends BaseView implements IStatusLineView {
     super.Draw(drawList);
   }
 
+  private PostShownStatus() {
+    if (this.m_stateMid === EStatusLine.ShowWinCombinations) {
+      this.m_events.combinationsShown.Post(this.m_combinationsMid, this.m_isFastShownMidCombinations);
+    } else {
+      this.m_events.statusShown.Post(this.m_stateMid);
+    }
+    this.m_events.leftStatusShown.Post(this.m_stateLeft);
+    this.m_events.rightStatusShown.Post(this.m_stateRight);
+  }
+
   ShowStatus(state: EStatusLine) {
     if (this.m_stateMid === state) return;
 
@@ -158,6 +170,7 @@ export class StatusLineView extends BaseView implements IStatusLineView {
 
     if (!this.m_elementsList.IsLoaded()) return;
     this.AdjustMidStatus();
+    this.m_events.statusShown.Post(state);
   }
 
   private AdjustMidStatus() {
@@ -209,6 +222,7 @@ export class StatusLineView extends BaseView implements IStatusLineView {
           actionFastTimer.on_end.connect(() => {
             this.m_isFastShownMidCombinations = false;
             this.AdjustMidStatus();
+            this.m_events.combinationsShown.Post(this.m_combinationsMid, false);
           });
 
           this.m_actionFastTimer = actionFastTimer;
@@ -262,6 +276,7 @@ export class StatusLineView extends BaseView implements IStatusLineView {
 
     if (!this.m_elementsList.IsLoaded()) return;
     this.AdjustRightStatus();
+    this.m_events.rightStatusShown.Post(state);
   }
 
   /** The state's elements, shown while its action runs: a repeat of the dummy action, forever. */
@@ -293,6 +308,7 @@ export class StatusLineView extends BaseView implements IStatusLineView {
 
     if (!this.m_elementsList.IsLoaded()) return;
     this.AdjustLeftStatus();
+    this.m_events.leftStatusShown.Post(state);
   }
 
   private AdjustLeftStatus() {
@@ -315,6 +331,7 @@ export class StatusLineView extends BaseView implements IStatusLineView {
 
     if (!this.m_elementsList.IsLoaded()) return;
     this.AdjustMidStatus();
+    this.m_events.combinationsShown.Post(combinations, fast);
   }
 
   SetLanguage(language: string) {

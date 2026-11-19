@@ -181,12 +181,35 @@ export class BaseElement extends RuntimeHolder {
     return this;
   }
 
-  /** Places another element where a Dummy element is (SetFromDummy; C++ takes its pointer, which may be null). */
+  /** Places another element as a Dummy element is: what of the position, scale, rotation, pivot, alignment and color the
+   * dummy's data sets (SetFromDummy; C++ takes its pointer, which may be null). */
   SetFromDummy(dummy: BaseElement | null) {
-    if (!dummy) return this;
-    this.position = dummy.GetPosition();
-    this.scale = dummy.GetScale();
-    this.rotation = dummy.GetRotation();
+    if (!dummy) {
+      console.assert(false, 'SetFromDummy: no dummy');
+      return this;
+    }
+
+    const elementData = dummy.GetElementData();
+
+    if (elementData.position !== undefined) {
+      this.SetPosition(dummy.GetPosition());
+    }
+    if (elementData.scale !== undefined) {
+      this.SetScale(dummy.GetScale());
+    }
+    if (elementData.rotation !== undefined) {
+      this.SetRotation(dummy.GetRotation());
+    }
+    if (elementData.pivot !== undefined) {
+      this.SetPivot(dummy.GetPivot());
+    }
+    if (elementData.alignment !== undefined) {
+      this.SetAlignment(elementData.alignment);
+    }
+    if (elementData.color !== undefined) {
+      this.SetColor(dummy.GetColor());
+    }
+
     return this;
   }
 

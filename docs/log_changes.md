@@ -25,6 +25,16 @@ Versions follow the project's single-digit major.minor.build scheme.
 - Keep a pressed button for 210 ms of game time, ignoring taps meanwhile, as the C++ ButtonElement does
 - Drop a state's queued events once the states that react on them are gone, as the C++ state machine does
 - Round bets per line and per sub screen down, as the C++ integer division does
+- Expand the wilds of Burning Hot Coins and Zodiac Wheel Coins with their animation and sound
+- Play the scatter and expanding wild reel stop sounds in Burning Hot Coins, Zodiac Wheel Coins and Burning Crown
+- Count the win, credit and coins bars as the C++ numeric bars do, posting the same done events
+- Play the change bet, autoplay and take win sounds of the browser game's bars
+- Mix the browser game's sounds by the audio design's polyphony groups and the configured volume presets
+- Place elements from dummies with only what the dummy sets, including its pivot, alignment and color
+- Play image sequences and movies frame for frame as the C++ game does: rewind, loop frame, repeats and auto start
+- Write coins as coins in the bet bar and the status line
+- Bind Zodiac Wheel Coins' responsible gaming button, and post the status line's events
+- List the browser game's languages in the C++ integrations' order, with English as the default
 
 ## [2.1.3] - 2026-11-10
 

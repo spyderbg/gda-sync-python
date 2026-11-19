@@ -1,14 +1,16 @@
 // Egt::Game::AlphaFamily::ReelsView (BurningCrownTetraSpins10View/Views/ReelsView.h/.cpp): the main game's five reels.
 
 import { Clock } from '@game/engine/Game/Utils/Clock';
-import { IsArrayOf } from '@game/engine/GameCore/Common/ContainerHelpers';
+import { Contains, IsArrayOf, IsValidIndex } from '@game/engine/GameCore/Common/ContainerHelpers';
+import { AssertIf } from '@game/engine/GameCore/Common/Defensive';
+import { type int, static_cast } from '@game/engine/GameCore/Common/Types';
 import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
 import { BrowserOnly } from '@game/engine/GameCore/Common/BrowserOnly';
 import { IAudioApi, type IAudioPlayback } from '@game/engine/Game/RuntimeImport/IAudioApi';
 import { IResources } from '@game/engine/Game/RuntimeExport/IResources';
 import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
 import { Stopwatch } from '@game/engine/GameCore/Tools/Timers';
-import { type ERoundTags, type Reels, type SymbolGrid, SymbolViewInfo, type SymbolViewInfos } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
+import { type ERoundTags, type Reels, type SymbolGrid, type SymbolId, SymbolViewInfo, type SymbolViewInfos } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
 import { ReelCombination, type ReelCombinations } from '@game/alpha_family/libs/AlphaFamily/Math/Reel/ReelRoundPhase.data';
 import { ILinesView } from '@game/alpha_family/libs/AlphaFamily/Views/ILinesView.bridge';
 import { IReelsView, IReelsViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/IReelsView.bridge';
@@ -250,16 +252,77 @@ export class ReelsView extends BaseView implements IReelsView, BaseReelsView {
     return true;
   }
 
-  /** The sound of the reel that stopped: its category's sound (BurningCrownTetraSpins10 has no scatters or expanding
-   * wilds, whose categories C++ checks for its other games). */
+  /** The sound of the reel that stopped: the most important category of what it stopped with (the scatters, when
+   * the reels that can still hold them would make enough, the expanding wild, unless the last reel is the only one
+   * with it). */
   private ChooseStopSound() {
-    const stoppedIdx = this.GetStoppedReelIds().length - 1;
-    if (stoppedIdx < 0 || stoppedIdx >= this.m_stopFigures.length) return '';
-    if (this.m_pendingAllReelingSound || this.m_allReelingPlayback) return '';
-    const priorities: ECategory[] = [ECategory.Default];
+    const expandingWildId: SymbolId = 8;
+    const scatter1Id: SymbolId = 9;
+    const scatter2Id: SymbolId = 10;
+    const scatterAttractionCount: int = 3;
+    const expandingWildAttractionCount: int = 1;
+
+    const stoppedReelIds = this.GetStoppedReelIds();
+    const stoppedIdx = static_cast<int>(stoppedReelIds.length) - 1;
+    if (stoppedIdx < 0 || stoppedIdx >= static_cast<int>(this.m_stopFigures.length)) return '';
+
+    const isInFastReelingStop: boolean = this.m_pendingAllReelingSound || this.m_allReelingPlayback !== null;
+    if (isInFastReelingStop) return '';
+
+    const CanTriggerSpecificSound = (symbolId: SymbolId, triggerSymCount: int): boolean => {
+      const specialSymbolStops = this.m_stopFigures.map(it => Contains(it, symbolId));
+      if (AssertIf(!IsValidIndex(specialSymbolStops, stoppedIdx))) return false;
+      return specialSymbolStops[stoppedIdx] &&
+        (stoppedIdx < (static_cast<int>(this.m_stopFigures.length) - 1) ||
+         specialSymbolStops.filter(it => it === true).length > triggerSymCount);
+    };
+
+    const CanContainScatterOnReel = (symbolId: SymbolId, reelIdx: int, reelsCount: int): boolean => {
+      if (symbolId === scatter1Id) {
+        // Star is available only on reels 1, 3, and 5.
+        return reelIdx === 0 || reelIdx === 2 || reelIdx === 4;
+      }
+      if (symbolId === scatter2Id) {
+        return reelIdx >= 0 && reelIdx < reelsCount;
+      }
+      return false;
+    };
+
+    const CanTriggerScatterAttractionSound = (symbolId: SymbolId): boolean => {
+      if (!Contains(this.m_stopFigures[stoppedIdx], symbolId)) return false;
+
+      let scatterCount: int = 0;
+      for (let reelIdx: int = 0; reelIdx <= stoppedIdx; ++reelIdx) {
+        scatterCount += static_cast<int>(this.m_stopFigures[reelIdx].filter(it => it === symbolId).length);
+      }
+
+      const reelsCount = static_cast<int>(this.m_stopFigures.length);
+      for (let reelIdx: int = stoppedIdx + 1; reelIdx < reelsCount; ++reelIdx) {
+        scatterCount += CanContainScatterOnReel(symbolId, reelIdx, reelsCount) ? 1 : 0;
+      }
+
+      return scatterCount >= scatterAttractionCount;
+    };
+
+    const m_priorities: ECategory[] = [];
+    m_priorities.push(ECategory.Default);
+
+    if (CanTriggerScatterAttractionSound(scatter1Id)) {
+      m_priorities.push(ECategory.Scatter);
+    }
+    if (CanTriggerScatterAttractionSound(scatter2Id)) {
+      m_priorities.push(ECategory.Scatter);
+    }
+    if (CanTriggerSpecificSound(expandingWildId, expandingWildAttractionCount)) {
+      m_priorities.push(ECategory.ExpandingWild);
+    }
+
     let category = ECategory.None;
-    for (const item of priorities) if (StopSoundPriority.indexOf(item) > StopSoundPriority.indexOf(category)) category = item;
-    return this.m_config.reelSoundsConfig.stopSoundsConfig.find(sound => sound.category === category && sound.stopIndex === stoppedIdx)?.soundId ?? '';
+    for (const item of m_priorities) if (StopSoundPriority.indexOf(item) > StopSoundPriority.indexOf(category)) category = item;
+    const it = this.m_config.reelSoundsConfig.stopSoundsConfig.find(s => s.category === category && s.stopIndex === stoppedIdx);
+    if (AssertIf(it === undefined)) return '';
+
+    return it!.soundId;
   }
 
   private ShouldPlayAllReelingSound(reelIdx: number) {

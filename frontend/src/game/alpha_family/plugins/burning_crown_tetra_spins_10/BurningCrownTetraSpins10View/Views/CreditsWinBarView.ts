@@ -1,9 +1,11 @@
 // Egt::Game::AlphaFamily::CreditsWinBarView (BurningCrownTetraSpins10View/Views/CreditsWinBarView.h/.cpp): the win of
-// the match, labelled WIN, or WINNER PAID once it is paid.
+// the match, labelled WIN, or WINNER PAID once it is paid; a changed win plays the take win sound.
 
 import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
 import { IAudioApi } from '@game/engine/Game/RuntimeImport/IAudioApi';
 import { ILocalization } from '@game/engine/Game/RuntimeImport/ILocalization';
+import { Unless } from '@game/engine/GameCore/Common/Defensive';
+import { type int, type int64_t, static_cast } from '@game/engine/GameCore/Common/Types';
 import type { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
 import { ImageElement } from '@game/engine/GameVideoCtrl/ViewElements/ImageElement';
 import { TextElement } from '@game/engine/GameVideoCtrl/ViewElements/TextElement';
@@ -16,8 +18,10 @@ import * as tweeny from '@game/hat_libs/tweeny/tweeny';
 import { ThemeLayout } from '../ThemeLayout';
 
 const CreditsWinBarViewId = 'CreditsWinBarView';
+
 const ImageWinLabelId = 'image_win_label';
 const TextWinAmountId = 'text_win_amount';
+
 const AudioEventTakeWinId = 'SOUND_TAKE_WIN';
 
 export class CreditsWinBarView extends NumericBarView<ICreditsWinBarView, INumericBarViewEvents> implements ICreditsWinBarView {
@@ -30,8 +34,13 @@ export class CreditsWinBarView extends NumericBarView<ICreditsWinBarView, INumer
 
   Init(runtime: Runtime) {
     super.Init(runtime);
-    this.InitElementsList(CreditsWinBarViewId);
+
+    this.InitElementsList(CreditsWinBarViewId, () => {
+      this.OnElementsListLoaded();
+    });
+
     this.SetLabelState(EWinBarState.Win);
+
     return true;
   }
 
@@ -42,16 +51,14 @@ export class CreditsWinBarView extends NumericBarView<ICreditsWinBarView, INumer
 
   Draw(drawList: DrawList) {
     if (!this.m_visible) return;
+
     this.AdjustWinValueChanged();
     super.Draw(drawList);
   }
 
   AddWinResult(summary: PayoutSummary) {
-    this.AddValueWithGeometricAccumulation(summary.rewards.Get(Currency.Credits));
-  }
-
-  AddWinResultFast(summary: PayoutSummary) {
-    this.AddValueWithSteppedAccumulation(summary.rewards.Get(Currency.Credits));
+    const value = summary.rewards.Get(Currency.Credits);
+    this.AddValueWithGeometricAccumulation(value);
   }
 
   SetLabelState(state: EWinBarState) {
@@ -61,9 +68,38 @@ export class CreditsWinBarView extends NumericBarView<ICreditsWinBarView, INumer
   }
 
   SetAccumulation(accumulation: AccumulationDescriptor) {
-    const playTakeWin = accumulation.targetValue < this.m_currentValue && accumulation.type !== AccumulationType.eInstantly;
+    const playTakeWin =
+      accumulation.targetValue < this.m_currentValue && accumulation.type !== AccumulationType.eInstantly;
+
     super.SetAccumulation(accumulation);
-    if (playTakeWin) this.RuntimeGet(IAudioApi).Play(AudioEventTakeWinId);
+
+    if (playTakeWin) {
+      this.PlayBarAudioState('AccumulateTakeWin');
+    }
+  }
+
+  SetValue(value: int64_t) {
+    const newNonZeroVal = (this.m_currentValue !== value) && (this.m_currentValue !== 0);
+    super.SetValue(value);
+    this.PlayBarAudioState(newNonZeroVal ? 'SetNewValue' : 'SetValue');
+  }
+
+  SetValueNow(value: int64_t) {
+    const newNonZeroVal = (this.m_currentValue !== value) && (this.m_currentValue !== 0);
+    super.SetValueNow(value);
+    this.PlayBarAudioState(newNonZeroVal ? 'SetNewValueNow' : 'SetValueNow');
+  }
+
+  PlayBarAudioState(audioStateName: string) {
+    super.PlayBarAudioState(audioStateName);
+
+    if (audioStateName === 'AccumulateTakeWin' || audioStateName === 'SetNewValue') {
+      this.RuntimeGet(IAudioApi).Play(AudioEventTakeWinId);
+    }
+  }
+
+  private OnElementsListLoaded() { // delayed init of the elements' list
+    this.AdjustWinValueChanged();
   }
 
   protected OnThemeChanged() {
@@ -72,10 +108,30 @@ export class CreditsWinBarView extends NumericBarView<ICreditsWinBarView, INumer
   }
 
   private AdjustWinValueChanged() {
-    this.m_elementsList.TryGet(this.m_themeLayout.ElementId(TextWinAmountId), TextElement)?.SetText(this.RuntimeGetConst(ILocalization).FormatCurrency(this.m_currentValue));
+    if (Unless(this.m_elementsList.IsLoaded())) return;
+
+    const formattedValue = this.RuntimeGetConst(ILocalization).FormatCurrency(this.m_currentValue);
+
+    const textAmount = this.m_elementsList.Get(this.m_themeLayout.ElementId(TextWinAmountId), TextElement);
+
+    textAmount.SetText(formattedValue);
   }
 
   private AdjustWinState() {
-    this.m_elementsList.TryGet(this.m_themeLayout.ElementId(ImageWinLabelId), ImageElement)?.SetSelectedImage(this.m_labelState);
+    if (Unless(this.m_elementsList.IsLoaded())) return;
+
+    const imageWinLabel = this.m_elementsList.Get(this.m_themeLayout.ElementId(ImageWinLabelId), ImageElement);
+    imageWinLabel.SetSelectedImage(static_cast<int>(this.m_labelState));
+  }
+
+  AddWinResultFast(summary: PayoutSummary) {
+    const value = summary.rewards.Get(Currency.Credits);
+    this.SetValueFast(value);
+  }
+
+  private SetValueFast(value: int64_t) {
+    const newNonZeroVal = (this.m_currentValue !== value) && (this.m_currentValue !== 0);
+    this.AddValueWithSteppedAccumulation(value);
+    this.PlayBarAudioState(newNonZeroVal ? 'SetNewValue' : 'SetValue');
   }
 }

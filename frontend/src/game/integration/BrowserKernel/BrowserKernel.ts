@@ -21,7 +21,10 @@ import { LocalizationManager } from '@game/integration/LocalizationManager/Local
 import { IKernelIntegration, IKernelIntegrationEvents, type IKernelApi } from './IKernelIntegration';
 
 const CREDIT_STORAGE_KEY = 'egt-game-credit';
-const LANGUAGES = ['en-GB', 'it-IT'];
+// The languages of the C++ integrations' LocalizationManager config (AlphaPlaygroundModules.json, and the Astro, Ares,
+// Inspired and Truserv ones): in their order, which the language menu shows, and the default one.
+const SUPPORTED_LANGUAGES = ['it-IT', 'en-GB'];
+const DEFAULT_LANGUAGE = 'en-GB';
 // The C++ LocalizationManager's number formats: the modules configs set none, so its defaults.
 const LOCALIZATION = new LocalizationManager();
 
@@ -68,7 +71,8 @@ export class BrowserKernel extends BaseModule implements IKernelApi, IKernelInte
   private readonly responsibleEvents = new IResponsibleGamingEvents();
   readonly buttons = new Map<HwButtonName, HwButton>();
   private credit = 0;
-  private language = LANGUAGES[0];
+  /** The language set, none while the default one is (C++'s State().language). */
+  private language: string | null = null;
   private config: BrowserKernelConfig = {};
   private capping = 0;
   private m_pauseMonitor: PauseMonitor | null = new PauseMonitor();
@@ -95,13 +99,14 @@ export class BrowserKernel extends BaseModule implements IKernelApi, IKernelInte
     });
     this.RuntimeAdd(ILimits.Events, this.limitsEvents);
     this.RuntimeAdd(ILocalization, {
-      GetLanguage: () => kernel.language,
+      // C++'s LocalizationManager::GetLanguage, SetLanguage and GetSupportedLanguages
+      GetLanguage: () => kernel.language ?? DEFAULT_LANGUAGE,
       SetLanguage: language => {
-        if (!LANGUAGES.includes(language) || language === kernel.language) return;
+        if (language === kernel.language) return;
         kernel.language = language;
         kernel.localizationEvents.languageChanged.Post(language);
       },
-      GetSupportedLanguages: () => [...LANGUAGES],
+      GetSupportedLanguages: () => [...SUPPORTED_LANGUAGES],
       FormatCurrency: value => LOCALIZATION.FormatCurrency(value),
       FormatNumber: value => LOCALIZATION.FormatNumber(value),
       FormatCoins: coins => LOCALIZATION.FormatCoins(coins),

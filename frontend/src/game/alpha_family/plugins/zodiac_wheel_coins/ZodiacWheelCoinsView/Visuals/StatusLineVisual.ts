@@ -8,6 +8,7 @@ import type { ElementsList } from '@game/engine/GameVideoCtrl/ViewElements/Eleme
 import { ImageElement } from '@game/engine/GameVideoCtrl/ViewElements/ImageElement';
 import { TextElement } from '@game/engine/GameVideoCtrl/ViewElements/TextElement';
 import type { CurrencyType } from '@game/engine/Game/Math/Common.data';
+import { type int, static_cast } from '@game/engine/GameCore/Common/Types';
 import { EgtALogCategoryClass } from '@game/engine/GameCore/Log/LogCategory';
 import { CombinationType, Currency } from '@game/alpha_family/libs/AlphaFamily/Math/Common/Common.data';
 import type { ReelCombination } from '@game/alpha_family/libs/AlphaFamily/Math/Reel/ReelRoundPhase.data';
@@ -104,10 +105,11 @@ export class StatusLineVisual extends BaseVisual {
 
   private AddCurrency(currencyType: CurrencyType, currencyValue: number, elementConfig: StatusLineVisualConfig.ElementConfig) {
     const localization = this.m_elementsList.RuntimeGetConst(ILocalization);
-    if (currencyType === Currency.Credits) {
+    if (currencyType === static_cast<int>(Currency.Credits)) {
       this.AddText(localization.FormatCurrency(currencyValue), elementConfig);
+    } else if (currencyType === static_cast<int>(Currency.CoinsSpinEnergy)) {
+      this.AddText(localization.FormatCoins(currencyValue), elementConfig);
     } else {
-      // C++ writes CoinsSpinEnergy with ILocalization::FormatCoins, which the browser's has not
       this.AddText(localization.FormatNumber(currencyValue), elementConfig);
     }
 

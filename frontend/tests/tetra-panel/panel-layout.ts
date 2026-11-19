@@ -56,7 +56,9 @@ function runChecks(layouts: Record<string, ElementsListData>, Advance: (ms: numb
   runtime.Add(IVideo, {
     GetImages: () => ({ Get: () => ({ naturalWidth: 40, naturalHeight: 20 }) }),
   } as unknown as IVideo);
-  runtime.Add(ILocalization, { FormatCurrency: (value: number) => String(value) } as ILocalization);
+  runtime.Add(ILocalization, {
+    FormatCurrency: (value: number) => String(value), FormatNumber: (value: number) => String(value), FormatCoins: (value: number) => String(value),
+  } as ILocalization);
   runtime.Add(IAudioApi, { GetVolumePresetCount: () => 4, Play: () => {} } as unknown as IAudioApi);
 
   const background = new GameBackgroundView();

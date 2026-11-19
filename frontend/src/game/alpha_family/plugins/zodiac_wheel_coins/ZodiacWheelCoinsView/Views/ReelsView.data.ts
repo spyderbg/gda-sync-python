@@ -29,7 +29,7 @@ export interface ReelSoundsConfig {
   startReelingSoundId: string;
   allReelingSoundId: string;
   attractionSoundId?: string;
-  expandingSymbolSoundId?: string;
+  expandingSymbolSoundId: string;
 }
 
 export interface ReelingParamsConfig {
@@ -46,7 +46,7 @@ export interface ReelingParamsConfig {
 
 export interface ReelsViewConfig {
   symbolsConfig: SymbolVisualConfig[];
-  expandingSymbolAnimationId?: string;
+  expandingSymbolAnimationId: string;
   reelSoundsConfig: ReelSoundsConfig;
   reelingParamsConfig: ReelingParamsConfig;
   subScreensConfig: ReelSubScreensConfig;

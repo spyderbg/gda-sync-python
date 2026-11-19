@@ -117,12 +117,28 @@ export class TextElement extends BaseElement {
     return { kind: 'ttf' as const, css, scale: 1, width, height: size };
   }
 
-  /** Takes a Dummy element's place, and its fit box when it is a text. */
+  /** Takes a text Dummy element's place (BaseElement's), and what of its fit box and orientation its data sets. */
   SetFromDummy(dummy: BaseElement | null) {
+    const textElement = dummy instanceof TextElement ? dummy : null;
+    if (!textElement) {
+      console.assert(false, 'TextElement::SetFromDummy: the dummy is not a text');
+      return this;
+    }
+
     super.SetFromDummy(dummy);
-    if (dummy instanceof TextElement && dummy.fitBox) this.fitBox = { ...dummy.fitBox };
-    if (dummy instanceof TextElement && dummy.GetElementData().orientation) this.orientation = dummy.orientation;
-    if (dummy instanceof TextElement) this.stretchVerticalLayoutToFitBox = dummy.stretchVerticalLayoutToFitBox;
+
+    const textElementData = textElement.GetElementData();
+
+    if (textElementData.fitBox !== undefined && textElement.fitBox) {
+      this.fitBox = { ...textElement.fitBox };
+    }
+
+    if (textElementData.orientation !== undefined) {
+      this.orientation = textElement.orientation;
+    }
+
+    this.stretchVerticalLayoutToFitBox = textElement.stretchVerticalLayoutToFitBox;
+
     return this;
   }
 

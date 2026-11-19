@@ -1,7 +1,9 @@
 // Egt::Game::AlphaFamily::NumericBarView (AlphaFamilyVideoCtrl/Components/NumericBarView.h): a bar that shows a value
-// and counts to new values by an accumulation, posting animatingDone with the value when it gets there.
+// and counts to new values by an accumulation, timed by its stopwatch on the game Clock: it posts animatingDone with the
+// value when it gets there, or at once when it is there already, and animatingInstantDone for an instant one.
 
-import { Clock } from '@game/engine/Game/Utils/Clock';
+import type { int64_t } from '@game/engine/GameCore/Common/Types';
+import { Stopwatch } from '@game/engine/GameCore/Tools/Timers';
 import type { Runtime, InterfaceToken } from '@game/engine/GameCore/RuntimeAccess';
 import { Accumulation } from '@game/alpha_family/libs/AlphaFamily/Views/Tools/AccumulationControl';
 import { type AccumulationDescriptor, AccumulationType } from '@game/alpha_family/libs/AlphaFamily/Views/Tools/AccumulationControl.data';
@@ -10,10 +12,13 @@ import type { ThemeType } from '@game/alpha_family/libs/AlphaFamily/Views/BaseIn
 import { BaseView } from '../BaseView';
 
 export abstract class NumericBarView<T, E extends INumericBarViewEvents> extends BaseView implements INumericBarView {
-  protected m_currentValue = 0;
   protected m_visible = true;
-  private m_runningAccumulation: AccumulationDescriptor | null = null;
-  private m_accumulationStart = 0;
+  protected m_skin = 'default';
+
+  protected m_accumulation: AccumulationDescriptor = { type: AccumulationType.eInstantly, initialValue: 0, targetValue: 0, steps: [] };
+  protected readonly m_stopwatch = new Stopwatch();
+  protected m_currentValue: int64_t = 0;
+  protected m_currentValueChanged = false;
 
   constructor(name: string, protected readonly m_token: InterfaceToken<T, E>, protected readonly m_events: E) {
     super(name);
@@ -42,75 +47,95 @@ export abstract class NumericBarView<T, E extends INumericBarViewEvents> extends
     this.m_visible = visible;
   }
 
-  SetAccumulation(accumulation: AccumulationDescriptor) {
-    this.m_runningAccumulation = accumulation;
-    this.m_accumulationStart = Clock.now();
-    this.m_currentValue = accumulation.initialValue;
-    if (accumulation.type === AccumulationType.eInstantly) this.FinishAccumulation(true);
-  }
-
-  SetValue(value: number) {
-    this.SetAccumulation(Accumulation.CreateGeometryAccumulationByFactor(this.m_currentValue, value, 8, 200));
-  }
-
-  SetValueNow(value: number) {
-    this.m_runningAccumulation = null;
-    this.m_currentValue = value;
-  }
-
-  /** C++'s m_accumulation, the last accumulation. C++ keeps it once it ends; here it is dropped once the value shown
-   * reaches its target, and this is then an instant one to the value shown. */
-  protected get m_accumulation(): AccumulationDescriptor {
-    return this.m_runningAccumulation
-      ?? { type: AccumulationType.eInstantly, initialValue: this.m_currentValue, targetValue: this.m_currentValue, steps: [] };
-  }
-
-  /** Counts a win up from the value shown, as AddValueWithGeometricAccumulation does. */
-  protected AddValueWithGeometricAccumulation(value: number) {
-    const start = this.m_accumulation.targetValue;
-    const descriptor = Accumulation.CreateGeometryAccumulationByFactor(this.m_currentValue, start + value, 8, 220);
-    this.SetAccumulation(descriptor);
-  }
-
-  protected AddValueWithSteppedAccumulation(value: number) {
-    const start = this.m_accumulation.targetValue;
-    this.SetAccumulation(Accumulation.CreateLinearAccumulationBySpeed(this.m_currentValue, start + value, 4, 60));
-  }
-
-  IsCurrentlyAccumulating() {
-    return this.m_runningAccumulation !== null;
-  }
-
-  FastForward() {
-    if (this.m_runningAccumulation) this.FinishAccumulation(false);
-  }
-
-  IsAccumulating() {
-    return this.m_runningAccumulation !== null;
-  }
-
-  PlayBarAudioState(_audioStateName: string) {}
-
-  private FinishAccumulation(instant: boolean) {
-    const accumulation = this.m_runningAccumulation!;
-    this.m_runningAccumulation = null;
-    this.m_currentValue = accumulation.targetValue;
-    if (instant) this.m_events.animatingInstantDone.Post(this.m_currentValue);
-    this.m_events.animatingDone.Post(this.m_currentValue);
+  SetSkin(skin: string) {
+    super.SetSkin(skin);
+    this.m_skin = skin;
   }
 
   Process() {
     super.Process();
-    const accumulation = this.m_runningAccumulation;
-    if (!accumulation) return;
-    const elapsed = Clock.now() - this.m_accumulationStart;
-    const steps = accumulation.steps;
-    const last = steps[steps.length - 1];
-    if (!last || elapsed >= last.endTimeSinceStartMs) {
-      this.FinishAccumulation(false);
-      return;
+
+    if (this.m_currentValueChanged) {
+      const ms = Math.trunc(this.m_stopwatch.Measure());
+
+      this.m_currentValue = Accumulation.GetCurrentValue(this.m_accumulation, ms);
+
+      const steps = this.m_accumulation.steps;
+      const isComplete = steps.length === 0 || ms >= steps[steps.length - 1].endTimeSinceStartMs;
+
+      if (isComplete) {
+        this.m_currentValue = this.m_accumulation.targetValue;
+        this.m_currentValueChanged = false;
+
+        this.m_events.animatingDone.Post(this.m_accumulation.targetValue);
+      }
     }
-    const step = steps.find(item => elapsed >= item.beginTimeSinceStartMs && elapsed < item.endTimeSinceStartMs);
-    if (step) this.m_currentValue = step.value;
+  }
+
+  // INumericBarView
+
+  SetAccumulation(accumulation: AccumulationDescriptor) {
+    this.m_accumulation = accumulation;
+
+    this.m_stopwatch.Reset();
+
+    this.m_currentValueChanged = true;
+
+    if (this.m_accumulation.type === AccumulationType.eInstantly) {
+      this.m_currentValue = this.m_accumulation.targetValue;
+
+      this.m_currentValueChanged = false;
+      this.m_events.animatingInstantDone.Post(this.m_accumulation.targetValue);
+    } else if (this.m_currentValue === this.m_accumulation.targetValue) {
+      this.m_currentValueChanged = false;
+
+      this.m_events.animatingDone.Post(this.m_accumulation.targetValue);
+    }
+  }
+
+  SetValue(value: int64_t) {
+    if (value === this.m_currentValue) return;
+
+    const startValue = this.m_currentValue;
+    const accumulation = Accumulation.CreateGeometryAccumulationByFactor(startValue, value, 8, 20);
+    this.SetAccumulation(accumulation);
+  }
+
+  SetValueNow(value: int64_t) {
+    const accumulation: AccumulationDescriptor = { type: AccumulationType.eInstantly, initialValue: value, targetValue: value, steps: [] };
+    this.SetAccumulation(accumulation);
+  }
+
+  FastForward() {
+    this.SetValueNow(this.m_accumulation.targetValue);
+  }
+
+  AddValue(amount: int64_t) {
+    if (amount === 0) return;
+    this.SetValue(this.m_accumulation.targetValue + amount);
+  }
+
+  PlayBarAudioState(_audioStateName: string) {}
+
+  AddValueWithGeometricAccumulation(value: int64_t) {
+    if (value === 0) return;
+
+    const target = this.m_currentValue + value;
+
+    const accumulation = Accumulation.CreateGeometryAccumulationByFactor(this.m_currentValue, target, 8, 220);
+    this.SetAccumulation(accumulation);
+  }
+
+  AddValueWithSteppedAccumulation(value: int64_t) {
+    if (value === 0) return;
+
+    const target = this.m_currentValue + value;
+
+    const accumulation = Accumulation.CreateLinearAccumulationByDuration(this.m_currentValue, target, 4, 480);
+    this.SetAccumulation(accumulation);
+  }
+
+  IsCurrentlyAccumulating() {
+    return this.m_currentValueChanged;
   }
 }

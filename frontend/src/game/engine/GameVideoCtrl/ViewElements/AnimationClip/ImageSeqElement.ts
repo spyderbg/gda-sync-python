@@ -1,8 +1,10 @@
-// Egt::Game::ImageSeqElement (GameVideoCtrl/ViewElements/AnimationClip/ImageSeqElement.h): an image sequence, played a
-// frame every frameTime milliseconds, loopCount times (the element's own, or else the sequence's; 0 repeats from frame
-// loopTo forever).
+// Egt::Game::ImageSeqElement (GameVideoCtrl/ViewElements/AnimationClip/ImageSeqElement.h/.cpp): an image sequence,
+// played from when it is made, a frame every frameTime milliseconds of its stopwatch on the game Clock, while it is
+// visible (hidden, its time runs on, and it catches up when it shows again). At its end, a repeat count of 0 (loopCount:
+// the element's own, or else the sequence's) goes on from frame loopTo forever; any other count stays on the last frame,
+// counting a play each frame time, until it has played that many times.
 
-import { Clock } from '@game/engine/Game/Utils/Clock';
+import { Stopwatch } from '@game/engine/GameCore/Tools/Timers';
 import type { Color, RssImageSequence } from '@game/engine/Game/RuntimeExport/IResources';
 import { IResources } from '@game/engine/Game/RuntimeExport/IResources';
 import { RuntimeHolder, type Runtime } from '@game/engine/GameCore/RuntimeAccess';
@@ -13,8 +15,9 @@ import { IAnimationClip } from './IAnimationClip';
 export class ImageSeqElement extends IAnimationClip {
   private readonly m_runtime = new RuntimeHolder();
   private m_ownRepeatCount: number | null = null;
-  private m_playing = true;
-  private m_startTime = Clock.now();
+  private readonly m_stopwatch = new Stopwatch();
+  /** The time not yet played, in ms. */
+  private m_dt = 0;
   private m_frame = 0;
 
   constructor(runtime: Runtime, private readonly m_key: string) {
@@ -36,32 +39,35 @@ export class ImageSeqElement extends IAnimationClip {
   Unload() {}
 
   Play() {
-    if (!this.m_playing) {
-      this.m_playing = true;
-      this.m_startTime = Clock.now() - this.FrameStart(this.m_frame);
-    }
+    this.m_stopwatch.Reset();
+    this.m_stopwatch.Resume();
     return true;
   }
 
   Stop() {
-    this.m_playing = false;
+    this.m_stopwatch.Pause();
   }
 
   Rewind() {
     this.m_frame = 0;
-    this.m_startTime = Clock.now();
+    this.m_stopwatch.Reset();
+    this.ResetPlayCount();
+
     return true;
   }
 
   PlayFromLoopFrame() {
-    this.m_frame = this.Sequence()?.loopTo ?? 0;
-    this.m_startTime = Clock.now() - this.FrameStart(this.m_frame);
-    this.m_playing = true;
+    const imagesSeq = this.Sequence();
+    if (!imagesSeq || (imagesSeq.loopTo ?? 0) === 0) return false;
+
+    this.m_frame = imagesSeq.loopTo ?? 0;
+    this.Play();
+
     return true;
   }
 
   IsPlaying() {
-    return this.m_playing && this.Sequence() !== null;
+    return this.m_stopwatch.IsRunning();
   }
 
   GetDuration() {
@@ -78,29 +84,39 @@ export class ImageSeqElement extends IAnimationClip {
     this.m_ownRepeatCount = count;
   }
 
-  private FrameStart(frame: number) {
-    return frame * (this.Sequence()?.frameTime ?? 0);
-  }
+  Update(_now: number, visible: boolean) {
+    if (!visible) return;
+    if (!this.m_stopwatch.IsRunning()) return;
 
-  Update(now: number) {
-    if (!this.m_playing) return;
-    const sequence = this.Sequence();
-    if (!sequence || !sequence.frames.length) return;
-    const count = sequence.frames.length;
-    const loopTo = Math.min(sequence.loopTo ?? 0, count - 1);
-    const loops = this.GetRepeatCount();
-    let index = Math.floor((now - this.m_startTime) / Math.max(sequence.frameTime, 1));
-    if (index >= count) {
-      const loopLength = count - loopTo;
-      const total = count + (loops > 0 ? (loops - 1) * loopLength : Infinity);
-      if (index >= total) {
-        index = count - 1;
-        this.m_playing = false;
-      } else {
-        index = loopTo + ((index - count) % loopLength);
+    const imagesSeq = this.Sequence();
+    if (imagesSeq === null || !imagesSeq.frameTime) return;
+
+    this.m_dt = this.m_dt + this.m_stopwatch.Reset();
+
+    while (this.m_dt >= imagesSeq.frameTime) {
+      this.m_dt = this.m_dt - imagesSeq.frameTime;
+
+      if (!this.NextFrame()) {
+        this.Stop();
       }
     }
-    this.m_frame = index;
+  }
+
+  private NextFrame() {
+    const imagesSeq = this.Sequence();
+    if (!imagesSeq || !imagesSeq.frames.length) return false;
+
+    this.m_frame++;
+
+    if (this.m_frame >= imagesSeq.frames.length) {
+      const repeatCount = this.GetRepeatCount();
+      this.m_frame = repeatCount === 0 ? (imagesSeq.loopTo ?? 0) : this.m_frame - 1;
+      this.m_playCount++;
+
+      if (repeatCount > 0 && this.m_playCount >= repeatCount) return false;
+    }
+
+    return true;
   }
 
   private CurrentFrame() {

@@ -67,6 +67,12 @@ export class GameApp implements IModuleManager {
     return project.modules?.config.modules ?? [];
   }
 
+  /** A module's config in the family's modules config (AlphaGameModules.json), for a module the browser game makes
+   * itself. */
+  static FamilyModuleConfig(project: GameProject, name: string): ModuleConfig {
+    return (project.familyModules?.config.modules.find(module => module.name === name)?.config ?? {}) as ModuleConfig;
+  }
+
   /** Whether the browser game has every module of the game's modules config (a game being imported has some only). */
   static CanPlay(project: GameProject) {
     const modules = GameApp.GameModules(project);
@@ -82,13 +88,12 @@ export class GameApp implements IModuleManager {
     this.Add('ResourceManager', new ResourceManager(project, options.report), {}, true);
     // a view reloads its elements list when its file changes (C++'s FileWatch, in debug and QA builds)
     this.Add('FileWatch', new FileWatch(), {}, true);
-    // The integration before the video and the audio, as the cabinets' modules configs init theirs (AlphaAstroModules,
-    // AlphaAresModules): its game pause (IPause) is there when they init, so the AudioManager pauses the sounds with it.
-    this.Add('BrowserKernel', new BrowserKernel(), { capping, ...options.kernel }, true);
     this.Add('VideoManager', new VideoManager(options.canvas, options.infoCanvas ?? null, options.topperCanvas ?? null), {}, true);
-    this.Add('AudioManager', new AudioManager(), {}, true);
+    // its config of the family's modules config (the volume presets, the audio design's IData)
+    this.Add('AudioManager', new AudioManager(), GameApp.FamilyModuleConfig(project, 'AudioManager'), true);
     // the debug tools' menu bar (C++'s DebugImguiOverlay, of the QA and debug builds' modules config)
     this.Add('DebugImguiOverlay', new DebugImguiOverlay(), {}, true);
+    this.Add('BrowserKernel', new BrowserKernel(), { capping, ...options.kernel }, true);
     this.Add('AlphaFamilyGameflow', new AlphaFamilyGameflow(), {}, true);
     // The QA builds' tools (configs/alpha_family/modules/AlphaGameModules_QA.json), in its order: the automation, which
     // plays games with the view module of its stubs, before the RNG Queue, which the RNG tools add to (on a round's

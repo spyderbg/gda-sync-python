@@ -53,6 +53,8 @@ export interface RssAudioEvent extends RssEntry {
   samples: string[];
   files: string[];
   polyphonyGroup?: string;
+  /** How a sample is chosen: Random (the default), or Cycle (each in turn). */
+  strategy?: string;
   loop?: boolean;
   fadeIn?: number;
   fadeOut?: number;

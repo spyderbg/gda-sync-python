@@ -1,9 +1,10 @@
 // Egt::Game::MovieElement (GameVideoCtrl/ViewElements/AnimationClip/MovieElement.h/.cpp): a movie of
 // RssMoviesData.json, played by the browser's video player from the backend (the asset library's preview), muted: its
-// sounds are audio events. It plays repeatCount times (0: forever) while it is visible, as in C++.
+// sounds are audio events. It plays from when it is made; while it is visible, a stopped movie (at its end, or Stop)
+// counts a play and plays again while its repeatCount allows (0: forever), as in C++. It is drawn while it plays.
 //
 // C++ loads and starts a movie when the element is made. Here it loads once the game's images have loaded (so that
-// they come first), or when it is played, and starts when it is played.
+// they come first), or when it is played: the start C++ makes when the element is made waits for it.
 
 import type { Color, RssMovie } from '@game/engine/Game/RuntimeExport/IResources';
 import { IResources } from '@game/engine/Game/RuntimeExport/IResources';
@@ -19,6 +20,8 @@ export class MovieElement extends IAnimationClip {
   private readonly m_frame = new MovieFrame();
   private m_player: HTMLVideoElement | null = null;
   private m_started = false;
+  /** C++'s Init plays the movie: here once its player is made. */
+  private m_playOnLoad = true;
 
   constructor(runtime: Runtime, key: string) {
     super();
@@ -60,6 +63,7 @@ export class MovieElement extends IAnimationClip {
   Play() {
     const player = this.Player();
     if (!player) return false;
+    this.m_playOnLoad = false;
     player.currentTime = 0;
     this.m_started = true;
     // A muted video may play without a user gesture; one that may not stays on its first frame.
@@ -68,6 +72,7 @@ export class MovieElement extends IAnimationClip {
   }
 
   Stop() {
+    this.m_playOnLoad = false;
     this.m_started = false;
     this.m_player?.pause();
   }
@@ -85,6 +90,7 @@ export class MovieElement extends IAnimationClip {
   }
 
   IsPlaying() {
+    if (this.m_playOnLoad && this.m_resource) return true;
     return this.m_started && !!this.m_player && !this.m_player.ended;
   }
 
@@ -95,11 +101,20 @@ export class MovieElement extends IAnimationClip {
 
   Update(_now: number, visible: boolean) {
     if (!this.m_player && this.m_resource && this.m_runtime.RuntimeGet(IVideo).GetImages().IsIdle()) this.Player();
-    if (!visible || !this.m_player || !this.m_started) return;
-    if (!this.m_player.ended) return;
+    if (this.m_player && this.m_playOnLoad) this.Play();
+
+    if (!visible) return;
+
+    const player = this.m_player;
+    if (player === null) return;
+    if (this.IsPlaying()) return;
+
+    // stopped: at its end, or by Stop
     this.m_playCount++;
-    if (this.GetRepeatCount() === 0 || this.m_playCount < this.GetRepeatCount()) this.Play();
-    else this.m_started = false;
+
+    if (this.GetRepeatCount() === 0 || (this.GetRepeatCount() > 0 && this.m_playCount < this.GetRepeatCount())) {
+      this.Play();
+    }
   }
 
   GetSize() {
@@ -109,7 +124,7 @@ export class MovieElement extends IAnimationClip {
   }
 
   Draw(drawList: DrawList, transform: Transform, color: Color) {
-    if (!this.m_player || !this.m_started) return;
+    if (!this.m_player || !this.IsPlaying()) return;
     const picture = this.m_frame.Get(this.m_player, this.m_resource?.movieFormat);
     if (!picture) return;
     const size = this.GetSize();

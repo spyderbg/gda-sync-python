@@ -1,4 +1,4 @@
-// Egt::Game::AlphaFamily::ResponsibleSwButtonView (ZodiacWheelCoinsView/SwButtons/ResponsibleSwButtonView.h/.cpp): opens the responsible gaming setup (no element in this game).
+// Egt::Game::AlphaFamily::ResponsibleSwButtonView (ZodiacWheelCoinsView/SwButtons/ResponsibleSwButtonView.h/.cpp): opens the responsible gaming setup.
 
 import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
 import { IButtonViewEvents } from '@game/alpha_family/libs/AlphaFamily/Views/BaseInterfaces/IControlView';
@@ -6,7 +6,8 @@ import { IResponsibleSwButtonView } from '@game/alpha_family/libs/AlphaFamily/Vi
 import { ButtonView } from '@game/alpha_family/libs/AlphaFamilyVideoCtrl/Components/ButtonView';
 
 const ResponsibleSwButtonViewId = 'ResponsibleSwButtonView';
-const ButtonId = 'button_responsible';
+
+const ButtonResponsibleGamingId = 'button_responsible_gaming';
 
 export class ResponsibleSwButtonView extends ButtonView {
   constructor() {
@@ -15,7 +16,11 @@ export class ResponsibleSwButtonView extends ButtonView {
 
   Init(runtime: Runtime) {
     super.Init(runtime);
-    this.InitElementsList(ResponsibleSwButtonViewId, () => this.SetButtonId(ButtonId));
+
+    this.InitElementsList(ResponsibleSwButtonViewId, () => {
+      this.SetButtonId(ButtonResponsibleGamingId);
+    });
+
     return true;
   }
 
