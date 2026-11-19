@@ -16,6 +16,7 @@ import type { GameRoundType } from '@game/engine/Game/Math/Common.data';
 import { Clock } from '@game/engine/Game/Utils/Clock';
 import { HistoryEngine, type IRng, MonteCarloEngineHat, ReplayEngine, RngOp, type RngSequence } from '@game/engine/GameCore/Random/IRng';
 import type { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { Split } from '@game/engine/GameCore/Common/StringUtils';
 import { SBool } from '@game/engine/ImGuiEx/Extensions/Utils';
 import { BaseModule, type ModuleConfig } from '@game/engine/ModuleManager/BaseModule';
 import { AutomationMode, IAutomationManager, IAutomationManagerEvents } from '@game/integration/Runtime/IAutomationManager';
@@ -93,11 +94,21 @@ function FormatRoundRngCounts(counts: number[]) {
   return text;
 }
 
+/** std::from_chars of a size_t: the decimal digits s starts with, without a sign or spaces; null (an error) for none, or
+ * for more than a size_t holds. */
+function FromChars(s: string): number | null {
+  const digits = /^[0-9]+/.exec(s)?.[0];
+  if (digits === undefined || BigInt(digits) > 0xffff_ffff_ffff_ffffn) {
+    return null;
+  }
+  return Number(digits);
+}
+
 function LoadRoundRngCounts(text: string) {
   const counts: number[] = [];
-  for (const s of text.split('|')) {
-    const count = Number.parseInt(s, 10);
-    if (Number.isFinite(count) && /^\d+$/.test(s.trim())) {
+  for (const s of Split(text, '|')) {
+    const count = FromChars(s);
+    if (count !== null) {
       counts.push(count);
     } else {
       console.assert(false, 'Failed to parse round RNG counts');

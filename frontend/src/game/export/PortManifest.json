@@ -3388,8 +3388,8 @@
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/TetraRoundView.h",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/TetraRoundView.cpp"
   ],
-  "sha256": "8e6c24ad8a12d328105910863693d9286e0a6ac3d870b1e9add5edd6638e9526",
-  "cppCommit": "25b57cd8d4d9da9f24006525a5527a3cd9f474e9",
+  "sha256": "e62241ed887a8e1700e39fe2914e31c986de2cdeb2196dd5dee964c2506d149c",
+  "cppCommit": "92db9c959d8420687515e007c77b1745df24d7e6",
   "cppSha256": {
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/TetraRoundView.h": "b97ff58b410e8d2df4ae3573d1070f9ca50457962ab96d5c2d6bf490d15ae524",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Views/TetraRoundView.cpp": "0d506b3b84542110894aa6cc108a52c66bb6ec5c64b7d2f5c723ed5bb52c0cb6"
@@ -3518,8 +3518,8 @@
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Visuals/WinValueVisual.h",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Visuals/WinValueVisual.cpp"
   ],
-  "sha256": "e995ea52d73410ce3131fd426ba68168ac5aca6378c3f89bc2a0c15a398bf3bf",
-  "cppCommit": "f0c46d2a37422c811dea77221127db2101f537dd",
+  "sha256": "bf675ac1019981e7fdeda6168f55d473140de21c159b6b8d4634e581da05159a",
+  "cppCommit": "92db9c959d8420687515e007c77b1745df24d7e6",
   "cppSha256": {
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Visuals/WinValueVisual.h": "dfbdaede069d063f995e4a270d692707fa8d6c5d044e9931a083d65496be0d0a",
    "alpha_family/plugins/burning_crown_tetra_spins_10/src/Egt/BurningCrownTetraSpins10View/Visuals/WinValueVisual.cpp": "64b17ed7fd2555cb4103869a9ba09b895bad2fdff187a2060e9f071a93119925"

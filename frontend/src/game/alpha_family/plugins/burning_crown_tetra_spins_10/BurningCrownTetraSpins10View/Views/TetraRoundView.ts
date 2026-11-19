@@ -142,8 +142,9 @@ export class TetraRoundView extends BaseView implements ITetraRoundView, BaseRee
 
   SetVisible(visible: boolean) {
     super.SetVisible(visible);
-    if (!visible) this.StopAttractionSound();
-    for (const winValue of this.m_winValues) winValue.SetVisible(visible);
+    if (visible === false) {
+      this.StopAttractionSound();
+    }
   }
 
   SetupFakeReels(_subScreenIdx: number, reels: Reels) {
@@ -174,7 +175,7 @@ export class TetraRoundView extends BaseView implements ITetraRoundView, BaseRee
     this.m_lastTickTime = Clock.now();
     for (const reel of this.m_reels) reel.StartReeling();
     this.m_linesAnimations.forEach((_, subScreenIdx) => this.ClearCombinations(subScreenIdx));
-    for (const winValue of this.m_winValues) winValue.Clear();
+    for (const winValue of this.m_winValues) winValue.SetVisible(false);
     for (const dimVisual of this.m_dimSubScreens) dimVisual.SetDimmed(false);
     this.RuntimeGet(IAudioApi).Play(this.m_config.reelSoundsConfig.startReelingSoundId);
   }

@@ -2,7 +2,8 @@
 // numbers, against what the C++ does: Egt::Game::NumberFormatter with the LocalizationManager's formats, video_ctrl's
 // create_font_from_cyan_sep_png, GameCore's BitQueue and RngDistributionHat, and the engine's timing and input: the
 // Stopwatch, the ButtonElement's pressed time, the game pause (PauseMonitor, GameFsm) and the events' sentinels; the
-// numeric bars' accumulations, SetFromDummy, the image sequences' frames and the AudioManager's polyphony and presets.
+// numeric bars' accumulations, SetFromDummy, the image sequences' frames, the AudioManager's polyphony and presets, and
+// Burning Crown's tetra win values, and the Automation's CSV import (GameCore::Split, std::from_chars).
 //
 // The game Clock reads performance.now(), which the checks replace with a time they move on (Advance).
 
@@ -33,6 +34,12 @@ import { BaseElement } from '@game/engine/GameVideoCtrl/ViewElements/BaseElement
 import { ImageSeqElement } from '@game/engine/GameVideoCtrl/ViewElements/AnimationClip/ImageSeqElement';
 import { AudioManager } from '@game/engine/AudioManager/AudioManager';
 import { IPauseControl, PauseReason } from '@game/integration/Runtime/IPauseControl';
+import { ILocalization } from '@game/engine/Game/RuntimeImport/ILocalization';
+import { ElementsList } from '@game/engine/GameVideoCtrl/ViewElements/ElementsList';
+import { TextElement } from '@game/engine/GameVideoCtrl/ViewElements/TextElement';
+import { WinValueVisual } from '@game/alpha_family/plugins/burning_crown_tetra_spins_10/BurningCrownTetraSpins10View/Visuals/WinValueVisual';
+import { Split } from '@game/engine/GameCore/Common/StringUtils';
+import { AutomationManager, type GameData } from '@game/integration/AutomationManager/AutomationManager';
 
 export function run() {
   let checks = 0;
@@ -146,6 +153,83 @@ export function run() {
   const saved = RngSequenceToReplaySave({ data: [{ op: RngOp.StopReels, range: 10, value: 3 }, { op: RngOp.StopWheel, range: 4, value: 9 }] });
   equal([saved, replayed(ReplaySaveToRngSequence(saved).data, [[RngOp.SelectReel, 2], [RngOp.StopReels, 100]])], [[3, 9], [3, 9]],
     'a replay saves the values; recovered, they are taken unchecked');
+
+  // Burning Crown's WinValueVisual: a win shows its sub screen's plate and text (their elements, hidden in the view's
+  // file), no win hides them; hiding the visual, as StartReeling does, leaves them as they are.
+  const winRuntime = new Runtime();
+  const winElements = [0, 1, 2, 3].flatMap(i => [
+    { id: `image_tetra_screen_win_value_${i}`, type: 'Image', rssKey: 'IMG_PLATE', hidden: true },
+    { id: `text_tetra_screen_win_value_${i}`, type: 'Text', rssStyleId: 'STYLE_WIN', hidden: true },
+  ]);
+  winRuntime.Add(IResources, {
+    GetElementsList: () => ({ elements: winElements }), GetElementsListFile: () => null,
+    GetImage: () => ({ file: 'plate', source: { x: 0, y: 0, w: 10, h: 10 } }),
+    GetTextStyle: () => ({ font_id: 'FONT_WIN', size: 10 }), GetFont: () => ({ size: 10 }),
+  } as unknown as IResources);
+  let texts = 0;
+  const winFont = { height: 10, MeasureText: () => 10, Draw: () => ++texts };
+  winRuntime.Add(IVideo, {
+    GetImages: () => ({ Get: () => ({ naturalWidth: 10, naturalHeight: 10 }) }),
+    GetFonts: () => ({ IsBitmap: () => true, Bitmap: () => winFont }),
+  } as unknown as IVideo);
+  winRuntime.Add(ILocalization, localization);
+  const winList = new ElementsList();
+  winList.Init(winRuntime, 'TetraRoundView');
+  winList.LoadFromResource();
+  const winValue = new WinValueVisual(winList);
+  winValue.SetSubScreenIdx(1);
+  let plates = 0;
+  const winFrame = {
+    ctx: null, DrawImage: () => ++plates, WithTransform: (...args: unknown[]) => (args[4] as (ctx: null) => void)(null),
+  } as unknown as DrawList;
+  const shown = () => [winList.Get('image_tetra_screen_win_value_1').GetHidden(), winList.Get('text_tetra_screen_win_value_1').GetHidden()];
+  // TetraRoundView::SetWinValue
+  winValue.SetWinValue(150);
+  winValue.SetVisible(true);
+  winValue.Draw(winFrame);
+  equal([shown(), winList.Get('text_tetra_screen_win_value_1', TextElement).GetText(), plates, texts], [[false, false], '€ 1,50', 1, 1],
+    'a win: its sub screen\'s plate and text show');
+  winValue.SetVisible(false);
+  winValue.Draw(winFrame);
+  equal([shown(), plates, texts], [[false, false], 1, 1], 'the visual hidden: nothing drawn, its elements left shown');
+  winValue.SetVisible(true);
+  winValue.Draw(winFrame);
+  equal([plates, texts], [2, 2], 'shown again: the win is drawn again');
+  winValue.SetWinValue(0);
+  winValue.Draw(winFrame);
+  equal([shown(), plates, texts], [[true, true], 2, 2], 'no win: its elements hidden, nothing drawn');
+  winValue.SetWinValue(20);
+  winValue.Clear();
+  equal(shown(), [true, true], 'Clear hides them');
+
+  // GameCore::Split, as std::views::split: an empty text has no parts; each delimiter ends one.
+  equal([Split('', '|'), Split('3', '|'), Split('3|', '|'), Split('|', '|'), Split('3||4', '|')], [[], ['3'], ['3', ''], ['', ''], ['3', '', '4']],
+    'Split: none of an empty text, an empty part after each delimiter');
+  // AutomationManager::ImportGames' RoundRngCounts: Split and std::from_chars of a size_t (the results of the C++,
+  // compiled): an empty column is no counts; a part that does not start with a digit is 0 (and asserts), its digits
+  // otherwise.
+  const automation = new AutomationManager();
+  const realInfo = console.info;
+  const realAutomationAssert = console.assert;
+  const asserts: string[] = [];
+  let exported = '';
+  console.info = () => {};
+  console.assert = (condition?: boolean, message?: string) => {
+    if (!condition) asserts.push(String(message));
+  };
+  try {
+    automation.ImportGames(['Game,Bet,Win,Rng,RoundRngCounts,Label', '1,100,0,3:10:7,,empty', '2,100,0,3:10:7|3:10:2,1|1,two',
+      '3,100,0,,3x| 3|-1|,odd'].join('\n'));
+    exported = automation.ExportGames();
+  } finally {
+    console.info = realInfo;
+    console.assert = realAutomationAssert;
+  }
+  const imported = (automation as unknown as { m_games: GameData[] }).m_games;
+  equal(imported.map(game => game.roundRngCounts), [[], [1, 1], [3, 0, 0, 0]], 'RoundRngCounts: empty, two rounds, as from_chars reads them');
+  equal(asserts.length, 3, 'each part from_chars fails on asserts');
+  equal(exported.split('\n').slice(1, 3), ['1,100,0,3:10:7,,empty', '2,100,0,3:10:7|3:10:2,1|1,two'],
+    'exported again as imported');
 
   // The game Clock on a time the checks move on (its durations are differences of the page's fractional times: rounded).
   let pageTime = performance.now();
