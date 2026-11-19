@@ -3,7 +3,10 @@ import { computed } from 'vue';
 import { config, navigate, ui } from '../workspace';
 import WorkspaceIcon from '../components/WorkspaceIcon.vue';
 
-const title = computed(() => ui.view === 'dashboard' ? 'Dashboard' : config.value.name);
+// The dashboard and the global settings belong to no workspace, so they show no workspace's name, and their gear opens
+// the global settings rather than the workspace's.
+const global = computed(() => ui.view === 'dashboard' || ui.view === 'globalSettings');
+const title = computed(() => ui.view === 'dashboard' ? 'Dashboard' : ui.view === 'globalSettings' ? 'Global settings' : config.value.name);
 </script>
 
 <template>
@@ -20,12 +23,14 @@ const title = computed(() => ui.view === 'dashboard' ? 'Dashboard' : config.valu
       <div class="navbar-heading">
         <a class="mobile-home" href="#" :aria-current="ui.view === 'dashboard' ? 'page' : undefined" @click.prevent="navigate('dashboard')">EGT GDA Sync</a>
         <span class="navbar-workspace-title">
-          <WorkspaceIcon v-if="ui.view !== 'dashboard'" :workspace-id="config.defaultWorkspace" :size="36" />
+          <WorkspaceIcon v-if="!global" :workspace-id="config.defaultWorkspace" :size="36" />
           <span class="navbar-game-title" :title="title">{{ title }}</span>
         </span>
       </div>
-      <!-- Settings belong to one workspace, so the dashboard does not offer them. -->
-      <button v-if="ui.view !== 'dashboard'" type="button" :class="['header-settings', { active: ui.view === 'settings' }]" aria-label="Workspace settings" title="Workspace settings" :aria-current="ui.view === 'settings' ? 'page' : undefined" @click="navigate('settings')">
+      <button v-if="global" type="button" :class="['header-settings', { active: ui.view === 'globalSettings' }]" aria-label="Global settings" title="Global settings" :aria-current="ui.view === 'globalSettings' ? 'page' : undefined" @click="navigate('globalSettings')">
+        <i aria-hidden="true" class="mdi mdi-cog-outline" />
+      </button>
+      <button v-else type="button" :class="['header-settings', { active: ui.view === 'settings' }]" aria-label="Workspace settings" title="Workspace settings" :aria-current="ui.view === 'settings' ? 'page' : undefined" @click="navigate('settings')">
         <i aria-hidden="true" class="mdi mdi-cog-outline" />
       </button>
     </div>

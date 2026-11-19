@@ -282,5 +282,9 @@ def rtf_layout(path: str) -> dict:
         color = _color(_dict(edit.get(name)).get("color"))
         pages.append({**_page(project, name, page), **({"color": color} if color else {}), "sections": sections})
     used = _used_styles(section for page in pages for section in page["sections"])
+    videos = {run["id"] for page in pages for section in page["sections"] for text in section["texts"].values()
+              for run in text["runs"] if "video" in run}
     return {"languages": project.languages, "pages": pages,
+            "videos": {name: {"frames": [str(frame) for frame in project.frames(name)],
+                              "fps": project.videos[name][1] if name in project.videos else 0} for name in sorted(videos)},
             "styles": {name: style_facts(_dict(project.styles.get(name))) for name in sorted(used)}}

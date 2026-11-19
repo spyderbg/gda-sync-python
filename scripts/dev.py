@@ -25,8 +25,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from egt_gda_sync.__main__ import _port, workspace_config_path  # noqa: E402
+from egt_gda_sync.__main__ import _port  # noqa: E402
 from egt_gda_sync.app.desktop import application_data_home  # noqa: E402
+from egt_gda_sync.app.folders import app_folders, workspace_config_path  # noqa: E402
 from egt_gda_sync.workspace.library import Library  # noqa: E402
 from egt_gda_sync.app.ports import vite_port  # noqa: E402
 from egt_gda_sync.app.runtime import bind_local_socket, is_address_in_use  # noqa: E402
@@ -65,6 +66,8 @@ def _state_path(data_home: str) -> str:
 
 
 def _write_state(data_home: str, state: dict) -> None:
+    # The app keeps its data in its working folder, so nothing else may have created the default folder.
+    os.makedirs(data_home, exist_ok=True)
     with open(_state_path(data_home), "w", encoding="utf-8") as handle:
         json.dump(state, handle, indent=2)
 
@@ -209,7 +212,8 @@ def start(data_home: str, arguments: list[str]) -> int:
         raise SystemExit("Node.js 20.19+ and npm are required for development mode.")
     if _recorded(_read_state(data_home)):
         raise SystemExit("Development mode is already running. End it first with python scripts/dev.py stop.")
-    library = Library(data_home, config_path=workspace_config_path(data_home))
+    home, config_path = app_folders()
+    library = Library(home, config_path=config_path)
     library.init()
     port = _port(library.config)
     ui_port = vite_port(library.config)
@@ -277,6 +281,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0], epilog="Other options are passed to the backend, for example --no-open.")
     parser.add_argument("action", nargs="?", default="start", choices=["start", "stop"], help="start or stop development mode; start is the default")
     args, arguments = parser.parse_known_args(sys.argv[1:] if argv is None else argv)
+    # The session's record stays in the default data folder, where a stop finds it after working_path changes.
     data_home = os.path.abspath(application_data_home())
     return stop(data_home) if args.action == "stop" else start(data_home, arguments)
 

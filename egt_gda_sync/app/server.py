@@ -98,6 +98,10 @@ class SettingsBody(_Body):
     destination: Text4K
 
 
+class AppSettingsBody(_Body):
+    workingPath: Text4K = ''
+
+
 class WorkspaceBody(_Body):
     id: Text4K
 
@@ -663,6 +667,14 @@ def create_app(
     @app.put("/api/settings")
     def settings(body: SettingsBody) -> dict:
         return library.update_config(body.name, body.source, body.destination)
+
+    @app.get("/api/app-settings")
+    def app_settings() -> dict:
+        return library.app_settings()
+
+    @app.put("/api/app-settings")
+    def update_app_settings(body: AppSettingsBody) -> dict:
+        return library.update_app_settings(body.workingPath)
 
     @app.put("/api/workspace")
     def select_workspace(body: WorkspaceBody) -> dict:

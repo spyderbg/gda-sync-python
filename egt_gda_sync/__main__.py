@@ -6,28 +6,16 @@ import signal
 import sys
 import threading
 import urllib.request
-from pathlib import Path
 
 from egt_gda_sync import APP_ID
-from egt_gda_sync.app.desktop import application_data_home, open_page
+from egt_gda_sync.app.desktop import open_page
 from egt_gda_sync.app.errors import error_message
+from egt_gda_sync.app.folders import PROJECT_ROOT, app_folders
 from egt_gda_sync.workspace.library import Library
 from egt_gda_sync.app.ports import backend_port as _port, dev_ui_url
 from egt_gda_sync.workspace.report import main as report_main, parse_args as parse_report_args
 from egt_gda_sync.app.runtime import AppServer, bind_local_socket, is_address_in_use
 from egt_gda_sync.app.server import create_app
-
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-
-
-def workspace_config_path(data_home: str) -> str:
-    """Use project settings in a checkout, and settings beside the executable for packaged apps."""
-    if getattr(sys, "frozen", False):
-        return str(Path(sys.executable).resolve().parent / "workspace.json")
-    if not os.environ.get("EGT_GDA_SYNC_HOME") and (PROJECT_ROOT / "config" / "workspace.json.template").is_file():
-        return str(PROJECT_ROOT / "config" / "workspace.json")
-    return os.path.join(data_home, "workspace.json")
-
 
 def _running_instance(port: int) -> dict | None:
     # Talk to loopback directly, even when an HTTP proxy is configured.
@@ -63,20 +51,20 @@ Commands:
 
 Environment:
   PORT                   backend port
-  EGT_GDA_SYNC_HOME      folder of the application data
+  EGT_GDA_SYNC_HOME      folder of the application data, over working_path in workspace.json
   EGT_GDA_SYNC_NO_OPEN=1 same as --no-open
 """
 
 
 def run(argv: list[str]) -> int:
-    data_home = os.path.abspath(application_data_home())
+    data_home, config_path = app_folders()
     dev = os.environ.get("EGT_GDA_SYNC_DEV") == "1"
     # The packaged application opens the browser itself. Development mode only starts
     # Vite and the backend; the developer opens the development UI (the Vite port) manually.
     new_window = "--new-window" in argv
     kiosk = "--kiosk" in argv
     should_open = not dev and "--no-open" not in argv and os.environ.get("EGT_GDA_SYNC_NO_OPEN") != "1"
-    library = Library(data_home, config_path=workspace_config_path(data_home))
+    library = Library(data_home, config_path=config_path)
     library.init()
     port = _port(library.config)
     url = dev_ui_url(library.config) if dev else f"http://127.0.0.1:{port}"
@@ -95,7 +83,7 @@ def run(argv: list[str]) -> int:
 
     server: AppServer | None = None
 
-    print(f"EGT GDA Sync is ready at {url}\nWorkspace: {data_home}\nConfiguration: {library.config_path}", flush=True)
+    print(f"EGT GDA Sync is ready at {url}\nData folder: {data_home}\nConfiguration: {library.config_path}", flush=True)
     if dev and not getattr(sys, "frozen", False):
         from egt_gda_sync.app.runtime import run_reloading_server
 
@@ -123,8 +111,8 @@ def run(argv: list[str]) -> int:
 def report(argv: list[str]) -> int:
     """Run the GDA sync of workspaces from the command line, without the server or the browser."""
     args = parse_report_args(argv)
-    data_home = os.path.abspath(application_data_home())
-    library = Library(data_home, config_path=workspace_config_path(data_home))
+    data_home, config_path = app_folders()
+    library = Library(data_home, config_path=config_path)
     try:
         library.init()
     except Exception as error:

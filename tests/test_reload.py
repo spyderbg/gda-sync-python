@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 
 from egt_gda_sync import __main__ as launcher, __version__
-from egt_gda_sync.app import runtime
+from egt_gda_sync.app import folders, runtime
 from tests.test_startup import LOOPBACK, configured_workspace, free_port
 
 
@@ -21,7 +21,7 @@ def test_reloader_is_only_used_for_checkout_development(tmp_path, monkeypatch, d
     monkeypatch.setenv("EGT_GDA_SYNC_DEV", "1" if dev else "0")
     monkeypatch.delenv("PORT", raising=False)
     monkeypatch.setattr(sys, "frozen", frozen, raising=False)
-    monkeypatch.setattr(launcher, "workspace_config_path", lambda _: str(home / "workspace.json"))
+    monkeypatch.setattr(folders, "workspace_config_path", lambda *_: str(home / "workspace.json"))
     sock = object()
     monkeypatch.setattr(launcher, "bind_local_socket", lambda _: sock)
     calls = []

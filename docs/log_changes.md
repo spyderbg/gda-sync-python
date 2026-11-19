@@ -7,6 +7,10 @@ Versions follow the project's single-digit major.minor.build scheme.
 
 ## [Unreleased]
 
+### Added
+
+- Add a working folder, `config.working_path` in workspace.json, where the app keeps its data from its next start, and a Global settings page, the gear on the Dashboard, that edits it
+
 ### Fixed
 
 - Fill Burning Crown's info screen paytable: name its melon and crown figures as the RTF does, and show a tetra sub screen's wins in the tetra round

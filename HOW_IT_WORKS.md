@@ -303,9 +303,11 @@ Persistent data defaults to:
 - Windows: `%LOCALAPPDATA%\EGT GDA Sync\`
 
 These directories hold `activity.json`, `backups/`, `sync-reports/`, `asset-reports/`, and any
-generated `demo/` files. `EGT_GDA_SYNC_HOME` overrides the data directory. For
-packaged executables, it does not move the active configuration away from beside
-the executable.
+generated `demo/` files. `config.working_path` in `workspace.json` moves them to
+another folder, such as one on a larger disk; **Global settings** (the gear on the
+Dashboard) edits it, and the app uses it from its next start.
+`EGT_GDA_SYNC_HOME` overrides both for a run. For packaged executables, it does
+not move the active configuration away from beside the executable.
 
 ## Verify a built executable
 

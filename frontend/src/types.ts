@@ -3,7 +3,7 @@ export type AssetType = 'texture' | 'model' | 'material' | 'audio' | 'font' | 'r
 export type AssetSection = 'image' | 'sequence' | Exclude<AssetType, 'texture'>;
 export type AssetStatus = 'new' | 'modified' | 'synced';
 export type FolderKey = 'source' | 'destination';
-export type View ='dashboard' | 'library' | 'pending' | 'rssSync' | 'history' | 'backups' | 'settings' | 'game' | 'gameTools' | 'viewLayout' | 'imageStudio';
+export type View ='dashboard' | 'library' | 'pending' | 'rssSync' | 'history' | 'backups' | 'settings' | 'globalSettings' | 'game' | 'gameTools' | 'viewLayout' | 'imageStudio';
 
 /** A file of the game folder, which the asset library lists. */
 export interface Asset {
@@ -43,6 +43,15 @@ export interface BackupFile { path: string; change: 'replaced' | 'deleted' | 'cr
 export interface BackupDeclaration { path: string; list: string; entry: Record<string, unknown> }
 export interface BackupList { backups: BackupOperation[]; backupPath: string; workspaceId: string }
 export interface RestoreResult { restored: string[]; skipped: string[]; failures: { name: string; message: string }[]; library: LibraryResponse }
+
+/** The app's own settings, which all workspaces share (GET /api/app-settings). workingPath is config.working_path of
+ * workspace.json as written ("" when it names none), and workingFolder what it expands to. The app keeps its data in
+ * dataFolder, and from its next start in nextFolder: the working folder, or defaultFolder when there is none, unless
+ * EGT_GDA_SYNC_HOME (environmentFolder) chooses the folder. globalPaths are those the working path can use. */
+export interface AppSettings {
+  workingPath: string; workingFolder: string; dataFolder: string; defaultFolder: string; nextFolder: string;
+  environmentFolder: string; restartNeeded: boolean; configPath: string; globalPaths: Record<string, string>;
+}
 
 export interface LibraryResponse {
   config: WorkspaceConfig; activity: Activity[]; scannedAt: string; backupPath: string; rssSync: RssSyncStatus;

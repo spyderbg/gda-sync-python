@@ -41,7 +41,7 @@ sys.path.insert(0, str(ROOT))
 
 from playwright.sync_api import sync_playwright  # noqa: E402
 
-from egt_gda_sync.app.desktop import application_data_home  # noqa: E402
+from egt_gda_sync.app.folders import app_folders  # noqa: E402
 from tests.e2e.conftest import Backend  # noqa: E402
 
 PANEL = ("Start", "Bet +", "Bet −", "Max bet", "Collect", "Take win", "Gamble", "Red", "Black", "Info", "Autoplay")
@@ -60,7 +60,7 @@ def isolated_home(out: Path, workspace: str) -> tuple[Path, str]:
     (home / "asset-reports").mkdir(parents=True)
     (home / "workspace.json").write_text(json.dumps(config, indent=2))
     env = {key: value for key, value in os.environ.items() if key != "EGT_GDA_SYNC_HOME"}
-    reports = sorted((Path(application_data_home(env=env)) / "asset-reports").glob(f"{entry['id']}-*.json"), key=lambda path: path.stat().st_mtime)
+    reports = sorted((Path(app_folders(env)[0]) / "asset-reports").glob(f"{entry['id']}-*.json"), key=lambda path: path.stat().st_mtime)
     if reports:
         shutil.copy2(reports[-1], home / "asset-reports" / reports[-1].name)
     else:

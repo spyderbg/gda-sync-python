@@ -9,7 +9,7 @@ import { IResources } from '@game/engine/Game/RuntimeExport/IResources';
 import { IPause } from '@game/engine/Game/RuntimeImport/IPause';
 import { Runtime } from '@game/engine/GameCore/RuntimeAccess';
 import { DrawList } from '@game/engine/GameVideoCtrl/DrawList';
-import { FontCache } from '@game/engine/GameVideoCtrl/Fonts';
+import { FontCache, type SystemFontConfig } from '@game/engine/GameVideoCtrl/Fonts';
 import { ImageCache } from '@game/engine/GameVideoCtrl/ImageCache';
 import { IVideo, type TouchEventData } from '@game/engine/GameVideoCtrl/RuntimeExport/IVideo';
 import { type DrawHandler, type EventHandler, IVideoManager, type IsOpaqueFullScreenHandler } from '@game/engine/GameVideoCtrl/RuntimeExport/IVideoManager';
@@ -42,6 +42,7 @@ export class VideoManager extends BaseModule implements IVideo, IVideoManager {
     const images = new ImageCache(file => resources.FileUrl(file));
     this.images = images;
     this.fonts = new FontCache(file => resources.FileUrl(file), file => images.Get(file));
+    this.fonts.LoadSystemFonts((config.systemFonts ?? []) as SystemFontConfig[]);
     this.canvas.width = RESOLUTION.width;
     this.canvas.height = RESOLUTION.height;
     this.ctx = this.canvas.getContext('2d');

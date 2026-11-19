@@ -56,6 +56,8 @@ def test_lays_out_each_section_with_its_default_text_as_runs(tmp_path):
     data = tmp_path / "help" / "data"
     layout = rtf_layout(str(project))
     assert layout["languages"] == ["English", "Italian"]
+    assert layout["videos"] == {"_video_1_": {"frames": [str(data / "videos" / "spin" / f"spin_{frame:05d}.png")
+                                                       for frame in range(3)], "fps": 25.0}}
     pages = {page["id"]: page for page in layout["pages"]}
     rules = pages["rules"]
     # The editor's color of the page, for the outlines of its sections.

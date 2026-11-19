@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from egt_gda_sync import __main__ as launcher
+from egt_gda_sync.app import folders
 from egt_gda_sync.workspace.library import Library
 from egt_gda_sync.app.server import create_app
 from tests.conftest import session_headers
@@ -231,7 +231,7 @@ def test_packaged_settings_are_beside_the_executable_independently_of_cwd_data_h
     monkeypatch.setattr(sys, "_MEIPASS", str(tmp_path / "extracted"), raising=False)
     monkeypatch.setenv("EGT_GDA_SYNC_HOME", data_home)
     monkeypatch.chdir(tmp_path)
-    assert launcher.workspace_config_path(data_home) == str(app_dir / "workspace.json")
+    assert folders.workspace_config_path(data_home) == str(app_dir / "workspace.json")
 
 
 def test_packaged_settings_follow_the_real_executable_when_launched_through_a_symlink(tmp_path, monkeypatch):
@@ -245,21 +245,21 @@ def test_packaged_settings_follow_the_real_executable_when_launched_through_a_sy
         pytest.skip("Executable symlinks are unavailable on this system")
     monkeypatch.setattr(sys, "frozen", True, raising=False)
     monkeypatch.setattr(sys, "executable", str(link))
-    assert launcher.workspace_config_path(str(tmp_path / "data")) == str(binary.parent / "workspace.json")
+    assert folders.workspace_config_path(str(tmp_path / "data")) == str(binary.parent / "workspace.json")
 
 
 def test_source_launches_use_the_project_configuration_and_keep_explicit_data_home_isolation(tmp_path, monkeypatch):
     project = tmp_path / "project"
     (project / "config").mkdir(parents=True)
     (project / "config" / TEMPLATE.name).write_bytes(TEMPLATE.read_bytes())
-    monkeypatch.setattr(launcher, "PROJECT_ROOT", project)
+    monkeypatch.setattr(folders, "PROJECT_ROOT", project)
     monkeypatch.setattr(sys, "frozen", False, raising=False)
     monkeypatch.delenv("EGT_GDA_SYNC_HOME", raising=False)
     monkeypatch.chdir(tmp_path)
     home = str(tmp_path / "app-data")
-    assert launcher.workspace_config_path(home) == str(project / "config" / "workspace.json")
+    assert folders.workspace_config_path(home) == str(project / "config" / "workspace.json")
     monkeypatch.setenv("EGT_GDA_SYNC_HOME", home)
-    assert launcher.workspace_config_path(home) == str(Path(home) / "workspace.json")
+    assert folders.workspace_config_path(home) == str(Path(home) / "workspace.json")
     monkeypatch.delenv("EGT_GDA_SYNC_HOME")
     (project / "config" / TEMPLATE.name).unlink()
-    assert launcher.workspace_config_path(home) == str(Path(home) / "workspace.json")
+    assert folders.workspace_config_path(home) == str(Path(home) / "workspace.json")

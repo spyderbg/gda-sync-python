@@ -53,13 +53,12 @@ class AppServer(uvicorn.Server):
 
 def create_development_app() -> FastAPI:
     """Construct fresh workspace and application state in each reload worker."""
-    from egt_gda_sync.__main__ import workspace_config_path
-    from egt_gda_sync.app.desktop import application_data_home
+    from egt_gda_sync.app.folders import app_folders
     from egt_gda_sync.app.server import create_app
     from egt_gda_sync.workspace.library import Library
 
-    data_home = os.path.abspath(application_data_home())
-    library = Library(data_home, config_path=workspace_config_path(data_home))
+    data_home, config_path = app_folders()
+    library = Library(data_home, config_path=config_path)
     library.init()
     return create_app(library, dev=True)
 

@@ -223,7 +223,8 @@ names.
    that exports a class of its folder's name, as the module the game's modules config names so. The page plays a
    workspace once the browser game has every module of its config.
 5. **Developer → Export to C++** writes the game's whole plugin to
-   `~/.local/share/egt-gda-sync/game-exports/<workspace>/`, by its paths in the games folder (`game/...`,
+   `game-exports/<workspace>/` in the app's data folder (the working folder of Global settings, or
+   `~/.local/share/egt-gda-sync`), by its paths in the games folder (`game/...`,
    `configs/...`), with a README of what each file is:
    - generated from the browser game: `<Game>Fsm/` (`CreateBuilder()` from the state machine), `<Game>Math/`
      (`MathRules.cpp` from the math description, `SimulatorConfig/<name>.data.h` from the math file's JSON, the rest of

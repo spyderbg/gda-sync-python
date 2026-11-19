@@ -330,7 +330,9 @@ C++ from the browser game's running definition. Only the Play page can run it. A
 Export to C++** on the Play page, then compare its generated files with your edits:
 
 ```sh
-E=$(ls -td ~/.local/share/egt-gda-sync/game-exports/<workspace>/*/ | head -1)
+# The app's data folder: the working folder of Global settings, or ~/.local/share/egt-gda-sync when it names none.
+DATA=$(.venv/bin/python -c 'from egt_gda_sync.app.folders import app_folders; print(app_folders()[0])')
+E=$(ls -td "$DATA"/game-exports/<workspace>/*/ | head -1)
 grep -A40 '^## Generated' $E/README.md        # the generated files
 diff -u $GAMES/game/alpha_family/plugins/<plugin>/src/Egt/<Game>View/<Game>View.cpp $E/game/alpha_family/plugins/<plugin>/src/Egt/<Game>View/<Game>View.cpp
 ```

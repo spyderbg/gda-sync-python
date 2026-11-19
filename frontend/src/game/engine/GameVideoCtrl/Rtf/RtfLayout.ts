@@ -47,6 +47,8 @@ export interface RtfLayoutPage {
 }
 
 export interface RtfLayout {
+  /** Inline animations, shared by all translated references to the same video. */
+  videos?: Record<string, { frames: string[]; fps: number }>;
   languages: string[];
   pages: RtfLayoutPage[];
   styles: Record<string, RtfStyle>;

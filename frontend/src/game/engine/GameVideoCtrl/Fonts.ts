@@ -3,6 +3,15 @@
 
 import type { RssFont } from '@game/engine/Game/RuntimeExport/IResources';
 
+export interface SystemFontConfig {
+  name: string;
+  dir: string;
+  refSize: number;
+  mapping: Record<string, { type: string; face: string }>;
+}
+
+let systemFontId = 0;
+
 const CHARS = /\[U\+([0-9A-Fa-f]{1,6})(?:-U\+([0-9A-Fa-f]{1,6}))?\]/g;
 
 /** The characters of a Font entry's chars, such as "[U+0020][U+0030-U+0039]", in order. */
@@ -129,8 +138,29 @@ export class BitmapFont {
 export class FontCache {
   private bitmaps = new Map<string, BitmapFont>();
   private faces = new Map<string, string>();
+  private systemFonts = new Map<string, { font: RssFont; weight: number }>();
+  /** Changes when a loaded face changes the metrics used to lay out text. */
+  version = 0;
 
   constructor(private readonly url: (file: string) => string, private readonly image: (file: string) => HTMLImageElement | null) {}
+
+  /** VideoManager::LoadSystemFonts: the faces the RTF Tool names, from the module's systemFonts mapping. */
+  LoadSystemFonts(configs: SystemFontConfig[]) {
+    for (const config of configs) {
+      for (const entry of Object.values(config.mapping)) {
+        const weight = /black|heavy/i.test(entry.type) ? 900 : /bold/i.test(entry.type) ? 700 : 400;
+        const font: RssFont = { id: `system-${++systemFontId}`, descriptor: '', chars: '', size: config.refSize,
+          path: `${config.dir}/${config.name}-${entry.type}.ttf`, file: `${config.dir}/${config.name}-${entry.type}.ttf` };
+        this.systemFonts.set(entry.face, { font, weight });
+        this.Family(font, weight);
+      }
+    }
+  }
+
+  SystemFamily(face: string): string | null {
+    const entry = this.systemFonts.get(face);
+    return entry ? this.Family(entry.font, entry.weight) : null;
+  }
 
   IsBitmap(font: RssFont) {
     return font.file.toLowerCase().endsWith('.png');
@@ -148,15 +178,16 @@ export class FontCache {
   }
 
   /** The CSS family of a TrueType font, once loaded. */
-  Family(font: RssFont): string | null {
+  Family(font: RssFont, weight = 400): string | null {
     const family = this.faces.get(font.id);
     if (family) return family === 'loading' ? null : family;
     this.faces.set(font.id, 'loading');
     const name = `egt-${font.id}`;
-    new FontFace(name, `url(${this.url(font.file)})`).load().then(face => {
+    new FontFace(name, `url(${this.url(font.file)})`, { weight: String(weight) }).load().then(face => {
       document.fonts.add(face);
       this.faces.set(font.id, name);
-    }).catch(() => this.faces.set(font.id, 'sans-serif'));
+      this.version++;
+    }).catch(() => { this.faces.set(font.id, 'sans-serif'); this.version++; });
     return null;
   }
 }

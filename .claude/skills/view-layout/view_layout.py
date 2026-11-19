@@ -22,7 +22,7 @@ The preview is laid on the screen of the views' resolution. A preview of the vie
 another is laid at --origin X,Y (the screen point its top-left shows; 0,0 by default) at --scale S (preview pixels per
 screen pixel; 1 by default). --part X,Y,W,H takes a part of the preview first, such as one screen of a picture of two.
 
-The pixels of the DDS images it decodes are kept between calls, in the app data folder's view-layout-image-cache, or in
+The pixels of the DDS images it decodes are kept between calls, in the app's data folder's view-layout-image-cache, or in
 the folder GDA_VIEW_LAYOUT_IMAGE_CACHE names ("off" for none): decoding them takes most of a call's time, and every call
 is a new process. An image that changes is decoded again. The folder is safe to delete.
 """
@@ -55,7 +55,7 @@ import cv2
 import numpy as np
 
 import egt_gda_sync.assets.views as library
-from egt_gda_sync.app.desktop import application_data_home
+from egt_gda_sync.app.folders import app_folders
 from egt_gda_sync.assets.view_text import DEFAULT_SAMPLE
 from egt_gda_sync.assets.views import _color, _point, _scaled_image, read_view, transform, view_layers, view_layout, view_resolution, view_root
 from egt_gda_sync.images.image_compare import decode_image
@@ -95,7 +95,7 @@ def image_cache_folder() -> Path | None:
     named = os.environ.get(IMAGE_CACHE_ENV, "").strip()
     if named.lower() == "off":
         return None
-    return Path(named) if named else Path(application_data_home()) / IMAGE_CACHE_FOLDER
+    return Path(named) if named else Path(app_folders()[0]) / IMAGE_CACHE_FOLDER
 
 
 _cache_written = threading.Event()  # this call added an entry, so it prunes the folder before it ends

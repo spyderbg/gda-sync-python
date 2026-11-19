@@ -88,7 +88,8 @@ export class GameApp implements IModuleManager {
     this.Add('ResourceManager', new ResourceManager(project, options.report), {}, true);
     // a view reloads its elements list when its file changes (C++'s FileWatch, in debug and QA builds)
     this.Add('FileWatch', new FileWatch(), {}, true);
-    this.Add('VideoManager', new VideoManager(options.canvas, options.infoCanvas ?? null, options.topperCanvas ?? null), {}, true);
+    this.Add('VideoManager', new VideoManager(options.canvas, options.infoCanvas ?? null, options.topperCanvas ?? null),
+      GameApp.FamilyModuleConfig(project, 'VideoManager'), true);
     // its config of the family's modules config (the volume presets, the audio design's IData)
     this.Add('AudioManager', new AudioManager(), GameApp.FamilyModuleConfig(project, 'AudioManager'), true);
     // the debug tools' menu bar (C++'s DebugImguiOverlay, of the QA and debug builds' modules config)

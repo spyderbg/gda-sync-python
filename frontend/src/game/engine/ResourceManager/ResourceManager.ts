@@ -49,6 +49,7 @@ function UpdateInPlace(target: unknown, source: unknown): boolean {
 }
 
 export class ResourceManager extends BaseModule implements IResources {
+  private readonly gamePath: string;
   private descriptors: RssDescriptors;
   private descriptorFiles: string[];
   private watchedFiles: string[] = [];
@@ -60,6 +61,7 @@ export class ResourceManager extends BaseModule implements IResources {
 
   constructor(project: GameProject, report: GameAssetReport | null, private readonly integration: string | null = null) {
     super();
+    this.gamePath = project.gamePath;
     this.descriptors = project.descriptors;
     this.descriptorFiles = project.descriptorFiles ?? [];
     this.available = report ? ResourceManager.AvailableFiles(report) : null;
@@ -267,7 +269,7 @@ export class ResourceManager extends BaseModule implements IResources {
   }
 
   FileUrl(file: string) {
-    return GameBackend.FileUrl(file);
+    return GameBackend.FileUrl(/^(?:[\\/]|[A-Za-z]:[\\/])/.test(file) ? file : `${this.gamePath}/${file}`);
   }
 
   SetLanguage(language: string) {

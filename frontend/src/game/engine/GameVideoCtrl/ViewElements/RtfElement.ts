@@ -4,10 +4,11 @@
 // win, by its first id, count and multiplier) and the variables (_serial_number_, _win_capping_limit_...).
 //
 // The C++ element draws with the RTF Tool's renderer and the project's fonts; here the backend lays the project out
-// (the asset library's RTF preview) and the canvas draws it with the app's font, so the text is close, not exact.
+// (the asset library's RTF preview); the canvas uses VideoManager's configured system fonts and inline frame sequences.
 
 import { IResources } from '@game/engine/Game/RuntimeExport/IResources';
 import { Runtime } from '@game/engine/GameCore/RuntimeAccess';
+import { Clock } from '@game/engine/Game/Utils/Clock';
 import type { DrawList } from '../DrawList';
 import { IVideo } from '../RuntimeExport/IVideo';
 import type { RtfLayout, RtfLayoutPage, RtfRun, RtfSection, RtfStyle } from '../Rtf/RtfLayout';
@@ -46,14 +47,15 @@ export enum ERtfTags {
 }
 
 /** A piece of a line: text in a style, or an inline image. */
-type Piece = { kind: 'text'; text: string; style: RtfStyle; width: number } | { kind: 'image'; image: HTMLImageElement | null; width: number; height: number };
+type Piece = ({ kind: 'text'; text: string; style: RtfStyle; width: number }
+  | { kind: 'image'; image: HTMLImageElement | null; width: number; height: number; video?: string })
+  & { ascent: number; descent: number };
 
 interface LaidLine {
   pieces: Piece[];
   width: number;
   height: number;
-  /** The largest text or image of the line. */
-  size: number;
+  ascent: number;
 }
 
 interface LaidSection {
@@ -73,7 +75,8 @@ export class RtfElement extends BaseElement {
   private readonly m_tags = new Set<ERtfTags>();
   private m_shownWins: FigureKey[] = [];
   // The laid-out sections of a page, until what they show changes.
-  private readonly m_laidPages = new Map<string, { version: number; sections: LaidSection[]; complete: boolean }>();
+  private readonly m_laidPages = new Map<string, { version: number; fonts: number; sections: LaidSection[]; complete: boolean }>();
+  private readonly m_players = new Map<string, { started: number | null }>();
   private m_version = 0;
   private m_measure: CanvasRenderingContext2D | null = null;
 
@@ -218,7 +221,8 @@ export class RtfElement extends BaseElement {
   }
 
   private Font(style: RtfStyle) {
-    return `${style.weight} ${style.size}px ${FONT_FAMILY}`;
+    const family = this.RuntimeGet(IVideo).GetFonts().SystemFamily(style.face);
+    return `${style.weight} ${style.size}px ${family ? `"${family}"` : FONT_FAMILY}`;
   }
 
   private Measure(text: string, style: RtfStyle) {
@@ -227,19 +231,21 @@ export class RtfElement extends BaseElement {
     ctx.font = this.Font(style);
     ctx.letterSpacing = `${style.letterSpacing}px`;
     const metrics = ctx.measureText(text);
-    return metrics.width;
+    return { width: metrics.width, ascent: metrics.actualBoundingBoxAscent, descent: metrics.actualBoundingBoxDescent,
+      fontHeight: (metrics.fontBoundingBoxAscent ?? style.size * 0.8) + (metrics.fontBoundingBoxDescent ?? style.size * 0.2) };
   }
 
   private LaidPage(page: RtfLayoutPage) {
     const cached = this.m_laidPages.get(page.id);
-    if (cached && cached.version === this.m_version && cached.complete) return cached.sections;
+    const fonts = this.RuntimeGet(IVideo).GetFonts().version;
+    if (cached && cached.version === this.m_version && cached.fonts === fonts && cached.complete) return cached.sections;
     let complete = true;
     const sections = page.sections.map(section => {
       const laid = this.LaySection(section);
       if (laid.pending) complete = false;
       return laid.laid;
     });
-    this.m_laidPages.set(page.id, { version: this.m_version, sections, complete });
+    this.m_laidPages.set(page.id, { version: this.m_version, fonts, sections, complete });
     return sections;
   }
 
@@ -266,11 +272,14 @@ export class RtfElement extends BaseElement {
       const style = this.Style(run.style ?? section.style);
       if ('image' in run || 'video' in run) {
         const file = 'image' in run ? run.image : run.video;
-        const height = style.size * run.scale;
+        const metrics = this.Measure('H', style);
+        const height = metrics.fontHeight * run.scale;
         const image = file && run.found ? images.Get(file) : null;
         if (file && run.found && !image) pending = true;
         const width = image ? (height * image.naturalWidth) / Math.max(image.naturalHeight, 1) : 0;
-        pieces.push({ kind: 'image', image: 'image' in run ? image : null, width: Math.min(width, section.w), height });
+        const ascent = height / 2 + metrics.ascent / 2;
+        pieces.push({ kind: 'image', image, width, height, ascent, descent: Math.max(0, height - ascent),
+          ...('video' in run ? { video: run.id } : {}) });
         continue;
       }
       let value = this.RunText(run) ?? '';
@@ -278,15 +287,17 @@ export class RtfElement extends BaseElement {
       value.split('\n').forEach((line, i) => {
         if (i > 0) pieces.push('break');
         // words with the spaces after them, so that a wrapped line breaks between words
-        for (const word of line.match(/\S+\s*|\s+/g) ?? []) pieces.push({ kind: 'text', text: word, style, width: this.Measure(word, style) });
+        for (const word of line.match(/\S+\s*|\s+/g) ?? []) pieces.push({ kind: 'text', text: word, style, ...this.Measure(word, style) });
       });
     }
     const lines: LaidLine[] = [];
     let current: Piece[] = [];
     let width = 0;
     const endLine = () => {
-      const size = Math.max(sectionStyle.size, ...current.map(piece => (piece.kind === 'text' ? piece.style.size : piece.height)));
-      lines.push({ pieces: current, width, height: size * 1.2 + sectionStyle.lineSpacing, size });
+      const blank = this.Measure('Mg', sectionStyle);
+      const ascent = current.length ? Math.max(0, ...current.map(piece => piece.ascent)) : blank.ascent;
+      const descent = current.length ? Math.max(0, ...current.map(piece => piece.descent)) : blank.descent;
+      lines.push({ pieces: current, width, height: ascent + descent + sectionStyle.lineSpacing, ascent });
       current = [];
       width = 0;
     };
@@ -310,6 +321,22 @@ export class RtfElement extends BaseElement {
 
   // Drawing ------------------------------------------------------------------------------------------------------------
 
+  private VideoFrame(id: string) {
+    const video = this.m_layout?.videos?.[id];
+    if (!video?.frames.length) return null;
+    const images = this.RuntimeGet(IVideo).GetImages();
+    let player = this.m_players.get(id);
+    if (!player) {
+      player = { started: null };
+      this.m_players.set(id, player);
+      const loading = player;
+      void images.Preload(video.frames).then(() => { loading.started = Clock.now(); });
+    }
+    const elapsed = player.started === null ? 0 : Math.max(0, Clock.now() - player.started);
+    const frame = Math.floor(elapsed * Math.max(0, video.fps) / 1000) % video.frames.length;
+    return images.Get(video.frames[frame]) ?? images.Get(video.frames[0]);
+  }
+
   private DrawSection(ctx: CanvasRenderingContext2D, laid: LaidSection) {
     const { section } = laid;
     if (!laid.lines.length || !laid.width) return;
@@ -321,11 +348,11 @@ export class RtfElement extends BaseElement {
     for (const line of laid.lines) {
       const lineWidth = line.width * fit;
       let x = section.horizontal === 'left' ? section.x : section.horizontal === 'right' ? section.x + section.w - lineWidth : section.x + (section.w - lineWidth) / 2;
-      // The baseline of a line of 1.2 em: the font's ascent is about 0.93 em, under a tenth of the extra space.
-      const baseline = y + (line.size * 0.95 + (line.height - line.size * 1.2) / 2) * fit;
+      const baseline = y + (line.ascent + this.Style(section.style).lineSpacing / 2) * fit;
       for (const piece of line.pieces) {
         if (piece.kind === 'image') {
-          if (piece.image) ctx.drawImage(piece.image, x, baseline - piece.height * fit * 0.85, piece.width * fit, piece.height * fit);
+          const image = piece.video ? this.VideoFrame(piece.video) ?? piece.image : piece.image;
+          if (image) ctx.drawImage(image, x, baseline - piece.ascent * fit, piece.width * fit, piece.height * fit);
         } else {
           this.DrawText(ctx, piece.text, piece.style, x, baseline, fit);
         }
@@ -339,7 +366,7 @@ export class RtfElement extends BaseElement {
   private DrawText(ctx: CanvasRenderingContext2D, text: string, style: RtfStyle, x: number, baseline: number, fit: number) {
     if (!text.trim()) return;
     const size = style.size * fit;
-    ctx.font = `${style.weight} ${size}px ${FONT_FAMILY}`;
+    ctx.font = this.Font({ ...style, size });
     ctx.letterSpacing = `${style.letterSpacing * fit}px`;
     ctx.textBaseline = 'alphabetic';
     if (style.fill.length > 1) {
@@ -351,14 +378,14 @@ export class RtfElement extends BaseElement {
     }
     if (style.shadow) {
       ctx.shadowColor = style.shadow.color;
-      ctx.shadowOffsetX = (style.shadow.x * size) / 10;
-      ctx.shadowOffsetY = (style.shadow.y * size) / 10;
+      ctx.shadowOffsetX = style.shadow.x * fit;
+      ctx.shadowOffsetY = style.shadow.y * fit;
       ctx.shadowBlur = (style.shadow.blur * size) / 10;
     }
     if (style.outline && style.outline.width > 0) {
       ctx.strokeStyle = style.outline.color;
       ctx.lineJoin = 'round';
-      ctx.lineWidth = style.outline.width * size;
+      ctx.lineWidth = style.outline.width * fit;
       ctx.strokeText(text, x, baseline);
       ctx.shadowColor = 'transparent';
     }

@@ -1,14 +1,14 @@
 // Application state shared by the layout and the views, and the actions that talk to the backend.
 import { computed, reactive, ref, watch } from 'vue';
 import { commonAction, plural, resourceAction, splitPath, viewSaves, type GdaCandidate } from './format';
-import type { ChangePlan, MoveFolderList, MoveRequest, RenameKeyRequest, Asset, AssetSection, AssetUse, DeclarationKind, DeclarationOptions, LibraryResponse, MovieFormat, MovieOptions, RestoreResult, RssFileDetails, RssResource, RssSyncHistory, RssSyncStatus, Session, SyncResult, View, ViewLayout, WorkspaceConfig } from './types';
+import type { AppSettings, ChangePlan, MoveFolderList, MoveRequest, RenameKeyRequest, Asset, AssetSection, AssetUse, DeclarationKind, DeclarationOptions, LibraryResponse, MovieFormat, MovieOptions, RestoreResult, RssFileDetails, RssResource, RssSyncHistory, RssSyncStatus, Session, SyncResult, View, ViewLayout, WorkspaceConfig } from './types';
 
 const INVALID_SESSION = 'Invalid session. Reload the application.';
 const RSS_POLL_MS = 1000;
 export const LIBRARY_VIEWS: View[] = ['library', 'pending'];
 export const PAGE_NAMES: Record<View, string> = {
   dashboard: 'Dashboard', library: 'Asset library', pending: 'Sync', rssSync: 'Sync in progress', history: 'Sync history', backups: 'Backups',
-  settings: 'Workspace settings', game: 'Play', gameTools: 'Tools', viewLayout: 'View layout', imageStudio: 'Image studio',
+  settings: 'Workspace settings', globalSettings: 'Global settings', game: 'Play', gameTools: 'Tools', viewLayout: 'View layout', imageStudio: 'Image studio',
 };
 
 export const data = ref<LibraryResponse | null>(null);
@@ -475,6 +475,21 @@ export async function saveSettings(settings: Pick<WorkspaceConfig, 'name' | 'sou
   } catch (e) {
     notify((e as Error).message, true);
     return false;
+  } finally { busy.value = ''; }
+}
+
+export function appSettings() { return getJSON<AppSettings>('/api/app-settings'); }
+
+/** Saves the working folder, where the app keeps its data from its next start. */
+export async function saveAppSettings(workingPath: string) {
+  busy.value = 'settings';
+  try {
+    const settings = await api<AppSettings>('app-settings', 'PUT', { workingPath });
+    notify(settings.restartNeeded ? 'Global settings saved. Restart EGT GDA Sync to use the new working folder.' : 'Global settings saved.');
+    return settings;
+  } catch (e) {
+    notify((e as Error).message, true);
+    return null;
   } finally { busy.value = ''; }
 }
 

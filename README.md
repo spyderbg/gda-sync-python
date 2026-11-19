@@ -115,6 +115,8 @@ The optional `config.port` field sets the backend's listening port, for example 
 
 The optional `config.vite_port` field sets the development UI port used by `python scripts/dev.py`, for example `"config": { "vite_port": 5174 }`. The template uses `5174`; files without this field use `5173`. `VITE_PORT` overrides it for one launch, for example `VITE_PORT=5175 python scripts/dev.py`. It follows the same port validation and is preserved when saving Workspace settings. The Vite and backend ports must be different.
 
+The optional `config.working_path` field sets the **working folder**, where the app keeps its data (history, reports, backups, caches, exports and screenshots; see [File behavior](#file-behavior)), for example `"config": { "working_path": "/media/data/egt-gda-sync" }` to keep it off a small system disk. Files without this field use the default data directory. It is a global path like the other `*_path` fields: it can use them, such as `"{data_root_path}/egt-gda-sync"`, and must be absolute. The app reads it when it starts and creates the folder if needed; a value that is not an absolute path, or a folder the app cannot create, stops startup with an explanation. **Global settings**, the gear in the site header on the Dashboard, edits it: it shows the folder in use, the folder the next start uses, and the configuration file, and refuses a relative path, a file, a folder it cannot create, and a folder inside a workspace's GDA or Game folder. A new working folder takes effect on the next start, and the data stays in the old folder: to keep the history, reports and backups, stop the app, move the old folder's contents into the new one, and start the app again. `EGT_GDA_SYNC_HOME` overrides it for a launch.
+
 If no project configuration exists, the first launch creates it from your previously saved workspace, or starts the Verdant demo for a new user. Generated demo settings also include an internal `demo` flag; omit it when configuring your own folders.
 
 ### GDA sync
@@ -427,13 +429,13 @@ Drawing a font with itself, in cards and specimens, needs no particular report v
 
 The packaged application always loads `workspace.json` beside the actual executable, even when launched from another folder or through a symlink. Saving Workspace settings updates that same file; manual edits take effect on the next launch. The launcher prints the active configuration path. Invalid JSON or invalid folders stop startup with an explanation.
 
-`EGT_GDA_SYNC_HOME` controls the data directory. For project launches it also selects `<EGT_GDA_SYNC_HOME>/workspace.json`; packaged executables continue to use the configuration beside them. If a packaged configuration is missing, the app recreates it from saved settings or a new demo. The executable directory must be writable to save settings.
+`EGT_GDA_SYNC_HOME` controls the data directory, over `config.working_path`. For project launches it also selects `<EGT_GDA_SYNC_HOME>/workspace.json`; packaged executables continue to use the configuration beside them. If a packaged configuration is missing, the app recreates it from saved settings or a new demo. The executable directory must be writable to save settings.
 
 ## File behavior
 
 Sync is one-way: GDA → Game (`gda_path` → `game_path`). Relative subfolders and original file bytes are preserved. File size and SHA-256 contents determine whether a Game file matches. Copies use temporary files in the Game folder and an atomic rename. GDA changes during copying are rejected. Existing Game files are backed up before replacement. GDA files and extra Game files are never deleted. Earlier versions copied the other way, from `game_path` to `gda_path`: check the direction before syncing with a configuration written by one of them.
 
-History, demo files, and backups use these default data directories:
+History, demo files, and backups use the working folder that `config.working_path` names (see [Workspace configuration](#workspace-configuration)), or these default data directories:
 
 - Linux: `${XDG_DATA_HOME:-~/.local/share}/egt-gda-sync/`
 - Windows: `%LOCALAPPDATA%\EGT GDA Sync\` (normally `C:\Users\<user>\AppData\Local\EGT GDA Sync\`)
@@ -444,7 +446,7 @@ Both use this layout:
 <app-data>/
 ├── workspace.json          # Legacy settings / project EGT_GDA_SYNC_HOME overrides
 ├── activity.json
-├── dev.json                # Processes of a running scripts/dev.py session
+├── dev.json                # Processes of a running scripts/dev.py session; always in the default data directory
 ├── sync-reports/<workspace-id>-<unix-timestamp>.json
 ├── asset-reports/<workspace-id>-<unix-timestamp>.json
 ├── compare-cache.sqlite3   # The GDA sync's file hashes, image features and pair results; safe to delete
@@ -670,6 +672,7 @@ The interface has the following page views in `frontend/src/views`:
 | [SyncInProgressView.vue](frontend/src/views/SyncInProgressView.vue) | The sidebar's **In sync** page (`rssSync`). Displays the resource comparison report with **In sync**, **Missing**, **Different**, **Invalid**, and **Supplementary** categories, scan progress, matching GDA paths, descriptor references, and DDS mip-level differences. An image sequence is one row with its id and how it plays, and its GDA files are summed up by folder. |
 | [SyncHistoryView.vue](frontend/src/views/SyncHistoryView.vue) | Shows the workspace's settings and one card per saved report: its success or failure, duration, counts, and count changes between runs. Also lists file-copy operations, the files copied, and bytes transferred. |
 | [SettingsView.vue](frontend/src/views/SettingsView.vue) | Configures the workspace name, GDA folder, and Game folder. Shows backup information and provides the stop-application action. |
+| [GlobalSettingsView.vue](frontend/src/views/GlobalSettingsView.vue) | **Global settings** (`globalSettings`), the gear in the site header on the Dashboard. Edits the settings all workspaces share, which `workspace.json` keeps in its `config` section: the working folder (`config.working_path`, `GET`/`PUT /api/app-settings`). Shows the data folder in use, the folder the next start uses, and the configuration file, and provides the stop-application action. |
 | [GameView.vue](frontend/src/game/GameView.vue) | The sidebar's **Play** page (`game`): the workspace's game in the browser, its info and topper screens, cabinet buttons and developer panel. |
 
 [App.vue](frontend/src/App.vue) switches pages using `ui.view` from [workspace.ts](frontend/src/workspace.ts), without Vue Router. **AssetsLibraryView** browses the game's files; **SyncView** lists the report's resources that are not in sync and copies them; **SyncInProgressView** displays comparison results without changing files.

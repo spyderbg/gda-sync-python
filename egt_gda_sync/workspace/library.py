@@ -29,6 +29,7 @@ from egt_gda_sync import __version__
 from egt_gda_sync.images.dds import SUPPORTED_DDS_FORMATS, decode_dds, read_dds_info
 from egt_gda_sync.workspace.demo import seed_demo
 from egt_gda_sync.app.errors import AppError, error_message
+from egt_gda_sync.app.folders import HOME_VARIABLE, WORKING_PATH, default_data_folder, working_folder
 from egt_gda_sync.workspace.asset_report import AssetReports, inventory
 from egt_gda_sync.assets.fonts import FONT_EXTENSIONS, describe_font
 from egt_gda_sync.assets.movies import MOVIE_EXTENSIONS, describe_movie, movie_thumbnail
@@ -112,6 +113,10 @@ def contained(root: str, file: str) -> bool:
     except ValueError:  # Different Windows drives.
         return False
     return not os.path.isabs(relative) and relative != os.pardir and not relative.startswith(os.pardir + os.sep)
+
+
+def _same_folder(first: str, second: str) -> bool:
+    return os.path.normcase(os.path.realpath(first)) == os.path.normcase(os.path.realpath(second))
 
 
 def _is_link(info: os.stat_result) -> bool:
@@ -395,7 +400,11 @@ class Library:
         return self._operation.locked()
 
     def init(self) -> None:
-        os.makedirs(self.home, exist_ok=True)
+        try:
+            os.makedirs(self.home, exist_ok=True)
+        except OSError as error:
+            raise RuntimeError(f"Could not create the data folder {self.home}: {error_message(error)}. Check working_path in "
+                               f"the config section of workspace.json ({self.config_path}).") from error
         try:
             self.config = self._read_config(self.config_path)
         except FileNotFoundError:
@@ -425,6 +434,7 @@ class Library:
                 # The top-level *_path fields, and those of the config section, are global paths, which a workspace's
                 # *_path fields use as {name}.
                 paths = global_paths({**config, "config": global_config})
+                working_folder({**config, "config": global_config})
                 entries = config["workspaces"]
                 if not isinstance(entries, list) or not entries:
                     raise TypeError("workspaces must be a non-empty list")
@@ -467,6 +477,12 @@ class Library:
             for key in ("port", "vite_port"):
                 if key in config:
                     result[key] = config[key]
+            # The config section holds the app's settings, such as its working_path, as it does in the newer format.
+            if "config" in config:
+                if not isinstance(config["config"], dict):
+                    raise TypeError("config must be an object")
+                working_folder(config)
+                result["config"] = config["config"]
             return result
         except FileNotFoundError:
             raise
@@ -1678,6 +1694,84 @@ class Library:
             return self.scan()
 
         return self._exclusive(operation)
+
+    def app_settings(self) -> dict:
+        """The app's own settings, which all workspaces share: the working folder that workspace.json names, as written
+        and expanded, the data folder in use, and the folder the next start uses (the working folder, or the default)."""
+        section = self.config.get("config", {})
+        default = default_data_folder()
+        folder = working_folder(self.config) or ""
+        environment = os.environ.get(HOME_VARIABLE, "")
+        next_folder = folder or default
+        return {
+            "workingPath": section.get(WORKING_PATH, ""), "workingFolder": folder, "dataFolder": self.home,
+            "defaultFolder": default, "nextFolder": next_folder, "environmentFolder": environment,
+            # EGT_GDA_SYNC_HOME chooses the data folder of this run, so the working folder waits for a start without it.
+            "restartNeeded": not environment and not _same_folder(next_folder, self.home),
+            "configPath": self.config_path,
+            "globalPaths": {name: path for name, path in self.global_paths().items() if name != WORKING_PATH},
+        }
+
+    def update_app_settings(self, working_path: str) -> dict:
+        """Save the working folder, where the app keeps its data from its next start: an absolute path, which can use the
+        global paths as {name}, outside every workspace's folders; empty for the default data folder."""
+        def operation() -> dict:
+            value = working_path.strip()
+            previous = self.config
+            section = {key: item for key, item in previous.get("config", {}).items() if key != WORKING_PATH}
+            if value:
+                others = {name: path for name, path in self.global_paths().items() if name != WORKING_PATH}
+                try:
+                    folder = expand(value, others, "The working folder")
+                except ValueError as error:
+                    raise AppError(str(error)) from error
+                self._validate_working_folder(folder)
+                section[WORKING_PATH] = value
+            config = {**previous, "config": section}
+            if not section and "workspaces" not in previous:
+                del config["config"]
+            # The workspaces' folders must still expand: one can use the working folder as {working_path}.
+            try:
+                paths = global_paths(config)
+                for entry in config.get("workspaces", []):
+                    expand_fields(entry, paths, f"{entry['id']}: ")
+                    for key, field in (("source", "gda_path"), ("destination", "game_path")):
+                        if template := entry.get("templates", {}).get(key):
+                            expand(template, paths, f"{entry['id']}: {field}")
+            except ValueError as error:
+                raise AppError(str(error)) from error
+            self.config = config
+            try:
+                self._save_config()
+            except BaseException:
+                self.config = previous
+                raise
+            self._record("settings", f"Set the working folder to {value}" if value else "Set the working folder to the default")
+            return self.app_settings()
+
+        return self._exclusive(operation)
+
+    def _validate_working_folder(self, folder: str) -> None:
+        """A working folder must be an absolute path to a writable folder, or one that can be created, and it may not be
+        inside a workspace's GDA or Game folder, whose files the app lists and changes."""
+        if not os.path.isabs(folder):
+            raise AppError("Enter an absolute path for the working folder")
+        real = os.path.realpath(folder)
+        if os.path.exists(real):
+            if not os.path.isdir(real):
+                raise AppError("The working folder must be a folder")
+            if not os.access(real, os.W_OK):
+                raise AppError("The working folder must be writable")
+        else:
+            parent = os.path.dirname(real)
+            while not os.path.exists(parent) and os.path.dirname(parent) != parent:
+                parent = os.path.dirname(parent)
+            if not os.path.isdir(parent) or not os.access(parent, os.W_OK):
+                raise AppError(f"The working folder cannot be created, because {parent} is not a writable folder")
+        for entry in self.config.get("workspaces") or [self.config]:
+            for key, label in FOLDER_NAMES.items():
+                if entry[key] and contained(os.path.realpath(entry[key]), real):
+                    raise AppError(f"Choose a working folder outside the workspaces' folders: this one is inside the {label} folder of {entry['name']}")
 
     def sync(self, ids: list[str]) -> dict:
         def operation() -> dict:

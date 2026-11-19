@@ -10,6 +10,7 @@ import AppSidebar from './layout/AppSidebar.vue';
 import DashboardView from './views/DashboardView.vue';
 import AssetsLibraryView from './views/AssetsLibraryView.vue';
 import SettingsView from './views/SettingsView.vue';
+import GlobalSettingsView from './views/GlobalSettingsView.vue';
 import ImageStudioView from './views/ImageStudioView.vue';
 import ViewLayoutView from './views/ViewLayoutView.vue';
 import BackupsView from './views/BackupsView.vue';
@@ -68,6 +69,7 @@ onBeforeUnmount(() => {
           <SyncHistoryView v-else-if="ui.view === 'history'" />
           <BackupsView v-else-if="ui.view === 'backups'" />
           <SettingsView v-else-if="ui.view === 'settings'" />
+          <GlobalSettingsView v-else-if="ui.view === 'globalSettings'" />
           <KeepAlive :key="config.defaultWorkspace">
             <ImageStudioView v-if="ui.view === 'imageStudio'" />
           </KeepAlive>
