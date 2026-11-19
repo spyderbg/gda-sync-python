@@ -26,6 +26,22 @@ const InfoViewId = 'InfoView';
 
 const RtfInfoId = 'rtf_info';
 
+// The help screen RTF (project.rtf, page "wintable") names these figures differently from the math.
+const MathToRtfFigureNames: Map<string, string> = new Map([
+  ['watermelon', 'melon'],
+  ['wild', 'crown'],
+]);
+
+function ToRtfFigureNames(mathNames: Map<FigureId, string>): Map<FigureId, string> {
+  const names = new Map(mathNames);
+  for (const [id, name] of names) {
+    if (MathToRtfFigureNames.has(name)) {
+      names.set(id, MathToRtfFigureNames.get(name)!);
+    }
+  }
+  return names;
+}
+
 interface InfoViewDataImpl {
   certificationCode: string;
   language: string;
@@ -506,7 +522,7 @@ export class InfoView extends BaseView implements IInfoView {
 
   SetPaytables(paytables: Map<ECurrencyPrize, PaytableCoefficients>, scatterFigures: Set<FigureId>, figureNames: Map<FigureId, string>,
     gameMultipliers: uint32_t[]) {
-    this.m_data.figureNames = figureNames;
+    this.m_data.figureNames = ToRtfFigureNames(figureNames);
     this.m_data.paytables = paytables;
     this.m_data.paytableTexts = CreatePaytableFiguresText(this.m_data.betPerLine, this.m_data.lines, paytables, scatterFigures, this.m_data.figureNames,
       gameMultipliers, this.RuntimeGetConst(ILocalization));

@@ -7,6 +7,10 @@ Versions follow the project's single-digit major.minor.build scheme.
 
 ## [Unreleased]
 
+### Fixed
+
+- Fill Burning Crown's info screen paytable: name its melon and crown figures as the RTF does, and show a tetra sub screen's wins in the tetra round
+
 ## [2.1.4] - 2026-11-19
 
 ### Added

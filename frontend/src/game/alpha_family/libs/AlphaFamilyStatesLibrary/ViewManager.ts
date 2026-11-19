@@ -512,9 +512,12 @@ export class ViewManager extends State implements IViewManager, IViewManagerEven
     const limits = this.RuntimeGet(ILimits);
     const capping = limits.GetWinCapping().capping;
 
+    // A tetra bet is spread over all subscreens; the paytable shows what one subscreen pays.
+    const subScreens = this.RuntimeGetConst(IMathRules).GetReelRoundRules(roundType).GetTetraSpinRules().GetSubScreenCount();
+
     const infoScreen = this.RuntimeGet(IInfoView);
     infoScreen.SetWinCappingLimit(capping);
-    infoScreen.SetStakes(currentBet, currentLines);
+    infoScreen.SetStakes(Math.trunc(currentBet / subScreens), currentLines);
 
     // SetupInfoViewPaytables needs to be called after we set the stakes
     this.SetupInfoViewPaytables(roundType);
@@ -556,7 +559,10 @@ export class ViewManager extends State implements IViewManager, IViewManagerEven
       [Currency.CoinsFreeSpinEnergy, ECurrencyPrize.CoinsFreeSpinEnergy],
     ]);
 
-    const rules = this.RuntimeGetConst(IMathRules).GetReelRoundRules(roundType);
+    const roundRules = this.RuntimeGetConst(IMathRules).GetReelRoundRules(roundType);
+    // Tetra rounds keep lines, scatters and symbols on each subscreen, not on the round itself.
+    const tetraRules = roundRules.GetTetraSpinRules();
+    const rules = tetraRules.GetConfig().subScreens.length === 0 ? roundRules : tetraRules.GetSubScreenRules(0);
     for (const mathPayTable of rules.GetConfig().lineConfig.linePayTables) {
       const first = currencyTransform.has(mathPayTable.currencyType) ? currencyTransform.get(mathPayTable.currencyType)! : ECurrencyPrize.Undefined;
       const second: PaytableCoefficients = new Map();
