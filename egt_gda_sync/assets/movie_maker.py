@@ -117,7 +117,8 @@ def encode_movie(frames: list[tuple[Path, dict | None]], frame_time: int, movie_
     target.parent.mkdir(parents=True, exist_ok=True)
     temporary = target.with_name(f".{target.name}.{os.getpid()}.part")
     command = [program, "-hide_banner", "-loglevel", "error", "-nostdin", "-y",
-               "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{width}x{rows}", "-framerate", f"1000/{frame_time}", "-i", "pipe:0",
+               "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{width}x{rows}", "-framerate", f"1000/{frame_time}", "-i",
+               "pipe:0",
                "-an", "-c:v", "libx264", "-preset", "medium", "-crf", str(CRF), "-pix_fmt", "yuv420p",
                "-movflags", "+faststart", "-f", container, str(temporary)]
     process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
@@ -149,5 +150,6 @@ def encode_movie(frames: list[tuple[Path, dict | None]], frame_time: int, movie_
         raise
     finally:
         process.stderr.close()
-    return {"width": width, "height": height, "frames": len(frames), "fps": round(1000 / frame_time, 3), "movieFormat": movie_format,
+    return {"width": width, "height": height, "frames": len(frames), "fps": round(1000 / frame_time, 3),
+            "movieFormat": movie_format,
             "padded": (height, width) != size}
