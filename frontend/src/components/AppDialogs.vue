@@ -75,7 +75,7 @@ const sharedDescriptor = (row: RssResource) => row.requiredBy.some(use => use.de
       <ul class="list-arrow">
         <li><strong>Explore your library.</strong> The Asset library lists the files in the game path. Filter by type, search, and click any asset to see its details and preview.</li>
         <li><strong>Choose what moves forward.</strong> On the Sync page, select resources, or use “Sync all pending” to copy every different GDA file to the game.</li>
-        <li><strong>Keep it fresh.</strong> After editing your GDA files, use Rescan to compare them with the game again.</li>
+        <li><strong>Keep it fresh.</strong> After editing your GDA files, use Re-sync to compare them with the game again.</li>
       </ul>
       <table class="table table-sm mb-3">
         <tbody>

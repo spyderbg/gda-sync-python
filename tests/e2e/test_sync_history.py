@@ -6,7 +6,7 @@ import pytest
 from playwright.sync_api import expect
 
 from egt_gda_sync.workspace.library import Library
-from tests.e2e.conftest import BUILD, Backend
+from tests.e2e.conftest import BUILD, Backend, poll
 from tests.test_rss_sync import write_example
 
 pytestmark = pytest.mark.e2e
@@ -28,6 +28,54 @@ def history_backend(tmp_path, browser):
     server = Backend(home)
     yield server, home
     server.stop()
+
+
+def test_resync_starts_a_comparison_from_each_sync_screen(new_context, history_backend):
+    backend, home = history_backend
+    page = new_context().new_page()
+    page.goto(backend.url)
+    page.get_by_role("list", name="Workspaces").get_by_role("button", name="Example", exact=True).click()
+    navigation = page.get_by_role("navigation", name="Main navigation")
+    navigation.get_by_role("button", name="Asset library", exact=True).click()
+    expect(page.get_by_role("button", name="Rescan", exact=True)).to_be_visible()
+
+    reports = home / "sync-reports"
+    sync_style = None
+    header_alignment = """button => {
+        const header = button.closest('.page-header');
+        const title = header.querySelector('.page-title').getBoundingClientRect();
+        const bounds = button.getBoundingClientRect();
+        return [
+            bounds.right - header.getBoundingClientRect().right,
+            (bounds.top + bounds.bottom - title.top - title.bottom) / 2,
+        ];
+    }"""
+    for screen in ("Sync", "Sync in progress", "Sync history"):
+        navigation.get_by_role("button", name=screen, exact=True).click()
+        expect(page.get_by_role("button", name="Rescan", exact=True)).to_have_count(0)
+        resync = page.get_by_role("button", name="Re-sync", exact=True)
+        expect(resync).to_be_visible()
+        style = resync.evaluate("""button => {
+            const { backgroundColor, borderColor, borderRadius, color, minHeight } = getComputedStyle(button);
+            return [backgroundColor, borderColor, borderRadius, color, minHeight];
+        }""")
+        if screen == "Sync":
+            sync_style = style
+        else:
+            assert style == sync_style
+            assert resync.evaluate(header_alignment) == pytest.approx([0, 0], abs=1)
+            viewport = page.viewport_size
+            page.set_viewport_size({"width": 390, "height": 844})
+            poll(lambda: resync.evaluate(header_alignment) == pytest.approx([0, 0], abs=1), True)
+            page.set_viewport_size(viewport)
+        if screen == "Sync in progress":
+            expect(page.get_by_text("Re-sync compares the game resources with the GDA folder in the background.", exact=True)).to_have_count(0)
+        previous = set(reports.glob("*.json"))
+        with page.expect_response(lambda response: response.url.endswith("/api/scan") and response.request.method == "POST") as started:
+            resync.click()
+        assert started.value.ok
+        expect(resync).to_be_enabled(timeout=15000)
+        assert len(set(reports.glob("*.json")) - previous) == 1
 
 
 def test_a_report_is_deleted_from_the_sync_history(new_context, history_backend):

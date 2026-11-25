@@ -3,12 +3,13 @@ import { computed, ref, watch } from 'vue';
 import CheckBox from '../components/CheckBox.vue';
 import ButtonTooltip from '../components/ButtonTooltip.vue';
 import ReportNotice from '../components/ReportNotice.vue';
+import ResyncButton from '../components/ResyncButton.vue';
 import ResourceCard from '../components/ResourceCard.vue';
 import ResourceDetails from '../components/ResourceDetails.vue';
 import { useSyncReport } from '../composables/useSyncReport';
 import { commonAction, defaultCandidate, imageCandidates, number, plural, resourceAction, resourceActionIcons, rowMatches, time, type GdaCandidate } from '../format';
 import type { RssCategory, RssResource } from '../types';
-import { applying, busy, config, copy, navigate, openFolder, requestResourceActions, requestResourceSync, rescan, rssSync } from '../workspace';
+import { applying, busy, config, copy, navigate, openFolder, requestResourceActions, requestResourceSync, rssSync } from '../workspace';
 
 // Apart from the workspace's folders, everything on this page comes from the workspace's GDA sync report:
 // the counts of its comparison and the resources that differ from the GDA folder, then the supplementary files, which
@@ -56,7 +57,7 @@ const FILTERS: { key: Filter; label: string; hint: string }[] = [
       + 'An image sequence is '
       + 'missing when some of its files are missing and none is different or invalid.\n\n'
       + 'There is nothing to apply, so it cannot be selected: add the file to the GDA folder, or correct its name, then '
-      + 'rescan. A missing image whose card shows GDA images that may show the same picture, such as a renamed copy, can '
+      + 'click Re-sync. A missing image whose card shows GDA images that may show the same picture, such as a renamed copy, can '
       + 'be synced from the one chosen on its card with its copy arrow.',
   },
   {
@@ -67,7 +68,7 @@ const FILTERS: { key: Filter; label: string; hint: string }[] = [
       + 'before it looks for the file in the GDA folder. A path whose file does not exist, or that leads outside the '
       + 'resources folder, is invalid and is not compared. An image sequence is invalid when any of its files is invalid '
       + 'and none is different.\n\n'
-      + 'Correct the path in the descriptor, or add the file to the game, then rescan. Or select it and remove its '
+      + 'Correct the path in the descriptor, or add the file to the game, then click Re-sync. Or select it and remove its '
       + 'declarations: each entry, image sequence or audio sample that names it leaves the descriptors, and each changed '
       + 'descriptor is saved in your backups first. One that only the workspace\'s resource_paths declare cannot be '
       + 'selected.',
@@ -201,9 +202,7 @@ function toggleAll(select: boolean) {
                 @click="hasSelection ? requestResourceActions(targets, choices(targets)) : requestResourceSync(targets, choices(targets))">
           <i aria-hidden="true" :class="['mdi', busy === 'sync' ? 'mdi-loading mdi-spin' : resourceActionIcons[targetAction]]" /><span>{{ actionLabel }}</span><span v-if="targets.length" class="badge badge-light">{{ number(targets.length) }}</span>
         </button>
-        <button type="button" class="btn btn-outline-primary" :disabled="!!busy || running" @click="rescan">
-          <i aria-hidden="true" :class="['mdi', busy === 'scan' || running ? 'mdi-loading mdi-spin' : 'mdi-refresh']" /><span>{{ busy === 'scan' ? 'Scanning…' : running ? 'Comparing…' : 'Rescan' }}</span>
-        </button>
+        <ResyncButton />
       </div>
     </div>
 
@@ -327,11 +326,9 @@ function toggleAll(select: boolean) {
 .sync-report-copy:focus-visible { outline: 2px solid #2196f3; outline-offset: 3px; }
 .sync-report-copy i.mdi { margin: 0; line-height: 18px; }
 .sync-workspace-actions { display: flex; flex-shrink: 0; flex-wrap: wrap; gap: 10px; }
-.sync-workspace-actions .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; border-radius: 7px; white-space: nowrap; }
+.sync-workspace-actions :is(.btn-primary, .btn-danger) { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; border-radius: 7px; white-space: nowrap; }
 .sync-workspace-actions .btn i.mdi { display: inline-flex; flex-shrink: 0; margin: 0; font-size: 16px; line-height: 1; }
 .sync-workspace-actions .btn .badge { flex-shrink: 0; }
-.sync-workspace-actions .btn-outline-primary { background: #fff; border-color: #dce2dc; color: #5d7063; }
-.sync-workspace-actions .btn-outline-primary:hover:not(:disabled) { background: #f1f5f1; }
 .sync-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 20px; }
 .sync-metric { display: flex; position: relative; align-items: center; gap: 14px; min-width: 0; padding: 20px 18px; border: 1px solid #e0e5de; border-radius: 9px; background: #fff; color: #29383b; text-align: left; font-family: inherit; cursor: pointer; transition: border-color 0.15s; }
 .sync-metric:hover { border-color: #aebcac; }

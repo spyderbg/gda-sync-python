@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import PageHeader from '../components/PageHeader.vue';
+import ResyncButton from '../components/ResyncButton.vue';
 import { useSyncReport } from '../composables/useSyncReport';
 import { imageSettings, number, plural, rowMatches, sequenceName, sequenceSummary, splitPath, time } from '../format';
 import type { RssCategory, RssResource } from '../types';
-import { activeSyncCount, busy, config, rescan, rssSync } from '../workspace';
+import { activeSyncCount, config, rssSync } from '../workspace';
 
 const PAGE_SIZE = 200;
 const CATEGORIES: { key: RssCategory; label: string; badge: string; hint: string; detail: string }[] = [
@@ -83,11 +84,8 @@ function gdaFolders(row: RssResource) {
       <li v-if="duration"><span>Took {{ duration }}</span></li>
       <li v-if="report?.workspace?.game_name"><span>Game {{ report.workspace.game_name }}</span></li>
     </template>
-    <template #toolbar>
-      <button type="button" class="btn btn-primary toolbar-item" :disabled="!!busy || running" @click="rescan">
-        <i aria-hidden="true" :class="['mdi', running ? 'mdi-loading mdi-spin' : 'mdi-refresh']" />{{ running ? 'Comparing…' : 'Rescan' }}
-      </button>
-      <span class="toolbar-item rss-hint">Rescan compares the game resources with the GDA folder in the background.</span>
+    <template #actions>
+      <ResyncButton />
     </template>
   </PageHeader>
 
@@ -118,7 +116,7 @@ function gdaFolders(row: RssResource) {
       <div class="card-body">
         <i aria-hidden="true" class="mdi mdi-sync text-muted" />
         <h3>No active sync processes</h3>
-        <p class="text-muted">No GDA sync is running for this workspace. Click Rescan to start a comparison.</p>
+        <p class="text-muted">No GDA sync is running for this workspace. Click Re-sync to start a comparison.</p>
       </div>
     </div>
   </section>
@@ -204,7 +202,6 @@ function gdaFolders(row: RssResource) {
 </template>
 
 <style scoped>
-.rss-hint { margin-left: 12px; color: #8a939c; font-size: 12px; }
 .rss-heading { margin: 4px 0 14px; font-size: 16px; }
 .rss-run { border-left: 3px solid #2277cf; }
 .rss-run-row { display: flex; align-items: center; gap: 12px 28px; flex-wrap: wrap; }

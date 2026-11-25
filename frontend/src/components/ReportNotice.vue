@@ -5,8 +5,8 @@ import { reportState } from '../workspace';
 const MESSAGES = {
   unknown: { icon: 'mdi-help-circle-outline', title: 'The GDA sync status could not be read', text: 'Reload the page. If this keeps happening, check that the application is still running.' },
   creating: { icon: 'mdi-loading mdi-spin', title: 'Creating the first GDA sync report…', text: 'The comparison runs in the background. The report appears here when it ends.' },
-  none: { icon: 'mdi-file-search-outline', title: 'No GDA sync report yet', text: 'This workspace has not been compared with its GDA folder. Click Rescan to run the first GDA sync and create its report.' },
-  failed: { icon: 'mdi-file-alert-outline', title: 'No successful GDA sync yet', text: 'Every run of this workspace so far has failed, so there is no result to show. See the error on this page, then click Rescan.' },
+  none: { icon: 'mdi-file-search-outline', title: 'No GDA sync report yet', text: 'This workspace has not been compared with its GDA folder. Click Re-sync to run the first GDA sync and create its report.' },
+  failed: { icon: 'mdi-file-alert-outline', title: 'No successful GDA sync yet', text: 'Every run of this workspace so far has failed, so there is no result to show. See the error on this page, then click Re-sync.' },
 } as const;
 </script>
 

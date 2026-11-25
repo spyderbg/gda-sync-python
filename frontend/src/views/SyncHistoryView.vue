@@ -7,9 +7,10 @@ import AppModal from '../components/AppModal.vue';
 import ChartLegend from '../components/ChartLegend.vue';
 import PageHeader from '../components/PageHeader.vue';
 import ReportNotice from '../components/ReportNotice.vue';
+import ResyncButton from '../components/ResyncButton.vue';
 import { ago, imageSettings, number, plural, size, time } from '../format';
 import type { RssSyncCount, RssSyncHistory, RssSyncHistoryEntry, RssSyncSummary, RssSyncWorkspace } from '../types';
-import { busy, data, deleteSyncReport, navigate, rescan, rssSync } from '../workspace';
+import { busy, data, deleteSyncReport, navigate, rssSync } from '../workspace';
 
 const CHART_RUNS = 20;
 // Whether a rise of each count is an improvement decides the color of its change.
@@ -112,10 +113,8 @@ const legend = computed(() => [
     <template #links-right>
       <li v-if="succeeded.length"><a href="#" @click.prevent="navigate('rssSync')">Latest result</a></li>
     </template>
-    <template #toolbar>
-      <button type="button" class="btn btn-primary toolbar-item" :disabled="!!busy || running" @click="rescan">
-        <i aria-hidden="true" :class="['mdi', running ? 'mdi-loading mdi-spin' : 'mdi-refresh']" />{{ running ? 'Comparing…' : 'Rescan' }}
-      </button>
+    <template #actions>
+      <ResyncButton />
     </template>
   </PageHeader>
 
@@ -220,7 +219,7 @@ const legend = computed(() => [
     <div class="modal-body">
       <p>The report of the run of {{ time(deleting.finishedAt) }} is deleted: <code class="history-delete-file">{{ deleting.file }}</code>. It cannot be restored.</p>
       <p v-if="deleting.file === latestResult" class="text-warning mb-0">
-        <i aria-hidden="true" class="mdi mdi-alert-outline" /> It is the latest successful run: the Sync page will show {{ succeeded.length > 1 ? 'the one before it' : 'no report until the next Rescan' }}.
+        <i aria-hidden="true" class="mdi mdi-alert-outline" /> It is the latest successful run: the Sync page will show {{ succeeded.length > 1 ? 'the one before it' : 'no report until the next Re-sync' }}.
       </p>
     </div>
     <div class="modal-footer">

@@ -29,7 +29,7 @@ function canvas(width: number, height: number) {
 async function loadImage(file: string) {
   const image = new Image();
   image.src = reportPreviewURL(file, props.revision);
-  try { await image.decode(); } catch { throw new Error(`Cannot load image: ${baseName(file)}. Close this dialog and rescan if the file changed.`); }
+  try { await image.decode(); } catch { throw new Error(`Cannot load image: ${baseName(file)}. Close this dialog and click Re-sync if the file changed.`); }
   return image;
 }
 watch(() => [props.game, props.gda, props.revision], async () => {

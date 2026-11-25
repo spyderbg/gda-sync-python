@@ -143,7 +143,7 @@ const avatarColors = ['bg-warning', 'bg-success', 'bg-info', 'bg-primary'];
       <p class="text-muted">EGT GDA Sync compares game resources with their GDA folders and helps you copy updated GDA files into each game's folder. This dashboard combines the asset libraries of all configured workspaces.</p>
       <ol class="dashboard-guide-steps">
         <li><h3>Select a workspace</h3><p>Choose a workspace card below to open its Asset library and browse the game's resources.</p></li>
-        <li><h3>Compare resources</h3><p>Open Sync in the navigation and click Rescan to compare game resources with the GDA. Follow the comparison on Sync in progress.</p></li>
+        <li><h3>Compare resources</h3><p>Open Sync in the navigation and click Re-sync to compare game resources with the GDA. Follow the comparison on Sync in progress.</p></li>
         <li><h3>Review and sync</h3><p>Review different, missing, and invalid resources. Select available GDA versions to copy, confirm the changes, and check saved results in Sync history.</p></li>
       </ol>
     </div>

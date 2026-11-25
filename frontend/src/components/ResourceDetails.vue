@@ -376,7 +376,7 @@ function sync() {
           <p v-if="scope" class="details-scope text-muted"><i aria-hidden="true" class="mdi mdi-share-variant-outline" /> {{ scope }}</p>
 
           <p v-if="fontsUnchecked" class="details-scope text-muted">
-            <i aria-hidden="true" class="mdi mdi-information-outline" /> This report was written by an earlier version, without the characters that Font entries declare. Rescan to check both fonts against them.
+            <i aria-hidden="true" class="mdi mdi-information-outline" /> This report was written by an earlier version, without the characters that Font entries declare. Click Re-sync to check both fonts against them.
           </p>
           <h6 class="details-heading">Declared in</h6>
           <p v-if="!row.requiredBy.length" class="text-muted details-small">No JSON descriptor</p>
