@@ -1,64 +1,43 @@
 <script setup lang="ts">
 import { onBeforeUnmount, ref, watch } from 'vue';
 import { clock, reportPreviewURL } from '../format';
+import { composeMovieAlpha, movieAlphaRects } from '../game/engine/GameVideoCtrl/movieAlpha';
+import type { MovieAlphaFormat } from '../types';
 import ReportThumbnail from './ReportThumbnail.vue';
 
 // A movie in the asset details, which plays only while they are open: it starts muted and loops, and closing the dialog
-// stops it and lets the file go. A movie whose frames stack the picture over its alpha (valpha) shows as the game draws
-// it, its picture transparent where its alpha is dark, over a checkerboard; "As encoded" shows the frames as the file
+// stops it and lets the file go. A packed-alpha movie is composed over a checkerboard; "As encoded" shows the frames as the file
 // holds them. A movie the browser cannot play shows its middle frame instead, as the backend decodes it.
-const props = withDefaults(defineProps<{ file: string; name: string; revision: string; stacked?: boolean }>(), { stacked: false });
+const props = defineProps<{ file: string; name: string; revision: string; alphaFormat?: MovieAlphaFormat }>();
 
 // Composed frames are drawn at most this wide, which keeps composing each frame cheap.
 const MAX_WIDTH = 960;
 
 const video = ref<HTMLVideoElement>();
 const canvas = ref<HTMLCanvasElement>();
-const composed = ref(props.stacked);
+const composed = ref(!!props.alphaFormat);
 const playing = ref(false);
 const muted = ref(true);
 const failed = ref(false);
 const position = ref(0);
 const duration = ref(0);
-let scratch: CanvasRenderingContext2D | null = null;
 let pending = 0;
 
-/** Draw the current frame on the canvas: its top half's colors, premultiplied, with its bottom half as their alpha. */
 function compose() {
   const element = video.value;
   const target = canvas.value;
-  if (!composed.value || !element || !target || !element.videoWidth) return;
-  const scale = Math.min(1, MAX_WIDTH / element.videoWidth);
-  const width = Math.round(element.videoWidth * scale);
-  const half = Math.floor((element.videoHeight * scale) / 2);
-  if (!half) return;
-  if (!scratch) scratch = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
-  if (!scratch) return;
-  if (scratch.canvas.width !== width || scratch.canvas.height !== half * 2) {
-    scratch.canvas.width = width;
-    scratch.canvas.height = half * 2;
-  }
-  scratch.drawImage(element, 0, 0, width, half * 2);
-  const source = scratch.getImageData(0, 0, width, half * 2).data;
-  if (target.width !== width || target.height !== half) {
+  if (!composed.value || !props.alphaFormat || !element || !target) return;
+  if (element.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) return;
+  const rects = movieAlphaRects(element.videoWidth, element.videoHeight, props.alphaFormat);
+  if (!rects.width || !rects.height) return;
+  const width = Math.min(rects.width, MAX_WIDTH);
+  const height = Math.max(1, Math.round(rects.height * width / rects.width));
+  if (target.width !== width || target.height !== height) {
     target.width = width;
-    target.height = half;
+    target.height = height;
   }
-  const context = target.getContext('2d');
-  if (!context) return;
-  const frame = context.createImageData(width, half);
-  const pixels = frame.data;
-  const below = width * half * 4;
-  // The picture is premultiplied by its alpha, as the game's shader reads it; ImageData is not, so it is divided out.
-  for (let index = 0; index < below; index += 4) {
-    const alpha = source[below + index];
-    const factor = alpha ? 255 / alpha : 0;
-    pixels[index] = Math.min(255, source[index] * factor);
-    pixels[index + 1] = Math.min(255, source[index + 1] * factor);
-    pixels[index + 2] = Math.min(255, source[index + 2] * factor);
-    pixels[index + 3] = alpha;
-  }
-  context.putImageData(frame, 0, 0);
+  const context = target.getContext('2d', { willReadFrequently: true });
+  if (context) composeMovieAlpha(context, element, rects);
 }
 
 // Each new frame is composed and the time follows it: with requestVideoFrameCallback when the browser has it, otherwise
@@ -110,6 +89,10 @@ function toggleMuted() {
 }
 
 watch(composed, () => requestAnimationFrame(compose));
+watch(() => props.alphaFormat, format => {
+  composed.value = !!format;
+  requestAnimationFrame(compose);
+});
 watch(() => [props.file, props.revision], () => {
   failed.value = false;
   position.value = 0;
@@ -127,12 +110,12 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <ReportThumbnail v-if="failed" :file="file" :name="name" :revision="revision" :stacked="stacked" />
+  <ReportThumbnail v-if="failed" :file="file" :name="name" :revision="revision" :alpha-format="alphaFormat" />
   <template v-else>
     <div :class="['thumbnail', 'movie', 'movie-preview', { dds: composed }]">
       <video ref="video" v-show="!composed" :src="reportPreviewURL(file, revision)" :aria-label="`${name}, playing`" autoplay loop muted playsinline
              preload="auto" @play="onPlay" @pause="onPause" @loadeddata="onLoaded" @seeked="onSeeked" @error="failed = true" />
-      <canvas v-if="stacked" v-show="composed" ref="canvas" :aria-label="`${name} with its alpha`" role="img" />
+      <canvas v-if="alphaFormat" v-show="composed" ref="canvas" :aria-label="`${name} with its alpha`" role="img" />
     </div>
     <div class="movie-controls">
       <button type="button" class="btn btn-sm btn-secondary" :aria-label="playing ? 'Pause' : 'Play'" @click="toggle">
@@ -143,9 +126,9 @@ onBeforeUnmount(() => {
       <button type="button" class="btn btn-sm btn-secondary" :aria-label="muted ? 'Unmute' : 'Mute'" :aria-pressed="!muted" @click="toggleMuted">
         <i aria-hidden="true" :class="['mdi', muted ? 'mdi-volume-off' : 'mdi-volume-high']" />
       </button>
-      <span v-if="stacked" class="btn-group btn-group-sm" role="group" aria-label="How the movie is shown">
-        <button type="button" :class="['btn', 'btn-secondary', { active: composed }]" :aria-pressed="composed" title="Its picture, transparent where its alpha is dark, as the game draws it" @click="composed = true">With alpha</button>
-        <button type="button" :class="['btn', 'btn-secondary', { active: !composed }]" :aria-pressed="!composed" title="The picture above its alpha, as the file holds them" @click="composed = false">As encoded</button>
+      <span v-if="alphaFormat" class="btn-group btn-group-sm" role="group" aria-label="How the movie is shown">
+        <button type="button" :class="['btn', 'btn-secondary', { active: composed }]" :aria-pressed="composed" @click="composed = true">With alpha</button>
+        <button type="button" :class="['btn', 'btn-secondary', { active: !composed }]" :aria-pressed="!composed" @click="composed = false">As encoded</button>
       </span>
     </div>
   </template>

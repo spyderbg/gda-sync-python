@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { TEXT_EXTENSIONS, assetBadges, assetFrames, assetSection, baseName, codePoint, extensionOf, fileType, firstRtfPage, movieTable, number, plural, sectionIcons, sectionSingular, sequenceName, size, splitPath, stackedAlpha, time, typeIcons, viewTable } from '../format';
+import { TEXT_EXTENSIONS, assetBadges, assetFrames, assetSection, baseName, codePoint, extensionOf, fileType, firstRtfPage, movieAlphaFormat, movieTable, number, plural, sectionIcons, sectionSingular, sequenceName, size, splitPath, time, typeIcons, viewTable } from '../format';
 import type { AssetDeclaration, FileFacts, ReportAsset } from '../types';
 import { copy, openResourceFile, openResourceFolder } from '../workspace';
 import AppModal from './AppModal.vue';
@@ -29,8 +29,7 @@ import ImageStudio from './ImageStudio.vue';
 // shows on the preview, the images and videos its pages draw that are missing, and every file of the folder; its folder
 // button opens the RTF's folder itself. Its type is shown with its name, and an asset that no descriptor declares, whose
 // files exist, can be declared: Create opens a dialog over this one that adds its entry to a descriptor. A movie plays
-// in the dialog, and only there, with its frame size, codec, frame rate, frames and duration; one that a Movie entry
-// declares as valpha shows its picture with the alpha stacked under it. Escape closes the dialog on top.
+// in the dialog with its frame size, codec, frame rate, frames and duration. Its Movie entry specifies any packed alpha.
 const props = defineProps<{ row: ReportAsset; revision: string }>();
 const emit = defineEmits<{ close: [] }>();
 // A view's elements can be moved, and a text file edited; closing with changes that are not saved asks first.
@@ -65,7 +64,7 @@ const typeLabel = computed(() => {
 const isText = computed(() => readable.value && !sequence.value && !props.row.directory && !props.row.view && TEXT_EXTENSIONS.includes(extensionOf(baseName(props.row.resourcePath))));
 const isAudio = computed(() => fileType(extensionOf(baseName(props.row.resourcePath))) === 'audio');
 const isMovie = computed(() => props.row.type === 'movie');
-const stacked = computed(() => stackedAlpha(props.row.requiredBy));
+const alphaFormat = computed(() => movieAlphaFormat(props.row.requiredBy));
 const frames = computed(() => (sequence.value ? assetFrames(sequence.value) : []));
 // The Font entries that declare characters of a font, and the one whose characters the preview draws.
 const isFont = computed(() => props.row.type === 'font');
@@ -126,7 +125,7 @@ const table = computed(() => {
   if (isMovie.value) {
     return [
       { label: 'File format', value: extensionOf(name.value).toUpperCase() || '—' },
-      ...(props.row.movie ? movieTable(props.row.movie, stacked.value)
+      ...(props.row.movie ? movieTable(props.row.movie, alphaFormat.value)
         : [{ label: 'Movie', value: props.row.movieError ?? (readable.value ? 'Rescan to read it' : '—') }]),
       { label: 'File size', value: props.row.size !== undefined ? size(props.row.size) : '—' },
       { label: 'Last modified', value: props.row.modifiedAt ? time(props.row.modifiedAt) : '—' },
@@ -218,13 +217,13 @@ const scope = computed(() => ({ game: 'Belongs to this game only.', common: 'A c
           </figcaption>
           <SequencePreview v-if="sequence" :frames="frames" :frame-time="sequence.frameTime" :loop-count="sequence.loopCount" :loop-to="sequence.loopTo" :name="sequence.id ?? name" :revision="revision" />
           <AudioPreview v-else-if="isAudio && readable" :file="row.resourcePath" :name="name" :revision="revision" autoplay />
-          <MoviePreview v-else-if="isMovie && readable" :file="row.resourcePath" :name="name" :revision="revision" :stacked="stacked" />
+          <MoviePreview v-else-if="isMovie && readable" :file="row.resourcePath" :name="name" :revision="revision" :alpha-format="alphaFormat" />
           <FontPreview v-else-if="isFont && readable" :file="row.resourcePath" :name="name" :revision="revision" large
                        :chars="fontUse?.chars" :size="fontUse?.size" :missing="fontUse?.coverage?.missing" />
           <RtfPreview v-else-if="rtf" v-model:page="rtfPage" :file="file" :name="name" :revision="revision" :facts="rtf" large />
           <ViewPreview v-else-if="view" :file="file" :name="name" :revision="revision" :facts="view" large editable @dirty="unsaved = $event" />
           <TextEditor v-else-if="isText" :file="row.resourcePath" :name="name" @dirty="unsaved = $event" />
-          <ReportThumbnail v-else :file="file" :name="baseName(file)" :revision="revision" :preview="readable && row.preview !== false" :stacked="stacked" />
+          <ReportThumbnail v-else :file="file" :name="baseName(file)" :revision="revision" :preview="readable && row.preview !== false" :alpha-format="alphaFormat" />
         </figure>
       </div>
 

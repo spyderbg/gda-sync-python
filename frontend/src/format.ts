@@ -1,4 +1,6 @@
 import { reactive } from 'vue';
+import { isMovieAlphaFormat, movieAlphaRects } from './game/engine/GameVideoCtrl/movieAlpha';
+import type { MovieAlphaFormat } from './types';
 import type { AssetCategory, AssetDeclaration, AssetSection, AssetSequence, AssetStatus, AssetType, ImageAlgorithms, ImageCandidate, ViewFacts, ImageEvaluation, ImageMatchType, MovieFacts, PreviewFrame, ReportAsset, RssCategory, RssResource, RssRtfDirectory, RssSequence, RssSyncWorkspace, RtfChange, RtfFacts } from './types';
 
 export const ASSET_TYPES = ['texture', 'model', 'material', 'audio', 'font', 'rtf', 'view', 'movie'] as const;
@@ -185,22 +187,23 @@ export const reportPreviewURL = (file: string, revision: string) =>
   `/api/rss-sync/preview?file=${encodeURIComponent(file)}&v=${encodeURIComponent(revision)}`;
 
 
-/** The thumbnail of a movie: its middle frame, with its alpha when its frames stack the picture over it (valpha). */
-export const movieFrameURL = (file: string, revision: string, stacked = false) =>
-  `/api/rss-sync/movie-frame?file=${encodeURIComponent(file)}${stacked ? '&stacked=true' : ''}&v=${encodeURIComponent(revision)}`;
-/** Whether a Movie entry that declares a file says its frames stack the picture over its alpha. */
-export const stackedAlpha = (uses: AssetDeclaration[]) => uses.some(use => use.movieFormat === 'valpha');
+export const movieFrameURL = (file: string, revision: string, alphaFormat?: MovieAlphaFormat) =>
+  `/api/rss-sync/movie-frame?file=${encodeURIComponent(file)}${alphaFormat ? `&alphaFormat=${alphaFormat}` : ''}&v=${encodeURIComponent(revision)}`;
+export const movieAlphaFormat = (uses: AssetDeclaration[]) => uses.map(use => use.movieFormat).find(isMovieAlphaFormat);
 /** Seconds as "3.00 s", or "2:05" from a minute on. */
 export const clock = (seconds: number) => (seconds < 60 ? `${seconds.toFixed(2)} s`
   : `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`);
 /** The facts of a movie, as the details' tables list them. */
-export const movieTable = (facts: MovieFacts, stacked: boolean) => [
-  { label: 'Frame size', value: `${facts.width} × ${facts.height}${stacked ? `, ${facts.width} × ${Math.floor(facts.height / 2)} with its alpha below` : ''}` },
-  { label: 'Codec', value: facts.codec ?? '—' },
-  { label: 'Frame rate', value: facts.fps ? `${Number(facts.fps.toFixed(3))} frames per second` : '—' },
-  { label: 'Frames', value: number(facts.frames) },
-  { label: 'Duration', value: clock(facts.duration) },
-];
+export const movieTable = (facts: MovieFacts, alphaFormat?: MovieAlphaFormat) => {
+  const picture = alphaFormat && movieAlphaRects(facts.width, facts.height, alphaFormat);
+  return [
+    { label: 'Frame size', value: `${facts.width} × ${facts.height}${picture ? `, ${picture.width} × ${picture.height} picture` : ''}` },
+    { label: 'Codec', value: facts.codec ?? '—' },
+    { label: 'Frame rate', value: facts.fps ? `${Number(facts.fps.toFixed(3))} frames per second` : '—' },
+    { label: 'Frames', value: number(facts.frames) },
+    { label: 'Duration', value: clock(facts.duration) },
+  ];
+};
 
 /** The page of an RTF that its preview shows first: the first page that has a background. */
 export const firstRtfPage = (facts: RtfFacts) => Math.max(0, facts.pages.findIndex(page => page.found));

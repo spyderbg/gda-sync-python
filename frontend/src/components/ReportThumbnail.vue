@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { PREVIEW_EXTENSIONS, extensionOf, fileType, movieFrameURL, reportPreviewURL, typeIcons } from '../format';
+import type { MovieAlphaFormat } from '../types';
 import FontPreview from './FontPreview.vue';
 
 // The preview of a file that a report names, a game resource or a GDA file, with a badge of its format. A font is
@@ -13,11 +14,10 @@ const props = withDefaults(defineProps<{
   revision: string;
   /** False when the file cannot be read, so no preview is requested. */
   preview?: boolean;
-  /** A movie whose frames stack the picture over its alpha (valpha): its frame is shown transparent. */
-  stacked?: boolean;
-}>(), { preview: true, stacked: false });
+  alphaFormat?: MovieAlphaFormat;
+}>(), { preview: true });
 const failed = ref(false);
-watch(() => [props.file, props.revision], () => { failed.value = false; });
+watch(() => [props.file, props.revision, props.alphaFormat], () => { failed.value = false; });
 
 const extension = computed(() => extensionOf(props.name));
 const type = computed(() => fileType(extension.value));
@@ -26,9 +26,9 @@ const movie = computed(() => props.preview && !failed.value && type.value === 'm
 </script>
 
 <template>
-  <div :class="['thumbnail', type, { dds: extension === 'dds' || (movie && stacked) }]">
+  <div :class="['thumbnail', type, { dds: extension === 'dds' || (movie && alphaFormat) }]">
     <img v-if="shown" :src="reportPreviewURL(file, revision)" :alt="`${name} preview`" loading="lazy" @error="failed = true">
-    <img v-else-if="movie" :src="movieFrameURL(file, revision, stacked)" :alt="`${name} frame`" loading="lazy" @error="failed = true">
+    <img v-else-if="movie" :src="movieFrameURL(file, revision, alphaFormat)" :alt="`${name} frame`" loading="lazy" @error="failed = true">
     <FontPreview v-else-if="type === 'font' && preview" :file="file" :name="name" :revision="revision" />
     <div v-else :class="['generic-preview', type]"><i aria-hidden="true" :class="['mdi', typeIcons[type]]" /></div>
     <i v-if="movie" aria-hidden="true" class="mdi mdi-play-circle-outline thumbnail-movie" />

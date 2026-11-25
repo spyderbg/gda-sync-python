@@ -32,8 +32,10 @@ from egt_gda_sync.app.errors import AppError, error_message
 from egt_gda_sync.app.folders import HOME_VARIABLE, WORKING_PATH, default_data_folder, working_folder
 from egt_gda_sync.workspace.asset_report import AssetReports, inventory
 from egt_gda_sync.assets.fonts import FONT_EXTENSIONS, describe_font
-from egt_gda_sync.assets.movies import MOVIE_EXTENSIONS, describe_movie, movie_thumbnail
-from egt_gda_sync.assets.movie_maker import FORMATS as MOVIE_FORMATS, encode_movie, movie_path, suggested_format
+from egt_gda_sync.assets.movies import MOVIE_EXTENSIONS, PackedAlphaFormat, describe_movie, movie_thumbnail
+from egt_gda_sync.assets.movie_maker import (DEFAULT_CRF, DEFAULT_GOP_SIZE, FORMATS as MOVIE_FORMATS, MAX_CRF, MAX_GOP_SIZE,
+                                            MIN_CRF, encode_movie, encoded_frame_size, ffmpeg_arguments, inspect_frames,
+                                            movie_path, padded_size)
 from egt_gda_sync.images.png import PNG_SIGNATURE
 from egt_gda_sync.workspace import backups
 from egt_gda_sync.sync.rss_declare import KINDS, asset_files, asset_kinds, asset_name, build_entry, descriptor_targets, entry_paths, kind_options, used_values
@@ -1039,7 +1041,7 @@ class Library:
     def movie_options(self, asset: str) -> dict:
         """How an image sequence can be made into a movie: a new id named like the game's movies (the sequence's with
         _MOVIE), a path in the game's m folder, the descriptors that can hold a Movie entry, the format its frames suggest
-        (valpha when they have alpha), and the sequence's frame time, frame rate, loop count and frames."""
+        (valpha when they have alpha), the sequence's timing, and the FFmpeg command template and packed frame sizes."""
         row, game, documents, frames = self._sequence_asset(asset)
         sequence = row["sequence"]
         ids = self._resource_ids(documents)
@@ -1050,16 +1052,26 @@ class Library:
         while candidate in ids:
             candidate, number = f"{suggested}_{number}", number + 1
         try:
-            movie_format = suggested_format(frames)
+            movie_format, width, height = inspect_frames(frames)
         except (OSError, ValueError) as error:
             raise AppError(f"The frames cannot be read: {error_message(error)}", 400) from error
+        width, height = padded_size(width, height)
+        frame_time = sequence["frameTime"]
         return {"id": candidate, "ids": sorted(ids), "path": movie_path(frames[0][0], game, asset_name(row), movie_format),
                 "descriptors": [path.relative_to(game).as_posix() for path in descriptor_targets(documents, KINDS["Movie"], game)],
                 "formats": list(MOVIE_FORMATS), "movieFormat": movie_format, "sequenceId": sequence["id"],
-                "frameTime": sequence["frameTime"], "fps": round(1000 / sequence["frameTime"], 3) if sequence["frameTime"] > 0 else 0,
-                "loopCount": sequence["loopCount"], "frames": len(frames)}
+                "frameTime": frame_time, "fps": round(1000 / frame_time, 3) if frame_time > 0 else 0,
+                "loopCount": sequence["loopCount"], "loopTo": sequence.get("loopTo"), "frames": len(frames), "crf": DEFAULT_CRF,
+                "crfValues": list(range(MIN_CRF, MAX_CRF + 1)),
+                "gopSize": DEFAULT_GOP_SIZE, "maxGopSize": MAX_GOP_SIZE,
+                "ffmpeg": {
+                    "arguments": ffmpeg_arguments("{size}", "{rate}", "{container}", "{output}",
+                                                  crf="{crf}", gop_size="{gopSize}"),
+                    "sizes": {item: encoded_frame_size(width, height, item) for item in MOVIE_FORMATS},
+                }}
 
-    def create_movie(self, asset: str, movie_id: str, path: str, descriptor: str, movie_format: str) -> dict:
+    def create_movie(self, asset: str, movie_id: str, path: str, descriptor: str, movie_format: str,
+                     fps: float | None = None, crf: int = DEFAULT_CRF, gop_size: int = DEFAULT_GOP_SIZE) -> dict:
         """Encode an image sequence of the newest asset report as a new movie file of the game folder (path, relative to
         it, which must not exist), and declare it in a descriptor that holds Movie entries, under a new id, so a view's
         Anim element can name it instead of the sequence. The sequence and its frames stay. The descriptor it replaces is
@@ -1101,7 +1113,8 @@ class Library:
             while not os.path.isdir(existing_parent):
                 existing_parent = os.path.dirname(existing_parent)
             try:
-                facts = encode_movie(frames, row["sequence"]["frameTime"], movie_format, Path(movie))
+                facts = encode_movie(frames, row["sequence"]["frameTime"], movie_format, Path(movie),
+                                     fps=fps, crf=crf, gop_size=gop_size)
             except (OSError, ValueError) as error:
                 _remove_empty_folders(movie_parent, existing_parent)
                 raise AppError(f"The movie could not be made: {error_message(error)}", 400) from error
@@ -2348,17 +2361,16 @@ class Library:
             raise AppError("File not found", 404)
         return path, MOVIE_EXTENSIONS[extension]
 
-    def movie_thumbnail(self, file: str, stacked: bool = False) -> tuple[bytes, str]:
-        """The frame in the middle of a movie, with the alpha of a valpha one when stacked, cached by file, time and
-        size like decoded DDS textures."""
+    def movie_thumbnail(self, file: str, alpha_format: PackedAlphaFormat | None = None) -> tuple[bytes, str]:
+        """The frame in the middle of a movie, cached by file, time, size and alpha layout."""
         path, _mime = self.movie_file(file)
         info = os.stat(path)
-        key = f"{path}:{info.st_mtime_ns}:{info.st_size}:{'stacked' if stacked else 'frame'}"
+        key = f"{path}:{info.st_mtime_ns}:{info.st_size}:{alpha_format or 'frame'}"
         cached = self._cached_preview(key)
         if cached is not None:
             return cached
         try:
-            result = movie_thumbnail(path, stacked)
+            result = movie_thumbnail(path, alpha_format)
         except ValueError as error:
             raise AppError(error_message(error), 415) from error
         self._keep_preview(key, result)

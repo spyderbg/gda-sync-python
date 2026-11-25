@@ -1,5 +1,4 @@
-"""Making a movie from an image sequence: its frames encoded by FFmpeg, valpha (the picture over its alpha) or opaque, and
-a Movie entry with a new id that a view's Anim element can name instead of the sequence."""
+"""Making a movie from an image sequence at the chosen frame rate and declaring it under a new RSS key."""
 
 import json
 import shutil
@@ -11,6 +10,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from egt_gda_sync.app.server import create_app
+from egt_gda_sync.assets import movie_maker
 from egt_gda_sync.assets.movie_maker import encode_movie, movie_frame, movie_path
 from egt_gda_sync.workspace.library import Library
 from tests.conftest import session_headers
@@ -35,7 +35,7 @@ def write_game(root: Path) -> Path:
     (game / "art" / "odd" / "odd_0.png").write_bytes(frame(0))
     (game / "art" / "odd" / "odd_1.png").write_bytes(frame(1, (8, 8)))
     (game / "RssImagesSeqData.json").write_text(json.dumps({"imagesSeq": [
-        {"id": "ANIM_SPARK", "frameTime": 40, "loopCount": 0, "frames": [{"path": "art/1920x1080/fx/Spark/Spark_{0-5}.png"}]},
+        {"id": "ANIM_SPARK", "frameTime": 40, "loopCount": 0, "loopTo": 2, "frames": [{"path": "art/1920x1080/fx/Spark/Spark_{0-5}.png"}]},
         {"id": "ANIM_ODD", "frameTime": 40, "loopCount": 1, "frames": [{"path": "art/odd/odd_{0-1}.png"}]},
     ]}, indent=4))
     (game / "RssMoviesData.json").write_text('{\n    "movies": [\n    ]\n}\n')
@@ -71,19 +71,44 @@ def test_a_movie_goes_to_the_m_folder_named_like_its_sequence():
     assert movie_path(Path("/r/common/x/x_0.dds"), game, "x", "valpha") == "m/x-rgba.mov"
 
 
-def test_a_valpha_frame_is_the_premultiplied_picture_over_its_alpha_padded_to_an_even_size():
+@pytest.mark.parametrize(("movie_format", "shape", "picture", "mask"), [
+    ("valpha", (4, 4, 3), (slice(0, 2), slice(None)), (slice(2, 4), slice(None))),
+    ("valpha-top", (4, 4, 3), (slice(2, 4), slice(None)), (slice(0, 2), slice(None))),
+    ("halpha", (2, 8, 3), (slice(None), slice(0, 4)), (slice(None), slice(4, 8))),
+    ("halpha-left", (2, 8, 3), (slice(None), slice(4, 8)), (slice(None), slice(0, 4))),
+])
+def test_packed_frames_store_the_premultiplied_picture_and_alpha_at_the_expected_positions(movie_format, shape, picture, mask):
     image = np.array([[[200, 100, 50, 128], [10, 20, 30, 255], [1, 2, 3, 0]]], np.uint8)
-    pixels = np.frombuffer(movie_frame(image, "valpha", 4, 2), np.uint8).reshape(4, 4, 3)
-    assert pixels[0, 0].tolist() == [100, 50, 25] and pixels[0, 1].tolist() == [10, 20, 30] and pixels[0, 2].tolist() == [0, 0, 0]
-    assert pixels[2, :, 0].tolist() == [128, 255, 0, 0] and not pixels[1].any() and not pixels[3].any()
-    assert np.frombuffer(movie_frame(image, "opaque", 4, 2), np.uint8).size == 4 * 2 * 3
+    pixels = np.frombuffer(movie_frame(image, movie_format, 4, 2), np.uint8).reshape(shape)
+    assert pixels[picture].tolist() == [[[100, 50, 25], [10, 20, 30], [0, 0, 0], [0, 0, 0]], [[0, 0, 0]] * 4]
+    assert pixels[mask].tolist() == [[[128] * 3, [255] * 3, [0] * 3, [0] * 3], [[0, 0, 0]] * 4]
 
 
 def test_the_options_suggest_an_id_a_path_and_valpha_for_frames_with_alpha(client):
     options = client.get("/api/asset-report/movie", params={"asset": sequence(client, "ANIM_SPARK")["id"]}).json()
     assert options["id"] == "ANIM_SPARK_MOVIE" and options["path"] == "m/fx/Spark-rgba.mov"
     assert options["descriptors"] == ["RssMoviesData.json"] and options["movieFormat"] == "valpha"
+    assert options["formats"] == ["valpha", "valpha-top", "halpha", "halpha-left", "opaque"]
     assert (options["frameTime"], options["fps"], options["loopCount"], options["frames"]) == (40, 25.0, 0, 6)
+    assert options["loopTo"] == 2
+    assert options["crf"] == 23 and options["crfValues"] == list(range(52))
+    assert options["gopSize"] == 250 and options["maxGopSize"] == 2_147_483_647
+    assert options["ffmpeg"]["sizes"] == {
+        "valpha": "6x8", "valpha-top": "6x8", "halpha": "12x4", "halpha-left": "12x4", "opaque": "6x4",
+    }
+
+
+def test_the_command_preview_uses_padded_crop_dimensions(client):
+    descriptor = client.game / "RssImagesSeqData.json"
+    data = json.loads(descriptor.read_text())
+    data["imagesSeq"][0]["frames"][0]["source"] = {"x": 0, "y": 1, "w": 3, "h": 3}
+    descriptor.write_text(json.dumps(data))
+    assert client.post("/api/asset-report").status_code == 200
+
+    response = client.get("/api/asset-report/movie", params={"asset": sequence(client, "ANIM_SPARK")["id"]})
+    assert response.status_code == 200, response.text
+    sizes = response.json()["ffmpeg"]["sizes"]
+    assert (sizes["opaque"], sizes["valpha"], sizes["halpha-left"]) == ("4x4", "4x8", "8x4")
 
 
 def test_making_a_movie_encodes_the_frames_and_declares_it_under_a_new_id(client):
@@ -105,6 +130,8 @@ def test_making_a_movie_encodes_the_frames_and_declares_it_under_a_new_id(client
     declared = next(item for item in client.get("/api/asset-report").json()["assets"] if item["id"] == result["asset"])
     assert declared["type"] == "movie" and declared["category"] == "available" and declared["requiredBy"][0]["id"] == "ANIM_SPARK_MOVIE"
     assert result["movie"] == {"width": 6, "height": 4, "frames": 6, "fps": 25.0, "movieFormat": "valpha", "padded": False}
+    legacy_preview = client.get("/api/rss-sync/movie-frame", params={"file": str(movie), "stacked": "true"})
+    assert legacy_preview.status_code == 200 and legacy_preview.headers["content-type"] == "image/png"
     assert result["library"]["activity"][0]["message"] == "Made movie ANIM_SPARK_MOVIE (m/fx/Spark-rgba.mov) from ANIM_SPARK, declared in RssMoviesData.json"
     manifest = json.loads(next(Path(result["library"]["backupPath"]).glob("*.json")).read_text())
     assert {item["path"]: item["change"] for item in manifest["files"]} == {
@@ -118,6 +145,85 @@ def test_making_a_movie_encodes_the_frames_and_declares_it_under_a_new_id(client
     assert client.post("/api/asset-report/movie", json=existing).json()["error"] == "m/fx/Spark-rgba.mov exists already"
     outside = {**again, "id": "ANIM_SPARK_2", "path": "../elsewhere.mov"}
     assert client.post("/api/asset-report/movie", json=outside).status_code == 400
+
+
+@pytest.mark.parametrize(("movie_format", "encoded_size"), [
+    ("valpha-top", (6, 8)),
+    ("halpha", (12, 4)),
+    ("halpha-left", (12, 4)),
+])
+def test_a_custom_fractional_rate_and_packed_layout_reach_the_file_and_preview(client, movie_format, encoded_size):
+    relative = f"m/fx/Spark-{movie_format}.mov"
+    response = client.post("/api/asset-report/movie", json={
+        "asset": sequence(client, "ANIM_SPARK")["id"], "id": "ANIM_SPARK_MOVIE", "path": relative,
+        "descriptor": "RssMoviesData.json", "movieFormat": movie_format, "fps": 29.97,
+    })
+    assert response.status_code == 200, response.text
+    result = response.json()
+    assert result["entry"]["movieFormat"] == movie_format
+    assert result["movie"]["fps"] == 29.97 and result["movie"]["frames"] == 6
+    movie = client.game / relative
+    capture = cv2.VideoCapture(str(movie))
+    try:
+        assert (capture.get(cv2.CAP_PROP_FRAME_WIDTH), capture.get(cv2.CAP_PROP_FRAME_HEIGHT)) == encoded_size
+        assert capture.get(cv2.CAP_PROP_FPS) == pytest.approx(29.97)
+        assert capture.get(cv2.CAP_PROP_FRAME_COUNT) == 6
+    finally:
+        capture.release()
+    preview = client.get("/api/rss-sync/movie-frame", params={"file": str(movie), "alphaFormat": movie_format})
+    assert preview.status_code == 200 and preview.headers["content-type"] == "image/png"
+    pixels = cv2.imdecode(np.frombuffer(preview.content, np.uint8), cv2.IMREAD_UNCHANGED)
+    assert pixels.shape == (4, 6, 4)
+    assert pixels[:, 3, 3].min() > 200 and pixels[:, 0, 3].max() < 50
+
+
+@pytest.mark.parametrize(("crf", "gop_size"), [(None, None), (0, 0), (18, 3), (51, 2_147_483_647)])
+def test_the_selected_crf_and_gop_size_reach_ffmpeg(client, monkeypatch, crf, gop_size):
+    actual = movie_maker.ffmpeg_arguments
+    command = []
+
+    def record(*args, **kwargs):
+        groups = actual(*args, **kwargs)
+        command.extend(argument for group in groups for argument in group)
+        return groups
+
+    monkeypatch.setattr(movie_maker, "ffmpeg_arguments", record)
+    request = {
+        "asset": sequence(client, "ANIM_SPARK")["id"], "id": "ANIM_SPARK_MOVIE", "path": "m/spark.mov",
+        "descriptor": "RssMoviesData.json", "movieFormat": "opaque",
+    }
+    if crf is not None:
+        request["crf"] = crf
+    if gop_size is not None:
+        request["gopSize"] = gop_size
+    response = client.post("/api/asset-report/movie", json=request)
+    assert response.status_code == 200, response.text
+    assert command[command.index("-crf") + 1] == str(23 if crf is None else crf)
+    assert command[command.index("-g") + 1] == str(250 if gop_size is None else gop_size)
+    assert (client.game / "m/spark.mov").is_file()
+
+
+@pytest.mark.parametrize(("field", "value"), [
+    ("crf", -1), ("crf", 52), ("crf", 18.5), ("crf", "18"), ("crf", True),
+    ("gopSize", -1), ("gopSize", 2_147_483_648), ("gopSize", 18.5), ("gopSize", "18"), ("gopSize", True),
+])
+def test_invalid_encoder_parameters_are_rejected_before_creating_a_movie(client, field, value):
+    response = client.post("/api/asset-report/movie", json={
+        "asset": sequence(client, "ANIM_SPARK")["id"], "id": "ANIM_SPARK_MOVIE", "path": "m/spark.mov",
+        "descriptor": "RssMoviesData.json", "movieFormat": "valpha", field: value,
+    })
+    assert response.status_code == 400 and response.json()["error"].startswith(f"body/{field}:"), response.text
+    assert not (client.game / "m").exists()
+
+
+@pytest.mark.parametrize("fps", [0, -12, "29.97", True])
+def test_an_invalid_frame_rate_is_rejected_before_creating_a_movie(client, fps):
+    response = client.post("/api/asset-report/movie", json={
+        "asset": sequence(client, "ANIM_SPARK")["id"], "id": "ANIM_SPARK_MOVIE", "path": "m/spark.mov",
+        "descriptor": "RssMoviesData.json", "movieFormat": "valpha", "fps": fps,
+    })
+    assert response.status_code == 400 and response.json()["error"].startswith("body/fps:"), response.text
+    assert not (client.game / "m").exists()
 
 
 def test_frames_of_different_sizes_make_no_movie_and_leave_no_folder(client):

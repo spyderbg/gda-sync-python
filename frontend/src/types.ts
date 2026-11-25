@@ -139,9 +139,12 @@ export interface DeclarationKindOptions {
  * descriptors that can declare it, its suggested format, and the sequence's timing. */
 export interface MovieOptions {
   id: string; ids: string[]; path: string; descriptors: string[]; formats: MovieFormat[]; movieFormat: MovieFormat;
-  sequenceId: string | null; frameTime: number; fps: number; loopCount: number; frames: number;
+  sequenceId: string | null; frameTime: number; fps: number; loopCount: number; loopTo: number | null; frames: number;
+  crf: number; crfValues: number[]; gopSize: number; maxGopSize: number;
+  ffmpeg: { arguments: string[][]; sizes: Record<MovieFormat, string> };
 }
-export type MovieFormat = 'valpha' | 'opaque';
+export type MovieAlphaFormat = 'valpha' | 'valpha-top' | 'halpha' | 'halpha-left';
+export type MovieFormat = MovieAlphaFormat | 'opaque';
 /** How an asset that no descriptor declares can be declared: the paths its entry names, and the kinds that can, the
  * usual one first. */
 export interface DeclarationOptions {

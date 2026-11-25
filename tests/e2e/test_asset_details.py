@@ -2,6 +2,8 @@
 
 import json
 import re
+import shlex
+import shutil
 
 import pytest
 from playwright.sync_api import expect
@@ -106,6 +108,142 @@ def test_the_sidebar_lists_images_and_image_sequences_apart(new_context, details
     expect(page.locator('.asset-card')).to_have_count(3)
     expect(page.locator('.asset-card').filter(has_text='SPIN')).to_have_count(0)
     assert errors == []
+
+
+@pytest.mark.skipif(not shutil.which('ffmpeg'), reason='making a movie needs FFmpeg')
+@pytest.mark.parametrize(('alpha_layout', 'encoded_size'), [('valpha-top', (4, 8)), ('halpha-left', (8, 4))])
+def test_make_movie_uses_the_entered_frame_rate_and_alpha_layout(new_context, details_backend, alpha_layout, encoded_size):
+    backend, game = details_backend
+    descriptor = game / 'RssMoviesData.json'
+    descriptor.write_text('{"movies": []}')
+    context = new_context()
+    context.grant_permissions(['clipboard-read', 'clipboard-write'], origin=backend.url)
+    page = context.new_page()
+    page.goto(backend.url)
+    page.get_by_role('list', name='Workspaces').get_by_role('button', name='Example', exact=True).click()
+    page.get_by_role('button', name='Asset library', exact=True).click()
+    page.get_by_role('region', name='Workspace summary').get_by_role('button', name='Rescan', exact=True).click()
+    page.locator('.asset-card').filter(has_text='SPIN').locator('.asset-hit-target').click()
+    page.get_by_role('button', name='Make movie…', exact=True).click()
+    dialog = page.get_by_role('dialog', name='Make a movie of SPIN')
+    facts = dialog.locator('dl[aria-label="Source sequence parameters"]')
+    expect(facts.locator('dt')).to_have_text(['frameTime', 'loopCount', 'loopTo'])
+    expect(facts.locator('dd')).to_have_text(['40', '0', 'null'])
+    assert facts.evaluate('''list => {
+        const first = list.firstElementChild.getBoundingClientRect();
+        const last = list.lastElementChild.getBoundingClientRect();
+        const box = list.getBoundingClientRect();
+        return Math.abs(first.left + last.right - box.left - box.right) < 1;
+    }''')
+    popup = dialog.locator('.movie-dialog')
+    expect(popup).to_have_css('width', '650px')
+    viewport = page.viewport_size
+    page.set_viewport_size({'width': 600, 'height': 800})
+    assert popup.evaluate('popup => popup.getBoundingClientRect().right < window.innerWidth')
+    page.set_viewport_size(viewport)
+    fps = dialog.get_by_label('Frame rate (FPS)')
+    crf = dialog.get_by_label('CRF', exact=True)
+    gop = dialog.get_by_label('Keyframe interval (-g)', exact=True)
+    interval = dialog.locator('#movie-gop-hint')
+    submit = dialog.get_by_role('button', name='Make movie', exact=True)
+    expect(fps).to_have_value('25')
+    commands = dialog.get_by_role('region', name='FFmpeg Command')
+    live = commands.locator('pre')
+    expect(commands.locator('pre')).to_have_count(1)
+    expect(commands.locator('p')).to_have_count(0)
+    expect(live).to_have_css('white-space', 'pre')
+    expect(live).to_contain_text('-f rawvideo -pix_fmt rgb24 -s 4x4')
+    expect(live).to_contain_text('-framerate 1000/40 -i pipe:0')
+    expect(crf).to_have_value('23')
+    quality = dialog.locator('#movie-crf-quality')
+    expect(quality).to_have_text('Very good quality')
+    expect(quality).to_have_css('text-transform', 'lowercase')
+    expect(dialog.get_by_text('Quality guide', exact=True)).to_have_count(0)
+    expect(live).to_contain_text('-crf 23 -pix_fmt yuv420p')
+    expect(gop).to_have_value('250')
+    expect(gop).not_to_have_attribute('list', re.compile('.+'))
+    expect(live).to_contain_text('-g 250')
+    gop.fill('25')
+    expect(interval).to_have_text('I-frame every 1 second or sooner')
+    fps.fill('50')
+    expect(interval).to_have_text('I-frame every 0.5 seconds or sooner')
+    crf.select_option('0')
+    expect(quality).to_contain_text('Lossless after YUV 4:2:0 conversion')
+    crf.select_option('28')
+    expect(quality).to_have_text('Visible compression')
+    crf.select_option('31')
+    expect(quality).to_have_text('Low quality.')
+    crf.select_option('18')
+    expect(quality).to_have_text('Nearly indistinguishable from the original')
+    expect(live).to_contain_text('-crf 18 -pix_fmt yuv420p')
+    fps.fill('0')
+    expect(submit).to_be_disabled()
+    fps.fill('29.97')
+    gop.fill('2.5')
+    expect(submit).to_be_disabled()
+    gop.fill('0')
+    expect(interval).to_have_text('I-frame every frame')
+    gop.fill('30')
+    expect(interval).to_have_text('I-frame every 1.001 seconds or sooner')
+    expect(live).to_contain_text('-g 30')
+    format_menu = dialog.get_by_label('Format', exact=True)
+    expect(format_menu.locator('option')).to_have_text([
+        'valpha (alpha below)', 'valpha-top (alpha above)', 'halpha (alpha on the right)',
+        'halpha-left (alpha on the left)', 'Opaque (over black)',
+    ])
+    format_menu.select_option(alpha_layout)
+    format_note = dialog.get_by_text('Native playback requires renderer support', exact=False)
+    expect(format_note).to_be_visible()
+    expect(format_note).to_have_css('text-transform', 'lowercase')
+    gaps = dialog.locator('.movie-field-note').evaluate_all('''notes => notes.map(note =>
+        note.getBoundingClientRect().top - note.previousElementSibling.getBoundingClientRect().bottom
+    )''')
+    assert gaps == pytest.approx([4, 4, 4, 4], abs=0.5)
+    path_field = dialog.get_by_label('Path', exact=True)
+    expect(path_field).to_have_value(re.compile(r'-rgba\.mov$'))
+    expect(live).to_contain_text(f'-s {encoded_size[0]}x{encoded_size[1]}')
+    expect(live).to_contain_text('-framerate 29.97 -i pipe:0')
+    suggested_path = path_field.input_value()
+    long_path = "m/Splash/Completed/it/Long output name for the completed image sequence take one's preview.mp4"
+    path_field.fill(long_path)
+    expect(live).to_contain_text('-movflags +faststart -f mp4')
+    assert live.evaluate('pre => pre.scrollWidth > pre.clientWidth')
+    command = live.text_content()
+    lines = command.splitlines()
+    assert all(line.endswith(' \\') for line in lines[:-1])
+    assert shlex.split(lines[-1]) == [long_path]
+    entry = dialog.get_by_role('region', name='RssMoviesData.json · movies')
+    entry_json = entry.locator('pre').text_content()
+    entry.get_by_role('button', name='Copy movie entry JSON').click()
+    poll(lambda: page.evaluate('navigator.clipboard.readText()'), entry_json)
+    assert json.loads(entry_json) == {'id': 'ANIM_SPIN_MOVIE', 'path': long_path, 'movieFormat': alpha_layout}
+    commands.get_by_role('button', name='Copy FFmpeg command').click()
+    poll(lambda: page.evaluate('navigator.clipboard.readText()'), command)
+    path_field.fill(suggested_path)
+    expect(live).to_contain_text('-movflags +faststart -f mov')
+    assert live.text_content().splitlines()[-1].strip() == suggested_path
+    with page.expect_request(lambda request: request.method == 'POST' and request.url.endswith('/api/asset-report/movie')) as sent:
+        submit.click()
+    submitted = sent.value.post_data_json
+    assert submitted['crf'] == 18 and submitted['gopSize'] == 30
+    expect(dialog).to_have_count(0)
+    details = page.get_by_role('dialog', name=re.compile(r'-rgba\.mov$'))
+    expect(details.get_by_role('row', name='Frame rate 29.97 frames per second')).to_be_visible()
+    assert json.loads(descriptor.read_text())['movies'][0]['movieFormat'] == alpha_layout
+    if page.evaluate('''document.createElement('video').canPlayType('video/mp4; codecs="avc1.640028"')'''):
+        canvas = details.get_by_role('img', name=re.compile(r'with its alpha$'))
+        details.get_by_role('button', name='As encoded').click()
+        video = details.locator('video')
+        expect(video).to_have_js_property('videoWidth', encoded_size[0])
+        expect(video).to_have_js_property('videoHeight', encoded_size[1])
+        expect(canvas).to_be_hidden()
+        video.evaluate('video => video.play()')
+        details.get_by_role('button', name='With alpha').click()
+        expect(canvas).to_have_js_property('height', 4)
+        poll(lambda: canvas.evaluate('''canvas => {
+            const [r, g, b, a] = canvas.getContext('2d').getImageData(2, 2, 1, 1).data;
+            return r > 200 && g < 60 && b < 60 && a > 200;
+        }'''), True)
 
 
 def test_an_asset_that_no_descriptor_declares_is_declared_from_its_details(new_context, details_backend):

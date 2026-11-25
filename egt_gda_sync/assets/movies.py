@@ -2,8 +2,8 @@
 
 OpenCV, with its FFmpeg backend, reads them: their facts (frame size, frame rate, frames, duration and codec), one frame
 as a thumbnail, and a fingerprint that the GDA sync matches with the GDA's movies (MovieMatcher). A movie of the
-"valpha" format stacks its alpha under its picture: the top half of each frame is the picture and the bottom half its
-alpha as gray, which a thumbnail composes into a transparent image.
+packed alpha format stores a premultiplied picture and a grayscale mask, which a thumbnail composes into a
+transparent image.
 
 The matching follows the image matching (egt_gda_sync.images.image_compare), on up to FRAMES frames taken at equal steps
 across each movie, each as a small gray thumbnail with its pHash and dHash (its fingerprint):
@@ -31,7 +31,7 @@ import time
 from collections import Counter
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import cv2
 import numpy as np
@@ -43,8 +43,14 @@ from egt_gda_sync.images.image_compare import (EVALUATION_KEYS, Query, Target, d
 # The movies the library lists, with the type the browser plays each as: a QuickTime file is an ISO media file like an
 # MP4 one, and browsers play its H.264 video as MP4.
 MOVIE_EXTENSIONS = {"mov": "video/mp4", "mp4": "video/mp4", "m4v": "video/mp4", "webm": "video/webm"}
-# The movie format whose frames stack the picture over its alpha.
-STACKED_ALPHA = "valpha"
+PackedAlphaFormat = Literal["valpha", "valpha-top", "halpha", "halpha-left"]
+# NumPy concatenation axis and whether the alpha mask comes before the picture.
+PACKED_ALPHA_LAYOUTS = {
+    "valpha": (0, False),
+    "valpha-top": (0, True),
+    "halpha": (1, False),
+    "halpha-left": (1, True),
+}
 # The version of the fingerprint: cached fingerprints of another are made again.
 VERSION = 1
 # The frames of a fingerprint, at most, and the size of their gray thumbnails. A movie of up to FRAMES frames keeps every
@@ -123,17 +129,21 @@ def _frame_at(capture: cv2.VideoCapture, index: int) -> np.ndarray | None:
     return frame if ok else None
 
 
-def unstacked(frame: np.ndarray) -> np.ndarray:
-    """A valpha frame's picture with its alpha, as BGRA: the top half, premultiplied by the bottom half's gray (as the
-    games' shader reads it), divided back out, and transparent where the bottom half is black."""
-    half = frame.shape[0] // 2
-    alpha = cv2.cvtColor(frame[half:half * 2], cv2.COLOR_BGR2GRAY)
-    picture = frame[:half].astype(np.uint16) * 255 // np.maximum(alpha, 1)[..., None]
+def unstacked(frame: np.ndarray, movie_format: PackedAlphaFormat = "valpha") -> np.ndarray:
+    """Recover the straight BGRA picture from a premultiplied picture and its grayscale mask."""
+    axis, alpha_first = PACKED_ALPHA_LAYOUTS[movie_format]
+    half = frame.shape[axis] // 2
+    if not half:
+        return frame
+    first, second, _ = np.split(frame, (half, half * 2), axis=axis)
+    color, mask = (second, first) if alpha_first else (first, second)
+    alpha = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
+    picture = color.astype(np.uint16) * 255 // np.maximum(alpha, 1)[..., None]
     return np.dstack((np.minimum(picture, 255).astype(np.uint8), alpha))
 
 
-def movie_thumbnail(path: str, stacked: bool = False, width: int = THUMBNAIL_WIDTH) -> tuple[bytes, str]:
-    """The frame in the middle of a movie, as wide as width at most: a PNG with the alpha of a stacked one, otherwise a
+def movie_thumbnail(path: str, alpha_format: PackedAlphaFormat | None = None, width: int = THUMBNAIL_WIDTH) -> tuple[bytes, str]:
+    """The frame in the middle of a movie, as wide as width at most: a PNG for a packed alpha format, otherwise a
     JPEG. ValueError when it cannot be read."""
     try:
         with _Capture(path) as capture:
@@ -145,8 +155,8 @@ def movie_thumbnail(path: str, stacked: bool = False, width: int = THUMBNAIL_WID
         raise ValueError(str(error)) from error
     if frame is None:
         raise ValueError("the movie has no frame that OpenCV can decode")
-    if stacked and frame.shape[0] >= 2:
-        frame = unstacked(frame)
+    if alpha_format:
+        frame = unstacked(frame, alpha_format)
     height, current = frame.shape[:2]
     if current > width:
         frame = resized(frame, width, max(1, round(height * width / current)))

@@ -89,7 +89,7 @@ Where the browser differs from a cabinet:
   The topper screen takes the size of its picture, which on a cabinet the integration's viewport has.
 - RTF help pages use VideoManager's configured system fonts and play inline frame sequences at their configured FPS
   on the game clock. Canvas text metrics can still differ slightly from the cabinet's RTF Tool renderer.
-- Movies play in the browser's video player, muted (their sounds are audio events), composed with their `valpha` alpha.
+- Movies play in the browser's video player, muted (their sounds are audio events), composed with their packed alpha (`valpha`, `valpha-top`, `halpha` or `halpha-left`).
   They load once the game's images have loaded, where C++ loads and starts them when the element is made.
 
 The states library has the free, coins, coins free, hold and spin, wheel and gamble rounds (`Match/FreeRound`...), the

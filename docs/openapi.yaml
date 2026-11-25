@@ -563,8 +563,29 @@ components:
           type: string
           enum:
           - valpha
+          - valpha-top
+          - halpha
+          - halpha-left
           - opaque
           title: Movieformat
+        fps:
+          anyOf:
+          - type: number
+            exclusiveMinimum: 0.0
+          - type: 'null'
+          title: Fps
+        crf:
+          type: integer
+          maximum: 51
+          minimum: 0
+          title: Crf
+          default: 23
+        gopSize:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: Gopsize
+          default: 250
       additionalProperties: false
       type: object
       required:
@@ -577,7 +598,8 @@ components:
       description: 'A movie made from an image sequence of the asset report: its new
         id, its path relative to the game folder, the
 
-        descriptor that declares it, relative to the game folder, and its format.'
+        descriptor that declares it, relative to the game folder, its format, and
+        optional FPS, CRF, and GOP size overrides.'
     OpenDeclarationBody:
       properties:
         descriptor:
@@ -1577,6 +1599,19 @@ paths:
           type: boolean
           default: false
           title: Stacked
+      - name: alphaFormat
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - enum:
+            - valpha
+            - valpha-top
+            - halpha
+            - halpha-left
+            type: string
+          - type: 'null'
+          title: Alphaformat
       responses:
         '200':
           description: Successful Response

@@ -11,6 +11,7 @@ import { IResources } from '@game/engine/Game/RuntimeExport/IResources';
 import { RuntimeHolder, type Runtime } from '@game/engine/GameCore/RuntimeAccess';
 import type { DrawList, Transform } from '../../DrawList';
 import { MovieFrame } from '../../MovieFrame';
+import { isMovieAlphaFormat, movieAlphaRects } from '../../movieAlpha';
 import { IVideo } from '../../RuntimeExport/IVideo';
 import { IAnimationClip } from './IAnimationClip';
 
@@ -120,7 +121,12 @@ export class MovieElement extends IAnimationClip {
   GetSize() {
     const player = this.m_player;
     if (!player?.videoWidth) return { w: 0, h: 0 };
-    return { w: player.videoWidth, h: this.m_resource?.movieFormat === 'valpha' ? Math.floor(player.videoHeight / 2) : player.videoHeight };
+    const format = this.m_resource?.movieFormat;
+    if (isMovieAlphaFormat(format)) {
+      const { width, height } = movieAlphaRects(player.videoWidth, player.videoHeight, format);
+      return { w: width, h: height };
+    }
+    return { w: player.videoWidth, h: player.videoHeight };
   }
 
   Draw(drawList: DrawList, transform: Transform, color: Color) {

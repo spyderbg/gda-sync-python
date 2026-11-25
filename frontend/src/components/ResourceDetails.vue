@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { PREVIEW_EXTENSIONS, algorithmValues, baseName, viewTable, type GdaCandidate, declarationLabel, directoryOf, extensionOf, fileType, matchBadge, matchText, number, plural, previewFrames, relativePath, rssBadges, rtfChangeBadges, rtfChangeNames, rtfChangeSummary, sequenceName, size, splitPath, stackedAlpha, time } from '../format';
+import { PREVIEW_EXTENSIONS, algorithmValues, baseName, viewTable, type GdaCandidate, declarationLabel, directoryOf, extensionOf, fileType, matchBadge, matchText, movieAlphaFormat, number, plural, previewFrames, relativePath, rssBadges, rtfChangeBadges, rtfChangeNames, rtfChangeSummary, sequenceName, size, splitPath, time } from '../format';
 import type { RssFileDetails, RssResource, RtfFacts } from '../types';
 import { busy, copy, data, openResourceFile, openResourceFolder, requestResourceSync, resourceDetails, rssSync } from '../workspace';
 import AppModal from './AppModal.vue';
@@ -50,9 +50,9 @@ const choosePage = (facts: RtfFacts, index: number | undefined) => { rtfPage.val
 // An RTF's files that Sync copies or deletes first, then the identical ones.
 const rtfFiles = computed(() => [...(directory.value?.files ?? [])].sort((a, b) => Number(!a.change || a.change === 'identical') - Number(!b.change || b.change === 'identical')));
 const isAudio = (path: string) => fileType(extensionOf(baseName(path))) === 'audio';
-// A movie and its GDA movie play side by side, only while the details are open; a valpha one with its alpha.
+// A movie and its GDA movie play side by side, with packed alpha when the declaration specifies it.
 const isMovie = (path: string) => fileType(extensionOf(baseName(path))) === 'movie';
-const stacked = computed(() => stackedAlpha(props.row.requiredBy));
+const alphaFormat = computed(() => movieAlphaFormat(props.row.requiredBy));
 // What the resource and its candidates are, as the labels name them.
 const noun = computed(() => (isMovie(props.row.resourcePath) ? 'movie' : 'image'));
 // The GDA image an image is compared with: the given candidate, or else, in a report without candidates on the card, its
@@ -345,8 +345,8 @@ function sync() {
           <FontPreview v-else-if="isFont && row.category !== 'invalid'" v-model:text="fontText" :file="row.resourcePath" :name="name" :revision="revision" large
                        :chars="fontUse?.chars" :size="fontUse?.size" :missing="coverageOf(row.resourcePath)?.missing" />
           <ViewPreview v-else-if="row.view" :file="row.resourcePath" :name="name" :revision="revision" :facts="row.view" large />
-          <MoviePreview v-else-if="isMovie(row.resourcePath) && row.category !== 'invalid'" :file="row.resourcePath" :name="name" :revision="revision" :stacked="stacked" />
-          <ReportThumbnail v-else :file="directory?.project ?? row.resourcePath" :name="directory ? baseName(directory.project) : name" :revision="revision" :preview="row.category !== 'invalid'" :stacked="stacked" />
+          <MoviePreview v-else-if="isMovie(row.resourcePath) && row.category !== 'invalid'" :file="row.resourcePath" :name="name" :revision="revision" :alpha-format="alphaFormat" />
+          <ReportThumbnail v-else :file="directory?.project ?? row.resourcePath" :name="directory ? baseName(directory.project) : name" :revision="revision" :preview="row.category !== 'invalid'" :alpha-format="alphaFormat" />
         </figure>
         <figure v-if="pairedPreview" class="details-preview">
           <figcaption>
@@ -359,8 +359,8 @@ function sync() {
           <AudioPreview v-else-if="isAudio(gdaShown!.path)" :file="gdaShown!.absolutePath" :name="baseName(gdaShown!.path)" :revision="revision" />
           <FontPreview v-else-if="isFont" v-model:text="fontText" :file="gdaShown!.absolutePath" :name="baseName(gdaShown!.path)" :revision="revision" large
                        :chars="fontUse?.chars" :size="fontUse?.size" :missing="coverageOf(gdaShown!.absolutePath)?.missing" />
-          <MoviePreview v-else-if="isMovie(gdaShown!.path)" :file="gdaShown!.absolutePath" :name="baseName(gdaShown!.path)" :revision="revision" :stacked="stacked" />
-          <ReportThumbnail v-else :file="gdaShown!.absolutePath" :name="baseName(gdaShown!.path)" :revision="revision" :stacked="stacked" />
+          <MoviePreview v-else-if="isMovie(gdaShown!.path)" :file="gdaShown!.absolutePath" :name="baseName(gdaShown!.path)" :revision="revision" :alpha-format="alphaFormat" />
+          <ReportThumbnail v-else :file="gdaShown!.absolutePath" :name="baseName(gdaShown!.path)" :revision="revision" :alpha-format="alphaFormat" />
         </figure>
       </div>
 

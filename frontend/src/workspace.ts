@@ -341,7 +341,9 @@ export function movieOptions(asset: string) {
 
 /** Encode an image sequence as a movie file of the game and declare it under a new RSS key, then show the movie. A movie
  * plays once unless its Anim element sets loopCount, so the message says when the sequence loops otherwise. */
-export async function createMovie(body: { asset: string; id: string; path: string; descriptor: string; movieFormat: MovieFormat }, sequence: { id: string | null; loopCount: number }) {
+export async function createMovie(body: {
+  asset: string; id: string; path: string; descriptor: string; movieFormat: MovieFormat; fps?: number; crf: number; gopSize: number;
+}, sequence: { id: string | null; loopCount: number }) {
   busy.value = 'movie';
   try {
     const result = await api<{ library: LibraryResponse; asset: string | null; descriptor: string; line: number }>('asset-report/movie', 'POST', body);

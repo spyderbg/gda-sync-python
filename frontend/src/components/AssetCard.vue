@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { assetBadges, assetFrames, baseName, clock, declarationLabel, number, plural, sequenceName, sequenceSummary, size, splitPath, stackedAlpha, typeIcons, viewSummary } from '../format';
+import { assetBadges, assetFrames, baseName, clock, declarationLabel, movieAlphaFormat, number, plural, sequenceName, sequenceSummary, size, splitPath, typeIcons, viewSummary } from '../format';
 import type { ReportAsset } from '../types';
 import CheckBox from './CheckBox.vue';
 import ReportThumbnail from './ReportThumbnail.vue';
@@ -48,7 +48,7 @@ const file = computed(() => props.row.directory?.project ?? props.row.resourcePa
       <RtfPreview v-if="rtf" :file="file" :name="resource.name" :revision="revision" :facts="rtf" />
       <ViewPreview v-else-if="view" :file="file" :name="resource.name" :revision="revision" :facts="view" />
       <button v-else-if="!sequence" type="button" class="report-asset-preview" :aria-label="`Inspect ${resource.name}`">
-        <ReportThumbnail :file="file" :name="baseName(file)" :revision="revision" :preview="readable && row.preview !== false" :stacked="stackedAlpha(row.requiredBy)" />
+        <ReportThumbnail :file="file" :name="baseName(file)" :revision="revision" :preview="readable && row.preview !== false" :alpha-format="movieAlphaFormat(row.requiredBy)" />
       </button>
       <div class="card-body">
         <p class="asset-name"><i aria-hidden="true" :class="['mdi', sequence ? 'mdi-animation-outline' : typeIcons[row.type]]" /><span :title="row.resourcePath">{{ resource.name }}</span></p>

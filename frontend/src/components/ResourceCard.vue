@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue';
-import { algorithmTitle, baseName, declarationLabel, directoryOf, extensionOf, fileType, matchText, number, plural, previewFrames, resourceAction, rssBadges, rssStatusNames, rtfChangeNames, rtfChangeSummary, sequenceName, sequenceSummary, splitPath, stackedAlpha, typeIcons, viewSummary, type GdaCandidate } from '../format';
+import { algorithmTitle, baseName, declarationLabel, directoryOf, extensionOf, fileType, matchText, movieAlphaFormat, number, plural, previewFrames, resourceAction, rssBadges, rssStatusNames, rtfChangeNames, rtfChangeSummary, sequenceName, sequenceSummary, splitPath, typeIcons, viewSummary, type GdaCandidate } from '../format';
 import type { RssResource } from '../types';
 import { copy, openDeclaration, openResourceFolder } from '../workspace';
 import CheckBox from './CheckBox.vue';
@@ -40,7 +40,7 @@ const directory = computed(() => props.row.directory);
 const resource = computed(() => splitPath(props.row.resource));
 // What the resource and its candidates are, as the labels name them, and whether a movie stacks its alpha under it.
 const noun = computed(() => (fileType(extensionOf(resource.value.name)) === 'movie' ? 'movie' : 'image'));
-const stacked = computed(() => stackedAlpha(props.row.requiredBy));
+const alphaFormat = computed(() => movieAlphaFormat(props.row.requiredBy));
 const resourceDirectory = computed(() => directoryOf(props.row.resourcePath));
 const selectable = computed(() => !!resourceAction(props.row));
 const matching = computed(() => props.candidates.length > 0);
@@ -125,7 +125,7 @@ const gdaFolder = computed(() => gdaFiles.value[0]?.directory ?? '');
         <RtfPreview v-if="directory && row.rtf" :file="directory.project" :name="resource.name" :revision="revision" :facts="row.rtf" />
         <ViewPreview v-else-if="row.view" :file="row.resourcePath" :name="resource.name" :revision="revision" :facts="row.view" />
         <button v-else-if="!sequence" type="button" class="resource-preview" :aria-label="`Show the details of ${row.resource}`">
-          <ReportThumbnail :file="directory?.project ?? row.resourcePath" :name="directory ? baseName(directory.project) : resource.name" :revision="revision" :preview="row.category !== 'invalid'" :stacked="stacked" />
+          <ReportThumbnail :file="directory?.project ?? row.resourcePath" :name="directory ? baseName(directory.project) : resource.name" :revision="revision" :preview="row.category !== 'invalid'" :alpha-format="alphaFormat" />
         </button>
         <div class="card-body">
           <p class="asset-name"><button type="button" class="resource-icon-button resource-file-copy" :aria-label="`Copy the game path of ${resource.name}`" title="Copy the game path" @click.stop="copy(row.resourcePath)"><i aria-hidden="true" :class="['mdi', sequence ? 'mdi-animation-outline' : directory ? typeIcons.rtf : icon(resource.name)]" /></button><span :title="row.resourcePath">{{ resource.name }}</span></p>
@@ -177,7 +177,7 @@ const gdaFolder = computed(() => gdaFiles.value[0]?.directory ?? '');
           <button type="button" class="resource-candidate-select" :aria-pressed="candidate.absolutePath === chosen" :disabled="!candidate.syncable"
                   :aria-label="`${candidate.absolutePath === chosen ? 'Clear the choice of' : 'Choose'} GDA ${noun} ${candidate.path} for ${row.resource}`"
                   :title="`${candidate.absolutePath}\n${algorithmTitle(candidate)}`" @click="emit('choose', candidate.absolutePath === chosen ? null : candidate.absolutePath)">
-            <ReportThumbnail :file="candidate.absolutePath" :name="baseName(candidate.path)" :revision="revision" :stacked="stacked" />
+            <ReportThumbnail :file="candidate.absolutePath" :name="baseName(candidate.path)" :revision="revision" :alpha-format="alphaFormat" />
             <span class="resource-candidate-name"><i aria-hidden="true" :class="['mdi', icon(candidate.path)]" />{{ baseName(candidate.path) }}</span>
             <span class="resource-candidate-match">{{ matchText(candidate) }}</span>
           </button>
@@ -231,7 +231,7 @@ const gdaFolder = computed(() => gdaFiles.value[0]?.directory ?? '');
             <ViewPreview :file="file.absolutePath" :name="file.name" :revision="revision" :facts="row.gdaView" />
           </div>
           <button v-else type="button" class="resource-preview" :aria-label="`Show the details of ${row.resource}`" @click="emit('open')">
-            <ReportThumbnail :file="file.absolutePath" :name="file.name" :revision="revision" :stacked="stacked" />
+            <ReportThumbnail :file="file.absolutePath" :name="file.name" :revision="revision" :alpha-format="alphaFormat" />
           </button>
           <div class="card-body">
             <p class="asset-name"><button type="button" class="resource-icon-button resource-file-copy" :aria-label="`Copy the GDA path ${file.path}`" title="Copy the GDA path" @click="copy(file.absolutePath)"><i aria-hidden="true" :class="['mdi', icon(file.name)]" /></button><span :title="file.absolutePath">{{ file.name }}</span></p>

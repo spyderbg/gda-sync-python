@@ -25,7 +25,8 @@ from egt_gda_sync import APP_ID, __version__
 from egt_gda_sync.app.desktop import choose_folder, open_in_code, open_on_desktop, platform_label
 from egt_gda_sync.app.errors import AppError
 from egt_gda_sync.assets.fonts import FONT_EXTENSIONS, facts_header
-from egt_gda_sync.assets.movies import is_movie
+from egt_gda_sync.assets.movie_maker import DEFAULT_CRF, DEFAULT_GOP_SIZE, MAX_CRF, MAX_GOP_SIZE, MIN_CRF, MovieFormat
+from egt_gda_sync.assets.movies import PackedAlphaFormat, is_movie
 from egt_gda_sync.game.project import (MAX_EXPORT_BYTES, MAX_LAYOUT_IMAGE_BYTES, MAX_SCREENSHOT_BYTES, GameProject,
                                        agent_status, game_source_path)
 from egt_gda_sync.game.rng_server import MAX_QUEUE, MAX_RANDOMS, MAX_SEQUENCE, UINT32, GameServer
@@ -329,12 +330,15 @@ class RemoveAssetBody(_Body):
 
 class MovieBody(_Body):
     """A movie made from an image sequence of the asset report: its new id, its path relative to the game folder, the
-    descriptor that declares it, relative to the game folder, and its format."""
+    descriptor that declares it, relative to the game folder, its format, and optional FPS, CRF, and GOP size overrides."""
     asset: Text4K
     id: Text4K
     path: Text4K
     descriptor: Text4K
-    movieFormat: Literal["valpha", "opaque"]
+    movieFormat: MovieFormat
+    fps: Annotated[float, Field(strict=True, gt=0, allow_inf_nan=False)] | None = None
+    crf: Annotated[int, Field(strict=True, ge=MIN_CRF, le=MAX_CRF)] = DEFAULT_CRF
+    gopSize: Annotated[int, Field(strict=True, ge=0, le=MAX_GOP_SIZE)] = DEFAULT_GOP_SIZE
 
 
 class DeclarationBody(_Body):
@@ -608,9 +612,9 @@ def create_app(
         return Response(data, media_type=mime, headers=headers)
 
     @app.get("/api/rss-sync/movie-frame")
-    def rss_sync_movie_frame(file: Annotated[str, Query(max_length=4096)], stacked: bool = False) -> Response:
-        # A movie's thumbnail: its middle frame, with the alpha that a valpha movie stacks under its picture.
-        data, mime = library.movie_thumbnail(file, stacked)
+    def rss_sync_movie_frame(file: Annotated[str, Query(max_length=4096)], stacked: bool = False,
+                             alphaFormat: PackedAlphaFormat | None = None) -> Response:
+        data, mime = library.movie_thumbnail(file, alphaFormat or ("valpha" if stacked else None))
         return Response(data, media_type=mime, headers={"Content-Security-Policy": PREVIEW_CSP})
 
     @app.get("/api/rss-sync/view")
@@ -803,7 +807,8 @@ def create_app(
 
     @app.post("/api/asset-report/movie")
     def create_movie(body: MovieBody) -> dict:
-        return library.create_movie(body.asset, body.id, body.path, body.descriptor, body.movieFormat)
+        return library.create_movie(body.asset, body.id, body.path, body.descriptor, body.movieFormat,
+                                    fps=body.fps, crf=body.crf, gop_size=body.gopSize)
 
     @app.get("/api/asset-report/uses")
     def asset_uses(asset: Annotated[str, Query(max_length=4096)]) -> dict:

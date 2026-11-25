@@ -10,7 +10,7 @@ import ReportThumbnail from '../components/ReportThumbnail.vue';
 import MoveAssets from '../components/MoveAssets.vue';
 import WorkspaceHeader from '../components/WorkspaceHeader.vue';
 import { useAssetReport } from '../composables/useAssetReport';
-import { assetBadges, assetMatches, assetSection, baseName, declarationLabel, number, plural, size, splitPath, stackedAlpha } from '../format';
+import { assetBadges, assetMatches, assetSection, baseName, declarationLabel, movieAlphaFormat, number, plural, size, splitPath } from '../format';
 import type { AssetCategory, AssetFolder, ReportAsset } from '../types';
 import { assetReport, busy, generateAssetReport, ui } from '../workspace';
 
@@ -199,7 +199,7 @@ const folderName = computed(() => folders.value.find(item => item.path === folde
               </td>
               <td>
                 <button type="button" class="asset-hit-target" :aria-label="`Inspect ${splitPath(row.resource).name}`" @click="ui.inspecting = row.id">
-                  <ReportThumbnail :file="listFile(row).resourcePath" :name="splitPath(listFile(row).resource).name" :revision="revision" :preview="readable(listFile(row))" :stacked="stackedAlpha(row.requiredBy)" />
+                  <ReportThumbnail :file="listFile(row).resourcePath" :name="splitPath(listFile(row).resource).name" :revision="revision" :preview="readable(listFile(row))" :alpha-format="movieAlphaFormat(row.requiredBy)" />
                   <span class="asset-name">{{ splitPath(row.resource).name }}</span>
                 </button>
               </td>

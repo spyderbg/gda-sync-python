@@ -1,7 +1,7 @@
-// The picture of a movie's current frame, for video_ctrl::draw_list::add_movie_image. A "valpha" movie stacks its alpha
-// under its picture: the top half of each frame is the picture, premultiplied by its alpha, the bottom half its alpha as
-// gray (C++'s fs_valphamix divides the color by the alpha). The frame is composed into a transparent picture of half the
-// height, on the GPU (WebGL), or else from its pixels.
+import type { MovieAlphaFormat } from '../../../types';
+import { composeMovieAlpha, isMovieAlphaFormat, movieAlphaRects } from './movieAlpha';
+
+// Compose the premultiplied picture and its grayscale mask on the GPU (WebGL), with a 2D canvas fallback.
 //
 // The WebGL picture is an OffscreenCanvas where the browser has one: Firefox swaps red and blue when its GPU 2D canvas
 // (the game's) draws a WebGL <canvas> (a gold Big Win shows blue), but not when it draws a WebGL OffscreenCanvas.
@@ -9,9 +9,11 @@
 const VERTEX = `attribute vec2 p; varying vec2 uv;
 void main() { uv = vec2(p.x, 1.0 - p.y) ; gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0); }`;
 const FRAGMENT = `precision mediump float; varying vec2 uv; uniform sampler2D frame;
+uniform vec2 tileSize, pictureOffset, alphaOffset;
 void main() {
-  vec3 color = texture2D(frame, vec2(uv.x, uv.y * 0.5)).rgb;
-  float alpha = texture2D(frame, vec2(uv.x, 0.5 + uv.y * 0.5)).r;
+  vec2 point = uv * tileSize;
+  vec3 color = texture2D(frame, point + pictureOffset).rgb;
+  float alpha = texture2D(frame, point + alphaOffset).r;
   gl_FragColor = vec4(min(color, vec3(alpha)), alpha);
 }`;
 
@@ -21,19 +23,23 @@ export class MovieFrame {
   private canvas: HTMLCanvasElement | OffscreenCanvas | null = null;
   private gl: WebGLRenderingContext | null = null;
   private ctx: CanvasRenderingContext2D | null = null;
+  private uniforms: { tile: WebGLUniformLocation | null; picture: WebGLUniformLocation | null; alpha: WebGLUniformLocation | null } | null = null;
   private composedTime = -1;
+  private format?: MovieAlphaFormat;
 
   /** The picture of the video's current frame, or null before it has one. */
   Get(video: HTMLVideoElement, format: string | undefined): CanvasImageSource | null {
     if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA || !video.videoWidth) return null;
-    if (format !== 'valpha') return video;
-    const width = video.videoWidth;
-    const height = Math.floor(video.videoHeight / 2);
+    if (!isMovieAlphaFormat(format)) return video;
+    const rects = movieAlphaRects(video.videoWidth, video.videoHeight, format);
+    const { width, height } = rects;
+    if (!width || !height) return video;
     if (!this.canvas || this.canvas.width !== width || this.canvas.height !== height) this.Create(width, height);
-    if (this.composedTime !== video.currentTime) {
+    if (this.composedTime !== video.currentTime || this.format !== format) {
+      this.format = format;
       this.composedTime = video.currentTime;
-      if (this.gl) this.ComposeGl(video);
-      else this.Compose2d(video, width, height);
+      if (this.gl) this.ComposeGl(video, rects);
+      else if (this.ctx) composeMovieAlpha(this.ctx, video, rects);
     }
     return this.canvas;
   }
@@ -75,6 +81,11 @@ export class MovieFrame {
     gl.linkProgram(program);
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) return false;
     gl.useProgram(program);
+    this.uniforms = {
+      tile: gl.getUniformLocation(program, 'tileSize'),
+      picture: gl.getUniformLocation(program, 'pictureOffset'),
+      alpha: gl.getUniformLocation(program, 'alphaOffset'),
+    };
     gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([0, 0, 1, 0, 0, 1, 1, 1]), gl.STATIC_DRAW);
     const position = gl.getAttribLocation(program, 'p');
@@ -89,27 +100,15 @@ export class MovieFrame {
     return true;
   }
 
-  private ComposeGl(video: HTMLVideoElement) {
+  private ComposeGl(video: HTMLVideoElement, rects: ReturnType<typeof movieAlphaRects>) {
     const gl = this.gl!;
+    const { tile, picture, alpha } = this.uniforms!;
+    const { videoWidth, videoHeight } = video;
+    gl.uniform2f(tile, rects.width / videoWidth, rects.height / videoHeight);
+    gl.uniform2f(picture, rects.pictureX / videoWidth, rects.pictureY / videoHeight);
+    gl.uniform2f(alpha, rects.alphaX / videoWidth, rects.alphaY / videoHeight);
     gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, video);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-  }
-
-  private Compose2d(video: HTMLVideoElement, width: number, height: number) {
-    const ctx = this.ctx;
-    if (!ctx) return;
-    ctx.clearRect(0, 0, width, height);
-    ctx.drawImage(video, 0, height, width, height, 0, 0, width, height);
-    const alpha = ctx.getImageData(0, 0, width, height).data;
-    ctx.drawImage(video, 0, 0, width, height, 0, 0, width, height);
-    const picture = ctx.getImageData(0, 0, width, height);
-    // ImageData is not premultiplied: the color is divided by the alpha.
-    for (let i = 3; i < alpha.length; i += 4) {
-      const value = alpha[i - 3];
-      picture.data[i] = value;
-      for (let channel = i - 3; channel < i; channel++) picture.data[channel] = value ? Math.min(255, Math.round(picture.data[channel] * 255 / value)) : 0;
-    }
-    ctx.putImageData(picture, 0, 0);
   }
 }
