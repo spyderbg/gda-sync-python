@@ -29,7 +29,7 @@ import math
 import threading
 import time
 from collections import Counter
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import Any, Literal
 
@@ -121,6 +121,21 @@ def describe_movie(path: str) -> dict:
     except (ValueError, cv2.error) as error:
         return {"movieError": str(error)}
     return {"movie": facts, "dimensions": {"width": facts["width"], "height": facts["height"], "format": facts.get("codec", "video")}}
+
+
+def movie_images(path: Path | str) -> Iterator[np.ndarray]:
+    """Every frame of a movie as it is encoded, in opaque RGBA. ValueError when one of them cannot be decoded."""
+    with _Capture(path) as capture:
+        declared = max(0, int(capture.get(cv2.CAP_PROP_FRAME_COUNT) or 0))
+        decoded = 0
+        while True:
+            ok, frame = capture.read()
+            if not ok:
+                break
+            decoded += 1
+            yield cv2.cvtColor(frame, cv2.COLOR_BGR2RGBA)
+        if not decoded or decoded < declared:
+            raise ValueError(f"OpenCV can decode only {decoded} of the movie's {declared} frames")
 
 
 def _frame_at(capture: cv2.VideoCapture, index: int) -> np.ndarray | None:

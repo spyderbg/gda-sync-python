@@ -37,7 +37,7 @@ const unsaved = ref(false);
 // The dialog that declares the asset, over this one.
 const declaring = ref(false);
 const moving = ref(false);
-// The dialog that makes an image sequence into a movie.
+// The dialog that makes an image sequence into a movie, or recreates a movie's file.
 const makingMovie = ref(false);
 const metadataOpen = ref(false);
 const renaming = ref<AssetDeclaration | null>(null);
@@ -64,6 +64,8 @@ const typeLabel = computed(() => {
 const isText = computed(() => readable.value && !sequence.value && !props.row.directory && !props.row.view && TEXT_EXTENSIONS.includes(extensionOf(baseName(props.row.resourcePath))));
 const isAudio = computed(() => fileType(extensionOf(baseName(props.row.resourcePath))) === 'audio');
 const isMovie = computed(() => props.row.type === 'movie');
+const canRecreateMovie = computed(() => isMovie.value && readable.value && !!props.row.movie && props.row.scope !== 'outside'
+  && ['mov', 'mp4'].includes(extensionOf(baseName(props.row.resourcePath)).toLowerCase().replace(/^\./, '')));
 const alphaFormat = computed(() => movieAlphaFormat(props.row.requiredBy));
 const frames = computed(() => (sequence.value ? assetFrames(sequence.value) : []));
 // The Font entries that declare characters of a font, and the one whose characters the preview draws.
@@ -374,8 +376,10 @@ const scope = computed(() => ({ game: 'Belongs to this game only.', common: 'A c
       <span class="text-muted">{{ row.resource }}</span>
       <button v-if="row.type === 'texture' && row.scope !== 'outside'" type="button" class="btn btn-outline-primary" :disabled="unsaved" @click="metadataOpen = true">Image metadata…</button>
       <button v-if="sequence && readable && row.scope !== 'outside'" type="button" class="btn btn-outline-primary" :disabled="unsaved"
-              title="Encode the frames as a movie and declare it under a new RSS key, which an Anim element can name instead of the sequence" @click="makingMovie = true">Make movie…</button>
-      <button type="button" class="btn btn-outline-primary" :disabled="unsaved" @click="moving = true">Move…</button>
+              title="Encode the frames as a movie and declare it under a new RSS key, which an Anim element can name instead of the sequence" @click="makingMovie = true">Make movie</button>
+      <button v-if="canRecreateMovie" type="button" class="btn btn-outline-primary" :disabled="unsaved"
+              title="Encode the movie's file again, keeping its path and RSS keys" @click="makingMovie = true">Make movie</button>
+      <button type="button" class="btn btn-outline-primary" :disabled="unsaved" @click="moving = true">Move</button>
       <button type="button" class="btn btn-light" @click="close">Close</button>
     </div>
   </AppModal>

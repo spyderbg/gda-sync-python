@@ -124,7 +124,8 @@ def test_make_movie_uses_the_entered_frame_rate_and_alpha_layout(new_context, de
     page.get_by_role('button', name='Asset library', exact=True).click()
     page.get_by_role('region', name='Workspace summary').get_by_role('button', name='Rescan', exact=True).click()
     page.locator('.asset-card').filter(has_text='SPIN').locator('.asset-hit-target').click()
-    page.get_by_role('button', name='Make movie…', exact=True).click()
+    expect(page.get_by_role('button', name='Move', exact=True)).to_be_visible()
+    page.get_by_role('button', name='Make movie', exact=True).click()
     dialog = page.get_by_role('dialog', name='Make a movie of SPIN')
     facts = dialog.locator('dl[aria-label="Source sequence parameters"]')
     expect(facts.locator('dt')).to_have_text(['frameTime', 'loopCount', 'loopTo'])
@@ -141,12 +142,14 @@ def test_make_movie_uses_the_entered_frame_rate_and_alpha_layout(new_context, de
     page.set_viewport_size({'width': 600, 'height': 800})
     assert popup.evaluate('popup => popup.getBoundingClientRect().right < window.innerWidth')
     page.set_viewport_size(viewport)
-    fps = dialog.get_by_label('Frame rate (FPS)')
+    fps = dialog.get_by_label('Frame rate', exact=True)
     crf = dialog.get_by_label('CRF', exact=True)
-    gop = dialog.get_by_label('Keyframe interval (-g)', exact=True)
+    gop = dialog.get_by_label('Keyframe interval', exact=True)
     interval = dialog.locator('#movie-gop-hint')
     submit = dialog.get_by_role('button', name='Make movie', exact=True)
     expect(fps).to_have_value('25')
+    frame_time = dialog.locator('#movie-output-frame-time')
+    expect(frame_time).to_have_text('Output frame time 40 ms · output duration 0.12 s')
     commands = dialog.get_by_role('region', name='FFmpeg Command')
     live = commands.locator('pre')
     expect(commands.locator('pre')).to_have_count(1)
@@ -166,6 +169,7 @@ def test_make_movie_uses_the_entered_frame_rate_and_alpha_layout(new_context, de
     gop.fill('25')
     expect(interval).to_have_text('I-frame every 1 second or sooner')
     fps.fill('50')
+    expect(frame_time).to_have_text('Output frame time 20 ms · output duration 0.06 s')
     expect(interval).to_have_text('I-frame every 0.5 seconds or sooner')
     crf.select_option('0')
     expect(quality).to_contain_text('Lossless after YUV 4:2:0 conversion')
@@ -178,6 +182,7 @@ def test_make_movie_uses_the_entered_frame_rate_and_alpha_layout(new_context, de
     expect(live).to_contain_text('-crf 18 -pix_fmt yuv420p')
     fps.fill('0')
     expect(submit).to_be_disabled()
+    expect(frame_time).to_have_count(0)
     fps.fill('29.97')
     gop.fill('2.5')
     expect(submit).to_be_disabled()
@@ -244,6 +249,41 @@ def test_make_movie_uses_the_entered_frame_rate_and_alpha_layout(new_context, de
             const [r, g, b, a] = canvas.getContext('2d').getImageData(2, 2, 1, 1).data;
             return r > 200 && g < 60 && b < 60 && a > 200;
         }'''), True)
+
+
+@pytest.mark.skipif(not shutil.which('ffmpeg'), reason='making a movie needs FFmpeg')
+def test_make_movie_of_a_movie_only_recreates_its_file(new_context, details_backend):
+    backend, game = details_backend
+    descriptor = game / 'RssMoviesData.json'
+    descriptor.write_text('{"movies": []}')
+    page = new_context().new_page()
+    page.goto(backend.url)
+    page.get_by_role('list', name='Workspaces').get_by_role('button', name='Example', exact=True).click()
+    page.get_by_role('button', name='Asset library', exact=True).click()
+    page.get_by_role('region', name='Workspace summary').get_by_role('button', name='Rescan', exact=True).click()
+    page.locator('.asset-card').filter(has_text='SPIN').locator('.asset-hit-target').click()
+    page.get_by_role('button', name='Make movie', exact=True).click()
+    page.get_by_role('dialog', name='Make a movie of SPIN').get_by_role('button', name='Make movie', exact=True).click()
+    details = page.get_by_role('dialog', name=re.compile(r'\.mov$'))
+    expect(details.get_by_role('row', name='Frame rate 25 frames per second')).to_be_visible()
+    declared = descriptor.read_text()
+
+    details.get_by_role('button', name='Make movie', exact=True).click()
+    dialog = page.get_by_role('dialog', name=re.compile('^Recreate '))
+    expect(dialog.get_by_label('Source', exact=True).locator('option:checked')).to_contain_text('SPIN (3 frames)')
+    expect(dialog.get_by_label('RSS key')).to_have_count(0)
+    expect(dialog.get_by_label('Path', exact=True)).not_to_be_editable()
+    expect(dialog.get_by_label('Format', exact=True)).to_be_disabled()
+    dialog.get_by_label('Source', exact=True).select_option(label="This movie's own frames")
+    expect(dialog.get_by_text('loses some quality')).to_be_visible()
+    dialog.locator('#movie-fps').fill('10')
+    expect(dialog.locator('#movie-output-frame-time')).to_have_text('Output frame time 100 ms · output duration 0.3 s')
+    BUILD.mkdir(exist_ok=True)
+    page.screenshot(path=str(BUILD / 'recreate-movie.png'))
+    dialog.get_by_role('button', name='Make movie', exact=True).click()
+    expect(dialog).to_have_count(0)
+    expect(details.get_by_role('row', name='Frame rate 10 frames per second')).to_be_visible()
+    assert descriptor.read_text() == declared
 
 
 def test_an_asset_that_no_descriptor_declares_is_declared_from_its_details(new_context, details_backend):

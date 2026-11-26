@@ -143,6 +143,13 @@ export interface MovieOptions {
   crf: number; crfValues: number[]; gopSize: number; maxGopSize: number;
   ffmpeg: { arguments: string[][]; sizes: Record<MovieFormat, string> };
 }
+/** An image sequence that a movie can be recreated from, and whether the movie was likely made of it. */
+export interface MovieSource { asset: string; name: string; resource: string; frames: number; match: boolean }
+/** How a movie's file can be recreated (LibraryService.recreate_movie_options): the sequences it can be made from, the
+ * chosen source (the movie's own asset id for its own frames), the movie as it is now, and the source's frame rate. */
+export interface RecreateMovieOptions extends Omit<MovieOptions, 'id' | 'ids' | 'descriptors'> {
+  sources: MovieSource[]; source: string; current: MovieFacts; sourceFps: number;
+}
 export type MovieAlphaFormat = 'valpha' | 'valpha-top' | 'halpha' | 'halpha-left';
 export type MovieFormat = MovieAlphaFormat | 'opaque';
 /** How an asset that no descriptor declares can be declared: the paths its entry names, and the kinds that can, the

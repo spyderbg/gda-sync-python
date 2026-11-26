@@ -4,9 +4,19 @@ info:
   description: The local HTTP API of EGT GDA Sync. It answers only requests to a loopback
     host; requests other than GET and HEAD need the session token that GET /api/session
     returns, in the X-GDA-Token header.
-  version: 2.1.3
+  version: 2.1.4
 components:
   schemas:
+    AppSettingsBody:
+      properties:
+        workingPath:
+          type: string
+          maxLength: 4096
+          title: Workingpath
+          default: ''
+      additionalProperties: false
+      type: object
+      title: AppSettingsBody
     Area:
       properties:
         x:
@@ -576,14 +586,14 @@ components:
           title: Fps
         crf:
           type: integer
-          maximum: 51
-          minimum: 0
+          maximum: 51.0
+          minimum: 0.0
           title: Crf
           default: 23
         gopSize:
           type: integer
-          maximum: 2147483647
-          minimum: 0
+          maximum: 2147483647.0
+          minimum: 0.0
           title: Gopsize
           default: 250
       additionalProperties: false
@@ -647,6 +657,54 @@ components:
       - file
       - index
       title: OpenViewElementBody
+    RecreateMovieBody:
+      properties:
+        asset:
+          type: string
+          maxLength: 4096
+          title: Asset
+        source:
+          type: string
+          maxLength: 4096
+          title: Source
+        movieFormat:
+          type: string
+          enum:
+          - valpha
+          - valpha-top
+          - halpha
+          - halpha-left
+          - opaque
+          title: Movieformat
+        fps:
+          type: number
+          exclusiveMinimum: 0.0
+          title: Fps
+        crf:
+          type: integer
+          maximum: 51.0
+          minimum: 0.0
+          title: Crf
+          default: 23
+        gopSize:
+          type: integer
+          maximum: 2147483647.0
+          minimum: 0.0
+          title: Gopsize
+          default: 250
+      additionalProperties: false
+      type: object
+      required:
+      - asset
+      - source
+      - movieFormat
+      - fps
+      title: RecreateMovieBody
+      description: 'A movie of the asset report whose file is encoded again, keeping
+        its path and RSS keys: the source, an image
+
+        sequence''s asset id or the movie''s own for its own frames, its format, and
+        the frame rate, CRF, and GOP size.'
     RemoveAssetBody:
       properties:
         asset:
@@ -2363,6 +2421,72 @@ paths:
           $ref: '#/components/responses/ServerError'
       tags:
       - Asset library
+  /api/asset-report/movie-file:
+    get:
+      summary: Recreate Movie Options
+      operationId: recreate_movie_options_api_asset_report_movie_file_get
+      parameters:
+      - name: asset
+        in: query
+        required: true
+        schema:
+          type: string
+          maxLength: 4096
+          title: Asset
+      - name: source
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 4096
+          - type: 'null'
+          title: Source
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Recreate Movie Options Api Asset Report Movie File Get
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Asset library
+    post:
+      summary: Recreate Movie
+      operationId: recreate_movie_api_asset_report_movie_file_post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecreateMovieBody'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Recreate Movie Api Asset Report Movie File Post
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '413':
+          $ref: '#/components/responses/ContentTooLarge'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Asset library
   /api/asset-report/uses:
     get:
       summary: Asset Uses
@@ -3730,3 +3854,52 @@ paths:
           $ref: '#/components/responses/ServerError'
       tags:
       - Browser game
+
+  # ─── Other ──────────────────────────────────────────────────────────
+  /api/app-settings:
+    get:
+      summary: App Settings
+      operationId: app_settings_api_app_settings_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response App Settings Api App Settings Get
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Other
+    put:
+      summary: Update App Settings
+      operationId: update_app_settings_api_app_settings_put
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppSettingsBody'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Update App Settings Api App Settings Put
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '413':
+          $ref: '#/components/responses/ContentTooLarge'
+        '500':
+          $ref: '#/components/responses/ServerError'
+      tags:
+      - Other

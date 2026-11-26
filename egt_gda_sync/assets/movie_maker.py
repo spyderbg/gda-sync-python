@@ -15,13 +15,14 @@ import os
 import re
 import shutil
 import subprocess
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
+from itertools import chain
 from pathlib import Path
 from typing import Literal, get_args
 
 import numpy as np
 
-from egt_gda_sync.assets.movies import PACKED_ALPHA_LAYOUTS, PackedAlphaFormat
+from egt_gda_sync.assets.movies import PACKED_ALPHA_LAYOUTS, PackedAlphaFormat, describe_movie, movie_images
 from egt_gda_sync.images.image_compare import decode_image
 
 MovieFormat = Literal[PackedAlphaFormat, "opaque"]
@@ -75,6 +76,26 @@ def movie_path(first_frame: Path, game: Path, name: str, movie_format: str) -> s
     if parts and parts[-1].lower() == name.lower():
         parts.pop()
     return "/".join(["m", *parts, f"{name}{'-rgba' if movie_format in PACKED_ALPHA_LAYOUTS else ''}.mov"])
+
+
+def movie_match(movie: Path, frames: int, ids: set[str], row: dict, game: Path, name: str) -> tuple[int, bool]:
+    """How well an image sequence of the asset report fits a movie that may have been made from it, the best highest:
+    by the movie's RSS key, the path its movie is made at, or its name (Big_Win for Big_Win23-rgba.mov), 0 for none of
+    them; and whether it has as many frames."""
+    sequence = row["sequence"]
+    key = f"{sequence['id']}_MOVIE".upper()
+    paths = {(game / movie_path(Path(sequence["frames"][0]["resourcePath"]), game, name, item)).with_suffix("") for item in FORMATS}
+
+    def plain(value: str) -> str:
+        return re.sub(r"[^0-9a-z]+", "", value.lower()).rstrip("0123456789")
+
+    if sequence["id"] and any(item.upper() in (key, f"ANIM_{key}") for item in ids):
+        score = 3
+    elif movie.with_suffix("") in paths:
+        score = 2
+    else:
+        score = int(bool(plain(name)) and plain(name) == plain(re.sub(r"-rgba$", "", movie.stem, flags=re.IGNORECASE)))
+    return score, len(sequence["frames"]) == frames
 
 
 def sampled(count: int, samples: int = ALPHA_SAMPLES) -> list[int]:
@@ -144,28 +165,47 @@ def encode_movie(frames: list[tuple[Path, dict | None]], frame_time: int, movie_
     once complete. ValueError for frames of different sizes, a format it does not make, or a failed encoding."""
     if movie_format not in FORMATS:
         raise ValueError(f"A movie is made as {' or '.join(FORMATS)}, not {movie_format}")
+    if not frames:
+        raise ValueError("The sequence has no frames")
+    if fps is None and frame_time <= 0:
+        raise ValueError("The sequence's frameTime must be positive")
+    facts = _encode((frame_image(*frame) for frame in frames), [frame[0].name for frame in frames], movie_format, target,
+                    progress, fps=fps, rate=f"1000/{frame_time}" if fps is None else str(fps), crf=crf, gop_size=gop_size)
+    return {**facts, "fps": round(1000 / frame_time if fps is None else fps, 3), "movieFormat": movie_format}
+
+
+def reencode_movie(source: Path, movie_format: str, target: Path, progress: Progress | None = None, *,
+                   fps: float | None = None, crf: int = DEFAULT_CRF, gop_size: int = DEFAULT_GOP_SIZE) -> dict:
+    """Encode a movie's own frames into target, which must not exist, as encode_movie does. The frames keep their layout,
+    which movie_format names: a packed alpha movie stays packed."""
+    described = describe_movie(str(source))
+    if "movie" not in described:
+        raise ValueError(described["movieError"])
+    movie = described["movie"]
+    fps = movie["fps"] if fps is None else fps
+    names = [source.name] * movie["frames"]
+    facts = _encode(movie_images(source), names, "opaque", target, progress, fps=fps, rate=str(fps), crf=crf, gop_size=gop_size)
+    return {**facts, "fps": round(fps, 3), "movieFormat": movie_format}
+
+
+def _encode(images: Iterable[np.ndarray], names: list[str], movie_format: str, target: Path, progress: Progress | None, *,
+            fps: float | None, rate: str, crf: int, gop_size: int) -> dict:
+    """Pipe RGBA images, which are named for the errors, through FFmpeg into target."""
     if type(crf) is not int or not MIN_CRF <= crf <= MAX_CRF:
         raise ValueError(f"CRF must be an integer from {MIN_CRF} to {MAX_CRF}")
     if type(gop_size) is not int or not 0 <= gop_size <= MAX_GOP_SIZE:
         raise ValueError(f"GOP size must be an integer from 0 to {MAX_GOP_SIZE}")
-    if not frames:
-        raise ValueError("The sequence has no frames")
-    if fps is None:
-        if frame_time <= 0:
-            raise ValueError("The sequence's frameTime must be positive")
-        rate = f"1000/{frame_time}"
-        fps = 1000 / frame_time
-    else:
-        if not math.isfinite(fps) or fps <= 0:
-            raise ValueError("The frame rate must be a positive number")
-        rate = str(fps)
+    if fps is not None and (not math.isfinite(fps) or fps <= 0):
+        raise ValueError("The frame rate must be a positive number")
     container = {".mov": "mov", ".mp4": "mp4"}.get(target.suffix.lower())
     if container is None:
         raise ValueError("A movie is made as a .mov or .mp4 file")
     program = ffmpeg()
-    first = frame_image(*frames[0])
+    remaining = iter(images)
+    first = next(remaining)
     size = first.shape[:2]
     width, height = padded_size(size[1], size[0])
+    count = 0
     target.parent.mkdir(parents=True, exist_ok=True)
     temporary = target.with_name(f".{target.name}.{os.getpid()}.part")
     arguments = ffmpeg_arguments(encoded_frame_size(width, height, movie_format), rate, container, str(temporary),
@@ -174,14 +214,14 @@ def encode_movie(frames: list[tuple[Path, dict | None]], frame_time: int, movie_
     process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
     try:
         try:
-            for index, frame in enumerate(frames):
-                image = first if index == 0 else frame_image(*frame)
+            for index, image in enumerate(chain([first], remaining)):
                 if image.shape[:2] != size:
-                    raise ValueError(f"Frame {index + 1} ({frame[0].name}) is {image.shape[1]}×{image.shape[0]}, "
+                    raise ValueError(f"Frame {index + 1} ({names[index]}) is {image.shape[1]}×{image.shape[0]}, "
                                      f"the first {size[1]}×{size[0]}: a movie's frames have one size")
                 process.stdin.write(movie_frame(image, movie_format, width, height))
+                count = index + 1
                 if progress:
-                    progress(index + 1, len(frames))
+                    progress(count, len(names))
         except BrokenPipeError:
             pass
         finally:
@@ -200,6 +240,4 @@ def encode_movie(frames: list[tuple[Path, dict | None]], frame_time: int, movie_
         raise
     finally:
         process.stderr.close()
-    return {"width": width, "height": height, "frames": len(frames), "fps": round(fps, 3),
-            "movieFormat": movie_format,
-            "padded": (height, width) != size}
+    return {"width": width, "height": height, "frames": count, "padded": (height, width) != size}

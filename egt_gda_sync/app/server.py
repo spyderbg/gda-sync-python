@@ -341,6 +341,17 @@ class MovieBody(_Body):
     gopSize: Annotated[int, Field(strict=True, ge=0, le=MAX_GOP_SIZE)] = DEFAULT_GOP_SIZE
 
 
+class RecreateMovieBody(_Body):
+    """A movie of the asset report whose file is encoded again, keeping its path and RSS keys: the source, an image
+    sequence's asset id or the movie's own for its own frames, its format, and the frame rate, CRF, and GOP size."""
+    asset: Text4K
+    source: Text4K
+    movieFormat: MovieFormat
+    fps: Annotated[float, Field(strict=True, gt=0, allow_inf_nan=False)]
+    crf: Annotated[int, Field(strict=True, ge=MIN_CRF, le=MAX_CRF)] = DEFAULT_CRF
+    gopSize: Annotated[int, Field(strict=True, ge=0, le=MAX_GOP_SIZE)] = DEFAULT_GOP_SIZE
+
+
 class DeclarationBody(_Body):
     """A new descriptor entry for an asset of the asset report that no descriptor declares: its kind, the descriptor
     that holds it, relative to the game folder, and the values of its fields; those its kind does not have are refused."""
@@ -809,6 +820,15 @@ def create_app(
     def create_movie(body: MovieBody) -> dict:
         return library.create_movie(body.asset, body.id, body.path, body.descriptor, body.movieFormat,
                                     fps=body.fps, crf=body.crf, gop_size=body.gopSize)
+
+    @app.get("/api/asset-report/movie-file")
+    def recreate_movie_options(asset: Annotated[str, Query(max_length=4096)],
+                               source: Annotated[str | None, Query(max_length=4096)] = None) -> dict:
+        return library.recreate_movie_options(asset, source)
+
+    @app.post("/api/asset-report/movie-file")
+    def recreate_movie(body: RecreateMovieBody) -> dict:
+        return library.recreate_movie(body.asset, body.source, body.movieFormat, body.fps, body.crf, body.gopSize)
 
     @app.get("/api/asset-report/uses")
     def asset_uses(asset: Annotated[str, Query(max_length=4096)]) -> dict:

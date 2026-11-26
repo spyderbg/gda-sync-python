@@ -242,3 +242,55 @@ def test_an_odd_size_is_padded_with_transparent_pixels(tmp_path):
     assert facts == {"width": 6, "height": 4, "frames": 2, "fps": 10.0, "movieFormat": "opaque", "padded": True}
     # The partial file was moved into place.
     assert {item.name for item in tmp_path.iterdir()} == {"f.png", "out.mp4"}
+
+
+def made_movie(client) -> tuple[str, Path]:
+    response = client.post("/api/asset-report/movie", json={
+        "asset": sequence(client, "ANIM_SPARK")["id"], "id": "ANIM_SPARK_MOVIE", "path": "m/fx/Spark-rgba.mov",
+        "descriptor": "RssMoviesData.json", "movieFormat": "valpha"})
+    assert response.status_code == 200, response.text
+    return response.json()["asset"], client.game / "m" / "fx" / "Spark-rgba.mov"
+
+
+@pytest.mark.parametrize("own_frames", [False, True])
+def test_recreating_a_movie_replaces_only_its_file(client, own_frames):
+    asset, movie = made_movie(client)
+    before, descriptor = movie.read_bytes(), (client.game / "RssMoviesData.json").read_bytes()
+    spark = sequence(client, "ANIM_SPARK")["id"]
+    options = client.get("/api/asset-report/movie-file", params={"asset": asset}).json()
+    assert options["source"] == spark and options["sources"][0]["asset"] == spark
+    assert options["formats"] == ["valpha"] and options["fps"] == 25 and options["ffmpeg"]["sizes"]["valpha"] == "6x8"
+    source = asset if own_frames else spark
+    options = client.get("/api/asset-report/movie-file", params={"asset": asset, "source": source}).json()
+    assert options["ffmpeg"]["sizes"]["valpha"] == "6x8"
+
+    body = {"asset": asset, "source": source, "movieFormat": "valpha", "fps": 12.5, "crf": 5}
+    response = client.post("/api/asset-report/movie-file", json=body)
+    assert response.status_code == 200, response.text
+    result = response.json()
+    assert movie.read_bytes() != before and (client.game / "RssMoviesData.json").read_bytes() == descriptor
+    capture = cv2.VideoCapture(str(movie))
+    assert (capture.get(cv2.CAP_PROP_FRAME_WIDTH), capture.get(cv2.CAP_PROP_FRAME_HEIGHT)) == (6, 8)
+    assert capture.get(cv2.CAP_PROP_FRAME_COUNT) == 6 and capture.get(cv2.CAP_PROP_FPS) == 12.5
+    capture.release()
+    assert {item.name for item in movie.parent.iterdir()} == {movie.name}
+    assert result["movie"]["frames"] == 6 and result["movie"]["movieFormat"] == "valpha"
+    row = next(item for item in client.get("/api/asset-report").json()["assets"] if item["id"] == asset)
+    assert row["movie"]["fps"] == 12.5 and row["requiredBy"][0]["id"] == "ANIM_SPARK_MOVIE"
+    backup = Path(result["library"]["backupPath"])
+    saved = [path for path in backup.rglob("Spark-rgba.mov") if path.read_bytes() == before]
+    assert len(saved) == 1
+    manifests = [json.loads(path.read_text()) for path in backup.glob("*.json")]
+    assert [{"path": "example/m/fx/Spark-rgba.mov", "change": "replaced"}] in [item["files"] for item in manifests]
+
+
+def test_a_movie_is_not_recreated_in_another_format_or_from_frames_that_do_not_fit(client):
+    asset, movie = made_movie(client)
+    before = movie.read_bytes()
+    spark = sequence(client, "ANIM_SPARK")["id"]
+    body = {"asset": asset, "source": spark, "movieFormat": "opaque", "fps": 25}
+    assert "declared as valpha" in client.post("/api/asset-report/movie-file", json=body).json()["error"]
+    odd = {**body, "source": sequence(client, "ANIM_ODD")["id"], "movieFormat": "valpha"}
+    assert "one size" in client.post("/api/asset-report/movie-file", json=odd).json()["error"]
+    assert client.post("/api/asset-report/movie-file", json={**body, "asset": spark}).status_code == 400
+    assert movie.read_bytes() == before and {item.name for item in movie.parent.iterdir()} == {movie.name}

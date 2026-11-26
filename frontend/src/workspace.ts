@@ -1,7 +1,7 @@
 // Application state shared by the layout and the views, and the actions that talk to the backend.
 import { computed, reactive, ref, watch } from 'vue';
 import { commonAction, plural, resourceAction, splitPath, viewSaves, type GdaCandidate } from './format';
-import type { AppSettings, ChangePlan, MoveFolderList, MoveRequest, RenameKeyRequest, Asset, AssetSection, AssetUse, DeclarationKind, DeclarationOptions, LibraryResponse, MovieFormat, MovieOptions, RestoreResult, RssFileDetails, RssResource, RssSyncHistory, RssSyncStatus, Session, SyncResult, View, ViewLayout, WorkspaceConfig } from './types';
+import type { AppSettings, ChangePlan, MoveFolderList, MoveRequest, RenameKeyRequest, Asset, AssetSection, AssetUse, DeclarationKind, DeclarationOptions, LibraryResponse, MovieFormat, MovieOptions, RecreateMovieOptions, RestoreResult, RssFileDetails, RssResource, RssSyncHistory, RssSyncStatus, Session, SyncResult, View, ViewLayout, WorkspaceConfig } from './types';
 
 const INVALID_SESSION = 'Invalid session. Reload the application.';
 const RSS_POLL_MS = 1000;
@@ -337,6 +337,28 @@ export async function declareAsset(body: { asset: string; kind: DeclarationKind;
 /** How an image sequence of the asset report can be made into a movie. */
 export function movieOptions(asset: string) {
   return getJSON<MovieOptions>(`/api/asset-report/movie?asset=${encodeURIComponent(asset)}`);
+}
+
+/** How a movie's file can be recreated, from a source or, without one, from the likeliest. */
+export function recreateMovieOptions(asset: string, source?: string) {
+  const query = source === undefined ? '' : `&source=${encodeURIComponent(source)}`;
+  return getJSON<RecreateMovieOptions>(`/api/asset-report/movie-file?asset=${encodeURIComponent(asset)}${query}`);
+}
+
+/** Encode a movie's file again, keeping its path and RSS keys. */
+export async function recreateMovie(body: {
+  asset: string; source: string; movieFormat: MovieFormat; fps: number; crf: number; gopSize: number;
+}, path: string) {
+  busy.value = 'movie';
+  try {
+    const result = await api<{ library: LibraryResponse }>('asset-report/movie-file', 'POST', body);
+    applyLibrary(result.library);
+    notify(`Recreated ${path}.`);
+    return true;
+  } catch (e) {
+    notify((e as Error).message, true);
+    return false;
+  } finally { busy.value = ''; }
 }
 
 /** Encode an image sequence as a movie file of the game and declare it under a new RSS key, then show the movie. A movie

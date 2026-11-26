@@ -35,7 +35,7 @@ from egt_gda_sync.assets.fonts import FONT_EXTENSIONS, describe_font
 from egt_gda_sync.assets.movies import MOVIE_EXTENSIONS, PackedAlphaFormat, describe_movie, movie_thumbnail
 from egt_gda_sync.assets.movie_maker import (DEFAULT_CRF, DEFAULT_GOP_SIZE, FORMATS as MOVIE_FORMATS, MAX_CRF, MAX_GOP_SIZE,
                                             MIN_CRF, encode_movie, encoded_frame_size, ffmpeg_arguments, inspect_frames,
-                                            movie_path, padded_size)
+                                            movie_match, movie_path, padded_size, reencode_movie)
 from egt_gda_sync.images.png import PNG_SIGNATURE
 from egt_gda_sync.workspace import backups
 from egt_gda_sync.sync.rss_declare import KINDS, asset_files, asset_kinds, asset_name, build_entry, descriptor_targets, entry_paths, kind_options, used_values
@@ -1143,6 +1143,135 @@ class Library:
                                                        and use.get("id") == movie_id for use in item["requiredBy"])), None)
             return {"library": self.scan(), "asset": found["id"] if found else None, "descriptor": descriptor, "line": line,
                     "entry": new_entry, "movie": facts}
+
+        return self._exclusive(operation)
+
+    def _movie_asset(self, asset: str) -> tuple[dict, Path, str, list[dict]]:
+        """A movie of the newest asset report whose file can be recreated, its file, the format that its Movie entries
+        declare now ("" when none declares it), and the image sequences it can be recreated from, the likeliest first."""
+        workspace_id, entry = self._active_workspace()
+        settings = self._comparison(workspace_id, entry)[1]
+        row, rows = self._report_asset(workspace_id, asset)
+        if row["type"] != "movie" or Path(row["resourcePath"]).suffix.lower() not in (".mov", ".mp4"):
+            raise AppError("Only a .mov or .mp4 movie can be recreated", 400)
+        resources = os.path.realpath(settings["resources_dir"])
+        if not contained(resources, row["resourcePath"]):
+            raise AppError("Only a movie in the resources folder can be recreated", 400)
+        movie = Path(safe_path(resources, os.path.relpath(row["resourcePath"], resources)))
+        if not movie.is_file() or "movie" not in row:
+            raise AppError("The movie must exist and be readable. Rescan to update the report.", 409)
+        game = self._asset_game(settings)
+        try:
+            documents = load_documents(game, required=False)
+        except (OSError, ValueError, TypeError) as error:
+            raise AppError(f"The descriptors cannot be read: {error_message(error)}") from error
+        entries = [item for document in documents.values() for item in getattr(document, KINDS["Movie"].list, ())
+                   if (game / item.path).resolve() == movie]
+        formats = {item.movieFormat or "opaque" for item in entries}
+        if len(formats) > 1:
+            raise AppError(f"The movie is declared in different formats: {', '.join(sorted(formats))}", 409)
+        if formats - set(MOVIE_FORMATS):
+            raise AppError(f"A movie of the format {formats.pop()} cannot be made", 400)
+        ids = {item.id for item in entries}
+        ranked = []
+        for item in rows:
+            if not item.get("sequence") or not item["sequence"]["frames"] or item["scope"] == "outside" \
+                    or item["category"] not in ("available", "supplementary"):
+                continue
+            score = movie_match(movie, row["movie"]["frames"], ids, item, game, asset_name(item))
+            source = {"asset": item["id"], "name": item["sequence"]["id"] or asset_name(item), "resource": item["resource"],
+                      "frames": len(item["sequence"]["frames"]), "match": score[0] > 0}
+            ranked.append(((-score[0], not score[1], source["name"].lower(), source["resource"]), source))
+        ranked.sort(key=lambda pair: pair[0])
+        return row, movie, next(iter(formats), ""), [source for _rank, source in ranked]
+
+    def recreate_movie_options(self, asset: str, source: str | None = None) -> dict:
+        """How a movie's file can be recreated: the options of movie_options without an id or a descriptor, from the
+        source, an image sequence or the movie itself (its own asset id). Without a source, from the sequence the movie
+        was likely made of, or else itself. The format is the declared one, or any for a movie that none declares."""
+        row, movie, declared, sources = self._movie_asset(asset)
+        if source is None:
+            source = next((item["asset"] for item in sources if item["match"]), asset)
+        described = describe_movie(str(movie))
+        if "movie" not in described:
+            raise AppError(f"The movie cannot be read: {described['movieError']}", 400)
+        facts = described["movie"]
+        if source == asset:
+            size = "{}x{}".format(*padded_size(facts["width"], facts["height"]))
+            movie_format = declared or "opaque"
+            formats, sizes = [movie_format], {item: size for item in MOVIE_FORMATS}
+            frames, sequence = facts["frames"], None
+        else:
+            sequence_row, _game, _documents, files = self._sequence_asset(source)
+            sequence = sequence_row["sequence"]
+            try:
+                suggested, width, height = inspect_frames(files)
+            except (OSError, ValueError) as error:
+                raise AppError(f"The frames cannot be read: {error_message(error)}", 400) from error
+            width, height = padded_size(width, height)
+            movie_format = declared or suggested
+            formats = [declared] if declared else list(MOVIE_FORMATS)
+            sizes = {item: encoded_frame_size(width, height, item) for item in MOVIE_FORMATS}
+            frames = len(files)
+        frame_time = sequence["frameTime"] if sequence else 0
+        return {"path": _portable(row["resource"]), "sources": sources, "source": source, "current": facts,
+                "formats": formats, "movieFormat": movie_format, "sequenceId": sequence["id"] if sequence else None,
+                "frameTime": frame_time, "fps": facts["fps"], "sourceFps": round(1000 / frame_time, 3) if frame_time > 0 else facts["fps"],
+                "loopCount": sequence["loopCount"] if sequence else 1, "loopTo": sequence.get("loopTo") if sequence else None,
+                "frames": frames, "crf": DEFAULT_CRF, "crfValues": list(range(MIN_CRF, MAX_CRF + 1)),
+                "gopSize": DEFAULT_GOP_SIZE, "maxGopSize": MAX_GOP_SIZE,
+                "ffmpeg": {"arguments": ffmpeg_arguments("{size}", "{rate}", "{container}", "{output}", crf="{crf}", gop_size="{gopSize}"),
+                           "sizes": sizes}}
+
+    def recreate_movie(self, asset: str, source: str, movie_format: str, fps: float, crf: int = DEFAULT_CRF,
+                       gop_size: int = DEFAULT_GOP_SIZE) -> dict:
+        """Encode a movie's file again, from an image sequence or its own frames (source is its own asset id), and replace
+        it. Its path, RSS keys and descriptors stay as they are. The replaced file is saved in the backups."""
+        def operation() -> dict:
+            self.require_folders("destination")
+            workspace_id, entry = self._active_workspace()
+            row, movie, declared, _sources = self._movie_asset(asset)
+            if declared and movie_format != declared:
+                raise AppError(f"The movie is declared as {declared}, so it can only be recreated as {declared}", 400)
+            if source == asset and movie_format != (declared or "opaque"):
+                raise AppError("A movie recreated from its own frames keeps its format", 400)
+            sequence_row, frames = None, []
+            if source != asset:
+                sequence_row, _game, _documents, frames = self._sequence_asset(source)
+            resources = os.path.realpath(self._comparison(workspace_id, entry)[1]["resources_dir"])
+            relative = os.path.relpath(movie, resources)
+            previous = file_hash(str(movie))
+            encoded = movie.with_name(f".egt-gda-sync-{uuid.uuid4()}{movie.suffix}")
+            folder = None
+            try:
+                try:
+                    if sequence_row is None:
+                        facts = reencode_movie(movie, movie_format, encoded, fps=fps, crf=crf, gop_size=gop_size)
+                    else:
+                        facts = encode_movie(frames, sequence_row["sequence"]["frameTime"], movie_format, encoded,
+                                             fps=fps, crf=crf, gop_size=gop_size)
+                except (OSError, ValueError) as error:
+                    raise AppError(f"The movie could not be made: {error_message(error)}", 400) from error
+                if not movie.is_file() or file_hash(str(movie)) != previous:
+                    raise AppError(f"{movie.name} changed while the movie was made. Try again.", 409)
+                folder = backups.new_operation(self.backup_path)
+                backup = os.path.join(folder, relative)
+                os.makedirs(os.path.dirname(backup), exist_ok=True)
+                _copy_exclusive(str(movie), backup)
+                shutil.copymode(movie, encoded)
+                os.replace(encoded, movie)
+            except BaseException:
+                encoded.unlink(missing_ok=True)
+                if folder:
+                    shutil.rmtree(folder, ignore_errors=True)
+                raise
+            label = "its own frames" if sequence_row is None else sequence_row["sequence"]["id"] or os.path.basename(sequence_row["resource"])
+            message = f"Recreated movie {_portable(row['resource'])} from {label}"
+            self._record("edit", message, [_portable(relative)], os.path.getsize(movie))
+            backups.write_manifest(folder, action="edit", message=message, root=resources,
+                                   workspace={"id": workspace_id, "name": entry.get("name", workspace_id)})
+            self._write_asset_report()
+            return {"library": self.scan(), "asset": asset, "movie": facts}
 
         return self._exclusive(operation)
 
