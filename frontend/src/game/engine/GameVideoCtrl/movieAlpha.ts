@@ -17,13 +17,31 @@ export function movieAlphaRects(videoWidth: number, videoHeight: number, format:
   };
 }
 
+const snapshots = new WeakMap<CanvasRenderingContext2D, CanvasRenderingContext2D>();
+
 export function composeMovieAlpha(ctx: CanvasRenderingContext2D, video: HTMLVideoElement, rects: ReturnType<typeof movieAlphaRects>) {
   const { width, height, pictureX, pictureY, alphaX, alphaY } = rects;
   const { width: outputWidth, height: outputHeight } = ctx.canvas;
-  ctx.drawImage(video, alphaX, alphaY, width, height, 0, 0, outputWidth, outputHeight);
-  const alpha = ctx.getImageData(0, 0, outputWidth, outputHeight).data;
-  ctx.drawImage(video, pictureX, pictureY, width, height, 0, 0, outputWidth, outputHeight);
-  const picture = ctx.getImageData(0, 0, outputWidth, outputHeight);
+  let snapshot = snapshots.get(ctx);
+  if (!snapshot) {
+    const context = document.createElement('canvas').getContext('2d', { alpha: false, willReadFrequently: true });
+    if (!context) return;
+    snapshots.set(ctx, context);
+    snapshot = context;
+  }
+  const horizontal = pictureX !== alphaX;
+  const packedWidth = width * (horizontal ? 2 : 1);
+  const packedHeight = height * (horizontal ? 1 : 2);
+  const snapshotWidth = outputWidth * (horizontal ? 2 : 1);
+  const snapshotHeight = outputHeight * (horizontal ? 1 : 2);
+  if (snapshot.canvas.width !== snapshotWidth || snapshot.canvas.height !== snapshotHeight) {
+    snapshot.canvas.width = snapshotWidth;
+    snapshot.canvas.height = snapshotHeight;
+  }
+  // Playback can advance between two draws from a video. Both tiles must come from the same snapshot.
+  snapshot.drawImage(video, 0, 0, packedWidth, packedHeight, 0, 0, snapshotWidth, snapshotHeight);
+  const alpha = snapshot.getImageData(alphaX ? outputWidth : 0, alphaY ? outputHeight : 0, outputWidth, outputHeight).data;
+  const picture = snapshot.getImageData(pictureX ? outputWidth : 0, pictureY ? outputHeight : 0, outputWidth, outputHeight);
   // ImageData uses straight color. Divide out the alpha that was applied before encoding.
   for (let i = 0; i < alpha.length; i += 4) {
     const value = alpha[i];

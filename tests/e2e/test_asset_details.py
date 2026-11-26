@@ -142,7 +142,7 @@ def test_make_movie_uses_the_entered_frame_rate_and_alpha_layout(new_context, de
     page.set_viewport_size({'width': 600, 'height': 800})
     assert popup.evaluate('popup => popup.getBoundingClientRect().right < window.innerWidth')
     page.set_viewport_size(viewport)
-    fps = dialog.get_by_label('Frame rate', exact=True)
+    fps = dialog.get_by_label('Frames per second', exact=True)
     crf = dialog.get_by_label('CRF', exact=True)
     gop = dialog.get_by_label('Keyframe interval', exact=True)
     interval = dialog.locator('#movie-gop-hint')
@@ -243,12 +243,54 @@ def test_make_movie_uses_the_entered_frame_rate_and_alpha_layout(new_context, de
         expect(video).to_have_js_property('videoHeight', encoded_size[1])
         expect(canvas).to_be_hidden()
         video.evaluate('video => video.play()')
+        page.evaluate('''() => {
+            const context = CanvasRenderingContext2D.prototype;
+            const draw = context.drawImage;
+            const write = context.putImageData;
+            let videoReads = 0;
+            window.previewVideoReads = [];
+            context.drawImage = function (source, ...args) {
+                if (source instanceof HTMLVideoElement) videoReads++;
+                return draw.call(this, source, ...args);
+            };
+            context.putImageData = function (...args) {
+                if (this.canvas.matches('.movie-preview canvas')) {
+                    window.previewVideoReads.push(videoReads);
+                    videoReads = 0;
+                }
+                return write.apply(this, args);
+            };
+        }''')
         details.get_by_role('button', name='With alpha').click()
         expect(canvas).to_have_js_property('height', 4)
         poll(lambda: canvas.evaluate('''canvas => {
             const [r, g, b, a] = canvas.getContext('2d').getImageData(2, 2, 1, 1).data;
             return r > 200 && g < 60 && b < 60 && a > 200;
         }'''), True)
+        reads = page.evaluate('window.previewVideoReads')
+        assert reads and all(count == 1 for count in reads)
+        preview = details.get_by_role('group', name='Movie preview')
+        video.evaluate('video => { video.pause(); video.currentTime = 0; }')
+        for key, frame in [('ArrowRight', 1), ('ArrowRight', 2), ('ArrowRight', 2), ('ArrowLeft', 1), ('ArrowLeft', 0)]:
+            preview.press(key)
+            poll(lambda: video.evaluate('video => Math.floor(video.currentTime * 29.97)'), frame)
+        expect(video).to_have_js_property('paused', True)
+        slider = details.get_by_role('slider', name='Position')
+        for key, frame in [('ArrowRight', 2), ('ArrowLeft', 0)]:
+            page.keyboard.down(key)
+            try:
+                poll(lambda: int(float(slider.input_value()) * 29.97), frame)
+            finally:
+                page.keyboard.up(key)
+        page.keyboard.down('Space')
+        try:
+            expect(video).to_have_js_property('paused', False)
+            page.keyboard.down('Space')
+            expect(video).to_have_js_property('paused', False)
+        finally:
+            page.keyboard.up('Space')
+        preview.press('Space')
+        expect(video).to_have_js_property('paused', True)
 
 
 @pytest.mark.skipif(not shutil.which('ffmpeg'), reason='making a movie needs FFmpeg')
@@ -276,7 +318,7 @@ def test_make_movie_of_a_movie_only_recreates_its_file(new_context, details_back
     expect(dialog.get_by_label('Format', exact=True)).to_be_disabled()
     dialog.get_by_label('Source', exact=True).select_option(label="This movie's own frames")
     expect(dialog.get_by_text('loses some quality')).to_be_visible()
-    dialog.locator('#movie-fps').fill('10')
+    dialog.get_by_label('Frames per second', exact=True).fill('10')
     expect(dialog.locator('#movie-output-frame-time')).to_have_text('Output frame time 100 ms · output duration 0.3 s')
     BUILD.mkdir(exist_ok=True)
     page.screenshot(path=str(BUILD / 'recreate-movie.png'))

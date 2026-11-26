@@ -240,7 +240,7 @@ async function create() {
                  :readonly="recreating" maxlength="1000" spellcheck="false" autocomplete="off">
         </div>
         <div class="movie-field">
-          <label class="movie-label" for="movie-fps">Frame rate</label>
+          <label class="movie-label" for="movie-fps">Frames per second</label>
           <input id="movie-fps" v-model="fps" type="number" step="any" class="form-control form-control-sm" required
                  :aria-describedby="outputTiming ? 'movie-output-frame-time' : undefined">
           <small v-if="outputTiming" id="movie-output-frame-time" class="movie-field-note text-muted">Output frame time

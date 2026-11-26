@@ -345,7 +345,7 @@ function sync() {
           <FontPreview v-else-if="isFont && row.category !== 'invalid'" v-model:text="fontText" :file="row.resourcePath" :name="name" :revision="revision" large
                        :chars="fontUse?.chars" :size="fontUse?.size" :missing="coverageOf(row.resourcePath)?.missing" />
           <ViewPreview v-else-if="row.view" :file="row.resourcePath" :name="name" :revision="revision" :facts="row.view" large />
-          <MoviePreview v-else-if="isMovie(row.resourcePath) && row.category !== 'invalid'" :file="row.resourcePath" :name="name" :revision="revision" :alpha-format="alphaFormat" />
+          <MoviePreview v-else-if="isMovie(row.resourcePath) && row.category !== 'invalid'" :file="row.resourcePath" :name="name" :revision="revision" :alpha-format="alphaFormat" :facts="details[row.resourcePath]?.movie" />
           <ReportThumbnail v-else :file="directory?.project ?? row.resourcePath" :name="directory ? baseName(directory.project) : name" :revision="revision" :preview="row.category !== 'invalid'" :alpha-format="alphaFormat" />
         </figure>
         <figure v-if="pairedPreview" class="details-preview">
@@ -359,7 +359,7 @@ function sync() {
           <AudioPreview v-else-if="isAudio(gdaShown!.path)" :file="gdaShown!.absolutePath" :name="baseName(gdaShown!.path)" :revision="revision" />
           <FontPreview v-else-if="isFont" v-model:text="fontText" :file="gdaShown!.absolutePath" :name="baseName(gdaShown!.path)" :revision="revision" large
                        :chars="fontUse?.chars" :size="fontUse?.size" :missing="coverageOf(gdaShown!.absolutePath)?.missing" />
-          <MoviePreview v-else-if="isMovie(gdaShown!.path)" :file="gdaShown!.absolutePath" :name="baseName(gdaShown!.path)" :revision="revision" :alpha-format="alphaFormat" />
+          <MoviePreview v-else-if="isMovie(gdaShown!.path)" :file="gdaShown!.absolutePath" :name="baseName(gdaShown!.path)" :revision="revision" :alpha-format="alphaFormat" :facts="details[gdaShown!.absolutePath]?.movie" />
           <ReportThumbnail v-else :file="gdaShown!.absolutePath" :name="baseName(gdaShown!.path)" :revision="revision" :alpha-format="alphaFormat" />
         </figure>
       </div>

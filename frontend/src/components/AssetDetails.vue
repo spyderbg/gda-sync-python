@@ -219,7 +219,7 @@ const scope = computed(() => ({ game: 'Belongs to this game only.', common: 'A c
           </figcaption>
           <SequencePreview v-if="sequence" :frames="frames" :frame-time="sequence.frameTime" :loop-count="sequence.loopCount" :loop-to="sequence.loopTo" :name="sequence.id ?? name" :revision="revision" />
           <AudioPreview v-else-if="isAudio && readable" :file="row.resourcePath" :name="name" :revision="revision" autoplay />
-          <MoviePreview v-else-if="isMovie && readable" :file="row.resourcePath" :name="name" :revision="revision" :alpha-format="alphaFormat" />
+          <MoviePreview v-else-if="isMovie && readable" :file="row.resourcePath" :name="name" :revision="revision" :alpha-format="alphaFormat" :facts="row.movie" />
           <FontPreview v-else-if="isFont && readable" :file="row.resourcePath" :name="name" :revision="revision" large
                        :chars="fontUse?.chars" :size="fontUse?.size" :missing="fontUse?.coverage?.missing" />
           <RtfPreview v-else-if="rtf" v-model:page="rtfPage" :file="file" :name="name" :revision="revision" :facts="rtf" large />
