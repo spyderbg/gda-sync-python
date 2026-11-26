@@ -72,6 +72,7 @@ export type AssetCategory = 'available' | 'missing' | 'invalid' | 'supplementary
  * many of its characters the font has. GDA sync reports from earlier versions have only the descriptor and line. */
 export interface AssetDeclaration {
   descriptor: string; line: number; type?: string; id?: string; chars?: string; size?: number; coverage?: FontCoverage;
+  language?: string; resolution?: string;
   /** How a Movie entry's movie is encoded, such as valpha, whose frames stack the picture over its alpha. */
   movieFormat?: string;
 }
@@ -154,7 +155,7 @@ export interface MovieSource { asset: string; name: string; resource: string; fr
 /** How a movie's file can be recreated (LibraryService.recreate_movie_options): the sequences it can be made from, the
  * chosen source (the movie's own asset id for its own frames), the movie as it is now, and the source's frame rate. */
 export interface RecreateMovieOptions extends Omit<MovieOptions, 'id' | 'keys' | 'descriptors' | 'language' | 'resolution' | 'variants'> {
-  sources: MovieSource[]; source: string; current: MovieFacts; sourceFps: number;
+  sources: MovieSource[]; source: string; current: MovieFacts; currentFormat: MovieFormat; sourceFps: number;
   languages: (string | null)[]; resolutions: (string | null)[];
 }
 export type MovieAlphaFormat = 'valpha' | 'valpha-top' | 'halpha' | 'halpha-left';

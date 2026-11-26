@@ -350,7 +350,7 @@ def status_category(status: str) -> str:
 
 class Use(NamedTuple):
     """A descriptor entry that declares a file: where it is, its type and id, a Font's characters and size, and a Movie's
-    format."""
+    format, plus the entry's declared language and resolution."""
     descriptor: str
     line: int
     type: str
@@ -358,14 +358,14 @@ class Use(NamedTuple):
     chars: str | None = None
     size: int | None = None
     movieFormat: str | None = None
+    language: str | None = None
+    resolution: str | None = None
 
 
 def required_by(uses: Iterable[Use]) -> list[dict]:
     """The entries that declare a file as a report lists them, by descriptor and line."""
-    return [{"descriptor": use.descriptor, "line": use.line, "type": use.type,
-             **{key: value for key, value in (("id", use.id), ("chars", use.chars), ("size", use.size), ("movieFormat", use.movieFormat))
-                if value is not None}}
-            for use in sorted(set(uses))]
+    ordered = sorted(set(uses), key=lambda use: (*use[:3], tuple((value is not None, value) for value in use[3:])))
+    return [{key: value for key, value in use._asdict().items() if value is not None} for use in ordered]
 
 
 @dataclass
@@ -446,7 +446,8 @@ def gather(config: Config, required: bool = True, *, include_declared_images: bo
             for relative in relatives:
                 uses[(game_dir / relative).resolve()].add(Use(document_name, line, type(entry).__name__, getattr(entry, "id", None),
                                                               getattr(entry, "chars", None), getattr(entry, "size", None),
-                                                              getattr(entry, "movieFormat", None)))
+                                                              getattr(entry, "movieFormat", None), getattr(entry, "language", None),
+                                                              getattr(entry, "resolution", None)))
         descriptors.append({"name": document_name, "path": str(document_path), "type": type(document).__name__,
                             "declarations": declarations, "resources": resources})
     descriptors.sort(key=lambda item: item["name"])

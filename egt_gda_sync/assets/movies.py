@@ -123,8 +123,8 @@ def describe_movie(path: str) -> dict:
     return {"movie": facts, "dimensions": {"width": facts["width"], "height": facts["height"], "format": facts.get("codec", "video")}}
 
 
-def movie_images(path: Path | str) -> Iterator[np.ndarray]:
-    """Every frame of a movie as it is encoded, in opaque RGBA. ValueError when one of them cannot be decoded."""
+def movie_images(path: Path | str, picture_layout: PackedAlphaFormat | None = None) -> Iterator[np.ndarray]:
+    """Read the encoded frames in opaque RGBA, taking only the premultiplied picture when given its packed layout."""
     with _Capture(path) as capture:
         declared = max(0, int(capture.get(cv2.CAP_PROP_FRAME_COUNT) or 0))
         decoded = 0
@@ -133,6 +133,10 @@ def movie_images(path: Path | str) -> Iterator[np.ndarray]:
             if not ok:
                 break
             decoded += 1
+            if picture_layout is not None:
+                frame, _mask = _packed_planes(frame, picture_layout)
+                if not frame.size:
+                    raise ValueError("The movie frame is too small for its packed alpha layout")
             yield cv2.cvtColor(frame, cv2.COLOR_BGR2RGBA)
         if not decoded or decoded < declared:
             raise ValueError(f"OpenCV can decode only {decoded} of the movie's {declared} frames")
@@ -144,14 +148,18 @@ def _frame_at(capture: cv2.VideoCapture, index: int) -> np.ndarray | None:
     return frame if ok else None
 
 
-def unstacked(frame: np.ndarray, movie_format: PackedAlphaFormat = "valpha") -> np.ndarray:
-    """Recover the straight BGRA picture from a premultiplied picture and its grayscale mask."""
+def _packed_planes(frame: np.ndarray, movie_format: PackedAlphaFormat) -> tuple[np.ndarray, np.ndarray]:
     axis, alpha_first = PACKED_ALPHA_LAYOUTS[movie_format]
     half = frame.shape[axis] // 2
-    if not half:
-        return frame
     first, second, _ = np.split(frame, (half, half * 2), axis=axis)
-    color, mask = (second, first) if alpha_first else (first, second)
+    return (second, first) if alpha_first else (first, second)
+
+
+def unstacked(frame: np.ndarray, movie_format: PackedAlphaFormat = "valpha") -> np.ndarray:
+    """Recover the straight BGRA picture from a premultiplied picture and its grayscale mask."""
+    color, mask = _packed_planes(frame, movie_format)
+    if not color.size:
+        return frame
     alpha = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
     picture = color.astype(np.uint16) * 255 // np.maximum(alpha, 1)[..., None]
     return np.dstack((np.minimum(picture, 255).astype(np.uint8), alpha))

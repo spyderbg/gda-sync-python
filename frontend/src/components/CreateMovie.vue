@@ -7,8 +7,7 @@ import AppModal from './AppModal.vue';
 
 // Make an image sequence into a movie, as the games' win animations were made by hand: its frames encoded by FFmpeg as
 // H.264 at the chosen frame rate, in a file of the game folder, declared in RssMoviesData.json under a new RSS key.
-// Opened for a movie, it only recreates the movie's file, from an image sequence or the movie's own frames: its path, RSS
-// keys and declared format stay.
+// Opened for a movie, it recreates the file from an image sequence or the movie's own frames, keeping its path and RSS keys.
 const props = defineProps<{ row: ReportAsset }>();
 const emit = defineEmits<{ close: [] }>();
 
@@ -34,6 +33,7 @@ const loadError = ref('');
 const key = ref('');
 const path = ref('');
 const format = ref<MovieFormat>('valpha');
+const removingAlpha = computed(() => recreation.value && recreation.value.currentFormat !== 'opaque' && format.value === 'opaque');
 const needsNativeSupport = computed(() => format.value === 'valpha-top' || format.value === 'halpha-left');
 const fps = ref<number | string>('');
 const crf = ref<number | null>(null);
@@ -347,7 +347,8 @@ async function create() {
       <button type="submit" hidden/>
     </form>
     <div class="modal-footer movie-footer">
-      <span v-if="recreating" class="text-muted">Only the movie's file is replaced: its path, RSS keys and format stay. Its previous version is saved in your backups.</span>
+      <span v-if="removingAlpha" class="text-muted">The movie and its declarations will be updated to remove alpha. Previous versions are saved in your backups.</span>
+      <span v-else-if="recreating" class="text-muted">The recreated movie keeps its path and RSS keys. Its previous version is saved in your backups.</span>
       <span v-else class="text-muted">The sequence stays. The descriptor's previous version is saved in your backups, and undoing removes the movie.</span>
       <button type="button" class="btn btn-primary btn-sm" :disabled="!options || !!problems.length || !!busy || reading"
               @click="create">

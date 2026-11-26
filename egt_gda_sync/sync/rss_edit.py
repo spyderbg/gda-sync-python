@@ -34,6 +34,11 @@ class Node:
     value: Any = None
     members: list[tuple[str | int, Node]] = field(default_factory=list)
     kind: str = ""  # "object" or "list" for a container
+    key_start: int | None = None
+
+    @property
+    def member_start(self) -> int:
+        return self.start if self.key_start is None else self.key_start
 
     def member(self, name: str) -> Node | None:
         return next((node for key, node in self.members if key == name), None)
@@ -59,6 +64,7 @@ def parse(text: str) -> Node:
                 if node.kind == "object":
                     key = value(index)
                     member = value(skip(key.end) + 1)  # past the colon
+                    member.key_start = key.start
                     node.members.append((key.value, member))
                 else:
                     member = value(index)
@@ -122,22 +128,24 @@ def declaration_keys(root: Node, row: dict, game_dir: Path) -> list[Key]:
 
 
 def without(text: str, root: Node, removed: set[Key]) -> str:
-    """The text without the list members at the given keys. The members that stay keep the separator that followed
-    them, and the last one the text that closed the list after the last member, so the indentation stays."""
+    """Remove members at the given keys, preserving the surrounding separators and indentation."""
     inside = {key[:length] for key in removed for length in range(len(key) + 1)}
 
     def render(node: Node, key: Key) -> str:
         if key not in inside:
             return text[node.start:node.end]
-        kept = [(name, member) for name, member in node.members if (*key, name) not in removed]
-        if node.kind == "list" and len(kept) < len(node.members):
+        kept = [(index, name, member) for index, (name, member) in enumerate(node.members) if (*key, name) not in removed]
+        if len(kept) < len(node.members):
             if not kept:
-                return "[]"
-            parts = [text[node.start:node.members[0][1].start]]
-            for position, (name, member) in enumerate(kept):
+                return text[node.start] + text[node.end - 1]
+            parts = [text[node.start:node.members[0][1].member_start]]
+            for position, (index, name, member) in enumerate(kept):
+                parts.append(text[member.member_start:member.start])
                 parts.append(render(member, (*key, name)))
-                following = node.members[name + 1][1].start if position + 1 < len(kept) else None
-                parts.append(text[member.end:following] if following is not None else text[node.members[-1][1].end:node.end])
+                if position + 1 < len(kept):
+                    parts.append(text[member.end:node.members[index + 1][1].member_start])
+                else:
+                    parts.append(text[node.members[-1][1].end:node.end])
             return "".join(parts)
         parts, position = [], node.start
         for name, member in node.members:
@@ -146,6 +154,25 @@ def without(text: str, root: Node, removed: set[Key]) -> str:
         return "".join([*parts, text[position:node.end]])
 
     return text[:root.start] + render(root, ()) + text[root.end:]
+
+
+def remove_movie_format(descriptor: Path, text: str, game_dir: Path, movie: Path, expected: str, entries: int) -> str:
+    """Remove the packed layout from every Movie entry for this file, keeping its other fields and formatting."""
+    root = parse(text)
+    movies = root.member("movies")
+    removed = set()
+    for index, entry in movies.members if movies else ():
+        path = entry.member("path")
+        if path is None or not isinstance(path.value, str) or (game_dir / path.value).resolve() != movie:
+            continue
+        if getattr(entry.member("movieFormat"), "value", None) != expected:
+            raise ValueError(f"{descriptor.name} changed. Try again.")
+        removed.add(("movies", index, "movieFormat"))
+    if len(removed) != entries:
+        raise ValueError(f"{descriptor.name} changed. Try again.")
+    result = without(text, root, removed)
+    parse_dataclass(DOCUMENT_TYPES[descriptor.name], json.loads(result), str(descriptor))
+    return result
 
 
 def remove_declarations(descriptor: Path, text: str, rows: list[dict], game_dir: Path) -> tuple[str, dict[str, int]]:

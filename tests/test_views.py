@@ -250,7 +250,7 @@ def test_the_gda_sync_compares_views_and_the_asset_report_lists_them_as_their_ow
     assert rows["v/1920x1080/Broken.json"]["viewError"].startswith("not valid JSON")
     # Both copies of the descriptor declare it.
     assert rows["v/1920x1200/MainView.json"]["requiredBy"] == [
-        {"descriptor": name, "line": 10, "type": "Element", "id": "MainView"} for name in ("RssElementsListData.json", "v/1920x1080/RssElementsListData.json")]
+        {"descriptor": name, "line": 10, "type": "Element", "id": "MainView", "resolution": "1920x1200"} for name in ("RssElementsListData.json", "v/1920x1080/RssElementsListData.json")]
 
     assets = {row["resource"]: row for row in inventory(config, asset_facts)["assets"] if row["type"] == "view"}
     assert set(assets) == set(rows)

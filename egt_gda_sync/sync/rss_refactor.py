@@ -30,6 +30,8 @@ class Reference:
     category: str
     kinds: tuple[str, ...] = ()
     files: tuple[str, ...] = ()
+    # A declaration's resolution and language: entries of one id that differ by them are different resources.
+    variant: tuple[str | None, str | None] = (None, None)
 
     @property
     def id(self) -> str:
@@ -142,7 +144,11 @@ def references(game_dir: Path, resources_dir: Path) -> Index:
                 paths = [(game_dir / path).resolve() for path in expand_path(node.value)]
                 index.refs.append(_reference(file, text, key, node, 'path', files=paths))
             elif descriptor and len(key) >= 3 and key[-1] == 'id' and key[-3] in lists:
-                index.refs.append(_reference(file, text, key, node, 'declaration', [lists[key[-3]]]))
+                reference = _reference(file, text, key, node, 'declaration', [lists[key[-3]]])
+                entry = nodes.get(key[:-1])
+                values = [entry.member(name) if entry else None for name in ('resolution', 'language')]
+                reference.variant = tuple(item.value if item is not None and isinstance(item.value, str) else None for item in values)
+                index.refs.append(reference)
             elif key and key[-1] == 'font_id':
                 index.refs.append(_reference(file, text, key, node, 'structural', ['Font']))
             elif key and (key[-1] in ('rssKey', 'rssStyleId') or len(key) >= 2 and key[-2] == 'rssKeys'):
@@ -299,11 +305,17 @@ def plan_key_rename(index: Index, kind: str, old: str, new: str, excluded=()) ->
         plan.issue('missing-key', 'The key is no longer declared. Rescan and preview again.')
     if old == new:
         plan.issue('unchanged-key', 'Choose a different RssKey.')
+    # Only an entry with the new key and the resolution and language of a renamed entry is the same resource: entries
+    # of one key that differ by them are variants the game picks between.
+    variants = {ref.variant for ref in declarations}
     for ref in index.refs:
         if ref.category == 'declaration' and ref.value == new and ref not in declarations:
             same = kind in ref.kinds
+            if same and ref.variant not in variants:
+                continue
+            detail = ' '.join(item for item in reversed(ref.variant) if item)
             plan.issue('key-collision' if same else 'other-kind',
-                       f'The new key already exists as {", ".join(ref.kinds)}.', [ref.file], warning=not same)
+                       f'The new key already exists as {", ".join(ref.kinds)}{f" for {detail}" if detail else ""}.', [ref.file], warning=not same)
     outside = 0
     for ref in index.refs:
         if ref.value != old or ref.category == 'path':

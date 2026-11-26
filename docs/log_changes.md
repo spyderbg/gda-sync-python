@@ -13,6 +13,7 @@ Versions follow the project's single-digit major.minor.build scheme.
 
 ### Fixed
 
+- Let Rename RssKey use a key that another entry of the kind has with a different resolution or language: only an entry with the same id, resolution and language collides
 - Let Make movie use a key that another entry has with a different resolution or language: only an entry with the same id, resolution and language is the same resource
 
 ## [2.1.5] - 2026-11-26

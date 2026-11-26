@@ -9,9 +9,11 @@ import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 
+from egt_gda_sync.app.errors import AppError
 from egt_gda_sync.app.server import create_app
 from egt_gda_sync.assets import movie_maker
 from egt_gda_sync.assets.movie_maker import encode_movie, movie_frame, movie_path
+from egt_gda_sync.workspace import library as library_module
 from egt_gda_sync.workspace.library import Library
 from tests.conftest import session_headers
 
@@ -244,10 +246,10 @@ def test_an_odd_size_is_padded_with_transparent_pixels(tmp_path):
     assert {item.name for item in tmp_path.iterdir()} == {"f.png", "out.mp4"}
 
 
-def made_movie(client) -> tuple[str, Path]:
+def made_movie(client, movie_format="valpha") -> tuple[str, Path]:
     response = client.post("/api/asset-report/movie", json={
         "asset": sequence(client, "ANIM_SPARK")["id"], "id": "ANIM_SPARK_MOVIE", "path": "m/fx/Spark-rgba.mov",
-        "descriptor": "RssMoviesData.json", "movieFormat": "valpha"})
+        "descriptor": "RssMoviesData.json", "movieFormat": movie_format})
     assert response.status_code == 200, response.text
     return response.json()["asset"], client.game / "m" / "fx" / "Spark-rgba.mov"
 
@@ -259,7 +261,7 @@ def test_recreating_a_movie_replaces_only_its_file(client, own_frames):
     spark = sequence(client, "ANIM_SPARK")["id"]
     options = client.get("/api/asset-report/movie-file", params={"asset": asset}).json()
     assert options["source"] == spark and options["sources"][0]["asset"] == spark
-    assert options["formats"] == ["valpha"] and options["fps"] == 25 and options["ffmpeg"]["sizes"]["valpha"] == "6x8"
+    assert options["formats"] == ["valpha", "opaque"] and options["fps"] == 25 and options["ffmpeg"]["sizes"]["valpha"] == "6x8"
     source = asset if own_frames else spark
     options = client.get("/api/asset-report/movie-file", params={"asset": asset, "source": source}).json()
     assert options["ffmpeg"]["sizes"]["valpha"] == "6x8"
@@ -284,16 +286,77 @@ def test_recreating_a_movie_replaces_only_its_file(client, own_frames):
     assert [{"path": "example/m/fx/Spark-rgba.mov", "change": "replaced"}] in [item["files"] for item in manifests]
 
 
-def test_a_movie_is_not_recreated_in_another_format_or_from_frames_that_do_not_fit(client):
+def test_a_movie_cannot_rearrange_its_packed_alpha_or_use_frames_that_do_not_fit(client):
     asset, movie = made_movie(client)
     before = movie.read_bytes()
     spark = sequence(client, "ANIM_SPARK")["id"]
-    body = {"asset": asset, "source": spark, "movieFormat": "opaque", "fps": 25}
+    body = {"asset": asset, "source": spark, "movieFormat": "halpha", "fps": 25}
     assert "declared as valpha" in client.post("/api/asset-report/movie-file", json=body).json()["error"]
     odd = {**body, "source": sequence(client, "ANIM_ODD")["id"], "movieFormat": "valpha"}
     assert "one size" in client.post("/api/asset-report/movie-file", json=odd).json()["error"]
     assert client.post("/api/asset-report/movie-file", json={**body, "asset": spark}).status_code == 400
     assert movie.read_bytes() == before and {item.name for item in movie.parent.iterdir()} == {movie.name}
+
+
+@pytest.mark.parametrize(("movie_format", "own_frames"), [
+    ("valpha", False), ("valpha", True), ("valpha-top", True), ("halpha", True), ("halpha-left", True),
+])
+def test_recreating_can_remove_alpha_and_restore_the_original_movie_and_descriptors(client, movie_format, own_frames):
+    asset, movie = made_movie(client, movie_format)
+    relative = movie.relative_to(client.game).as_posix()
+    primary = client.game / "RssMoviesData.json"
+    secondary = client.game / "RssData.json"
+    secondary_text = ('{\r\n "movies": [\r\n'
+                      '  {"movieFormat": "' + movie_format + '", "id": "SPARK_EN", "path": "' + relative + '", "language": "en"},\r\n'
+                      '  {"id": "SPARK_IT", "path": "' + relative + '", "resolution": "1920x1200", "movieFormat": "' + movie_format + '"},\r\n'
+                      '  {"id": "OTHER", "path": "other.mov", "movieFormat": "valpha"}\r\n ]\r\n}\r\n')
+    secondary.write_bytes(b"\xef\xbb\xbf" + secondary_text.encode())
+    originals = {path: path.read_bytes() for path in (movie, primary, secondary)}
+    source = asset if own_frames else sequence(client, "ANIM_SPARK")["id"]
+    options = client.get("/api/asset-report/movie-file", params={"asset": asset, "source": source}).json()
+    assert options["currentFormat"] == movie_format and options["formats"] == [movie_format, "opaque"]
+    assert options["ffmpeg"]["sizes"]["opaque"] == "6x4"
+    response = client.post("/api/asset-report/movie-file", json={"asset": asset, "source": source, "movieFormat": "opaque", "fps": 25, "crf": 0})
+    assert response.status_code == 200, response.text
+    result = response.json()
+    assert result["asset"] == asset and result["movie"]["movieFormat"] == "opaque"
+    capture = cv2.VideoCapture(str(movie))
+    ok, picture = capture.read()
+    capture.release()
+    assert ok and picture.shape == (4, 6, 3)
+    assert picture[:, 0, 2].mean() > 80 and picture[:, -1, :].max() < 20
+    assert json.loads(primary.read_bytes())["movies"] == [{"id": "ANIM_SPARK_MOVIE", "path": relative}]
+    assert secondary.read_bytes() == b"\xef\xbb\xbf" + secondary_text.replace(f'"movieFormat": "{movie_format}", ', '', 1).replace(
+        f', "movieFormat": "{movie_format}"' + '},\r\n', '},\r\n', 1).encode()
+    row = next(item for item in client.get("/api/asset-report").json()["assets"] if item["id"] == asset)
+    assert all("movieFormat" not in use for use in row["requiredBy"])
+    backup = Path(result["library"]["backupPath"])
+    operation = next(path for path in backup.glob("*.json") if "without alpha" in json.loads(path.read_text())["message"])
+    restore = client.post("/api/backups/restore", json={"id": operation.stem})
+    assert restore.status_code == 200, restore.text
+    assert all(path.read_bytes() == data for path, data in originals.items())
+
+
+def test_removing_alpha_rolls_back_if_a_descriptor_cannot_be_updated(client, monkeypatch):
+    asset, movie = made_movie(client)
+    first = client.game / "RssData.json"
+    second = client.game / "RssMoviesData.json"
+    first.write_text(json.dumps({"movies": [
+        {"id": "SPARK_ALT", "path": movie.relative_to(client.game).as_posix(), "movieFormat": "valpha"}]}))
+    originals = {path: path.read_bytes() for path in (movie, first, second)}
+    write = library_module._write_file
+
+    def fail_second(path, data):
+        if Path(path) == second:
+            assert first.read_bytes() != originals[first]
+            raise AppError("Descriptor cannot be updated", 409)
+        write(path, data)
+
+    monkeypatch.setattr(library_module, "_write_file", fail_second)
+    response = client.post("/api/asset-report/movie-file", json={"asset": asset, "source": asset, "movieFormat": "opaque", "fps": 25})
+    assert response.status_code == 409, response.text
+    assert all(path.read_bytes() == data for path, data in originals.items())
+    assert list(movie.parent.iterdir()) == [movie]
 
 
 

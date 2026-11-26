@@ -42,7 +42,8 @@ from egt_gda_sync.assets.views import describe_view, is_view, view_root
 # frames, duration and codec, and the format of each Movie entry that declares one.
 # Version 8 distinguishes common assets from other games and counts the latter as otherGame.
 # Version 9 includes standalone Image frames in inferred animations without losing their individual declarations.
-ASSET_REPORT_VERSION = 9
+# Version 10 includes declaration languages and resolutions and gives each declared sequence its own row id.
+ASSET_REPORT_VERSION = 10
 CATEGORIES = ("available", "missing", "invalid", "supplementary")
 # The status a sequence takes from its frames: the first of these that any of its files has.
 SEQUENCE_PRECEDENCE = ("invalid", "missing", "available")
@@ -59,6 +60,7 @@ def inventory(config: Config, facts: Facts) -> dict:
     game_dir = found.game_dir
     common_dir = config.resources_dir / COMMON_DIR
     checked: dict[Path, dict] = {}
+    sequence_occurrences: Counter[str] = Counter()
 
     def file_entry(source: Path, supplementary: bool = False) -> dict:
         """A file as a row or a sequence frame shows it, checked once: a file can be a frame of several sequences."""
@@ -127,11 +129,18 @@ def inventory(config: Config, facts: Facts) -> dict:
             status += f" ({counts[category]} of {len(files)} files)" if counts[category] < len(files) else f" (all {len(files)} files)"
         paths = list(dict.fromkeys(os.path.relpath((game_dir / item.path).resolve(), game_dir) for item in sequence.frames))
         first_path = (game_dir / sequence.frames[0].path).resolve() if sequence.frames else game_dir
+        identity = f"{paths[0] if paths else ''}\0{document_name}\0{sequence.id}"
+        if sequence.language is not None or sequence.resolution is not None:
+            identity += f"\0{(sequence.language, sequence.resolution)!r}"
+        sequence_occurrences[identity] += 1
+        occurrence = sequence_occurrences[identity]
+        asset_id = row_id(identity if occurrence == 1 else f"{identity}\0{occurrence}")
         return {
-            "id": row_id(f"{paths[0] if paths else ''}\0{document_name}\0{sequence.id}"), "category": category, "status": status,
+            "id": asset_id, "category": category, "status": status,
             "resource": paths[0] if paths else "", "resourcePath": str(first_path), **sequence_facts(entries),
             "scope": scope(frames[0][1] if frames else first_path),
-            "requiredBy": required_by([Use(document_name, min(lines), "ImageSequence", sequence.id)]),
+            "requiredBy": required_by([Use(document_name, min(lines), "ImageSequence", sequence.id,
+                                           language=sequence.language, resolution=sequence.resolution)]),
             "sequence": {"id": sequence.id, "frameTime": sequence.frameTime, "loopCount": sequence.loopCount, "loopTo": sequence.loopTo,
                          "paths": paths, "frames": [{**frame(entry), **({"source": asdict(item.source)} if item.source else {})}
                                                     for (item, _source), entry in zip(frames, entries)]},

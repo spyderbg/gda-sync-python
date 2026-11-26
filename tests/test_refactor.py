@@ -61,7 +61,7 @@ def codes(plan):
 def test_copy_in_updates_five_entries_preserves_other_game_and_restore_undoes(client):
     original = {file: file.read_bytes() for file in client.root.rglob('*') if file.is_file()}
     report = client.get('/api/asset-report').json()
-    assert report['version'] == 9 and report['summary']['otherGame'] == 2
+    assert report['version'] == 10 and report['summary']['otherGame'] == 2
     assert [f['kind'] for f in report['folders']] == ['game', 'other-game']
     assert {row['scope'] for row in report['assets']} == {'other-game'}
     body = {'folder': str(client.root / 'other'), 'target': ''}
@@ -363,6 +363,18 @@ def test_font_and_text_style_structural_references(client):
 
 def test_rename_collisions_common_references_and_code_warning(client):
     assert 'key-collision' in codes(rename_preview(client, kind='Image', key='LOAD', newKey='TOP'))
+    # An entry of the new key is the same resource only with the same resolution and language.
+    assert 'key-collision' not in codes(rename_preview(client, kind='Image', key='LOAD_HD', newKey='TOP'))
+    images = json.loads((client.game / 'RssImagesData.json').read_text())
+    images['images'].append({'id': 'TOP', 'path': '../other/art/Topper.dds', 'resolution': '1920x1080', 'language': 'en'})
+    write(client.game / 'RssImagesData.json', images)
+    assert 'key-collision' not in codes(rename_preview(client, kind='Image', key='LOAD_HD', newKey='TOP'))
+    images['images'][-1].pop('language')
+    write(client.game / 'RssImagesData.json', images)
+    plan = rename_preview(client, kind='Image', key='LOAD_HD', newKey='TOP')
+    assert [item['message'] for item in plan['blockers'] if item['code'] == 'key-collision'] == ['The new key already exists as Image for 1920x1080.']
+    images['images'].pop()
+    write(client.game / 'RssImagesData.json', images)
     assert 'invalid-key' in codes(rename_preview(client, kind='Image', key='LOAD', newKey='bad key'))
     plan = rename_preview(client, kind='Image', key='LOAD', newKey='NEW')
     assert {'game-code', 'no-references'} <= {item['code'] for item in plan['warnings']}

@@ -52,6 +52,8 @@ const sequence = computed(() => props.row.sequence);
 const name = computed(() => splitPath(props.row.resource).name);
 const readable = computed(() => props.row.category === 'available' || props.row.category === 'supplementary');
 const section = computed(() => assetSection(props.row));
+const languages = computed(() => [...new Set(props.row.requiredBy.flatMap(use => use.language ? [use.language] : []))].join(', '));
+const resolutions = computed(() => [...new Set(props.row.requiredBy.flatMap(use => use.resolution ? [use.resolution] : []))].join(', '));
 // Several descriptors or resolutions can declare the same key; rename it once for all of its variants.
 const resourceKeys = computed(() => [...new Map(props.row.requiredBy.filter(use => use.id)
   .map(use => [JSON.stringify([use.type, use.id]), use])).values()]);
@@ -232,10 +234,14 @@ const scope = computed(() => ({ game: 'Belongs to this game only.', common: 'A c
       <div class="details-columns">
         <section class="details-summary" aria-label="Status">
           <span :class="['badge', 'details-status', assetBadges[row.category]]">{{ row.status }}</span>
-          <h6 class="details-heading">Asset type</h6>
-          <p class="details-type text-muted"><i aria-hidden="true" :class="['mdi', sectionIcons[section]]" /> {{ typeLabel }}</p>
-          <p class="details-folder text-muted"><i aria-hidden="true" class="mdi mdi-folder-outline" /> {{ splitPath(row.resource).folder }}</p>
-          <p v-if="scope" class="details-scope text-muted"><i aria-hidden="true" :class="['mdi', row.scope === 'game' ? 'mdi-gamepad-variant-outline' : row.scope === 'common' ? 'mdi-share-variant-outline' : 'mdi-folder-arrow-right-outline']" /> {{ scope }}</p>
+          <section aria-label="Asset type">
+            <h6 class="details-heading">Asset type</h6>
+            <p class="details-type text-muted"><i aria-hidden="true" :class="['mdi', sectionIcons[section]]" /> {{ typeLabel }}</p>
+            <p v-if="languages" class="details-scope text-muted"><i aria-hidden="true" class="mdi mdi-translate" /> Language {{ languages }}</p>
+            <p v-if="resolutions" class="details-scope text-muted"><i aria-hidden="true" class="mdi mdi-monitor" /> Resolution {{ resolutions }}</p>
+            <p class="details-folder text-muted"><i aria-hidden="true" class="mdi mdi-folder-outline" /> {{ splitPath(row.resource).folder }}</p>
+            <p v-if="scope" class="details-scope text-muted"><i aria-hidden="true" :class="['mdi', row.scope === 'game' ? 'mdi-gamepad-variant-outline' : row.scope === 'common' ? 'mdi-share-variant-outline' : 'mdi-folder-arrow-right-outline']" /> {{ scope }}</p>
+          </section>
           <p v-if="row.previewError" class="details-scope text-muted"><i aria-hidden="true" class="mdi mdi-image-off-outline" /> {{ row.previewError }}</p>
           <p v-if="row.rtfError" class="details-scope text-muted"><i aria-hidden="true" class="mdi mdi-book-alert-outline" /> {{ row.rtfError }}</p>
           <p v-if="row.viewError" class="details-scope text-muted"><i aria-hidden="true" class="mdi mdi-alert-outline" /> {{ row.viewError }}</p>

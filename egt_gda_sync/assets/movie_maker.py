@@ -175,16 +175,17 @@ def encode_movie(frames: list[tuple[Path, dict | None]], frame_time: int, movie_
 
 
 def reencode_movie(source: Path, movie_format: str, target: Path, progress: Progress | None = None, *,
-                   fps: float | None = None, crf: int = DEFAULT_CRF, gop_size: int = DEFAULT_GOP_SIZE) -> dict:
-    """Encode a movie's own frames into target, which must not exist, as encode_movie does. The frames keep their layout,
-    which movie_format names: a packed alpha movie stays packed."""
+                   fps: float | None = None, crf: int = DEFAULT_CRF, gop_size: int = DEFAULT_GOP_SIZE,
+                   picture_layout: PackedAlphaFormat | None = None) -> dict:
+    """Encode a movie's own frames, taking only the picture when removing a packed alpha layout."""
     described = describe_movie(str(source))
     if "movie" not in described:
         raise ValueError(described["movieError"])
     movie = described["movie"]
     fps = movie["fps"] if fps is None else fps
     names = [source.name] * movie["frames"]
-    facts = _encode(movie_images(source), names, "opaque", target, progress, fps=fps, rate=str(fps), crf=crf, gop_size=gop_size)
+    facts = _encode(movie_images(source, picture_layout), names, "opaque", target, progress,
+                    fps=fps, rate=str(fps), crf=crf, gop_size=gop_size)
     return {**facts, "fps": round(fps, 3), "movieFormat": movie_format}
 
 

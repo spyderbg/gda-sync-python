@@ -23,7 +23,7 @@ from collections.abc import Callable
 from dataclasses import asdict, fields as dataclass_fields
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import TypeVar
+from typing import TypeVar, cast
 
 from egt_gda_sync import __version__
 from egt_gda_sync.images.dds import SUPPORTED_DDS_FORMATS, decode_dds, read_dds_info
@@ -32,14 +32,15 @@ from egt_gda_sync.app.errors import AppError, error_message
 from egt_gda_sync.app.folders import HOME_VARIABLE, WORKING_PATH, default_data_folder, working_folder
 from egt_gda_sync.workspace.asset_report import AssetReports, inventory
 from egt_gda_sync.assets.fonts import FONT_EXTENSIONS, describe_font
-from egt_gda_sync.assets.movies import MOVIE_EXTENSIONS, PackedAlphaFormat, describe_movie, movie_thumbnail
+from egt_gda_sync.assets.movies import MOVIE_EXTENSIONS, PACKED_ALPHA_LAYOUTS, PackedAlphaFormat, describe_movie, movie_thumbnail
 from egt_gda_sync.assets.movie_maker import (DEFAULT_CRF, DEFAULT_GOP_SIZE, FORMATS as MOVIE_FORMATS, MAX_CRF, MAX_GOP_SIZE,
                                             MIN_CRF, encode_movie, encoded_frame_size, ffmpeg_arguments, inspect_frames,
                                             movie_match, movie_path, padded_size, reencode_movie)
 from egt_gda_sync.images.png import PNG_SIGNATURE
 from egt_gda_sync.workspace import backups
 from egt_gda_sync.sync.rss_declare import KINDS, asset_files, asset_kinds, asset_name, build_entry, descriptor_targets, entry_paths, kind_options, used_values
-from egt_gda_sync.sync.rss_edit import add_declaration, declaration_keys, parse as parse_json_source, remove_declarations, set_view_positions, walk
+from egt_gda_sync.sync.rss_edit import (add_declaration, declaration_keys, parse as parse_json_source, remove_declarations,
+                                       remove_movie_format, set_view_positions, walk)
 from egt_gda_sync.sync import rss_refactor
 from egt_gda_sync.sync.rss_jobs import SyncJobs
 from egt_gda_sync.images.image_cache import CACHE_FILE
@@ -1186,7 +1187,7 @@ class Library:
 
         return self._exclusive(operation)
 
-    def _movie_asset(self, asset: str) -> tuple[dict, Path, str, list[dict], list[Movie]]:
+    def _movie_asset(self, asset: str) -> tuple[dict, Path, str, list[dict], dict[Path, list[Movie]]]:
         """A movie of the newest asset report whose file can be recreated, its file, the format that its Movie entries
         declare now ("" when none declares it), the image sequences it can be recreated from, and its Movie entries."""
         workspace_id, entry = self._active_workspace()
@@ -1205,8 +1206,10 @@ class Library:
             documents = load_documents(game, required=False)
         except (OSError, ValueError, TypeError) as error:
             raise AppError(f"The descriptors cannot be read: {error_message(error)}") from error
-        entries = [item for document in documents.values() for item in getattr(document, KINDS["Movie"].list, ())
-                   if (game / item.path).resolve() == movie]
+        declarations = {path: entries for path, document in documents.items()
+                        if (entries := [item for item in getattr(document, KINDS["Movie"].list, ())
+                                        if (game / item.path).resolve() == movie])}
+        entries = [item for items in declarations.values() for item in items]
         formats = {item.movieFormat or "opaque" for item in entries}
         if len(formats) > 1:
             raise AppError(f"The movie is declared in different formats: {', '.join(sorted(formats))}", 409)
@@ -1223,13 +1226,14 @@ class Library:
                       "frames": len(item["sequence"]["frames"]), "match": score[0] > 0}
             ranked.append(((-score[0], not score[1], source["name"].lower(), source["resource"]), source))
         ranked.sort(key=lambda pair: pair[0])
-        return row, movie, next(iter(formats), ""), [source for _rank, source in ranked], entries
+        return row, movie, next(iter(formats), ""), [source for _rank, source in ranked], declarations
 
     def recreate_movie_options(self, asset: str, source: str | None = None) -> dict:
         """How a movie's file can be recreated: the options of movie_options without an id or a descriptor, from the
         source, an image sequence or the movie itself (its own asset id). Without a source, from the sequence the movie
-        was likely made of, or else itself. The format is the declared one, or any for a movie that none declares."""
-        row, movie, declared, sources, entries = self._movie_asset(asset)
+        was likely made of, or else itself. Packed movies can also be made opaque."""
+        row, movie, declared, sources, declarations = self._movie_asset(asset)
+        entries = [item for items in declarations.values() for item in items]
         if source is None:
             source = next((item["asset"] for item in sources if item["match"]), asset)
         described = describe_movie(str(movie))
@@ -1240,6 +1244,11 @@ class Library:
             size = "{}x{}".format(*padded_size(facts["width"], facts["height"]))
             movie_format = declared or "opaque"
             formats, sizes = [movie_format], {item: size for item in MOVIE_FORMATS}
+            if declared in PACKED_ALPHA_LAYOUTS:
+                axis, _ = PACKED_ALPHA_LAYOUTS[declared]
+                width = facts["width"] // 2 if axis == 1 else facts["width"]
+                height = facts["height"] // 2 if axis == 0 else facts["height"]
+                sizes["opaque"] = "{}x{}".format(*padded_size(width, height))
             frames, sequence = facts["frames"], None
         else:
             sequence_row, _game, _documents, files = self._sequence_asset(source)
@@ -1253,8 +1262,11 @@ class Library:
             formats = [declared] if declared else list(MOVIE_FORMATS)
             sizes = {item: encoded_frame_size(width, height, item) for item in MOVIE_FORMATS}
             frames = len(files)
+        if declared in PACKED_ALPHA_LAYOUTS:
+            formats.append("opaque")
         frame_time = sequence["frameTime"] if sequence else 0
         return {"path": _portable(row["resource"]), "sources": sources, "source": source, "current": facts,
+                "currentFormat": declared or "opaque",
                 "languages": sorted({item.language for item in entries}, key=lambda value: value or ""),
                 "resolutions": sorted({item.resolution for item in entries}, key=lambda value: value or ""),
                 "formats": formats, "movieFormat": movie_format, "sequenceId": sequence["id"] if sequence else None,
@@ -1268,27 +1280,48 @@ class Library:
     def recreate_movie(self, asset: str, source: str, movie_format: str, fps: float, crf: int = DEFAULT_CRF,
                        gop_size: int = DEFAULT_GOP_SIZE) -> dict:
         """Encode a movie's file again, from an image sequence or its own frames (source is its own asset id), and replace
-        it. Its path, RSS keys and descriptors stay as they are. The replaced file is saved in the backups."""
+        it. Removing packed alpha also updates its declarations. Back up every replaced file."""
         def operation() -> dict:
             self.require_folders("destination")
             workspace_id, entry = self._active_workspace()
-            row, movie, declared, _sources, _entries = self._movie_asset(asset)
-            if declared and movie_format != declared:
-                raise AppError(f"The movie is declared as {declared}, so it can only be recreated as {declared}", 400)
-            if source == asset and movie_format != (declared or "opaque"):
-                raise AppError("A movie recreated from its own frames keeps its format", 400)
+            row, movie, declared, _sources, declarations = self._movie_asset(asset)
+            removing_alpha = declared in PACKED_ALPHA_LAYOUTS and movie_format == "opaque"
+            if declared and movie_format != declared and not removing_alpha:
+                raise AppError(f"The movie is declared as {declared}, so it cannot be recreated as {movie_format}", 400)
+            if source == asset and movie_format != (declared or "opaque") and not removing_alpha:
+                raise AppError("A movie recreated from its own frames cannot add or rearrange packed alpha", 400)
             sequence_row, frames = None, []
             if source != asset:
                 sequence_row, _game, _documents, frames = self._sequence_asset(source)
-            resources = os.path.realpath(self._comparison(workspace_id, entry)[1]["resources_dir"])
+            settings = self._comparison(workspace_id, entry)[1]
+            resources = os.path.realpath(settings["resources_dir"])
             relative = os.path.relpath(movie, resources)
             previous = file_hash(str(movie))
+            descriptor_changes = {}
+            if removing_alpha:
+                game = self._asset_game(settings)
+                for descriptor, entries in declarations.items():
+                    path = safe_path(resources, os.path.relpath(descriptor, resources))
+                    data = Path(path).read_bytes()
+                    try:
+                        text = remove_movie_format(descriptor, data.decode("utf-8-sig"), game, movie, declared, len(entries))
+                    except ValueError as error:
+                        raise AppError(error_message(error), 409) from error
+                    bom = b"\xef\xbb\xbf" if data.startswith(b"\xef\xbb\xbf") else b""
+                    descriptor_changes[path] = (data, bom + text.encode("utf-8"))
             encoded = movie.with_name(f".egt-gda-sync-{uuid.uuid4()}{movie.suffix}")
+            label = "its own frames" if sequence_row is None else sequence_row["sequence"]["id"] or os.path.basename(sequence_row["resource"])
+            message = f"Recreated movie {_portable(row['resource'])} from {label}"
+            if removing_alpha:
+                message += " without alpha"
             folder = None
+            updated = []
             try:
                 try:
                     if sequence_row is None:
-                        facts = reencode_movie(movie, movie_format, encoded, fps=fps, crf=crf, gop_size=gop_size)
+                        picture_layout = cast(PackedAlphaFormat, declared) if removing_alpha else None
+                        facts = reencode_movie(movie, movie_format, encoded, fps=fps, crf=crf, gop_size=gop_size,
+                                               picture_layout=picture_layout)
                     else:
                         facts = encode_movie(frames, sequence_row["sequence"]["frameTime"], movie_format, encoded,
                                              fps=fps, crf=crf, gop_size=gop_size)
@@ -1297,21 +1330,29 @@ class Library:
                 if not movie.is_file() or file_hash(str(movie)) != previous:
                     raise AppError(f"{movie.name} changed while the movie was made. Try again.", 409)
                 folder = backups.new_operation(self.backup_path)
-                backup = os.path.join(folder, relative)
-                os.makedirs(os.path.dirname(backup), exist_ok=True)
-                _copy_exclusive(str(movie), backup)
+                for path in [str(movie), *descriptor_changes]:
+                    backup = os.path.join(folder, os.path.relpath(path, resources))
+                    os.makedirs(os.path.dirname(backup), exist_ok=True)
+                    _copy_exclusive(path, backup)
                 shutil.copymode(movie, encoded)
+                for path, (data, replacement) in descriptor_changes.items():
+                    if Path(path).read_bytes() != data:
+                        raise AppError(f"{Path(path).name} changed while the movie was made. Try again.", 409)
+                    _write_file(path, replacement)
+                    updated.append(path)
+                backups.write_manifest(folder, action="edit", message=message, root=resources,
+                                       workspace={"id": workspace_id, "name": entry.get("name", workspace_id)})
                 os.replace(encoded, movie)
             except BaseException:
                 encoded.unlink(missing_ok=True)
+                for path in reversed(updated):
+                    _write_file(path, descriptor_changes[path][0])
                 if folder:
                     shutil.rmtree(folder, ignore_errors=True)
+                    Path(f"{folder}.json").unlink(missing_ok=True)
                 raise
-            label = "its own frames" if sequence_row is None else sequence_row["sequence"]["id"] or os.path.basename(sequence_row["resource"])
-            message = f"Recreated movie {_portable(row['resource'])} from {label}"
-            self._record("edit", message, [_portable(relative)], os.path.getsize(movie))
-            backups.write_manifest(folder, action="edit", message=message, root=resources,
-                                   workspace={"id": workspace_id, "name": entry.get("name", workspace_id)})
+            changed = [_portable(relative), *(_portable(os.path.relpath(path, resources)) for path in descriptor_changes)]
+            self._record("edit", message, changed, os.path.getsize(movie))
             self._write_asset_report()
             return {"library": self.scan(), "asset": asset, "movie": facts}
 

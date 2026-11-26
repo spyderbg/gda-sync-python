@@ -68,6 +68,9 @@ def test_library_shows_the_generated_asset_report_and_opens_an_asset_in_a_dialog
     expect(details.locator('.details-declaration')).to_have_text(['RssImagesData.json:5Image'])
     expect(details.get_by_role('region', name='Resource Key', exact=True)).to_contain_text('BANNER')
     expect(details.get_by_role('row').filter(has_text='Resolution')).to_have_text('Resolution8 × 4')
+    asset_type = details.get_by_role('region', name='Asset type')
+    expect(asset_type.get_by_text('Language')).to_have_count(0)
+    expect(asset_type.get_by_text('Resolution')).to_have_count(0)
     poll(lambda: details.get_by_role('img', name='banner.dds preview', exact=True).evaluate('image => image.naturalWidth'), 8)
     # The game path is shown relative to the game folder, with the full path as its tooltip.
     expect(details.locator('.details-path .details-code')).to_have_text('banner.dds')
@@ -79,6 +82,9 @@ def test_library_shows_the_generated_asset_report_and_opens_an_asset_in_a_dialog
     # A sequence lists its frames in the dialog.
     spin.locator('.asset-hit-target').click()
     details = page.get_by_role('dialog', name='spin_{0-2}.dds')
+    asset_type = details.get_by_role('region', name='Asset type')
+    expect(asset_type.get_by_text('Language en', exact=True)).to_be_visible()
+    expect(asset_type.get_by_text('Resolution 1920x1080', exact=True)).to_be_visible()
     expect(details.locator('.details-frames tbody tr')).to_have_count(3)
     expect(details.get_by_role('row', name='Files 3 of 3 found')).to_be_visible()
     expect(details.get_by_role('button', name='Close', exact=True)).to_have_count(0)
@@ -324,7 +330,18 @@ def test_make_movie_declares_a_key_for_each_resolution_and_language_of_its_frame
     page.get_by_role('region', name='Workspace summary').get_by_role('button', name='Rescan', exact=True).click()
     expect(page.get_by_role('status')).to_contain_text('Asset report generated')
     page.get_by_role('status').get_by_role('button').click()
-    page.locator('.asset-card').filter(has_text='SPIN').filter(has_text='spin_{0-2}').first.locator('.asset-hit-target').click()
+    spins = page.locator('.asset-card').filter(has_text='SPIN').filter(has_text='spin_{0-2}')
+    expect(spins).to_have_count(2)
+    resolutions = set()
+    for spin in spins.all():
+        spin.locator('.asset-hit-target').click()
+        details = page.get_by_role('dialog', name='spin_{0-2}.dds')
+        asset_type = details.get_by_role('region', name='Asset type')
+        expect(asset_type.get_by_text('Language en', exact=True)).to_be_visible()
+        resolutions.add(asset_type.get_by_text('Resolution', exact=False).inner_text().strip())
+        details.get_by_role('button', name='Close dialog', exact=True).click()
+    assert resolutions == {'Resolution 1920x1080', 'Resolution 1920x1200'}
+    spins.first.locator('.asset-hit-target').click()
     page.get_by_role('button', name='Make movie', exact=True).click()
     dialog = page.get_by_role('dialog', name='Make a movie of SPIN')
     expect(dialog.locator('#movie-path-variants')).to_have_text('Declared for en 1920x1080, en 1920x1200')
@@ -341,13 +358,16 @@ def test_make_movie_declares_a_key_for_each_resolution_and_language_of_its_frame
         ('m/anim/spin.mov', 'en', '1920x1080'), ('m/anim/spin.mov', 'en', '1920x1200')]
     assert not (game / 'm' / 'anim' / 'it').exists()
     details = page.get_by_role('dialog', name='spin.mov', exact=True)
+    asset_type = details.get_by_role('region', name='Asset type')
+    expect(asset_type.get_by_text('Language en', exact=True)).to_be_visible()
+    expect(asset_type.get_by_text('Resolution 1920x1080, 1920x1200', exact=True)).to_be_visible()
     details.get_by_role('button', name='Make movie', exact=True).click()
     facts = page.get_by_role('dialog', name='Recreate spin.mov').locator('dl[aria-label="Current movie parameters"]')
     expect(facts.locator('dt')).to_have_text(['current size', 'frames', 'FPS', 'language', 'resolution'])
     expect(facts.locator('dd')).to_have_text(['4 × 4', '3', '25', 'en', '1920x1080, 1920x1200'])
 
 
-def test_make_movie_of_a_movie_only_recreates_its_file(new_context, details_backend):
+def test_make_movie_of_a_movie_can_keep_or_remove_its_packed_alpha(new_context, details_backend):
     backend, game = details_backend
     descriptor = game / 'RssMoviesData.json'
     descriptor.write_text('{"movies": []}')
@@ -358,7 +378,9 @@ def test_make_movie_of_a_movie_only_recreates_its_file(new_context, details_back
     page.get_by_role('region', name='Workspace summary').get_by_role('button', name='Rescan', exact=True).click()
     page.locator('.asset-card').filter(has_text='SPIN').locator('.asset-hit-target').click()
     page.get_by_role('button', name='Make movie', exact=True).click()
-    page.get_by_role('dialog', name='Make a movie of SPIN').get_by_role('button', name='Make movie', exact=True).click()
+    creation = page.get_by_role('dialog', name='Make a movie of SPIN')
+    creation.get_by_label('Format', exact=True).select_option('valpha')
+    creation.get_by_role('button', name='Make movie', exact=True).click()
     details = page.get_by_role('dialog', name=re.compile(r'\.mov$'))
     expect(details.get_by_role('row', name='Frame rate 25 frames per second')).to_be_visible()
     declared = descriptor.read_text()
@@ -371,7 +393,7 @@ def test_make_movie_of_a_movie_only_recreates_its_file(new_context, details_back
     expect(dialog.get_by_label('Source', exact=True).locator('option:checked')).to_contain_text('SPIN (3 frames)')
     expect(dialog.get_by_label('RSS key')).to_have_count(0)
     expect(dialog.get_by_label('Path', exact=True)).not_to_be_editable()
-    expect(dialog.get_by_label('Format', exact=True)).to_be_disabled()
+    expect(dialog.get_by_label('Format', exact=True)).to_have_value('valpha')
     dialog.get_by_label('Source', exact=True).select_option(label="This movie's own frames")
     expect(dialog.get_by_text('loses some quality')).to_be_visible()
     dialog.get_by_label('Frames per second', exact=True).fill('10')
@@ -382,6 +404,18 @@ def test_make_movie_of_a_movie_only_recreates_its_file(new_context, details_back
     expect(dialog).to_have_count(0)
     expect(details.get_by_role('row', name='Frame rate 10 frames per second')).to_be_visible()
     assert descriptor.read_text() == declared
+
+    details.get_by_role('button', name='Make movie', exact=True).click()
+    dialog.get_by_label('Source', exact=True).select_option(label="This movie's own frames")
+    expect(dialog.get_by_text('loses some quality')).to_be_visible()
+    dialog.get_by_label('Format', exact=True).select_option(label='Opaque (over black)')
+    expect(dialog.locator('.movie-command-preview')).to_contain_text('-s 4x4')
+    dialog.get_by_role('button', name='Make movie', exact=True).click()
+    expect(dialog).to_have_count(0)
+    expect(details.get_by_role('row', name='Frame size 4 × 4')).to_be_visible()
+    expect(details.get_by_role('button', name='As encoded')).to_have_count(0)
+    assert json.loads(descriptor.read_text())['movies'] == [
+        {key: value for key, value in entry.items() if key != 'movieFormat'} for entry in json.loads(declared)['movies']]
 
 
 def test_an_asset_that_no_descriptor_declares_is_declared_from_its_details(new_context, details_backend):

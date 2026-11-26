@@ -110,7 +110,7 @@ def test_lists_each_asset_with_the_descriptor_entries_that_load_it(tmp_path):
     # Each declaration with its descriptor, line, entry type and id.
     assert rows["logo.dds"]["requiredBy"] == [
         {"descriptor": "RssImagesData.json", "line": 5, "type": "Image", "id": "LOGO"},
-        {"descriptor": "RssImagesData.json", "line": 9, "type": "Image", "id": "LOGO_HD"},
+        {"descriptor": "RssImagesData.json", "line": 9, "type": "Image", "id": "LOGO_HD", "resolution": "1920x1080"},
     ]
     assert rows["click.wav"]["requiredBy"] == [{"descriptor": "RssAudioData.json", "line": 6, "type": "AudioEvent", "id": "CLICK"}]
     assert rows["../../outside.ttf"]["requiredBy"] == [{"descriptor": "RssRawData.json", "line": 4, "type": "RawFile"}]
