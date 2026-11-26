@@ -10,6 +10,7 @@ Versions follow the project's single-digit major.minor.build scheme.
 ### Added
 
 - Add a working folder, `config.working_path` in workspace.json, where the app keeps its data from its next start, and a Global settings page, the gear on the Dashboard, that edits it
+- Declare a movie made of an image sequence once for each resolution and language of the sequence's entries with its frames
 - Recreate a movie's file from its details in the Asset library, from an image sequence or its own frames, keeping its path and RSS keys
 
 ### Fixed

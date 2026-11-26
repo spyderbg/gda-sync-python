@@ -20,7 +20,7 @@ import time
 import uuid
 from collections import OrderedDict
 from collections.abc import Callable
-from dataclasses import fields as dataclass_fields
+from dataclasses import asdict, fields as dataclass_fields
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import TypeVar
@@ -47,7 +47,7 @@ from egt_gda_sync.images.metadata.service import (EXTENSIONS as METADATA_EXTENSI
                                                 image_data as metadata_image_data, target_key)
 from egt_gda_sync.images.metadata.sequence import storyboard
 from egt_gda_sync.workspace.paths import PLACEHOLDER, contract, expand, expand_fields, global_paths
-from egt_gda_sync.sync.rss_schemas import DOCUMENT_TYPES, parse_dataclass
+from egt_gda_sync.sync.rss_schemas import DOCUMENT_TYPES, Movie, parse_dataclass
 from egt_gda_sync.sync.rss_sync import DEFAULT_EXTENSIONS, DEFAULT_MATCH_THRESHOLD, Config, declared_files, declared_paths, expand_path, load_documents
 from egt_gda_sync.assets.view_text import DEFAULT_SAMPLE
 from egt_gda_sync.assets.views import THUMBNAIL_WIDTH, VIEW_FOLDER, is_view, key_uses, load_resources, read_view, render_text, render_view, view_layout, view_root
@@ -1033,6 +1033,24 @@ class Library:
         return row, game, documents, frames
 
     @staticmethod
+    def _movie_variants(row: dict, game: Path, documents: dict[Path, object], frames: list[tuple[Path, dict | None]]) -> list[dict]:
+        """The resolutions and languages of the ImageSequence entries of a sequence's id that have its frames, such as
+        one entry per resolution of one language's frames, which the movie's Movie entries copy: one Movie entry each.
+        A sequence whose entries name neither has one, empty."""
+        variants: list[dict] = []
+        sequence_id = row["sequence"]["id"]
+        for document in documents.values() if sequence_id else ():
+            for sequence in getattr(document, KINDS["ImageSequence"].list, None) or ():
+                items = [((game / relative).resolve(), asdict(frame.source) if frame.source else None)
+                         for frame in sequence.frames for relative in expand_path(frame.path)]
+                if sequence.id != sequence_id or [(str(file), source) for file, source in items] != [(str(file), source) for file, source in frames]:
+                    continue
+                variant = {name: value for name in ("resolution", "language") if (value := getattr(sequence, name)) is not None}
+                if variant not in variants:
+                    variants.append(variant)
+        return sorted(variants or [{}], key=lambda item: (item.get("language", ""), item.get("resolution", "")))
+
+    @staticmethod
     def _resource_ids(documents: dict[Path, object]) -> set[str]:
         """The ids of every entry of the game's descriptors, of any kind."""
         return {entry.id for document in documents.values() for item in dataclass_fields(document)
@@ -1044,6 +1062,11 @@ class Library:
         (valpha when they have alpha), the sequence's timing, and the FFmpeg command template and packed frame sizes."""
         row, game, documents, frames = self._sequence_asset(asset)
         sequence = row["sequence"]
+        declaration = next((use for use in row["requiredBy"] if use["type"] == "ImageSequence"), None)
+        document = documents.get((game / declaration["descriptor"]).resolve()) if declaration else None
+        source = next((item for item in getattr(document, "imagesSeq", ()) if item.id == sequence["id"]
+                       and list(dict.fromkeys(os.path.relpath((game / frame.path).resolve(), game)
+                                              for frame in item.frames)) == sequence["paths"]), None)
         ids = self._resource_ids(documents)
         name = sequence["id"] or asset_name(row)
         base = re.sub(r"[^0-9A-Za-z]+", "_", name).strip("_").upper() or "ANIM"
@@ -1057,11 +1080,12 @@ class Library:
             raise AppError(f"The frames cannot be read: {error_message(error)}", 400) from error
         width, height = padded_size(width, height)
         frame_time = sequence["frameTime"]
-        return {"id": candidate, "ids": sorted(ids), "path": movie_path(frames[0][0], game, asset_name(row), movie_format),
+        return {"id": candidate, "variants": self._movie_variants(row, game, documents, frames), "ids": sorted(ids), "path": movie_path(frames[0][0], game, asset_name(row), movie_format),
                 "descriptors": [path.relative_to(game).as_posix() for path in descriptor_targets(documents, KINDS["Movie"], game)],
                 "formats": list(MOVIE_FORMATS), "movieFormat": movie_format, "sequenceId": sequence["id"],
                 "frameTime": frame_time, "fps": round(1000 / frame_time, 3) if frame_time > 0 else 0,
                 "loopCount": sequence["loopCount"], "loopTo": sequence.get("loopTo"), "frames": len(frames), "crf": DEFAULT_CRF,
+                "language": source.language if source else None, "resolution": source.resolution if source else None,
                 "crfValues": list(range(MIN_CRF, MAX_CRF + 1)),
                 "gopSize": DEFAULT_GOP_SIZE, "maxGopSize": MAX_GOP_SIZE,
                 "ffmpeg": {
@@ -1076,7 +1100,8 @@ class Library:
         it, which must not exist), and declare it in a descriptor that holds Movie entries, under a new id, so a view's
         Anim element can name it instead of the sequence. The sequence and its frames stay. The descriptor it replaces is
         saved in the backups, and the movie is recorded as created, so undoing the operation removes both. Then generate
-        the asset report again. Returns the library, the movie's asset id in the new report, and its entry."""
+        the asset report again. Returns the library, the movie's asset id in the new report, and its entries: one for
+        each resolution and language of the ImageSequence entries of the sequence's id that have its frames, with them."""
         def operation() -> dict:
             self.require_folders("destination")
             workspace_id, entry = self._active_workspace()
@@ -1100,11 +1125,15 @@ class Library:
                 raise AppError(f"{relative_path} exists already", 409)
             descriptor_relative = os.path.relpath(targets[descriptor], resources)
             target = safe_path(resources, descriptor_relative)
-            new_entry = {"id": movie_id, "path": relative_path, **({"movieFormat": movie_format} if movie_format != "opaque" else {})}
+            entries = [{"id": movie_id, "path": relative_path, **({"movieFormat": movie_format} if movie_format != "opaque" else {}), **variant}
+                       for variant in self._movie_variants(row, game, documents, frames)]
+            new_entry = entries[0]
             try:
                 data = Path(target).read_bytes()
                 bom = data.startswith(b"\xef\xbb\xbf")
                 text, line = add_declaration(data[3 if bom else 0:].decode("utf-8"), KINDS["Movie"].list, new_entry)
+                for item in entries[1:]:
+                    text = add_declaration(text, KINDS["Movie"].list, item)[0]
                 parse_dataclass(DOCUMENT_TYPES[Path(target).name], json.loads(text), descriptor)
             except (UnicodeDecodeError, ValueError) as error:
                 raise AppError(error_message(error), 400) from error
@@ -1133,7 +1162,8 @@ class Library:
                 shutil.rmtree(folder, ignore_errors=True)
                 raise
             label = row["sequence"]["id"] or os.path.basename(row["resource"])
-            message = f"Made movie {movie_id} ({relative_path}) from {label}, declared in {descriptor}"
+            times = f" {len(entries)} times" if len(entries) > 1 else ""
+            message = f"Made movie {movie_id} ({relative_path}) from {label}, declared{times} in {descriptor}"
             self._record("edit", message, [_portable(descriptor_relative), movie_relative], os.path.getsize(movie))
             backups.write_manifest(folder, action="edit", message=message, root=resources,
                                    workspace={"id": workspace_id, "name": entry.get("name", workspace_id)},
@@ -1142,13 +1172,13 @@ class Library:
             found = next((item for item in rows if any(_portable(use["descriptor"]) == descriptor and use["type"] == "Movie"
                                                        and use.get("id") == movie_id for use in item["requiredBy"])), None)
             return {"library": self.scan(), "asset": found["id"] if found else None, "descriptor": descriptor, "line": line,
-                    "entry": new_entry, "movie": facts}
+                    "entry": new_entry, "entries": entries, "movie": facts}
 
         return self._exclusive(operation)
 
-    def _movie_asset(self, asset: str) -> tuple[dict, Path, str, list[dict]]:
+    def _movie_asset(self, asset: str) -> tuple[dict, Path, str, list[dict], list[Movie]]:
         """A movie of the newest asset report whose file can be recreated, its file, the format that its Movie entries
-        declare now ("" when none declares it), and the image sequences it can be recreated from, the likeliest first."""
+        declare now ("" when none declares it), the image sequences it can be recreated from, and its Movie entries."""
         workspace_id, entry = self._active_workspace()
         settings = self._comparison(workspace_id, entry)[1]
         row, rows = self._report_asset(workspace_id, asset)
@@ -1183,13 +1213,13 @@ class Library:
                       "frames": len(item["sequence"]["frames"]), "match": score[0] > 0}
             ranked.append(((-score[0], not score[1], source["name"].lower(), source["resource"]), source))
         ranked.sort(key=lambda pair: pair[0])
-        return row, movie, next(iter(formats), ""), [source for _rank, source in ranked]
+        return row, movie, next(iter(formats), ""), [source for _rank, source in ranked], entries
 
     def recreate_movie_options(self, asset: str, source: str | None = None) -> dict:
         """How a movie's file can be recreated: the options of movie_options without an id or a descriptor, from the
         source, an image sequence or the movie itself (its own asset id). Without a source, from the sequence the movie
         was likely made of, or else itself. The format is the declared one, or any for a movie that none declares."""
-        row, movie, declared, sources = self._movie_asset(asset)
+        row, movie, declared, sources, entries = self._movie_asset(asset)
         if source is None:
             source = next((item["asset"] for item in sources if item["match"]), asset)
         described = describe_movie(str(movie))
@@ -1215,6 +1245,8 @@ class Library:
             frames = len(files)
         frame_time = sequence["frameTime"] if sequence else 0
         return {"path": _portable(row["resource"]), "sources": sources, "source": source, "current": facts,
+                "languages": sorted({item.language for item in entries}, key=lambda value: value or ""),
+                "resolutions": sorted({item.resolution for item in entries}, key=lambda value: value or ""),
                 "formats": formats, "movieFormat": movie_format, "sequenceId": sequence["id"] if sequence else None,
                 "frameTime": frame_time, "fps": facts["fps"], "sourceFps": round(1000 / frame_time, 3) if frame_time > 0 else facts["fps"],
                 "loopCount": sequence["loopCount"] if sequence else 1, "loopTo": sequence.get("loopTo") if sequence else None,
@@ -1230,7 +1262,7 @@ class Library:
         def operation() -> dict:
             self.require_folders("destination")
             workspace_id, entry = self._active_workspace()
-            row, movie, declared, _sources = self._movie_asset(asset)
+            row, movie, declared, _sources, _entries = self._movie_asset(asset)
             if declared and movie_format != declared:
                 raise AppError(f"The movie is declared as {declared}, so it can only be recreated as {declared}", 400)
             if source == asset and movie_format != (declared or "opaque"):

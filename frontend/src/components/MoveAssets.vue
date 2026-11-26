@@ -136,7 +136,6 @@ async function apply() {
       <p class="move-backup"><i class="mdi mdi-shield-check-outline" aria-hidden="true" />A backup is saved automatically.</p>
       <div class="move-actions">
         <button v-if="step === 2" type="button" class="btn btn-light" :disabled="!!busy" @click="goToStep(1)">Back</button>
-        <button type="button" class="btn btn-outline-secondary" :disabled="!!busy" @click="close">Cancel</button>
         <button v-if="step === 1" type="button" class="btn btn-primary" :disabled="!canReview || !!busy" @click="goToStep(2)">Review changes<i class="mdi mdi-arrow-right ml-2" aria-hidden="true" /></button>
         <button v-else type="button" class="btn btn-primary" :disabled="!canReview || !!busy" @click="apply">{{ busy === 'move' ? 'Applying…' : 'Apply' }}</button>
       </div>

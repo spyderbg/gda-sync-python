@@ -24,6 +24,10 @@ const recreating = props.row.type === 'movie';
 const creation = ref<MovieOptions | null>(null);
 const recreation = ref<RecreateMovieOptions | null>(null);
 const options = computed(() => creation.value ?? recreation.value);
+const sourceResolutions = computed(() => {
+  const resolutions = creation.value?.variants.map(variant => variant.resolution ?? 'null') ?? [];
+  return [...new Set(resolutions)].join(', ') || (creation.value?.resolution ?? 'null');
+});
 const source = ref('');
 const reading = ref(false);
 const loadError = ref('');
@@ -141,10 +145,14 @@ const problems = computed(() => {
   if (creation.value && !descriptor.value) result.push('The game has no RssMoviesData.json to declare the movie in.');
   return result;
 });
-const entry = computed(() => JSON.stringify({
-  id: key.value.trim(),
-  path: outputPath.value, ...(format.value === 'opaque' ? {} : {movieFormat: format.value})
-}, null, 4));
+// One Movie entry for each ImageSequence entry of the sequence's id with its frames, with its resolution and language.
+const entries = computed(() => {
+  const movieFormat = format.value === 'opaque' ? {} : {movieFormat: format.value};
+  return (creation.value?.variants ?? [{}]).map(variant => ({id: key.value.trim(), path: outputPath.value, ...movieFormat, ...variant}));
+});
+const variantsLabel = computed(() => (creation.value?.variants.length ?? 0) > 1
+  ? `${creation.value!.variants.map(variant => [variant.language, variant.resolution].filter(Boolean).join(' ')).join(', ')}` : '');
+const entry = computed(() => JSON.stringify(entries.value.length > 1 ? entries.value : entries.value[0] ?? {}, null, 4));
 
 const ffmpegCommand = computed(() => {
   const current = options.value;
@@ -201,6 +209,14 @@ async function create() {
             <dt class="text-muted">FPS</dt>
             <dd>{{ recreation.current.fps }}</dd>
           </div>
+          <div>
+            <dt class="text-muted">language</dt>
+            <dd>{{ recreation.languages.map(value => value ?? 'null').join(', ') || 'null' }}</dd>
+          </div>
+          <div>
+            <dt class="text-muted">resolution</dt>
+            <dd>{{ recreation.resolutions.map(value => value ?? 'null').join(', ') || 'null' }}</dd>
+          </div>
         </dl>
         <dl v-else class="movie-facts" aria-label="Source sequence parameters">
           <div>
@@ -214,6 +230,14 @@ async function create() {
           <div>
             <dt class="text-muted">loopTo</dt>
             <dd>{{ options.loopTo ?? 'null' }}</dd>
+          </div>
+          <div>
+            <dt class="text-muted">language</dt>
+            <dd>{{ creation?.language ?? 'null' }}</dd>
+          </div>
+          <div>
+            <dt class="text-muted">resolution</dt>
+            <dd>{{ sourceResolutions }}</dd>
           </div>
         </dl>
         <div v-if="recreation" class="movie-field">
@@ -237,7 +261,10 @@ async function create() {
         <div class="movie-field">
           <label class="movie-label" for="movie-path">Path</label>
           <input id="movie-path" v-model="path" class="form-control form-control-sm movie-code" required
-                 :readonly="recreating" maxlength="1000" spellcheck="false" autocomplete="off">
+                 :readonly="recreating" maxlength="1000" spellcheck="false" autocomplete="off"
+                 :aria-describedby="variantsLabel ? 'movie-path-variants' : undefined">
+          <small v-if="variantsLabel" id="movie-path-variants" class="movie-field-note movie-variants text-muted">Declared
+            for {{ variantsLabel }}</small>
         </div>
         <div class="movie-field">
           <label class="movie-label" for="movie-fps">Frames per second</label>
@@ -284,7 +311,8 @@ async function create() {
         </div>
         <section v-if="!recreating" aria-labelledby="movie-entry-heading">
           <div class="movie-preview-heading">
-            <h6 id="movie-entry-heading" class="movie-heading">{{ descriptor || 'RssMoviesData.json' }} · movies</h6>
+            <h6 id="movie-entry-heading" class="movie-heading">{{ descriptor || 'RssMoviesData.json' }} · movies<template
+                v-if="entries.length > 1"> · {{ entries.length }} entries</template></h6>
             <button type="button" class="details-icon" aria-label="Copy movie entry JSON" title="Copy movie entry JSON"
                     @click="copy(entry, 'Movie entry copied to clipboard.')">
               <i aria-hidden="true" class="mdi mdi-content-copy"/>
@@ -312,8 +340,6 @@ async function create() {
     <div class="modal-footer movie-footer">
       <span v-if="recreating" class="text-muted">Only the movie's file is replaced: its path, RSS keys and format stay. Its previous version is saved in your backups.</span>
       <span v-else class="text-muted">The sequence stays. The descriptor's previous version is saved in your backups, and undoing removes the movie.</span>
-      <button type="button" class="btn btn-light btn-sm" :disabled="busy === 'movie'" @click="emit('close')">Cancel
-      </button>
       <button type="button" class="btn btn-primary btn-sm" :disabled="!options || !!problems.length || !!busy || reading"
               @click="create">
         <i v-if="busy === 'movie'" aria-hidden="true"
@@ -374,6 +400,10 @@ async function create() {
 .movie-field-note {
   grid-column: 2;
   text-transform: lowercase;
+}
+
+.movie-variants {
+  text-transform: none;
 }
 
 .movie-code {

@@ -380,7 +380,6 @@ const scope = computed(() => ({ game: 'Belongs to this game only.', common: 'A c
       <button v-if="canRecreateMovie" type="button" class="btn btn-outline-primary" :disabled="unsaved"
               title="Encode the movie's file again, keeping its path and RSS keys" @click="makingMovie = true">Make movie</button>
       <button type="button" class="btn btn-outline-primary" :disabled="unsaved" @click="moving = true">Move</button>
-      <button type="button" class="btn btn-light" @click="close">Close</button>
     </div>
   </AppModal>
   <MoveAssets v-if="moving" :row="row" @close="moving = false" />

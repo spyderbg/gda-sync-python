@@ -39,7 +39,7 @@ KINDS: dict[str, Kind] = {
     "Font": Kind("fonts", "RssFontsData.json", ("id", "path", "chars", "size", "resolution"), frozenset({"id", "chars", "size"})),
     "Rtf": Kind("rtfs", "RssRtfsData.json", ("id", "path", "integration"), frozenset({"id"})),
     "Element": Kind("elements", "RssElementsListData.json", ("id", "path", "resolution", "integration"), frozenset({"id"})),
-    "Movie": Kind("movies", "RssMoviesData.json", ("id", "path", "movieFormat"), frozenset({"id"})),
+    "Movie": Kind("movies", "RssMoviesData.json", ("id", "path", "movieFormat", "resolution", "language", "integration"), frozenset({"id"})),
     "IData": Kind("idatas", "RssIData.json", ("id", "dataType", "path", "resolution", "integration"), frozenset({"id", "dataType"})),
     "RawFile": Kind("rawFiles", "RssRawData.json", ("path",), frozenset()),
 }

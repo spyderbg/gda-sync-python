@@ -26,7 +26,8 @@ def details_backend(tmp_path, browser):
     (game / 'RssImagesData.json').write_text(json.dumps({'images': [
         {'id': 'BANNER', 'path': 'banner.dds'}, {'id': 'GONE', 'path': 'gone.dds'}]}, indent=2))
     (game / 'RssImagesSeqData.json').write_text(json.dumps({'imagesSeq': [
-        {'id': 'SPIN', 'frameTime': 40, 'loopCount': 0, 'frames': [{'path': 'anim/spin_{0-2}.dds'}]}]}, indent=2))
+        {'id': 'SPIN', 'frameTime': 40, 'loopCount': 0, 'frames': [{'path': 'anim/spin_{0-2}.dds'}],
+         'language': 'en', 'resolution': '1920x1080'}]}, indent=2))
     home = tmp_path / 'app'
     home.mkdir()
     entry = {'id': 'example', 'game_name': 'Example', 'gda_path': str(gda), 'game_path': str(game)}
@@ -80,7 +81,9 @@ def test_library_shows_the_generated_asset_report_and_opens_an_asset_in_a_dialog
     details = page.get_by_role('dialog', name='spin_{0-2}.dds')
     expect(details.locator('.details-frames tbody tr')).to_have_count(3)
     expect(details.get_by_role('row', name='Files 3 of 3 found')).to_be_visible()
-    page.keyboard.press('Escape')
+    expect(details.get_by_role('button', name='Close', exact=True)).to_have_count(0)
+    details.get_by_role('button', name='Close dialog', exact=True).click()
+    expect(details).to_have_count(0)
     assert errors == []
 
 
@@ -127,9 +130,13 @@ def test_make_movie_uses_the_entered_frame_rate_and_alpha_layout(new_context, de
     expect(page.get_by_role('button', name='Move', exact=True)).to_be_visible()
     page.get_by_role('button', name='Make movie', exact=True).click()
     dialog = page.get_by_role('dialog', name='Make a movie of SPIN')
+    expect(dialog.get_by_role('button', name='Cancel', exact=True)).to_have_count(0)
+    page.keyboard.press('Escape')
+    expect(dialog).to_have_count(0)
+    page.get_by_role('button', name='Make movie', exact=True).click()
     facts = dialog.locator('dl[aria-label="Source sequence parameters"]')
-    expect(facts.locator('dt')).to_have_text(['frameTime', 'loopCount', 'loopTo'])
-    expect(facts.locator('dd')).to_have_text(['40', '0', 'null'])
+    expect(facts.locator('dt')).to_have_text(['frameTime', 'loopCount', 'loopTo', 'language', 'resolution'])
+    expect(facts.locator('dd')).to_have_text(['40', '0', 'null', 'en', '1920x1080'])
     assert facts.evaluate('''list => {
         const first = list.firstElementChild.getBoundingClientRect();
         const last = list.lastElementChild.getBoundingClientRect();
@@ -137,7 +144,7 @@ def test_make_movie_uses_the_entered_frame_rate_and_alpha_layout(new_context, de
         return Math.abs(first.left + last.right - box.left - box.right) < 1;
     }''')
     popup = dialog.locator('.movie-dialog')
-    expect(popup).to_have_css('width', '650px')
+    expect(popup).to_have_css('width', '780px')
     viewport = page.viewport_size
     page.set_viewport_size({'width': 600, 'height': 800})
     assert popup.evaluate('popup => popup.getBoundingClientRect().right < window.innerWidth')
@@ -221,7 +228,8 @@ def test_make_movie_uses_the_entered_frame_rate_and_alpha_layout(new_context, de
     entry_json = entry.locator('pre').text_content()
     entry.get_by_role('button', name='Copy movie entry JSON').click()
     poll(lambda: page.evaluate('navigator.clipboard.readText()'), entry_json)
-    assert json.loads(entry_json) == {'id': 'ANIM_SPIN_MOVIE', 'path': long_path, 'movieFormat': alpha_layout}
+    assert json.loads(entry_json) == {'id': 'ANIM_SPIN_MOVIE', 'path': long_path, 'movieFormat': alpha_layout,
+                                       'resolution': '1920x1080', 'language': 'en'}
     commands.get_by_role('button', name='Copy FFmpeg command').click()
     poll(lambda: page.evaluate('navigator.clipboard.readText()'), command)
     path_field.fill(suggested_path)
@@ -267,6 +275,8 @@ def test_make_movie_uses_the_entered_frame_rate_and_alpha_layout(new_context, de
             const [r, g, b, a] = canvas.getContext('2d').getImageData(2, 2, 1, 1).data;
             return r > 200 && g < 60 && b < 60 && a > 200;
         }'''), True)
+        video.evaluate('video => { video.pause(); video.currentTime = video.currentTime < 0.05 ? 0.075 : 0.025; }')
+        poll(lambda: page.evaluate('window.previewVideoReads.length > 0'), True)
         reads = page.evaluate('window.previewVideoReads')
         assert reads and all(count == 1 for count in reads)
         preview = details.get_by_role('group', name='Movie preview')
@@ -294,6 +304,49 @@ def test_make_movie_uses_the_entered_frame_rate_and_alpha_layout(new_context, de
 
 
 @pytest.mark.skipif(not shutil.which('ffmpeg'), reason='making a movie needs FFmpeg')
+def test_make_movie_declares_a_key_for_each_resolution_and_language_of_its_frames(new_context, details_backend):
+    backend, game = details_backend
+    descriptor = game / 'RssMoviesData.json'
+    descriptor.write_text('{"movies": []}')
+    (game / 'anim' / 'it').mkdir()
+    for number in range(3):
+        (game / 'anim' / 'it' / f'spin_it_{number}.dds').write_bytes(create_bc7_dds(4, 4))
+    data = json.loads((game / 'RssImagesSeqData.json').read_text())
+    data['imagesSeq'] += [
+        {**data['imagesSeq'][0], 'resolution': '1920x1200'},
+        {'id': 'SPIN', 'frameTime': 40, 'loopCount': 0, 'frames': [{'path': 'anim/it/spin_it_{0-2}.dds'}], 'language': 'it'},
+    ]
+    (game / 'RssImagesSeqData.json').write_text(json.dumps(data, indent=2))
+    page = new_context().new_page()
+    page.goto(backend.url)
+    page.get_by_role('list', name='Workspaces').get_by_role('button', name='Example', exact=True).click()
+    page.get_by_role('button', name='Asset library', exact=True).click()
+    page.get_by_role('region', name='Workspace summary').get_by_role('button', name='Rescan', exact=True).click()
+    expect(page.get_by_role('status')).to_contain_text('Asset report generated')
+    page.get_by_role('status').get_by_role('button').click()
+    page.locator('.asset-card').filter(has_text='SPIN').filter(has_text='spin_{0-2}').first.locator('.asset-hit-target').click()
+    page.get_by_role('button', name='Make movie', exact=True).click()
+    dialog = page.get_by_role('dialog', name='Make a movie of SPIN')
+    expect(dialog.locator('#movie-path-variants')).to_have_text('Declared for en 1920x1080, en 1920x1200')
+    source_facts = dialog.locator('dl[aria-label="Source sequence parameters"]')
+    expect(source_facts.locator('dd')).to_have_text(['40', '0', 'null', 'en', '1920x1080, 1920x1200'])
+    expect(dialog.get_by_label('Path 2', exact=True)).to_have_count(0)
+    expect(dialog.locator('#movie-entry-heading')).to_have_text('RssMoviesData.json · movies · 2 entries')
+    BUILD.mkdir(exist_ok=True)
+    page.screenshot(path=str(BUILD / 'make-movie-variants.png'))
+    dialog.get_by_role('button', name='Make movie', exact=True).click()
+    expect(dialog).to_have_count(0)
+    movies = json.loads(descriptor.read_text())['movies']
+    assert [(movie['path'], movie.get('language'), movie.get('resolution')) for movie in movies] == [
+        ('m/anim/spin.mov', 'en', '1920x1080'), ('m/anim/spin.mov', 'en', '1920x1200')]
+    assert not (game / 'm' / 'anim' / 'it').exists()
+    details = page.get_by_role('dialog', name='spin.mov', exact=True)
+    details.get_by_role('button', name='Make movie', exact=True).click()
+    facts = page.get_by_role('dialog', name='Recreate spin.mov').locator('dl[aria-label="Current movie parameters"]')
+    expect(facts.locator('dt')).to_have_text(['current size', 'frames', 'FPS', 'language', 'resolution'])
+    expect(facts.locator('dd')).to_have_text(['4 × 4', '3', '25', 'en', '1920x1080, 1920x1200'])
+
+
 def test_make_movie_of_a_movie_only_recreates_its_file(new_context, details_backend):
     backend, game = details_backend
     descriptor = game / 'RssMoviesData.json'
@@ -312,6 +365,9 @@ def test_make_movie_of_a_movie_only_recreates_its_file(new_context, details_back
 
     details.get_by_role('button', name='Make movie', exact=True).click()
     dialog = page.get_by_role('dialog', name=re.compile('^Recreate '))
+    dialog.get_by_role('button', name='Close dialog', exact=True).click()
+    expect(dialog).to_have_count(0)
+    details.get_by_role('button', name='Make movie', exact=True).click()
     expect(dialog.get_by_label('Source', exact=True).locator('option:checked')).to_contain_text('SPIN (3 frames)')
     expect(dialog.get_by_label('RSS key')).to_have_count(0)
     expect(dialog.get_by_label('Path', exact=True)).not_to_be_editable()

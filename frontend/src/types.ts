@@ -137,9 +137,13 @@ export interface DeclarationKindOptions {
 }
 /** How an image sequence can be made into a movie (LibraryService.movie_options): a new RSS key and a path for it, the
  * descriptors that can declare it, its suggested format, and the sequence's timing. */
+/** The resolution and language of an ImageSequence entry, which a Movie entry made of its frames copies. */
+export interface MovieVariant { resolution?: string; language?: string }
 export interface MovieOptions {
-  id: string; ids: string[]; path: string; descriptors: string[]; formats: MovieFormat[]; movieFormat: MovieFormat;
+  /** One for each ImageSequence entry of the sequence's id with its frames: the movie gets a Movie entry for each. */
+  variants: MovieVariant[]; id: string; ids: string[]; path: string; descriptors: string[]; formats: MovieFormat[]; movieFormat: MovieFormat;
   sequenceId: string | null; frameTime: number; fps: number; loopCount: number; loopTo: number | null; frames: number;
+  language: string | null; resolution: string | null;
   crf: number; crfValues: number[]; gopSize: number; maxGopSize: number;
   ffmpeg: { arguments: string[][]; sizes: Record<MovieFormat, string> };
 }
@@ -147,8 +151,9 @@ export interface MovieOptions {
 export interface MovieSource { asset: string; name: string; resource: string; frames: number; match: boolean }
 /** How a movie's file can be recreated (LibraryService.recreate_movie_options): the sequences it can be made from, the
  * chosen source (the movie's own asset id for its own frames), the movie as it is now, and the source's frame rate. */
-export interface RecreateMovieOptions extends Omit<MovieOptions, 'id' | 'ids' | 'descriptors'> {
+export interface RecreateMovieOptions extends Omit<MovieOptions, 'id' | 'ids' | 'descriptors' | 'language' | 'resolution' | 'variants'> {
   sources: MovieSource[]; source: string; current: MovieFacts; sourceFps: number;
+  languages: (string | null)[]; resolutions: (string | null)[];
 }
 export type MovieAlphaFormat = 'valpha' | 'valpha-top' | 'halpha' | 'halpha-left';
 export type MovieFormat = MovieAlphaFormat | 'opaque';

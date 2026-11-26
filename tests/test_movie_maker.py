@@ -294,3 +294,34 @@ def test_a_movie_is_not_recreated_in_another_format_or_from_frames_that_do_not_f
     assert "one size" in client.post("/api/asset-report/movie-file", json=odd).json()["error"]
     assert client.post("/api/asset-report/movie-file", json={**body, "asset": spark}).status_code == 400
     assert movie.read_bytes() == before and {item.name for item in movie.parent.iterdir()} == {movie.name}
+
+
+
+def test_a_movie_gets_an_entry_for_each_resolution_and_language_of_its_sequence_frames(client):
+    game = client.game
+    for language in ("en", "it"):
+        folder = game / "art" / "1920x1080" / "Completed" / language
+        folder.mkdir(parents=True)
+        for index in range(3):
+            (folder / f"Done_{language}_{index}.png").write_bytes(frame(index))
+    data = json.loads((game / "RssImagesSeqData.json").read_text())
+    data["imagesSeq"] += [{"id": "ANIM_DONE", "language": language, "resolution": resolution, "frameTime": 40, "loopCount": 1,
+                           "frames": [{"path": f"art/1920x1080/Completed/{language[:2]}/Done_{language[:2]}_{{0-2}}.png"}]}
+                          for language, resolution in (("en-GB", "1920x1080"), ("en-GB", "1920x1200"), ("it-IT", "1920x1080"))]
+    (game / "RssImagesSeqData.json").write_text(json.dumps(data, indent=4))
+    assert client.post("/api/asset-report").status_code == 200
+    english = next(row for row in client.get("/api/asset-report").json()["assets"]
+                   if (row.get("sequence") or {}).get("id") == "ANIM_DONE" and "/en/" in row["resource"])
+
+    options = client.get("/api/asset-report/movie", params={"asset": english["id"]}).json()
+    assert options["path"] == "m/Completed/en/Done_en-rgba.mov"
+    assert options["variants"] == [{"resolution": "1920x1080", "language": "en-GB"}, {"resolution": "1920x1200", "language": "en-GB"}]
+    response = client.post("/api/asset-report/movie", json={
+        "asset": english["id"], "id": "ANIM_DONE_MOVIE", "path": options["path"], "descriptor": "RssMoviesData.json", "movieFormat": "valpha"})
+    assert response.status_code == 200, response.text
+    # Only the English frames are made into a movie, declared for the English entries' resolutions.
+    assert json.loads((game / "RssMoviesData.json").read_text())["movies"] == [
+        {"id": "ANIM_DONE_MOVIE", "path": "m/Completed/en/Done_en-rgba.mov", "movieFormat": "valpha", "resolution": "1920x1080", "language": "en-GB"},
+        {"id": "ANIM_DONE_MOVIE", "path": "m/Completed/en/Done_en-rgba.mov", "movieFormat": "valpha", "resolution": "1920x1200", "language": "en-GB"},
+    ]
+    assert [path.relative_to(game).as_posix() for path in (game / "m").rglob("*.mov")] == ["m/Completed/en/Done_en-rgba.mov"]

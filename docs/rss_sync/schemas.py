@@ -81,6 +81,9 @@ class Movie:
     id: str
     path: str
     movieFormat: str
+    resolution: str | None = None
+    language: str | None = None
+    integration: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

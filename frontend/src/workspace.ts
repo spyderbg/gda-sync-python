@@ -368,11 +368,12 @@ export async function createMovie(body: {
 }, sequence: { id: string | null; loopCount: number }) {
   busy.value = 'movie';
   try {
-    const result = await api<{ library: LibraryResponse; asset: string | null; descriptor: string; line: number }>('asset-report/movie', 'POST', body);
+    const result = await api<{ library: LibraryResponse; asset: string | null; descriptor: string; line: number; entries: unknown[] }>('asset-report/movie', 'POST', body);
     applyLibrary(result.library);
     if (result.asset) ui.inspecting = result.asset;
     const loop = sequence.loopCount === 1 ? '' : ` Set the element's loopCount to ${sequence.loopCount}: a movie plays once unless it does.`;
-    notify(`Made ${body.path} and declared it as ${body.id} in ${result.descriptor}:${result.line}. Name ${body.id} in an Anim element's rssKey instead of ${sequence.id ?? 'the sequence'}.${loop}`);
+    const times = result.entries.length > 1 ? ` ${result.entries.length} times, for the sequence's resolutions and languages,` : '';
+    notify(`Made ${body.path} and declared it as ${body.id}${times} in ${result.descriptor}:${result.line}. Name ${body.id} in an Anim element's rssKey instead of ${sequence.id ?? 'the sequence'}.${loop}`);
     return true;
   } catch (e) {
     notify((e as Error).message, true);
