@@ -1051,10 +1051,17 @@ class Library:
         return sorted(variants or [{}], key=lambda item: (item.get("language", ""), item.get("resolution", "")))
 
     @staticmethod
-    def _resource_ids(documents: dict[Path, object]) -> set[str]:
-        """The ids of every entry of the game's descriptors, of any kind."""
-        return {entry.id for document in documents.values() for item in dataclass_fields(document)
+    def _resource_keys(documents: dict[Path, object]) -> set[tuple[str, str | None, str | None]]:
+        """The id, resolution and language of every entry of the game's descriptors, of any kind: entries of one id
+        that differ by resolution or language are different resources, which the game picks between."""
+        return {(entry.id, getattr(entry, "resolution", None), getattr(entry, "language", None))
+                for document in documents.values() for item in dataclass_fields(document)
                 for entry in getattr(document, item.name) if isinstance(getattr(entry, "id", None), str)}
+
+    @staticmethod
+    def _key_taken(keys: set[tuple[str, str | None, str | None]], movie_id: str, variants: list[dict]) -> bool:
+        """Whether an entry of the game has the id with the resolution and language of one of the movie's entries."""
+        return any((movie_id, variant.get("resolution"), variant.get("language")) in keys for variant in variants)
 
     def movie_options(self, asset: str) -> dict:
         """How an image sequence can be made into a movie: a new id named like the game's movies (the sequence's with
@@ -1067,12 +1074,13 @@ class Library:
         source = next((item for item in getattr(document, "imagesSeq", ()) if item.id == sequence["id"]
                        and list(dict.fromkeys(os.path.relpath((game / frame.path).resolve(), game)
                                               for frame in item.frames)) == sequence["paths"]), None)
-        ids = self._resource_ids(documents)
+        keys = self._resource_keys(documents)
+        variants = self._movie_variants(row, game, documents, frames)
         name = sequence["id"] or asset_name(row)
         base = re.sub(r"[^0-9A-Za-z]+", "_", name).strip("_").upper() or "ANIM"
         suggested = f"{base if base.startswith('ANIM_') else 'ANIM_' + base}_MOVIE"
         candidate, number = suggested, 2
-        while candidate in ids:
+        while self._key_taken(keys, candidate, variants):
             candidate, number = f"{suggested}_{number}", number + 1
         try:
             movie_format, width, height = inspect_frames(frames)
@@ -1080,7 +1088,8 @@ class Library:
             raise AppError(f"The frames cannot be read: {error_message(error)}", 400) from error
         width, height = padded_size(width, height)
         frame_time = sequence["frameTime"]
-        return {"id": candidate, "variants": self._movie_variants(row, game, documents, frames), "ids": sorted(ids), "path": movie_path(frames[0][0], game, asset_name(row), movie_format),
+        return {"id": candidate, "variants": variants,
+                "keys": sorted([[key, resolution, language] for key, resolution, language in keys], key=lambda item: [part or "" for part in item]), "path": movie_path(frames[0][0], game, asset_name(row), movie_format),
                 "descriptors": [path.relative_to(game).as_posix() for path in descriptor_targets(documents, KINDS["Movie"], game)],
                 "formats": list(MOVIE_FORMATS), "movieFormat": movie_format, "sequenceId": sequence["id"],
                 "frameTime": frame_time, "fps": round(1000 / frame_time, 3) if frame_time > 0 else 0,
@@ -1108,8 +1117,9 @@ class Library:
             row, game, documents, frames = self._sequence_asset(asset)
             if not re.fullmatch(r"[A-Za-z0-9_.\-]+", movie_id or ""):
                 raise AppError("A movie id is letters, digits, underscores, dots and hyphens", 400)
-            if movie_id in self._resource_ids(documents):
-                raise AppError(f"{movie_id} is the id of another resource of the game", 409)
+            variants = self._movie_variants(row, game, documents, frames)
+            if self._key_taken(self._resource_keys(documents), movie_id, variants):
+                raise AppError(f"{movie_id} is the id of another resource of the game with the same resolution and language", 409)
             relative_path = path.strip().replace("\\", "/")
             if not relative_path or relative_path.startswith("/") or Path(relative_path).suffix.lower() not in (".mov", ".mp4"):
                 raise AppError("The movie's path is a .mov or .mp4 file in the game folder", 400)
@@ -1126,7 +1136,7 @@ class Library:
             descriptor_relative = os.path.relpath(targets[descriptor], resources)
             target = safe_path(resources, descriptor_relative)
             entries = [{"id": movie_id, "path": relative_path, **({"movieFormat": movie_format} if movie_format != "opaque" else {}), **variant}
-                       for variant in self._movie_variants(row, game, documents, frames)]
+                       for variant in variants]
             new_entry = entries[0]
             try:
                 data = Path(target).read_bytes()

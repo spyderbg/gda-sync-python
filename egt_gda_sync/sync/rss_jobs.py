@@ -87,6 +87,8 @@ class ReportFolder:
 
     # The report fields that hold its rows, which reading a report's header leaves out.
     rows: tuple[str, ...] = SKIPPED
+    # The indent reports are written with, or None for compact.
+    indent: int | None = None
 
     def __init__(self, folder: str):
         self.folder = folder
@@ -125,8 +127,9 @@ class ReportFolder:
     def _write(self, file: str, data: dict) -> None:
         # Compact, and encoded at once: json.dumps without an indent encodes in C, while json.dump and any indent use the
         # pure-Python encoder. An 18 MB indented sync report took 0.47 s to write, holding the server's other threads;
-        # compact it is 7.3 MB and takes 0.07 s.
-        text = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+        # compact it is 7.3 MB and takes 0.07 s. A folder whose reports are small enough to read sets indent instead.
+        text = (json.dumps(data, ensure_ascii=False, indent=self.indent) if self.indent is not None
+                else json.dumps(data, ensure_ascii=False, separators=(",", ":")))
         os.makedirs(self.folder, exist_ok=True)
         temporary = os.path.join(self.folder, f".{os.path.basename(file)}-{uuid.uuid4()}")
         try:

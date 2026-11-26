@@ -137,7 +137,16 @@ const problems = computed(() => {
     const id = key.value.trim();
     if (!id) result.push('The movie needs an RSS key.');
     else if (!/^[A-Za-z0-9_.-]+$/.test(id)) result.push('An RSS key is letters, digits, underscores, dots and hyphens.');
-    else if (creation.value.ids.includes(id)) result.push(`${id} is the key of another resource of the game.`);
+    else {
+      // Entries of one key that differ by resolution or language are different resources.
+      const taken = creation.value.variants.length ? creation.value.variants : [{}];
+      const clash = taken.find(variant => creation.value!.keys.some(([other, resolution, language]) =>
+        other === id && resolution === (variant.resolution ?? null) && language === (variant.language ?? null)));
+      if (clash) {
+        const detail = [clash.language, clash.resolution].filter(Boolean).join(' ');
+        result.push(`${id} is the key of another resource of the game${detail ? ` for ${detail}` : ''}.`);
+      }
+    }
   }
   if (!container.value) result.push('The path is a .mov or .mp4 file in the game folder.');
   if (!validFps.value) result.push('Enter a frame rate greater than zero.');

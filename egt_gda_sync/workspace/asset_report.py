@@ -244,6 +244,8 @@ class AssetReports(ReportFolder):
     """The asset reports of each workspace, written whenever one is generated; the library shows the newest."""
 
     rows = ("assets",)
+    # Formatted, to be read: the largest asset report, 3 MB indented, takes 0.02 s to write.
+    indent = 4
 
     def save(self, workspace_id: str, workspace: dict, started_at: str, result: dict) -> str:
         """Save a generated report with the workspace settings it used, and return its file."""

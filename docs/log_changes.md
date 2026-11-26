@@ -7,6 +7,14 @@ Versions follow the project's single-digit major.minor.build scheme.
 
 ## [Unreleased]
 
+### Changed
+
+- Save asset report files formatted, indented by 4 spaces, so they can be read
+
+### Fixed
+
+- Let Make movie use a key that another entry has with a different resolution or language: only an entry with the same id, resolution and language is the same resource
+
 ## [2.1.5] - 2026-11-26
 
 ### Added

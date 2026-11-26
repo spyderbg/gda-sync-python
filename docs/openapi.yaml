@@ -4,7 +4,7 @@ info:
   description: The local HTTP API of EGT GDA Sync. It answers only requests to a loopback
     host; requests other than GET and HEAD need the session token that GET /api/session
     returns, in the X-GDA-Token header.
-  version: 2.1.4
+  version: 2.1.5
 components:
   schemas:
     AppSettingsBody:

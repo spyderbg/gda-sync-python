@@ -141,7 +141,9 @@ export interface DeclarationKindOptions {
 export interface MovieVariant { resolution?: string; language?: string }
 export interface MovieOptions {
   /** One for each ImageSequence entry of the sequence's id with its frames: the movie gets a Movie entry for each. */
-  variants: MovieVariant[]; id: string; ids: string[]; path: string; descriptors: string[]; formats: MovieFormat[]; movieFormat: MovieFormat;
+  variants: MovieVariant[]; id: string;
+  /** The id, resolution and language of every entry of the game: a new entry must not have all three of one. */
+  keys: [string, string | null, string | null][]; path: string; descriptors: string[]; formats: MovieFormat[]; movieFormat: MovieFormat;
   sequenceId: string | null; frameTime: number; fps: number; loopCount: number; loopTo: number | null; frames: number;
   language: string | null; resolution: string | null;
   crf: number; crfValues: number[]; gopSize: number; maxGopSize: number;
@@ -151,7 +153,7 @@ export interface MovieOptions {
 export interface MovieSource { asset: string; name: string; resource: string; frames: number; match: boolean }
 /** How a movie's file can be recreated (LibraryService.recreate_movie_options): the sequences it can be made from, the
  * chosen source (the movie's own asset id for its own frames), the movie as it is now, and the source's frame rate. */
-export interface RecreateMovieOptions extends Omit<MovieOptions, 'id' | 'ids' | 'descriptors' | 'language' | 'resolution' | 'variants'> {
+export interface RecreateMovieOptions extends Omit<MovieOptions, 'id' | 'keys' | 'descriptors' | 'language' | 'resolution' | 'variants'> {
   sources: MovieSource[]; source: string; current: MovieFacts; sourceFps: number;
   languages: (string | null)[]; resolutions: (string | null)[];
 }

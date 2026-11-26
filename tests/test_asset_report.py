@@ -198,6 +198,8 @@ def test_generating_a_report_saves_it_and_the_library_shows_the_newest(client):
     assert status["summary"]["state"] == "succeeded" and status["summary"]["assets"] == 9
     assert Path(status["reportPath"]).parent == client.home / "asset-reports"
     assert Path(status["reportPath"]).name.startswith("example-")
+    # Saved formatted, to be read.
+    assert Path(status["reportPath"]).read_text(encoding="utf-8").startswith('{\n    "version": ')
     report = client.get("/api/asset-report").json()
     # Like a GDA sync report: the settings it used, the parsed descriptors, the summary with the run, then the rows.
     assert list(report) == ["version", "workspace", "descriptors", "folders", "summary", "assets"]

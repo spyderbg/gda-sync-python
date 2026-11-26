@@ -140,7 +140,7 @@ def test_making_a_movie_encodes_the_frames_and_declares_it_under_a_new_id(client
     again = {"asset": row["id"], "id": "ANIM_SPARK_MOVIE", "path": "m/fx/other.mov", "descriptor": "RssMoviesData.json", "movieFormat": "valpha"}
     assert client.post("/api/asset-report/movie", json=again).status_code == 409
     taken = {**again, "id": "ANIM_SPARK", "path": "m/fx/other.mov"}
-    assert client.post("/api/asset-report/movie", json=taken).json()["error"] == "ANIM_SPARK is the id of another resource of the game"
+    assert client.post("/api/asset-report/movie", json=taken).json()["error"] == "ANIM_SPARK is the id of another resource of the game with the same resolution and language"
     existing = {**again, "id": "ANIM_SPARK_2", "path": "m/fx/Spark-rgba.mov"}
     assert client.post("/api/asset-report/movie", json=existing).json()["error"] == "m/fx/Spark-rgba.mov exists already"
     outside = {**again, "id": "ANIM_SPARK_2", "path": "../elsewhere.mov"}
@@ -325,3 +325,21 @@ def test_a_movie_gets_an_entry_for_each_resolution_and_language_of_its_sequence_
         {"id": "ANIM_DONE_MOVIE", "path": "m/Completed/en/Done_en-rgba.mov", "movieFormat": "valpha", "resolution": "1920x1200", "language": "en-GB"},
     ]
     assert [path.relative_to(game).as_posix() for path in (game / "m").rglob("*.mov")] == ["m/Completed/en/Done_en-rgba.mov"]
+
+    # The Italian frames' movie can have the same key: its entries differ from the English ones by language.
+    italian = next(row for row in client.get("/api/asset-report").json()["assets"]
+                   if (row.get("sequence") or {}).get("id") == "ANIM_DONE" and "/it/" in row["resource"])
+    options = client.get("/api/asset-report/movie", params={"asset": italian["id"]}).json()
+    assert options["id"] == "ANIM_DONE_MOVIE" and ["ANIM_DONE_MOVIE", "1920x1080", "en-GB"] in options["keys"]
+    response = client.post("/api/asset-report/movie", json={
+        "asset": italian["id"], "id": "ANIM_DONE_MOVIE", "path": options["path"], "descriptor": "RssMoviesData.json", "movieFormat": "valpha"})
+    assert response.status_code == 200, response.text
+    assert [(item["language"], item["resolution"]) for item in json.loads((game / "RssMoviesData.json").read_text())["movies"]] == [
+        ("en-GB", "1920x1080"), ("en-GB", "1920x1200"), ("it-IT", "1920x1080")]
+    # Now one with its id, resolution and language exists, so a second one is refused.
+    english = next(row for row in client.get("/api/asset-report").json()["assets"]
+                   if (row.get("sequence") or {}).get("id") == "ANIM_DONE" and "/en/" in row["resource"])
+    assert client.get("/api/asset-report/movie", params={"asset": english["id"]}).json()["id"] == "ANIM_DONE_MOVIE_2"
+    again = client.post("/api/asset-report/movie", json={
+        "asset": english["id"], "id": "ANIM_DONE_MOVIE", "path": "m/Completed/en/Other.mov", "descriptor": "RssMoviesData.json", "movieFormat": "valpha"})
+    assert again.status_code == 409
