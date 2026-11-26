@@ -7,16 +7,30 @@ Versions follow the project's single-digit major.minor.build scheme.
 
 ## [Unreleased]
 
+## [2.1.5] - 2026-11-26
+
 ### Added
 
 - Add a working folder, `config.working_path` in workspace.json, where the app keeps its data from its next start, and a Global settings page, the gear on the Dashboard, that edits it
 - Declare a movie made of an image sequence once for each resolution and language of the sequence's entries with its frames
 - Recreate a movie's file from its details in the Asset library, from an image sequence or its own frames, keeping its path and RSS keys
+- Add working folder setting and Global settings page
+- Add packed alpha layouts and encoder options for movie maker
+
+### Changed
+
+- Draw RTF info pages with system fonts and inline video
+- Wrap long lines in movie encoder
+- Name the Sync comparison Re-sync and share one button for it
+- Recreate a movie's file from its details in the Asset library
+- Step movie previews by frame and compose alpha from one snapshot
+- Declare movies once per sequence resolution and language
 
 ### Fixed
 
 - Fill Burning Crown's info screen paytable: name its melon and crown figures as the RTF does, and show a tetra sub screen's wins in the tetra round
 - Draw Info Screen paytables with the configured system fonts and restore inline RTF animations, including Tetra Spins
+- Fix Burning Crown info screen paytable
 
 ## [2.1.4] - 2026-11-19
 
@@ -276,5 +290,7 @@ Versions follow the project's single-digit major.minor.build scheme.
 
 [2.1.3]: https://github.com/spyderbg/gda-sync-python/compare/1eb00518a15d1689470da5aa7f30b123de52d0d2...releases%2Fv2.1.3
 
-[Unreleased]: https://github.com/spyderbg/gda-sync-python/compare/releases%2Fv2.1.4...HEAD
 [2.1.4]: https://github.com/spyderbg/gda-sync-python/compare/7fe352b445ec13fc3250fe7ab4bcf2c1bccce665...releases%2Fv2.1.4
+
+[Unreleased]: https://github.com/spyderbg/gda-sync-python/compare/releases%2Fv2.1.5...HEAD
+[2.1.5]: https://github.com/spyderbg/gda-sync-python/compare/36bdcfcd96a772e20003d3030b978533ccb6e214...releases%2Fv2.1.5
